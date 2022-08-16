@@ -43,18 +43,18 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             }
             '\n' => {
                 word_end = true;
-                num_end = true
+                num_end = true;
             }
             ' ' | '\t' => {
-                word_end = true
+                word_end = true;
                 //num_end = true
             }
             '0'..='9' => match ns {
                 usize::MAX => {
                     ns = i; //new number array started
-                    ne = i
+                    ne = i;
                 }
-                _ => ne = i, //number continued
+                _ => ne = i //number continued
             },
             '.' => {
                 match ns {
@@ -63,7 +63,7 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                         match ws {
                             usize::MAX => {
                                 ws = i; //new word started
-                                we = i
+                                we = i;
                             }
                             _ => we = i, //word continued
                         }
@@ -76,7 +76,7 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                 match ws {
                     usize::MAX => {
                         ws = i; //new word started
-                        we = i
+                        we = i;
                     }
                     _ => we = i, //word continued
                 }
@@ -85,11 +85,11 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
         if word_end && (ws < usize::MAX) {
             tokens.push(Token::Verb(String::from(&sentence[ws..=we])));
             ws = usize::MAX;
-            we = usize::MAX
+            we = usize::MAX;
         } else if num_end && (ns < usize::MAX) {
             tokens.push(Token::LiteralNumberArray(String::from(&sentence[ns..=ne])));
             ns = usize::MAX;
-            ne = usize::MAX
+            ne = usize::MAX;
         }
         match new_token {
             Some(t) => tokens.push(t),
