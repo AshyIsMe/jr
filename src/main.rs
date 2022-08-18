@@ -109,6 +109,7 @@ fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
                 }
                 false => leading_quote = true,
             },
+            '\n' => return Err(ParseError {message: String::from("open quote")}),
             _ => match leading_quote {
                 true => {
                     //string closed previous char
@@ -121,7 +122,6 @@ fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
             },
         }
     }
-    //Err(ParseError {message: String::from("invalid string?")})
     Ok((
         l,
         Token::LitString(String::from(&sentence[1..l]).replace("''", "'")),
