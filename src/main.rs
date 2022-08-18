@@ -104,6 +104,7 @@ fn main() -> io::Result<()> {
     loop {
         // repl
         stdout.write(b"   ")?; //prompt
+        stdout.flush()?;
         stdin.read_line(&mut buffer)?;
 
         match buffer.trim() {
