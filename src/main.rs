@@ -40,19 +40,24 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                 word_end = true;
                 new_token = Some(Token::RP)
             }
-            '\n' => {
-                word_end = true;
-            }
-            ' ' | '\t' => {
+            ' ' | '\t' | '\n' => {
                 word_end = true;
             }
             '0'..='9' => match scanLitNumArray(&sentence[i..]) {
                 Ok((l, t)) => {
                     tokens.push(t);
-                    skip = l-1;
+                    skip = l;
                     continue;
                 }
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
+            },
+            '\'' => match scanLitString(&sentence[i..]) {
+                Ok((l, t)) => {
+                    tokens.push(t);
+                    skip = l;
+                    continue;
+                }
+                Err(e) => return Err(e),
             },
             _ => {
                 match ws {
@@ -92,6 +97,39 @@ fn scanLitNumArray(sentence: &str) -> Result<(usize, Token), ParseError> {
     }
     //Err(ParseError {message: String::from("Empty number literal")})
     Ok((l, Token::LitNumArray(String::from(&sentence[0..l]))))
+}
+
+fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
+    let mut l: usize = usize::MAX;
+    let mut leading_quote: bool = false;
+    for (i, c) in sentence.chars().enumerate().skip(1) {
+        l = i;
+        match c {
+            '\'' => match leading_quote {
+                true =>
+                // double quote in string, literal quote char
+                {
+                    leading_quote = false
+                }
+                false => leading_quote = true,
+            },
+            _ => match leading_quote {
+                true => {
+                    //string closed previous char
+                    l -= 1;
+                    break;
+                }
+                false => {
+                    () //still valid keep iterating
+                }
+            },
+        }
+    }
+    //Err(ParseError {message: String::from("invalid string?")})
+    Ok((
+        l,
+        Token::LitString(String::from(&sentence[1..l]).replace("''", "'")),
+    ))
 }
 
 fn main() -> io::Result<()> {
