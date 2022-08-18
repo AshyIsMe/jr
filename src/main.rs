@@ -43,22 +43,18 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             ' ' | '\t' | '\n' => {
                 word_end = true;
             }
-            '0'..='9' => match scanLitNumArray(&sentence[i..]) {
-                Ok((l, t)) => {
-                    tokens.push(t);
-                    skip = l;
-                    continue;
-                }
-                Err(e) => return Err(e),
-            },
-            '\'' => match scanLitString(&sentence[i..]) {
-                Ok((l, t)) => {
-                    tokens.push(t);
-                    skip = l;
-                    continue;
-                }
-                Err(e) => return Err(e),
-            },
+            '0'..='9' => {
+                let (l, t) = scanLitNumArray(&sentence[i..])?;
+                tokens.push(t);
+                skip = l;
+                continue;
+            }
+            '\'' => {
+                let (l, t) = scanLitString(&sentence[i..])?;
+                tokens.push(t);
+                skip = l;
+                continue;
+            }
             _ => {
                 match ws {
                     usize::MAX => {
