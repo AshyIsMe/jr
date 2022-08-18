@@ -5,8 +5,8 @@ enum Token {
     LP,
     RP,
     Verb(String),
-    LiteralNumberArray(String),
-    LiteralString(String),
+    LitNumArray(String),
+    LitString(String),
 }
 
 #[derive(Debug)]
@@ -21,58 +21,40 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
     let mut word_end: bool;
     let mut new_token: Option<Token>;
 
-    let mut ns: usize = usize::MAX; //number array start
-    let mut ne: usize = usize::MAX; //number array end
-    let mut num_end: bool;
+    let mut skip: usize = 0;
 
     //TODO recursive descent instead of a dumb loop
     for (i, c) in sentence.chars().enumerate() {
         word_end = false;
         new_token = None;
-        num_end = false;
+        if skip > 0 {
+            skip -= 1;
+            continue;
+        }
         match c {
             '(' => {
                 word_end = true;
-                num_end = true;
                 new_token = Some(Token::LP)
             }
             ')' => {
                 word_end = true;
-                num_end = true;
                 new_token = Some(Token::RP)
             }
             '\n' => {
                 word_end = true;
-                num_end = true;
             }
             ' ' | '\t' => {
                 word_end = true;
-                //num_end = true
             }
-            '0'..='9' => match ns {
-                usize::MAX => {
-                    ns = i; //new number array started
-                    ne = i;
+            '0'..='9' => match scanLitNumArray(&sentence[i..]) {
+                Ok((l, t)) => {
+                    tokens.push(t);
+                    skip = l-1;
+                    continue;
                 }
-                _ => ne = i //number continued
+                Err(e) => return Err(e)
             },
-            '.' => {
-                match ns {
-                    usize::MAX => {
-                        //not in a number
-                        match ws {
-                            usize::MAX => {
-                                ws = i; //new word started
-                                we = i;
-                            }
-                            _ => we = i, //word continued
-                        }
-                    }
-                    _ => ne = i, //number continued
-                }
-            }
             _ => {
-                num_end = true;
                 match ws {
                     usize::MAX => {
                         ws = i; //new word started
@@ -86,10 +68,6 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             tokens.push(Token::Verb(String::from(&sentence[ws..=we])));
             ws = usize::MAX;
             we = usize::MAX;
-        } else if num_end && (ns < usize::MAX) {
-            tokens.push(Token::LiteralNumberArray(String::from(&sentence[ns..=ne])));
-            ns = usize::MAX;
-            ne = usize::MAX;
         }
         match new_token {
             Some(t) => tokens.push(t),
@@ -97,6 +75,23 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
         }
     }
     Ok(tokens)
+}
+
+fn scanLitNumArray(sentence: &str) -> Result<(usize, Token), ParseError> {
+    let mut l: usize = usize::MAX;
+    for (i, c) in sentence.chars().enumerate() {
+        l = i;
+        match c {
+            '0'..='9' | '.' | 'e' | 'j' | 'r' | ' ' | '\t' => {
+                () //still valid keep iterating
+            }
+            _ => {
+                break;
+            }
+        }
+    }
+    //Err(ParseError {message: String::from("Empty number literal")})
+    Ok((l, Token::LitNumArray(String::from(&sentence[0..l]))))
 }
 
 fn main() -> io::Result<()> {
