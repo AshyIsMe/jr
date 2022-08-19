@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Token {
     LP,
     RP,
@@ -44,13 +44,13 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                 word_end = true;
             }
             '0'..='9' => {
-                let (l, t) = scanLitNumArray(&sentence[i..])?;
+                let (l, t) = scan_litnumarray(&sentence[i..])?;
                 tokens.push(t);
                 skip = l;
                 continue;
             }
             '\'' => {
-                let (l, t) = scanLitString(&sentence[i..])?;
+                let (l, t) = scan_litstring(&sentence[i..])?;
                 tokens.push(t);
                 skip = l;
                 continue;
@@ -78,7 +78,7 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
     Ok(tokens)
 }
 
-fn scanLitNumArray(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
     let mut l: usize = usize::MAX;
     for (i, c) in sentence.chars().enumerate() {
         l = i;
@@ -95,7 +95,7 @@ fn scanLitNumArray(sentence: &str) -> Result<(usize, Token), ParseError> {
     Ok((l, Token::LitNumArray(String::from(&sentence[0..l]))))
 }
 
-fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
     let mut l: usize = usize::MAX;
     let mut leading_quote: bool = false;
     for (i, c) in sentence.chars().enumerate().skip(1) {
@@ -109,7 +109,11 @@ fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
                 }
                 false => leading_quote = true,
             },
-            '\n' => return Err(ParseError {message: String::from("open quote")}),
+            '\n' => {
+                return Err(ParseError {
+                    message: String::from("open quote"),
+                })
+            }
             _ => match leading_quote {
                 true => {
                     //string closed previous char
@@ -126,6 +130,19 @@ fn scanLitString(sentence: &str) -> Result<(usize, Token), ParseError> {
         l,
         Token::LitString(String::from(&sentence[1..l]).replace("''", "'")),
     ))
+}
+
+fn scan_word(sentence: &str) -> Result<(usize, Token), ParseError> {
+    // user defined adverbs/verbs/nouns
+    let mut l: usize = usize::MAX;
+    for (i, c) in sentence.chars().enumerate() {
+        l = i;
+        if "()`.:; \t\n".contains(c) {
+            break;
+        }
+    }
+    //Err(ParseError {message: String::from("Empty number literal")})
+    Ok((l, Token::Verb(String::from(&sentence[0..l]))))
 }
 
 fn main() -> io::Result<()> {
@@ -152,4 +169,12 @@ fn main() -> io::Result<()> {
     }
 
     Ok(())
+}
+
+
+#[test]
+fn scan_num() {
+    let tokens = scan("1 2 3\n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 3"))]);
 }
