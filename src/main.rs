@@ -38,7 +38,7 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             }
             ' ' | '\t' | '\n' => {
             }
-            '0'..='9' => {
+            '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
                 tokens.push(t);
                 skip = l;
@@ -72,7 +72,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match c {
-            '0'..='9' | '.' | 'e' | 'j' | 'r' | ' ' | '\t' => {
+            '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t' => {
                 () //still valid keep iterating
             }
             _ => {
