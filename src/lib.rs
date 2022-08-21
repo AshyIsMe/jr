@@ -325,8 +325,37 @@ fn only_whitespace() {
 }
 
 #[test]
-fn test_scan_primitive() {
+fn test_scan_name_verb_name_not_spaced() {
+    let tokens = scan("foo+bar\n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(
+        tokens,
+        [
+            Token::Name(String::from("foo")),
+            Token::Primitive(String::from("+")),
+            Token::Name(String::from("bar")),
+        ]
+    );
+}
+
+
+#[test]
+fn test_scan_primitives() {
     let tokens = scan("a. I. 'A' \n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(
+        tokens,
+        [
+            Token::Primitive(String::from("a.")),
+            Token::Primitive(String::from("I.")),
+            Token::LitString(String::from("A")),
+        ]
+    );
+}
+
+#[test]
+fn test_scan_primitives_not_spaced() {
+    let tokens = scan("a.I.'A' \n").unwrap();
     println!("{:?}", tokens);
     assert_eq!(
         tokens,
