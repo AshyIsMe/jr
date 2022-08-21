@@ -3,7 +3,7 @@ use std::io::{self, Write};
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 #[derive(Debug, PartialEq)]
-enum Token {
+pub enum Token {
     LP,
     RP,
     Primitive(String),
@@ -84,11 +84,11 @@ fn primitives() -> Vec<&'static str> {
 }
 
 #[derive(Debug)]
-struct ParseError {
+pub struct ParseError {
     message: String,
 }
 
-fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
+pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
     let mut tokens: Vec<Token> = Vec::new();
 
     let mut skip: usize = 0;
@@ -279,32 +279,6 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
     }
     //Err(ParseError {message: String::from("Empty number literal")})
     Ok((l, Token::Primitive(String::from(&sentence[0..l]))))
-}
-
-fn main() -> io::Result<()> {
-    let mut buffer = String::new();
-    let stdin = io::stdin();
-    let mut stdout = io::stdout();
-
-    println!("jr {}", option_env!("CARGO_PKG_VERSION").unwrap());
-
-    loop {
-        // repl
-        stdout.write(b"   ")?; //prompt
-        stdout.flush()?;
-        stdin.read_line(&mut buffer)?;
-
-        match buffer.trim() {
-            "exit" => break,
-            _sentence => {
-                let tokens = scan(&buffer);
-                println!("tokens: {:?}", tokens);
-                buffer = String::from("");
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[test]
