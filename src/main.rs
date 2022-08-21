@@ -12,6 +12,77 @@ enum Token {
     LitString(String),
 }
 
+#[rustfmt::skip]
+fn primitives() -> Vec<&'static str> {
+    // https://code.jsoftware.com/wiki/NuVoc
+    vec![
+    "=","=.","=:",
+    "<","<.","<:",
+    ">",">.",">:",
+    "_","_.","_:",
+
+    "+","+.","+:",
+    "*","*.","*:",
+    "-","-.","-:",
+    "%","%.","%:",
+
+    "^","^.","^:",
+    "^!.",
+    "$","$.","$:",
+    "~","~.","~:",
+    "|","|.","|:",
+
+    ".","..",".:",
+    ":",":.","::",
+    ",.",",",",:",
+    ";",";.",";:",
+
+    "#","#.","#:",
+    "!","!.","!:",
+    "/","/.","/:",
+    "\\","\\.","\\:",
+
+    "[","[.","[:",
+    "]","].","]:",
+    "{","{.","{:","{::",
+    "}","}.","}:",
+    "{{","}}",
+
+    "\"","\".","\":",
+    "`","`:",
+    "@","@.","@:",
+    "&","&.","&:","&.:",
+    "?","?.",
+
+    "a.","a:","A.",
+    "b.","C.","C.!.2","d.",
+    "D.","D:","e.",
+    "E.","f:",
+    "F.","F..","F.:",
+    "F:","F:.","F::",
+
+    "H.","i.","i:",
+    "I.","j.","L.",
+    "L:","M.","NB.",
+    "o.","p.","p..",
+
+    "p:","q:","r.",
+    "s:","S:","t.",
+    "T.","u:","x:",
+    "Z:",
+    "_9:","_8:","_7:","_6:","_5:","_4:","_3:","_2:","_1:","0:","1:","2:","3:","4:","5:","6:","7:","8:","9",
+    "u.","v.",
+    "assert.", "break.", "continue.",
+    "else.", "elseif.", "for.",
+    "for_ijk.",   // TODO handle ijk label properly
+    "goto_lbl.",  // TODO handle lbl properly
+    "label_lbl.", // TODO handle lbl properly
+    "if.", "return.", "select.", "case.", "fcase.",
+    "throw.", "try.", "catch.", "catchd.", "catcht.",
+    "while.", "whilst.",
+    ]
+}
+
 #[derive(Debug)]
 struct ParseError {
     message: String,
@@ -36,8 +107,7 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             ')' => {
                 tokens.push(Token::RP);
             }
-            ' ' | '\t' | '\n' => {
-            }
+            ' ' | '\t' | '\n' => {}
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
                 tokens.push(t);
@@ -124,6 +194,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
 fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
+    let mut p: Option<Token> = None;
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         //if "()`.:; \t\n".contains(c) {
@@ -132,12 +203,44 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
         // Name is a word that begins with a letter and contains letters, numerals, and
         // underscores. (See Glossary).
         match c {
-            'a'..='z' | 'A'..='Z' | '_' => (),
+            'a'..='z' | 'A'..='Z' | '_' => {
+                match p {
+                    None => (),
+                    Some(_) => {
+                        // Primitive was found on previous char, backtrack and break
+                        l -= 1;
+                        break;
+                    }
+                }
+            }
+            '.' | ':' => {
+                match p {
+                    None => {
+                        if primitives().contains(&&sentence[0..l]) {
+                            // Found a primitive. eg: F.
+                            p = Some(Token::Primitive(String::from(&sentence[0..l])));
+                        }
+                    }
+                    Some(_) => {
+                        if primitives().contains(&&sentence[0..l]) {
+                            // Found a longer primitive. eg: F.:
+                            p = Some(Token::Primitive(String::from(&sentence[0..l])));
+                        } else {
+                            // Primitive was found on previous char, backtrack and break
+                            l -= 1;
+                            break;
+                        }
+                    }
+                }
+            }
             _ => break,
         }
     }
     //Err(ParseError {message: String::from("Empty number literal")})
-    Ok((l, Token::Name(String::from(&sentence[0..l]))))
+    match p {
+        Some(p) => Ok((l, p)),
+        None => Ok((l, Token::Name(String::from(&sentence[0..l])))),
+    }
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
@@ -206,9 +309,9 @@ fn main() -> io::Result<()> {
 
 #[test]
 fn test_scan_num() {
-    let tokens = scan("1 2 3\n").unwrap();
+    let tokens = scan("1 2 _3\n").unwrap();
     println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 3"))]);
+    assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 _3"))]);
 }
 
 #[test]
@@ -235,6 +338,20 @@ fn test_scan_name_verb_name() {
             Token::Name(String::from("foo")),
             Token::Primitive(String::from("+")),
             Token::Name(String::from("bar")),
+        ]
+    );
+}
+
+#[test]
+fn test_scan_primitive() {
+    let tokens = scan("a. I. 'A' \n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(
+        tokens,
+        [
+            Token::Primitive(String::from("a.")),
+            Token::Primitive(String::from("I.")),
+            Token::LitString(String::from("A")),
         ]
     );
 }
