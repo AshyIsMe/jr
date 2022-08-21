@@ -26,7 +26,8 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
 
     let mut skip: usize = 0;
 
-    //TODO recursive descent instead of a dumb loop
+    //TODO recursive descent instead of a dumb loop.
+    //TODO support multiline definitions.
     for (i, c) in sentence.chars().enumerate() {
         word_end = false;
         new_token = None;
