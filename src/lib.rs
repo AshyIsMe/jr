@@ -13,7 +13,7 @@ pub enum Token {
 }
 
 #[rustfmt::skip]
-fn primitives() -> Vec<&'static str> {
+fn primitives() -> Vec<String> {
     // https://code.jsoftware.com/wiki/NuVoc
     vec![
     "=","=.","=:",
@@ -80,7 +80,7 @@ fn primitives() -> Vec<&'static str> {
     "if.", "return.", "select.", "case.", "fcase.",
     "throw.", "try.", "catch.", "catchd.", "catcht.",
     "while.", "whilst.",
-    ]
+    ].into_iter().map(String::from).collect()
 }
 
 #[derive(Debug)]
@@ -216,15 +216,16 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
             '.' | ':' => {
                 match p {
                     None => {
-                        if primitives().contains(&&sentence[0..l]) {
+                        if primitives().contains(&String::from(&sentence[0..=l])) {
                             // Found a primitive. eg: F.
-                            p = Some(Token::Primitive(String::from(&sentence[0..l])));
+                            p = Some(Token::Primitive(String::from(&sentence[0..=l])));
+                            println!("{:?}", p)
                         }
                     }
                     Some(_) => {
-                        if primitives().contains(&&sentence[0..l]) {
+                        if primitives().contains(&String::from(&sentence[0..=l])) {
                             // Found a longer primitive. eg: F.:
-                            p = Some(Token::Primitive(String::from(&sentence[0..l])));
+                            p = Some(Token::Primitive(String::from(&sentence[0..=l])));
                         } else {
                             // Primitive was found on previous char, backtrack and break
                             l -= 1;
@@ -237,6 +238,8 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
         }
     }
     //Err(ParseError {message: String::from("Empty number literal")})
+
+    println!("{:?}", p);
     match p {
         Some(p) => Ok((l, p)),
         None => Ok((l, Token::Name(String::from(&sentence[0..l])))),
