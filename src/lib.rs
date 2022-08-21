@@ -155,6 +155,12 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
+    if sentence.len() < 2 {
+        return Err(ParseError {
+            message: String::from("Empty literal string"),
+        });
+    }
+
     let mut l: usize = usize::MAX;
     let mut leading_quote: bool = false;
     for (i, c) in sentence.chars().enumerate().skip(1) {
@@ -219,7 +225,6 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
                         if primitives().contains(&String::from(&sentence[0..=l])) {
                             // Found a primitive. eg: F.
                             p = Some(Token::Primitive(String::from(&sentence[0..=l])));
-                            println!("{:?}", p)
                         }
                     }
                     Some(_) => {
@@ -237,12 +242,13 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
             _ => break,
         }
     }
-    //Err(ParseError {message: String::from("Empty number literal")})
 
-    println!("{:?}", p);
     match p {
         Some(p) => Ok((l, p)),
-        None => Ok((l, Token::Name(String::from(&sentence[0..l])))),
+        None if 0 != l => Ok((l, Token::Name(String::from(&sentence[0..l])))),
+        None => Err(ParseError {
+            message: String::from("Empty name"),
+        }),
     }
 }
 
@@ -280,7 +286,11 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-    //Err(ParseError {message: String::from("Empty number literal")})
+    if 0 == l {
+        return Err(ParseError {
+            message: String::from("Empty primitive"),
+        });
+    }
     Ok((l, Token::Primitive(String::from(&sentence[0..l]))))
 }
 
@@ -337,7 +347,6 @@ fn test_scan_name_verb_name_not_spaced() {
         ]
     );
 }
-
 
 #[test]
 fn test_scan_primitives() {
