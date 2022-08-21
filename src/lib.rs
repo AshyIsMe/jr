@@ -252,7 +252,6 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-
     match p {
         Some(p) => Ok((l, p)),
         None => {
