@@ -1,10 +1,13 @@
 use std::io::{self, Write};
 
-#[derive(Debug,PartialEq)]
+// All terminology should match J terminology:
+// Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
+#[derive(Debug, PartialEq)]
 enum Token {
     LP,
     RP,
-    Verb(String),
+    Primitive(String),
+    Name(String),
     LitNumArray(String),
     LitString(String),
 }
@@ -55,25 +58,28 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                 skip = l;
                 continue;
             }
+            'a'..='z' | 'A'..='Z' => {
+                let (l, t) = scan_name(&sentence[i..])?;
+                tokens.push(t);
+                skip = l - 1;
+                continue;
+            }
             _ => {
-                match ws {
-                    usize::MAX => {
-                        ws = i; //new word started
-                        we = i;
-                    }
-                    _ => we = i, //word continued
-                }
+                let (l, t) = scan_primitive(&sentence[i..])?;
+                tokens.push(t);
+                skip = l - 1;
+                continue;
             }
         }
-        if word_end && (ws < usize::MAX) {
-            tokens.push(Token::Verb(String::from(&sentence[ws..=we])));
-            ws = usize::MAX;
-            we = usize::MAX;
-        }
-        match new_token {
-            Some(t) => tokens.push(t),
-            None => (),
-        }
+        //if word_end && (ws < usize::MAX) {
+        //tokens.push(Token::Primitive(String::from(&sentence[ws..=we])));
+        //ws = usize::MAX;
+        //we = usize::MAX;
+        //}
+        //match new_token {
+        //Some(t) => tokens.push(t),
+        //None => (),
+        //}
     }
     Ok(tokens)
 }
@@ -132,17 +138,61 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
     ))
 }
 
-fn scan_word(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
     for (i, c) in sentence.chars().enumerate() {
         l = i;
-        if "()`.:; \t\n".contains(c) {
-            break;
+        //if "()`.:; \t\n".contains(c) {
+        //break;
+        //}
+        // Name is a word that begins with a letter and contains letters, numerals, and
+        // underscores. (See Glossary).
+        match c {
+            'a'..='z' | 'A'..='Z' | '_' => (),
+            _ => break,
         }
     }
     //Err(ParseError {message: String::from("Empty number literal")})
-    Ok((l, Token::Verb(String::from(&sentence[0..l]))))
+    Ok((l, Token::Name(String::from(&sentence[0..l]))))
+}
+
+fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
+    // built in adverbs/verbs
+    let mut l: usize = 0;
+    let mut p: Option<char> = None;
+    //Primitives are 1 to 3 symbols:
+    //  - one symbol
+    //  - zero or more trailing . or : or both.
+    //  - OR {{ }} for definitions
+    for (i, c) in sentence.chars().enumerate() {
+        l = i;
+        match p {
+            None => p = Some(c),
+            Some(p) => {
+                match p {
+                    '{' => {
+                        if !"{.:".contains(c) {
+                            break;
+                        }
+                    }
+                    '}' => {
+                        if !"}.:".contains(c) {
+                            break;
+                        }
+                    }
+                    //if !"!\"#$%&*+,-./:;<=>?@[\\]^_`{|}~".contains(c) {
+                    _ => {
+                        if !".:".contains(c) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //Err(ParseError {message: String::from("Empty number literal")})
+    Ok((l, Token::Primitive(String::from(&sentence[0..l]))))
 }
 
 fn main() -> io::Result<()> {
@@ -171,10 +221,37 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-
 #[test]
-fn scan_num() {
+fn test_scan_num() {
     let tokens = scan("1 2 3\n").unwrap();
     println!("{:?}", tokens);
     assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 3"))]);
+}
+
+#[test]
+fn test_scan_string() {
+    let tokens = scan("'abc'").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(tokens, [Token::LitString(String::from("abc"))]);
+}
+
+#[test]
+fn test_scan_name() {
+    let tokens = scan("abc\n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(tokens, [Token::Name(String::from("abc"))]);
+}
+
+#[test]
+fn test_scan_name_verb_name() {
+    let tokens = scan("foo + bar\n").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(
+        tokens,
+        [
+            Token::Name(String::from("foo")),
+            Token::Primitive(String::from("+")),
+            Token::Name(String::from("bar")),
+        ]
+    );
 }
