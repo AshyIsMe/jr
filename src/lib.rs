@@ -107,7 +107,7 @@ pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             ')' => {
                 tokens.push(Token::RP);
             }
-            ' ' | '\t' | '\n' => {}
+            c if c.is_whitespace() => (),
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
                 tokens.push(t);
@@ -317,6 +317,11 @@ fn test_scan_name_verb_name() {
             Token::Name(String::from("bar")),
         ]
     );
+}
+
+#[test]
+fn only_whitespace() {
+    scan("\r").unwrap();
 }
 
 #[test]
