@@ -19,33 +19,24 @@ struct ParseError {
 
 fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
     let mut tokens: Vec<Token> = Vec::new();
-    let mut ws: usize = usize::MAX; //word start
-    let mut we: usize = usize::MAX; //word end
-    let mut word_end: bool;
-    let mut new_token: Option<Token>;
 
     let mut skip: usize = 0;
 
     //TODO recursive descent instead of a dumb loop.
     //TODO support multiline definitions.
     for (i, c) in sentence.chars().enumerate() {
-        word_end = false;
-        new_token = None;
         if skip > 0 {
             skip -= 1;
             continue;
         }
         match c {
             '(' => {
-                word_end = true;
-                new_token = Some(Token::LP)
+                tokens.push(Token::LP);
             }
             ')' => {
-                word_end = true;
-                new_token = Some(Token::RP)
+                tokens.push(Token::RP);
             }
             ' ' | '\t' | '\n' => {
-                word_end = true;
             }
             '0'..='9' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
@@ -72,15 +63,6 @@ fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
                 continue;
             }
         }
-        //if word_end && (ws < usize::MAX) {
-        //tokens.push(Token::Primitive(String::from(&sentence[ws..=we])));
-        //ws = usize::MAX;
-        //we = usize::MAX;
-        //}
-        //match new_token {
-        //Some(t) => tokens.push(t),
-        //None => (),
-        //}
     }
     Ok(tokens)
 }
