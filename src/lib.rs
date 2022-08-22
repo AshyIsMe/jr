@@ -123,13 +123,13 @@ pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
                 tokens.push(t);
-                skip = l - 1;
+                skip = l;
                 continue;
             }
             _ => {
                 let (l, t) = scan_primitive(&sentence[i..])?;
                 tokens.push(t);
-                skip = l - 1;
+                skip = l;
                 continue;
             }
         }
@@ -162,24 +162,31 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
     }
 
     let mut l: usize = usize::MAX;
-    let mut leading_quote: bool = false;
+    let mut prev_c_is_quote: bool = false;
+    // strings in j are single quoted: 'foobar'.
+    // literal ' chars are included in a string by doubling: 'foo ''lol'' bar'.
     for (i, c) in sentence.chars().enumerate().skip(1) {
         l = i;
         match c {
-            '\'' => match leading_quote {
+            '\'' => match prev_c_is_quote {
                 true =>
                 // double quote in string, literal quote char
                 {
-                    leading_quote = false
+                    prev_c_is_quote = false
                 }
-                false => leading_quote = true,
+                false => prev_c_is_quote = true,
             },
             '\n' => {
-                return Err(ParseError {
-                    message: String::from("open quote"),
-                })
+                if prev_c_is_quote {
+                    l -= 1;
+                    break;
+                } else {
+                    return Err(ParseError {
+                        message: String::from("open quote"),
+                    });
+                }
             }
-            _ => match leading_quote {
+            _ => match prev_c_is_quote {
                 true => {
                     //string closed previous char
                     l -= 1;
@@ -239,16 +246,24 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
                     }
                 }
             }
-            _ => break,
+            _ => {
+                l -= 1;
+                break;
+            }
         }
     }
 
     match p {
         Some(p) => Ok((l, p)),
-        None if 0 != l => Ok((l, Token::Name(String::from(&sentence[0..l])))),
-        None => Err(ParseError {
-            message: String::from("Empty name"),
-        }),
+        None => {
+            if 0 != l {
+                Ok((l, Token::Name(String::from(&sentence[0..=l]))))
+            } else {
+                Err(ParseError {
+                    message: String::from("Empty name"),
+                })
+            }
+        }
     }
 }
 
@@ -268,17 +283,20 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
                 match p {
                     '{' => {
                         if !"{.:".contains(c) {
+                            l -= 1;
                             break;
                         }
                     }
                     '}' => {
                         if !"}.:".contains(c) {
+                            l -= 1;
                             break;
                         }
                     }
                     //if !"!\"#$%&*+,-./:;<=>?@[\\]^_`{|}~".contains(c) {
                     _ => {
                         if !".:".contains(c) {
+                            l -= 1;
                             break;
                         }
                     }
@@ -291,7 +309,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
             message: String::from("Empty primitive"),
         });
     }
-    Ok((l, Token::Primitive(String::from(&sentence[0..l]))))
+    Ok((l, Token::Primitive(String::from(&sentence[0..=l]))))
 }
 
 #[test]
@@ -332,6 +350,20 @@ fn test_scan_name_verb_name() {
 #[test]
 fn only_whitespace() {
     scan("\r").unwrap();
+}
+
+#[test]
+fn test_scan_string_verb_string() {
+    let tokens = scan("'abc','def'").unwrap();
+    println!("{:?}", tokens);
+    assert_eq!(
+        tokens,
+        [
+            Token::LitString(String::from("abc")),
+            Token::Primitive(String::from(",")),
+            Token::LitString(String::from("def")),
+        ]
+    );
 }
 
 #[test]
