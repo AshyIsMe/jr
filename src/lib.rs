@@ -139,6 +139,11 @@ pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
 
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
     let mut l: usize = usize::MAX;
+    if sentence.len() == 0 {
+        return Err(ParseError {
+            message: String::from("Empty number literal"),
+        });
+    }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match c {
@@ -150,11 +155,16 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-    //Err(ParseError {message: String::from("Empty number literal")})
     Ok((l, Token::LitNumArray(String::from(&sentence[0..l]))))
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
+    if sentence.len() < 2 {
+        return Err(ParseError {
+            message: String::from("Empty literal string"),
+        });
+    }
+
     let mut l: usize = usize::MAX;
     let mut prev_c_is_quote: bool = false;
     // strings in j are single quoted: 'foobar'.
@@ -202,11 +212,13 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
     let mut p: Option<Token> = None;
+    if sentence.len() == 0 {
+        return Err(ParseError {
+            message: String::from("Empty name"),
+        });
+    }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
-        //if "()`.:; \t\n".contains(c) {
-        //break;
-        //}
         // Name is a word that begins with a letter and contains letters, numerals, and
         // underscores. (See Glossary).
         match c {
@@ -246,8 +258,6 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-    //Err(ParseError {message: String::from("Empty number literal")})
-
     match p {
         Some(p) => Ok((l, p)),
         None => Ok((l, Token::Name(String::from(&sentence[0..=l])))),
@@ -262,6 +272,11 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
     //  - one symbol
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
+    if sentence.len() == 0 {
+        return Err(ParseError {
+            message: String::from("Empty primitive"),
+        });
+    }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match p {
@@ -291,102 +306,5 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-    //Err(ParseError {message: String::from("Empty number literal")})
     Ok((l, Token::Primitive(String::from(&sentence[0..=l]))))
-}
-
-#[test]
-fn test_scan_num() {
-    let tokens = scan("1 2 _3\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 _3"))]);
-}
-
-#[test]
-fn test_scan_string() {
-    let tokens = scan("'abc'").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::LitString(String::from("abc"))]);
-}
-
-#[test]
-fn test_scan_name() {
-    let tokens = scan("abc\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::Name(String::from("abc"))]);
-}
-
-#[test]
-fn test_scan_name_verb_name() {
-    let tokens = scan("foo + bar\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(
-        tokens,
-        [
-            Token::Name(String::from("foo")),
-            Token::Primitive(String::from("+")),
-            Token::Name(String::from("bar")),
-        ]
-    );
-}
-
-#[test]
-fn only_whitespace() {
-    scan("\r").unwrap();
-}
-
-#[test]
-fn test_scan_string_verb_string() {
-    let tokens = scan("'abc','def'").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(
-        tokens,
-        [
-            Token::LitString(String::from("abc")),
-            Token::Primitive(String::from(",")),
-            Token::LitString(String::from("def")),
-        ]
-    );
-}
-
-#[test]
-fn test_scan_name_verb_name_not_spaced() {
-    let tokens = scan("foo+bar\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(
-        tokens,
-        [
-            Token::Name(String::from("foo")),
-            Token::Primitive(String::from("+")),
-            Token::Name(String::from("bar")),
-        ]
-    );
-}
-
-#[test]
-fn test_scan_primitives() {
-    let tokens = scan("a. I. 'A' \n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(
-        tokens,
-        [
-            Token::Primitive(String::from("a.")),
-            Token::Primitive(String::from("I.")),
-            Token::LitString(String::from("A")),
-        ]
-    );
-}
-
-#[test]
-fn test_scan_primitives_not_spaced() {
-    let tokens = scan("a.I.'A' \n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(
-        tokens,
-        [
-            Token::Primitive(String::from("a.")),
-            Token::Primitive(String::from("I.")),
-            Token::LitString(String::from("A")),
-        ]
-    );
 }
