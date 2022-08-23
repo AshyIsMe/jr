@@ -76,6 +76,11 @@ fn test_scan_name_verb_name_not_spaced() {
 }
 
 #[test]
+fn test_scan_nunez() {
+    let _ = scan("й");
+}
+
+#[test]
 fn test_scan_primitives() {
     let tokens = scan("a. I. 'A' \n").unwrap();
     println!("{:?}", tokens);
