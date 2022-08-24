@@ -1,5 +1,5 @@
 
-use jr::{Token, scan};
+use jr::{Word, scan};
 
 // TODO support unicode properly
 //#[test]
@@ -15,35 +15,35 @@ fn invalid_prime() {
 
 #[test]
 fn test_scan_num() {
-    let tokens = scan("1 2 _3\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::LitNumArray(String::from("1 2 _3"))]);
+    let Words = scan("1 2 _3\n").unwrap();
+    println!("{:?}", Words);
+    assert_eq!(Words, [Word::LitNumArray(String::from("1 2 _3"))]);
 }
 
 #[test]
 fn test_scan_string() {
-    let tokens = scan("'abc'").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::LitString(String::from("abc"))]);
+    let Words = scan("'abc'").unwrap();
+    println!("{:?}", Words);
+    assert_eq!(Words, [Word::LitString(String::from("abc"))]);
 }
 
 #[test]
 fn test_scan_name() {
-    let tokens = scan("abc\n").unwrap();
-    println!("{:?}", tokens);
-    assert_eq!(tokens, [Token::Name(String::from("abc"))]);
+    let Words = scan("abc\n").unwrap();
+    println!("{:?}", Words);
+    assert_eq!(Words, [Word::Name(String::from("abc"))]);
 }
 
 #[test]
 fn test_scan_name_verb_name() {
-    let tokens = scan("foo + bar\n").unwrap();
-    println!("{:?}", tokens);
+    let Words = scan("foo + bar\n").unwrap();
+    println!("{:?}", Words);
     assert_eq!(
-        tokens,
+        Words,
         [
-            Token::Name(String::from("foo")),
-            Token::Primitive(String::from("+")),
-            Token::Name(String::from("bar")),
+            Word::Name(String::from("foo")),
+            Word::Verb(String::from("+")),
+            Word::Name(String::from("bar")),
         ]
     );
 }
@@ -55,56 +55,56 @@ fn only_whitespace() {
 
 #[test]
 fn test_scan_string_verb_string() {
-    let tokens = scan("'abc','def'").unwrap();
-    println!("{:?}", tokens);
+    let Words = scan("'abc','def'").unwrap();
+    println!("{:?}", Words);
     assert_eq!(
-        tokens,
+        Words,
         [
-            Token::LitString(String::from("abc")),
-            Token::Primitive(String::from(",")),
-            Token::LitString(String::from("def")),
+            Word::LitString(String::from("abc")),
+            Word::Verb(String::from(",")),
+            Word::LitString(String::from("def")),
         ]
     );
 }
 
 #[test]
 fn test_scan_name_verb_name_not_spaced() {
-    let tokens = scan("foo+bar\n").unwrap();
-    println!("{:?}", tokens);
+    let Words = scan("foo+bar\n").unwrap();
+    println!("{:?}", Words);
     assert_eq!(
-        tokens,
+        Words,
         [
-            Token::Name(String::from("foo")),
-            Token::Primitive(String::from("+")),
-            Token::Name(String::from("bar")),
+            Word::Name(String::from("foo")),
+            Word::Verb(String::from("+")),
+            Word::Name(String::from("bar")),
         ]
     );
 }
 
 #[test]
 fn test_scan_primitives() {
-    let tokens = scan("a. I. 'A' \n").unwrap();
-    println!("{:?}", tokens);
+    let Words = scan("a. I. 'A' \n").unwrap();
+    println!("{:?}", Words);
     assert_eq!(
-        tokens,
+        Words,
         [
-            Token::Primitive(String::from("a.")),
-            Token::Primitive(String::from("I.")),
-            Token::LitString(String::from("A")),
+            Word::Noun(String::from("a.")),
+            Word::Verb(String::from("I.")),
+            Word::LitString(String::from("A")),
         ]
     );
 }
 
 #[test]
 fn test_scan_primitives_not_spaced() {
-    let tokens = scan("a.I.'A' \n").unwrap();
-    println!("{:?}", tokens);
+    let Words = scan("a.I.'A' \n").unwrap();
+    println!("{:?}", Words);
     assert_eq!(
-        tokens,
+        Words,
         [
-            Token::Primitive(String::from("a.")),
-            Token::Primitive(String::from("I.")),
-            Token::LitString(String::from("A")),
+            Word::Noun(String::from("a.")),
+            Word::Verb(String::from("I.")),
+            Word::LitString(String::from("A")),
         ]
     );
 }

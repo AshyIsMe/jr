@@ -3,75 +3,79 @@ use std::io::{self, Write};
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 #[derive(Debug, PartialEq)]
-pub enum Token {
+pub enum Word {
     LP,
     RP,
-    Primitive(String),
     Name(String),
-    LitNumArray(String),
+
+    Noun(String),
+    Verb(String),
+    Adverb(String),
+    Conjunction(String),
+    LitNumArray(String),  // collapse these into Noun?
     LitString(String),
 }
 
 #[rustfmt::skip]
-fn primitives() -> Vec<String> {
+fn primitive_verbs() -> Vec<String> {
     // https://code.jsoftware.com/wiki/NuVoc
     vec![
     "=","=.","=:",
     "<","<.","<:",
     ">",">.",">:",
-    "_","_.","_:",
+    "_:",
 
     "+","+.","+:",
     "*","*.","*:",
     "-","-.","-:",
     "%","%.","%:",
 
-    "^","^.","^:",
+    "^","^.",
     "^!.",
     "$","$.","$:",
-    "~","~.","~:",
+    "~.","~:",
     "|","|.","|:",
 
-    ".","..",".:",
-    ":",":.","::",
+    ".:",
+    "..",
+
     ",.",",",",:",
-    ";",";.",";:",
+    ";",
+    ";:",
 
     "#","#.","#:",
-    "!","!.","!:",
-    "/","/.","/:",
-    "\\","\\.","\\:",
+    "!",
+    "/:",
+    "\\:",
 
-    "[","[.","[:",
-    "]","].","]:",
+    "[",
+    "[:",
+    "]",
     "{","{.","{:","{::",
-    "}","}.","}:",
-    "{{","}}",
+    "}.","}:",
 
-    "\"","\".","\":",
-    "`","`:",
-    "@","@.","@:",
-    "&","&.","&:","&.:",
+    "\".","\":",
     "?","?.",
 
-    "a.","a:","A.",
-    "b.","C.","C.!.2","d.",
-    "D.","D:","e.",
-    "E.","f:",
-    "F.","F..","F.:",
-    "F:","F:.","F::",
+    "A.",
+    "C.","C.!.2",
+    "e.",
+    "E.",
 
-    "H.","i.","i:",
+    "i.","i:",
     "I.","j.","L.",
-    "L:","M.","NB.",
     "o.","p.","p..",
 
     "p:","q:","r.",
-    "s:","S:","t.",
+    "s:",
     "T.","u:","x:",
     "Z:",
     "_9:","_8:","_7:","_6:","_5:","_4:","_3:","_2:","_1:","0:","1:","2:","3:","4:","5:","6:","7:","8:","9",
     "u.","v.",
+
+    // TODO Controls need to be handled differently
+    "NB.",
+    "{{","}}",
     "assert.", "break.", "continue.",
     "else.", "elseif.", "for.",
     "for_ijk.",   // TODO handle ijk label properly
@@ -82,14 +86,41 @@ fn primitives() -> Vec<String> {
     "while.", "whilst.",
     ].into_iter().map(String::from).collect()
 }
+fn primitive_adverbs() -> Vec<String> {
+    // https://code.jsoftware.com/wiki/NuVoc
+    vec!["~", "/", "/.", "\\", "\\.", "]:", "}", "b.", "f.", "M."]
+        .into_iter()
+        .map(String::from)
+        .collect()
+}
+
+fn primitive_nouns() -> Vec<String> {
+    // https://code.jsoftware.com/wiki/NuVoc
+    vec!["_", "_.", "a.", "a:"]
+        .into_iter()
+        .map(String::from)
+        .collect()
+}
+
+fn primitive_conjunctions() -> Vec<String> {
+    // https://code.jsoftware.com/wiki/NuVoc
+    vec![
+        "^:", ".", ":", ":.", "::", ";.", "!.", "!:", "[.", "].", "\"", "`", "`:", "@", "@.", "@:",
+        "&", "&.", "&:", "&.:", "d.", "D.", "D:", "F.", "F..", "F.:", "F:", "F:.", "F::", "H.",
+        "L:", "S:", "t.",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect()
+}
 
 #[derive(Debug)]
 pub struct ParseError {
     message: String,
 }
 
-pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
-    let mut tokens: Vec<Token> = Vec::new();
+pub fn scan(sentence: &str) -> Result<Vec<Word>, ParseError> {
+    let mut Words: Vec<Word> = Vec::new();
 
     let mut skip: usize = 0;
 
@@ -102,42 +133,42 @@ pub fn scan(sentence: &str) -> Result<Vec<Token>, ParseError> {
         }
         match c {
             '(' => {
-                tokens.push(Token::LP);
+                Words.push(Word::LP);
             }
             ')' => {
-                tokens.push(Token::RP);
+                Words.push(Word::RP);
             }
             c if c.is_whitespace() => (),
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
-                tokens.push(t);
+                Words.push(t);
                 skip = l;
                 continue;
             }
             '\'' => {
                 let (l, t) = scan_litstring(&sentence[i..])?;
-                tokens.push(t);
+                Words.push(t);
                 skip = l;
                 continue;
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
-                tokens.push(t);
+                Words.push(t);
                 skip = l;
                 continue;
             }
             _ => {
                 let (l, t) = scan_primitive(&sentence[i..])?;
-                tokens.push(t);
+                Words.push(t);
                 skip = l;
                 continue;
             }
         }
     }
-    Ok(tokens)
+    Ok(Words)
 }
 
-fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
     let mut l: usize = usize::MAX;
     if sentence.len() == 0 {
         return Err(ParseError {
@@ -151,14 +182,15 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Token), ParseError> {
                 () //still valid keep iterating
             }
             _ => {
+                l -= 1;
                 break;
             }
         }
     }
-    Ok((l, Token::LitNumArray(String::from(&sentence[0..l]))))
+    Ok((l, Word::LitNumArray(String::from(&sentence[0..=l]))))
 }
 
-fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
     if sentence.len() < 2 {
         return Err(ParseError {
             message: String::from("Empty literal string"),
@@ -204,14 +236,14 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Token), ParseError> {
     }
     Ok((
         l,
-        Token::LitString(String::from(&sentence[1..l]).replace("''", "'")),
+        Word::LitString(String::from(&sentence[1..l]).replace("''", "'")),
     ))
 }
 
-fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_name(sentence: &str) -> Result<(usize, Word), ParseError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
-    let mut p: Option<Token> = None;
+    let mut p: Option<Word> = None;
     if sentence.len() == 0 {
         return Err(ParseError {
             message: String::from("Empty name"),
@@ -235,19 +267,19 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
             '.' | ':' => {
                 match p {
                     None => {
-                        if primitives().contains(&String::from(&sentence[0..=l])) {
-                            // Found a primitive. eg: F.
-                            p = Some(Token::Primitive(String::from(&sentence[0..=l])));
+                        match str_to_primitive(&sentence[0..=l]) {
+                            Ok(w) => p = Some(w),
+                            Err(_) => (),
                         }
                     }
                     Some(_) => {
-                        if primitives().contains(&String::from(&sentence[0..=l])) {
-                            // Found a longer primitive. eg: F.:
-                            p = Some(Token::Primitive(String::from(&sentence[0..=l])));
-                        } else {
-                            // Primitive was found on previous char, backtrack and break
-                            l -= 1;
-                            break;
+                        match str_to_primitive(&sentence[0..=l]) {
+                            Ok(w) => p = Some(w),
+                            Err(_) => {
+                                // Primitive was found on previous char, backtrack and break
+                                l -= 1;
+                                break;
+                            }
                         }
                     }
                 }
@@ -260,11 +292,11 @@ fn scan_name(sentence: &str) -> Result<(usize, Token), ParseError> {
     }
     match p {
         Some(p) => Ok((l, p)),
-        None => Ok((l, Token::Name(String::from(&sentence[0..=l])))),
+        None => Ok((l, Word::Name(String::from(&sentence[0..=l])))),
     }
 }
 
-fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
+fn scan_primitive(sentence: &str) -> Result<(usize, Word), ParseError> {
     // built in adverbs/verbs
     let mut l: usize = 0;
     let mut p: Option<char> = None;
@@ -273,9 +305,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
     if sentence.len() == 0 {
-        return Err(ParseError {
-            message: String::from("Empty primitive"),
-        });
+        return Err(ParseError { message: String::from("Empty primitive"), });
     }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
@@ -306,5 +336,19 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Token), ParseError> {
             }
         }
     }
-    Ok((l, Token::Primitive(String::from(&sentence[0..=l]))))
+    Ok((l, str_to_primitive(&sentence[0..=l])?))
+}
+
+fn str_to_primitive(sentence: &str) -> Result<Word, ParseError> {
+    if primitive_nouns().contains(&String::from(sentence)) {
+        Ok(Word::Noun(String::from(sentence)))
+    } else if primitive_verbs().contains(&String::from(sentence)) {
+        Ok(Word::Verb(String::from(sentence)))
+    } else if primitive_adverbs().contains(&String::from(sentence)) {
+        Ok(Word::Adverb(String::from(sentence)))
+    } else if primitive_conjunctions().contains(&String::from(sentence)) {
+        Ok(Word::Conjunction(String::from(sentence)))
+    } else {
+        return Err(ParseError { message: String::from("Invalid primitive"), });
+    }
 }
