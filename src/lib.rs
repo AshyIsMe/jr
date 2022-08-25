@@ -1,7 +1,9 @@
+use ndarray::prelude::*;
 use std::io::{self, Write};
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
+// A Word is a part of speech.
 #[derive(Debug, PartialEq)]
 pub enum Word {
     LP,
@@ -12,8 +14,14 @@ pub enum Word {
     Verb(String),
     Adverb(String),
     Conjunction(String),
-    LitNumArray(String),  // collapse these into Noun?
+
+    LitNumArray(String), // collapse these into Noun?
     LitString(String),
+
+    IntArray { v: Array1<i64> }, // How do i convert from Array1 to ArrayD??
+    FloatArray { v: ArrayD<f64> },
+    BoolArray { v: ArrayD<u8> },
+    CharArray { r: Array1<u8>, v: String },
 }
 
 #[rustfmt::skip]
@@ -187,7 +195,12 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
             }
         }
     }
-    Ok((l, Word::LitNumArray(String::from(&sentence[0..=l]))))
+    //Ok((l, Word::LitNumArray(String::from(&sentence[0..=l]))))
+    // TODO - Fix - First hacky pass at this.
+    let a: Vec<i64> = sentence[0..=l]
+        .split_whitespace()
+        .map(|s| s.parse::<i64>().unwrap()).collect();
+    Ok((l, Word::IntArray{ v: Array::from_iter(a) }))
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
@@ -266,12 +279,10 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), ParseError> {
             }
             '.' | ':' => {
                 match p {
-                    None => {
-                        match str_to_primitive(&sentence[0..=l]) {
-                            Ok(w) => p = Some(w),
-                            Err(_) => (),
-                        }
-                    }
+                    None => match str_to_primitive(&sentence[0..=l]) {
+                        Ok(w) => p = Some(w),
+                        Err(_) => (),
+                    },
                     Some(_) => {
                         match str_to_primitive(&sentence[0..=l]) {
                             Ok(w) => p = Some(w),
@@ -305,7 +316,9 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), ParseError> {
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
     if sentence.len() == 0 {
-        return Err(ParseError { message: String::from("Empty primitive"), });
+        return Err(ParseError {
+            message: String::from("Empty primitive"),
+        });
     }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
@@ -349,6 +362,8 @@ fn str_to_primitive(sentence: &str) -> Result<Word, ParseError> {
     } else if primitive_conjunctions().contains(&String::from(sentence)) {
         Ok(Word::Conjunction(String::from(sentence)))
     } else {
-        return Err(ParseError { message: String::from("Invalid primitive"), });
+        return Err(ParseError {
+            message: String::from("Invalid primitive"),
+        });
     }
 }

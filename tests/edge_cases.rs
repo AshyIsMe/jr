@@ -1,10 +1,10 @@
 
-use jr::{Word, scan};
+use jr::{scan, Word};
 
 // TODO support unicode properly
 //#[test]
 //fn test_scan_nunez() {
-    //let _ = scan("й");
+//let _ = scan("й");
 //}
 
 #[test]
