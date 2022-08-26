@@ -1,5 +1,4 @@
 use ndarray::prelude::*;
-use std::io::{self, Write};
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
@@ -18,7 +17,7 @@ pub enum Word {
     LitNumArray(String), // collapse these into Noun?
     LitString(String),
 
-    IntArray { v: Array1<i64> }, // How do i convert from Array1 to ArrayD??
+    IntArray { v: ArrayD<i64> },
     FloatArray { v: ArrayD<f64> },
     BoolArray { v: ArrayD<u8> },
     CharArray { r: Array1<u8>, v: String },
@@ -199,14 +198,12 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
     // TODO - Fix - First hacky pass at this.
     let a: Vec<i64> = sentence[0..=l]
         .split_whitespace()
-        .map(|s| s.replace("_","-").parse::<i64>().unwrap())
+        .map(|s| s.replace("_", "-").parse::<i64>().unwrap())
         .collect();
-    Ok((
-        l,
-        Word::IntArray {
-            v: Array::from_iter(a),
-        },
-    ))
+    match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
+        Ok(v) => Ok((l, Word::IntArray { v })),
+        Err(e) => Err(ParseError { message: e.to_string() }),
+    }
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {

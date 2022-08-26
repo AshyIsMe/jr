@@ -1,5 +1,5 @@
-use ndarray::prelude::*;
 use jr::{scan, Word};
+use ndarray::prelude::*;
 
 // TODO support unicode properly
 //#[test]
@@ -18,7 +18,12 @@ fn test_scan_num() {
     let Words = scan("1 2 _3\n").unwrap();
     println!("{:?}", Words);
     //assert_eq!(Words, [Word::LitNumArray(String::from("1 2 _3"))]);
-    assert_eq!(Words, [Word::IntArray{v: array![1, 2, -3]}]);
+    assert_eq!(
+        Words,
+        [Word::IntArray {
+            v: ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
+        }]
+    );
 }
 
 #[test]
