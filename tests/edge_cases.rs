@@ -1,4 +1,4 @@
-
+use ndarray::prelude::*;
 use jr::{scan, Word};
 
 // TODO support unicode properly
@@ -17,7 +17,8 @@ fn invalid_prime() {
 fn test_scan_num() {
     let Words = scan("1 2 _3\n").unwrap();
     println!("{:?}", Words);
-    assert_eq!(Words, [Word::LitNumArray(String::from("1 2 _3"))]);
+    //assert_eq!(Words, [Word::LitNumArray(String::from("1 2 _3"))]);
+    assert_eq!(Words, [Word::IntArray{v: array![1, 2, -3]}]);
 }
 
 #[test]

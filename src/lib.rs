@@ -199,8 +199,14 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
     // TODO - Fix - First hacky pass at this.
     let a: Vec<i64> = sentence[0..=l]
         .split_whitespace()
-        .map(|s| s.parse::<i64>().unwrap()).collect();
-    Ok((l, Word::IntArray{ v: Array::from_iter(a) }))
+        .map(|s| s.replace("_","-").parse::<i64>().unwrap())
+        .collect();
+    Ok((
+        l,
+        Word::IntArray {
+            v: Array::from_iter(a),
+        },
+    ))
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
