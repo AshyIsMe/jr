@@ -16,9 +16,13 @@ fn main() -> io::Result<()> {
         match buffer.trim() {
             "exit" => break,
             _sentence => {
-                let tokens = jr::scan(&buffer);
-                println!("tokens: {:?}", tokens);
-                buffer = String::from("");
+                match jr::scan(&buffer) {
+                    Ok(tokens) => {
+                        println!("tokens: {:?}", tokens);
+                        buffer = String::from("");
+                    }
+                    Err(e) => println!("error: {:?}", e)
+                }
             }
         }
     }

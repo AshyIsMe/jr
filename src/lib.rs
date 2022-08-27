@@ -194,15 +194,23 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
             }
         }
     }
-    //Ok((l, Word::LitNumArray(String::from(&sentence[0..=l]))))
+
     // TODO - Fix - First hacky pass at this.
-    let a: Vec<i64> = sentence[0..=l]
+    let a = sentence[0..=l]
         .split_whitespace()
-        .map(|s| s.replace("_", "-").parse::<i64>().unwrap())
-        .collect();
-    match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
-        Ok(v) => Ok((l, Word::IntArray { v })),
-        Err(e) => Err(ParseError { message: e.to_string() }),
+        .map(|s| s.replace("_", "-"))
+        .map(|s| s.parse::<i64>())
+        .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
+    match a {
+        Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
+            Ok(v) => Ok((l, Word::IntArray { v })),
+            Err(e) => Err(ParseError {
+                message: e.to_string(),
+            }),
+        },
+        Err(e) => Err(ParseError {
+            message: e.to_string(),
+        }),
     }
 }
 
