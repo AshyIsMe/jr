@@ -14,17 +14,25 @@ pub enum Word {
     Adverb(String),
     Conjunction(String),
 
-    LitNumArray(String), // collapse these into Noun?
-    LitString(String),
-
     IntArray { v: ArrayD<i64> },
-    ExtIntArray { v: ArrayD<i128> }, // TODO: real arbitrary bignum support
+    ExtIntArray { v: ArrayD<i128> }, // TODO: num::bigint::BigInt
     FloatArray { v: ArrayD<f64> },
     BoolArray { v: ArrayD<u8> },
-    CharArray { s: Array1<u8>, v: String },
-    //RationalArray { ... }, // TODO
-    //ComplexArray { ... },  // TODO
+    CharArray { v: ArrayD<char> },
+    //RationalArray { ... }, // TODO: num::rational::Rational64
+    //ComplexArray { ... },  // TODO: num::complex::Complex64
     //EmptyArray // How do we do this properly?
+}
+
+#[macro_export]
+macro_rules! chararray {
+    ( $( $x:expr ),* ) => {
+        {
+            $(
+                Word::CharArray { v: ArrayD::from_shape_vec(IxDyn(&[$x.len()]), String::from($x).chars().collect()).unwrap() }
+            )*
+        }
+    };
 }
 
 #[rustfmt::skip]
@@ -263,10 +271,12 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
             },
         }
     }
-    Ok((
-        l,
-        Word::LitString(String::from(&sentence[1..l]).replace("''", "'")),
-    ))
+    let s = &sentence[1..l].replace("''", "'");
+    //match ArrayD::from_shape_vec(IxDyn(&[s.len()]), s.chars().collect()) {
+        //Ok(v) => Ok((l, Word::CharArray { v })),
+        //Err(e) => Err(JError { message: e.to_string() }),
+    //}
+    Ok((l, chararray![s]))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
