@@ -388,7 +388,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //TODO: implement this properly
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 2 {
-        v_d_plus(sentence[0], sentence[1])
+        v_d_plus(&sentence[0], &sentence[1])
     } else {
         Err(JError {
             message: String::from("not supported yet"),
@@ -396,25 +396,11 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     }
 }
 
-fn v_d_plus(x: Word, y: Word) -> Result<Word, JError> {
+fn v_d_plus(x: &Word, y: &Word) -> Result<Word, JError> {
     //Clearly this isn't gonna scale... figure out a dispatch table or something
 
-    // How do I match or `if let` for enum variants?
-    if let Word::IntArray(x) = x {
-        if let Word::IntArray(y) = y {
-            println!("int plus!");
-            let r = x + y;
-            match r {
-                Ok(v) => Ok(Word::IntArray { v }),
-                Err(e) => Err(JError {
-                    message: e.to_string(),
-                }),
-            }
-        } else {
-            Err(JError {
-                message: String::from("plus not supported for these types yet"),
-            })
-        }
+    if let (Word::IntArray { v: x }, Word::IntArray { v: y }) = (x, y) {
+        Ok(Word::IntArray { v: x + y })
     } else {
         Err(JError {
             message: String::from("plus not supported for these types yet"),
