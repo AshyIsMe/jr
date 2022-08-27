@@ -24,15 +24,11 @@ pub enum Word {
     //EmptyArray // How do we do this properly?
 }
 
-#[macro_export]
-macro_rules! chararray {
-    ( $( $x:expr ),* ) => {
-        {
-            $(
-                Word::CharArray { v: ArrayD::from_shape_vec(IxDyn(&[$x.len()]), String::from($x).chars().collect()).unwrap() }
-            )*
-        }
-    };
+pub fn char_array(x: impl AsRef<str>) -> Word {
+    let x = x.as_ref();
+    Word::CharArray {
+        v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
+    }
 }
 
 #[rustfmt::skip]
@@ -267,7 +263,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
         //Ok(v) => Ok((l, Word::CharArray { v })),
         //Err(e) => Err(JError { message: e.to_string() }),
     //}
-    Ok((l, chararray![s]))
+    Ok((l, char_array(s)))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
