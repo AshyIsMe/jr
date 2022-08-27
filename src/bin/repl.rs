@@ -19,6 +19,7 @@ fn main() -> io::Result<()> {
                 match jr::scan(&buffer) {
                     Ok(tokens) => {
                         println!("tokens: {:?}", tokens);
+                        println!("{:?}", jr::eval(tokens));
                         buffer = String::from("");
                     }
                     Err(e) => println!("error: {:?}", e)

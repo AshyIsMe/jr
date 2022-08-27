@@ -3,7 +3,7 @@ use ndarray::prelude::*;
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Word {
     LP,
     RP,
@@ -387,8 +387,21 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
 pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //TODO: implement this properly
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
-    if sentence.len() == 2 {
-        v_d_plus(&sentence[0], &sentence[1])
+    if sentence.len() == 3 {
+        match &sentence[1] {
+            Word::Verb(v) => {
+                if v == &String::from("+") {
+                    v_d_plus(&sentence[0], &sentence[2])
+                } else {
+                    Err(JError {
+                        message: String::from("not supported yet"),
+                    })
+                }
+            }
+            _ => Err(JError {
+                message: String::from("not supported yet"),
+            }),
+        }
     } else {
         Err(JError {
             message: String::from("not supported yet"),

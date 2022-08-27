@@ -1,10 +1,10 @@
-use jr::{scan, Word};
+use jr::Word;
 use ndarray::prelude::*;
 
 // TODO support unicode properly
 //#[test]
 //fn test_scan_nunez() {
-//let _ = scan("й");
+//let _ =jr::scan("й");
 //}
 
 #[test]
@@ -15,11 +15,11 @@ fn invalid_prime() {
 
 #[test]
 fn test_scan_num() {
-    let Words = scan("1 2 _3\n").unwrap();
-    println!("{:?}", Words);
-    //assert_eq!(Words, [Word::LitNumArray(String::from("1 2 _3"))]);
+    let words = jr::scan("1 2 _3\n").unwrap();
+    println!("{:?}", words);
+    //assert_eq!(words, [Word::LitNumArray(String::from("1 2 _3"))]);
     assert_eq!(
-        Words,
+        words,
         [Word::IntArray {
             v: ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
         }]
@@ -28,24 +28,24 @@ fn test_scan_num() {
 
 #[test]
 fn test_scan_string() {
-    let Words = scan("'abc'").unwrap();
-    println!("{:?}", Words);
-    assert_eq!(Words, [Word::LitString(String::from("abc"))]);
+    let words = jr::scan("'abc'").unwrap();
+    println!("{:?}", words);
+    assert_eq!(words, [Word::LitString(String::from("abc"))]);
 }
 
 #[test]
 fn test_scan_name() {
-    let Words = scan("abc\n").unwrap();
-    println!("{:?}", Words);
-    assert_eq!(Words, [Word::Name(String::from("abc"))]);
+    let words = jr::scan("abc\n").unwrap();
+    println!("{:?}", words);
+    assert_eq!(words, [Word::Name(String::from("abc"))]);
 }
 
 #[test]
 fn test_scan_name_verb_name() {
-    let Words = scan("foo + bar\n").unwrap();
-    println!("{:?}", Words);
+    let words = jr::scan("foo + bar\n").unwrap();
+    println!("{:?}", words);
     assert_eq!(
-        Words,
+        words,
         [
             Word::Name(String::from("foo")),
             Word::Verb(String::from("+")),
@@ -56,15 +56,15 @@ fn test_scan_name_verb_name() {
 
 #[test]
 fn only_whitespace() {
-    scan("\r").unwrap();
+    jr::scan("\r").unwrap();
 }
 
 #[test]
 fn test_scan_string_verb_string() {
-    let Words = scan("'abc','def'").unwrap();
-    println!("{:?}", Words);
+    let words = jr::scan("'abc','def'").unwrap();
+    println!("{:?}", words);
     assert_eq!(
-        Words,
+        words,
         [
             Word::LitString(String::from("abc")),
             Word::Verb(String::from(",")),
@@ -75,10 +75,10 @@ fn test_scan_string_verb_string() {
 
 #[test]
 fn test_scan_name_verb_name_not_spaced() {
-    let Words = scan("foo+bar\n").unwrap();
-    println!("{:?}", Words);
+    let words = jr::scan("foo+bar\n").unwrap();
+    println!("{:?}", words);
     assert_eq!(
-        Words,
+        words,
         [
             Word::Name(String::from("foo")),
             Word::Verb(String::from("+")),
@@ -89,10 +89,10 @@ fn test_scan_name_verb_name_not_spaced() {
 
 #[test]
 fn test_scan_primitives() {
-    let Words = scan("a. I. 'A' \n").unwrap();
-    println!("{:?}", Words);
+    let words = jr::scan("a. I. 'A' \n").unwrap();
+    println!("{:?}", words);
     assert_eq!(
-        Words,
+        words,
         [
             Word::Noun(String::from("a.")),
             Word::Verb(String::from("I.")),
@@ -103,14 +103,37 @@ fn test_scan_primitives() {
 
 #[test]
 fn test_scan_primitives_not_spaced() {
-    let Words = scan("a.I.'A' \n").unwrap();
-    println!("{:?}", Words);
+    let words = jr::scan("a.I.'A' \n").unwrap();
+    println!("{:?}", words);
     assert_eq!(
-        Words,
+        words,
         [
             Word::Noun(String::from("a.")),
             Word::Verb(String::from("I.")),
             Word::LitString(String::from("A")),
         ]
+    );
+}
+
+#[test]
+fn test_basic_addition() {
+    let words = jr::scan("2 + 2").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::IntArray {
+            v: Array::from_elem(IxDyn(&[1]), 4)
+        }
+    );
+
+    let words = jr::scan("1 2 3 + 4 5 6").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::IntArray {
+            v: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
+        }
     );
 }
