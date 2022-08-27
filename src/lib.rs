@@ -18,9 +18,13 @@ pub enum Word {
     LitString(String),
 
     IntArray { v: ArrayD<i64> },
+    ExtIntArray { v: ArrayD<i128> }, // TODO: real arbitrary bignum support
     FloatArray { v: ArrayD<f64> },
     BoolArray { v: ArrayD<u8> },
-    CharArray { r: Array1<u8>, v: String },
+    CharArray { s: Array1<u8>, v: String },
+    //RationalArray { ... }, // TODO
+    //ComplexArray { ... },  // TODO
+    //EmptyArray // How do we do this properly?
 }
 
 #[rustfmt::skip]
@@ -121,13 +125,14 @@ fn primitive_conjunctions() -> Vec<String> {
     .collect()
 }
 
+// TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
 #[derive(Debug)]
-pub struct ParseError {
+pub struct JError {
     message: String,
 }
 
-pub fn scan(sentence: &str) -> Result<Vec<Word>, ParseError> {
-    let mut Words: Vec<Word> = Vec::new();
+pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
+    let mut words: Vec<Word> = Vec::new();
 
     let mut skip: usize = 0;
 
@@ -140,45 +145,45 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>, ParseError> {
         }
         match c {
             '(' => {
-                Words.push(Word::LP);
+                words.push(Word::LP);
             }
             ')' => {
-                Words.push(Word::RP);
+                words.push(Word::RP);
             }
             c if c.is_whitespace() => (),
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
-                Words.push(t);
+                words.push(t);
                 skip = l;
                 continue;
             }
             '\'' => {
                 let (l, t) = scan_litstring(&sentence[i..])?;
-                Words.push(t);
+                words.push(t);
                 skip = l;
                 continue;
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
-                Words.push(t);
+                words.push(t);
                 skip = l;
                 continue;
             }
             _ => {
                 let (l, t) = scan_primitive(&sentence[i..])?;
-                Words.push(t);
+                words.push(t);
                 skip = l;
                 continue;
             }
         }
     }
-    Ok(Words)
+    Ok(words)
 }
 
-fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
+fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     let mut l: usize = usize::MAX;
     if sentence.len() == 0 {
-        return Err(ParseError {
+        return Err(JError {
             message: String::from("Empty number literal"),
         });
     }
@@ -195,7 +200,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
         }
     }
 
-    // TODO - Fix - First hacky pass at this.
+    // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
     let a = sentence[0..=l]
         .split_whitespace()
         .map(|s| s.replace("_", "-"))
@@ -204,19 +209,19 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), ParseError> {
     match a {
         Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
             Ok(v) => Ok((l, Word::IntArray { v })),
-            Err(e) => Err(ParseError {
+            Err(e) => Err(JError {
                 message: e.to_string(),
             }),
         },
-        Err(e) => Err(ParseError {
+        Err(e) => Err(JError {
             message: e.to_string(),
         }),
     }
 }
 
-fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
+fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
     if sentence.len() < 2 {
-        return Err(ParseError {
+        return Err(JError {
             message: String::from("Empty literal string"),
         });
     }
@@ -241,7 +246,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
                     l -= 1;
                     break;
                 } else {
-                    return Err(ParseError {
+                    return Err(JError {
                         message: String::from("open quote"),
                     });
                 }
@@ -264,12 +269,12 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), ParseError> {
     ))
 }
 
-fn scan_name(sentence: &str) -> Result<(usize, Word), ParseError> {
+fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
     let mut p: Option<Word> = None;
     if sentence.len() == 0 {
-        return Err(ParseError {
+        return Err(JError {
             message: String::from("Empty name"),
         });
     }
@@ -318,7 +323,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), ParseError> {
     }
 }
 
-fn scan_primitive(sentence: &str) -> Result<(usize, Word), ParseError> {
+fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
     // built in adverbs/verbs
     let mut l: usize = 0;
     let mut p: Option<char> = None;
@@ -327,7 +332,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), ParseError> {
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
     if sentence.len() == 0 {
-        return Err(ParseError {
+        return Err(JError {
             message: String::from("Empty primitive"),
         });
     }
@@ -363,7 +368,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), ParseError> {
     Ok((l, str_to_primitive(&sentence[0..=l])?))
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Word, ParseError> {
+fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     if primitive_nouns().contains(&String::from(sentence)) {
         Ok(Word::Noun(String::from(sentence)))
     } else if primitive_verbs().contains(&String::from(sentence)) {
@@ -373,8 +378,46 @@ fn str_to_primitive(sentence: &str) -> Result<Word, ParseError> {
     } else if primitive_conjunctions().contains(&String::from(sentence)) {
         Ok(Word::Conjunction(String::from(sentence)))
     } else {
-        return Err(ParseError {
+        return Err(JError {
             message: String::from("Invalid primitive"),
         });
+    }
+}
+
+pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
+    //TODO: implement this properly
+    //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
+    if sentence.len() == 2 {
+        v_d_plus(sentence[0], sentence[1])
+    } else {
+        Err(JError {
+            message: String::from("not supported yet"),
+        })
+    }
+}
+
+fn v_d_plus(x: Word, y: Word) -> Result<Word, JError> {
+    //Clearly this isn't gonna scale... figure out a dispatch table or something
+
+    // How do I match or `if let` for enum variants?
+    if let Word::IntArray(x) = x {
+        if let Word::IntArray(y) = y {
+            println!("int plus!");
+            let r = x + y;
+            match r {
+                Ok(v) => Ok(Word::IntArray { v }),
+                Err(e) => Err(JError {
+                    message: e.to_string(),
+                }),
+            }
+        } else {
+            Err(JError {
+                message: String::from("plus not supported for these types yet"),
+            })
+        }
+    } else {
+        Err(JError {
+            message: String::from("plus not supported for these types yet"),
+        })
     }
 }
