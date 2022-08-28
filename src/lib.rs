@@ -1,16 +1,17 @@
 use ndarray::prelude::*;
+use std::collections::HashMap;
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Word {
+pub enum Word<'a> {
     LP,
     RP,
     Name(String),
 
     Noun(JArray),
-    Verb(String),
+    Verb(String, Option<&'a Verbfn>),
     Adverb(String),
     Conjunction(String),
 }
@@ -27,83 +28,147 @@ pub enum JArray {
     //EmptyArray // How do we do this properly?
 }
 
+type Verbfn = for<'a> fn(Option<&Word>, &'a Word) -> Result<Word<'a>, JError>;
+
 use JArray::*;
 
-pub fn char_array(x: impl AsRef<str>) -> Word {
+pub fn char_array(x: impl AsRef<str>) -> Word<'static> {
     let x = x.as_ref();
     Word::Noun(JArray::CharArray {
         v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
     })
 }
 
-#[rustfmt::skip]
-fn primitive_verbs() -> &'static [&'static str] {
-    &[
-    "=","=.","=:",
-    "<","<.","<:",
-    ">",">.",">:",
-    "_:",
-
-    "+","+.","+:",
-    "*","*.","*:",
-    "-","-.","-:",
-    "%","%.","%:",
-
-    "^","^.",
-    "^!.",
-    "$","$.","$:",
-    "~.","~:",
-    "|","|.","|:",
-
-    ".:",
-    "..",
-
-    ",.",",",",:",
-    ";",
-    ";:",
-
-    "#","#.","#:",
-    "!",
-    "/:",
-    "\\:",
-
-    "[",
-    "[:",
-    "]",
-    "{","{.","{:","{::",
-    "}.","}:",
-
-    "\".","\":",
-    "?","?.",
-
-    "A.",
-    "C.","C.!.2",
-    "e.",
-    "E.",
-
-    "i.","i:",
-    "I.","j.","L.",
-    "o.","p.","p..",
-
-    "p:","q:","r.",
-    "s:",
-    "T.","u:","x:",
-    "Z:",
-    "_9:","_8:","_7:","_6:","_5:","_4:","_3:","_2:","_1:","0:","1:","2:","3:","4:","5:","6:","7:","8:","9",
-    "u.","v.",
-
-    // TODO Controls need to be handled differently
-    "NB.",
-    "{{","}}",
-    "assert.", "break.", "continue.",
-    "else.", "elseif.", "for.",
-    "for_ijk.",   // TODO handle ijk label properly
-    "goto_lbl.",  // TODO handle lbl properly
-    "label_lbl.", // TODO handle lbl properly
-    "if.", "return.", "select.", "case.", "fcase.",
-    "throw.", "try.", "catch.", "catchd.", "catcht.",
-    "while.", "whilst.",
-    ]
+//fn primitive_verbs() -> &'static [&'static str] {
+fn primitive_verbs() -> HashMap<&'static str, Verbfn> {
+    HashMap::from([
+        ("=", v_not_implemented),
+        ("=.", v_not_implemented),
+        ("=:", v_not_implemented),
+        ("<", v_not_implemented),
+        ("<.", v_not_implemented),
+        ("<:", v_not_implemented),
+        (">", v_not_implemented),
+        (">.", v_not_implemented),
+        (">:", v_not_implemented),
+        ("_:", v_not_implemented),
+        ("+", v_plus),
+        ("+.", v_not_implemented),
+        ("+:", v_not_implemented),
+        ("*", v_not_implemented),
+        ("*.", v_not_implemented),
+        ("*:", v_not_implemented),
+        ("-", v_not_implemented),
+        ("-.", v_not_implemented),
+        ("-:", v_not_implemented),
+        ("%", v_not_implemented),
+        ("%.", v_not_implemented),
+        ("%:", v_not_implemented),
+        ("^", v_not_implemented),
+        ("^.", v_not_implemented),
+        ("^!.", v_not_implemented),
+        ("$", v_not_implemented),
+        ("$.", v_not_implemented),
+        ("$:", v_not_implemented),
+        ("~.", v_not_implemented),
+        ("~:", v_not_implemented),
+        ("|", v_not_implemented),
+        ("|.", v_not_implemented),
+        ("|:", v_not_implemented),
+        (".:", v_not_implemented),
+        ("..", v_not_implemented),
+        (",.", v_not_implemented),
+        (",", v_not_implemented),
+        (",:", v_not_implemented),
+        (";", v_not_implemented),
+        (";:", v_not_implemented),
+        ("#", v_not_implemented),
+        ("#.", v_not_implemented),
+        ("#:", v_not_implemented),
+        ("!", v_not_implemented),
+        ("/:", v_not_implemented),
+        ("\\:", v_not_implemented),
+        ("[", v_not_implemented),
+        ("[:", v_not_implemented),
+        ("]", v_not_implemented),
+        ("{", v_not_implemented),
+        ("{.", v_not_implemented),
+        ("{:", v_not_implemented),
+        ("{::", v_not_implemented),
+        ("}.", v_not_implemented),
+        ("}:", v_not_implemented),
+        ("\".", v_not_implemented),
+        ("\":", v_not_implemented),
+        ("?", v_not_implemented),
+        ("?.", v_not_implemented),
+        ("A.", v_not_implemented),
+        ("C.", v_not_implemented),
+        ("C.!.2", v_not_implemented),
+        ("e.", v_not_implemented),
+        ("E.", v_not_implemented),
+        ("i.", v_not_implemented),
+        ("i:", v_not_implemented),
+        ("I.", v_not_implemented),
+        ("j.", v_not_implemented),
+        ("L.", v_not_implemented),
+        ("o.", v_not_implemented),
+        ("p.", v_not_implemented),
+        ("p..", v_not_implemented),
+        ("p:", v_not_implemented),
+        ("q:", v_not_implemented),
+        ("r.", v_not_implemented),
+        ("s:", v_not_implemented),
+        ("T.", v_not_implemented),
+        ("u:", v_not_implemented),
+        ("x:", v_not_implemented),
+        ("Z:", v_not_implemented),
+        ("_9:", v_not_implemented),
+        ("_8:", v_not_implemented),
+        ("_7:", v_not_implemented),
+        ("_6:", v_not_implemented),
+        ("_5:", v_not_implemented),
+        ("_4:", v_not_implemented),
+        ("_3:", v_not_implemented),
+        ("_2:", v_not_implemented),
+        ("_1:", v_not_implemented),
+        ("0:", v_not_implemented),
+        ("1:", v_not_implemented),
+        ("2:", v_not_implemented),
+        ("3:", v_not_implemented),
+        ("4:", v_not_implemented),
+        ("5:", v_not_implemented),
+        ("6:", v_not_implemented),
+        ("7:", v_not_implemented),
+        ("8:", v_not_implemented),
+        ("9", v_not_implemented),
+        ("u.", v_not_implemented),
+        ("v.", v_not_implemented),
+        // TODO Controls need to be handled differently
+        ("NB.", v_not_implemented),
+        ("{{", v_not_implemented),
+        ("}}", v_not_implemented),
+        ("assert.", v_not_implemented),
+        ("break.", v_not_implemented),
+        ("continue.", v_not_implemented),
+        ("else.", v_not_implemented),
+        ("elseif.", v_not_implemented),
+        ("for.", v_not_implemented),
+        ("for_ijk.", v_not_implemented), // TODO handle ijk label properly
+        ("goto_lbl.", v_not_implemented), // TODO handle lbl properly
+        ("label_lbl.", v_not_implemented), // TODO handle lbl properly
+        ("if.", v_not_implemented),
+        ("return.", v_not_implemented),
+        ("select.", v_not_implemented),
+        ("case.", v_not_implemented),
+        ("fcase.", v_not_implemented),
+        ("throw.", v_not_implemented),
+        ("try.", v_not_implemented),
+        ("catch.", v_not_implemented),
+        ("catchd.", v_not_implemented),
+        ("catcht.", v_not_implemented),
+        ("while.", v_not_implemented),
+        ("whilst.", v_not_implemented),
+    ])
 }
 
 fn primitive_adverbs() -> &'static [&'static str] {
@@ -264,10 +329,6 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
         }
     }
     let s = &sentence[1..l].replace("''", "'");
-    //match ArrayD::from_shape_vec(IxDyn(&[s.len()]), s.chars().collect()) {
-    //Ok(v) => Ok((l, Word::CharArray { v })),
-    //Err(e) => Err(JError { message: e.to_string() }),
-    //}
     Ok((l, char_array(s)))
 }
 
@@ -372,10 +433,9 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     if primitive_nouns().contains(&sentence) {
-        //Ok(Word::Noun(String::from(sentence)))
         Ok(char_array(sentence)) // TODO - actually lookup the noun
-    } else if primitive_verbs().contains(&sentence) {
-        Ok(Word::Verb(String::from(sentence)))
+    } else if primitive_verbs().contains_key(&sentence) {
+        Ok(Word::Verb(String::from(sentence), primitive_verbs().get(&sentence)))
     } else if primitive_adverbs().contains(&sentence) {
         Ok(Word::Adverb(String::from(sentence)))
     } else if primitive_conjunctions().contains(&sentence) {
@@ -392,13 +452,10 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 3 {
         match &sentence[1] {
-            Word::Verb(v) => {
-                if v == &String::from("+") {
-                    v_d_plus(&sentence[0], &sentence[2])
-                } else {
-                    Err(JError {
-                        message: String::from("not supported yet"),
-                    })
+            Word::Verb(v, f) => {
+                match f {
+                  Some(f) => f(Some(&sentence[0]), &sentence[2]),
+                  None => Err(JError { message: String::from(v.to_owned() + "not supported yet")})
                 }
             }
             _ => Err(JError {
@@ -412,14 +469,27 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     }
 }
 
-fn v_d_plus(x: &Word, y: &Word) -> Result<Word, JError> {
+fn v_not_implemented<'a>(x: Option<&Word>, y: &'a Word) -> Result<Word<'a>, JError> {
+    Err(JError {
+        message: String::from("verb not implemented yet"),
+    })
+}
+
+fn v_plus<'a>(x: Option<&Word>, y: &'a Word) -> Result<Word<'a>, JError> {
     //Clearly this isn't gonna scale... figure out a dispatch table or something
 
-    if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-        Ok(Word::Noun(IntArray { v: x + y }))
-    } else {
-        Err(JError {
-            message: String::from("plus not supported for these types yet"),
-        })
+    match x {
+        None => Err(JError {
+            message: String::from("monadic + not implemented yet"),
+        }),
+        Some(x) => {
+            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { v: x + y }))
+            } else {
+                Err(JError {
+                    message: String::from("plus not supported for these types yet"),
+                })
+            }
+        }
     }
 }
