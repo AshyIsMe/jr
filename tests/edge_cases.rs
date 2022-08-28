@@ -1,4 +1,5 @@
 use jr::Word;
+use jr::JArray::*;
 use ndarray::prelude::*;
 
 // TODO support unicode properly
@@ -20,9 +21,9 @@ fn test_scan_num() {
     //assert_eq!(words, [Word::LitNumArray(String::from("1 2 _3"))]);
     assert_eq!(
         words,
-        [Word::IntArray {
+        [Word::Noun(IntArray {
             v: ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
-        }]
+        })]
     );
 }
 
@@ -94,7 +95,7 @@ fn test_scan_primitives() {
     assert_eq!(
         words,
         [
-            Word::Noun(String::from("a.")),
+            jr::char_array("a."),
             Word::Verb(String::from("I.")),
             jr::char_array("A"),
         ]
@@ -108,7 +109,7 @@ fn test_scan_primitives_not_spaced() {
     assert_eq!(
         words,
         [
-            Word::Noun(String::from("a.")),
+            jr::char_array("a."),
             Word::Verb(String::from("I.")),
             jr::char_array("A"),
         ]
@@ -122,9 +123,9 @@ fn test_basic_addition() {
     let result = jr::eval(words).unwrap();
     assert_eq!(
         result,
-        Word::IntArray {
+        Word::Noun(IntArray {
             v: Array::from_elem(IxDyn(&[1]), 4)
-        }
+        })
     );
 
     let words = jr::scan("1 2 3 + 4 5 6").unwrap();
@@ -132,8 +133,8 @@ fn test_basic_addition() {
     let result = jr::eval(words).unwrap();
     assert_eq!(
         result,
-        Word::IntArray {
+        Word::Noun(IntArray {
             v: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
-        }
+        })
     );
 }

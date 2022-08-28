@@ -9,11 +9,14 @@ pub enum Word {
     RP,
     Name(String),
 
-    Noun(String),
+    Noun(JArray),
     Verb(String),
     Adverb(String),
     Conjunction(String),
+}
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum JArray {
     IntArray { v: ArrayD<i64> },
     ExtIntArray { v: ArrayD<i128> }, // TODO: num::bigint::BigInt
     FloatArray { v: ArrayD<f64> },
@@ -24,11 +27,13 @@ pub enum Word {
     //EmptyArray // How do we do this properly?
 }
 
+use JArray::*;
+
 pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
-    Word::CharArray {
+    Word::Noun(JArray::CharArray {
         v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
-    }
+    })
 }
 
 #[rustfmt::skip]
@@ -203,7 +208,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
         .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
     match a {
         Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
-            Ok(v) => Ok((l, Word::IntArray { v })),
+            Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
             Err(e) => Err(JError {
                 message: e.to_string(),
             }),
@@ -260,8 +265,8 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
     }
     let s = &sentence[1..l].replace("''", "'");
     //match ArrayD::from_shape_vec(IxDyn(&[s.len()]), s.chars().collect()) {
-        //Ok(v) => Ok((l, Word::CharArray { v })),
-        //Err(e) => Err(JError { message: e.to_string() }),
+    //Ok(v) => Ok((l, Word::CharArray { v })),
+    //Err(e) => Err(JError { message: e.to_string() }),
     //}
     Ok((l, char_array(s)))
 }
@@ -367,7 +372,8 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     if primitive_nouns().contains(&sentence) {
-        Ok(Word::Noun(String::from(sentence)))
+        //Ok(Word::Noun(String::from(sentence)))
+        Ok(char_array(sentence)) // TODO - actually lookup the noun
     } else if primitive_verbs().contains(&sentence) {
         Ok(Word::Verb(String::from(sentence)))
     } else if primitive_adverbs().contains(&sentence) {
@@ -409,8 +415,8 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
 fn v_d_plus(x: &Word, y: &Word) -> Result<Word, JError> {
     //Clearly this isn't gonna scale... figure out a dispatch table or something
 
-    if let (Word::IntArray { v: x }, Word::IntArray { v: y }) = (x, y) {
-        Ok(Word::IntArray { v: x + y })
+    if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
+        Ok(Word::Noun(IntArray { v: x + y }))
     } else {
         Err(JError {
             message: String::from("plus not supported for these types yet"),
