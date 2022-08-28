@@ -24,21 +24,16 @@ pub enum Word {
     //EmptyArray // How do we do this properly?
 }
 
-#[macro_export]
-macro_rules! chararray {
-    ( $( $x:expr ),* ) => {
-        {
-            $(
-                Word::CharArray { v: ArrayD::from_shape_vec(IxDyn(&[$x.len()]), String::from($x).chars().collect()).unwrap() }
-            )*
-        }
-    };
+pub fn char_array(x: impl AsRef<str>) -> Word {
+    let x = x.as_ref();
+    Word::CharArray {
+        v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
+    }
 }
 
 #[rustfmt::skip]
-fn primitive_verbs() -> Vec<String> {
-    // https://code.jsoftware.com/wiki/NuVoc
-    vec![
+fn primitive_verbs() -> &'static [&'static str] {
+    &[
     "=","=.","=:",
     "<","<.","<:",
     ">",">.",">:",
@@ -103,34 +98,26 @@ fn primitive_verbs() -> Vec<String> {
     "if.", "return.", "select.", "case.", "fcase.",
     "throw.", "try.", "catch.", "catchd.", "catcht.",
     "while.", "whilst.",
-    ].into_iter().map(String::from).collect()
-}
-fn primitive_adverbs() -> Vec<String> {
-    // https://code.jsoftware.com/wiki/NuVoc
-    vec!["~", "/", "/.", "\\", "\\.", "]:", "}", "b.", "f.", "M."]
-        .into_iter()
-        .map(String::from)
-        .collect()
+    ]
 }
 
-fn primitive_nouns() -> Vec<String> {
+fn primitive_adverbs() -> &'static [&'static str] {
     // https://code.jsoftware.com/wiki/NuVoc
-    vec!["_", "_.", "a.", "a:"]
-        .into_iter()
-        .map(String::from)
-        .collect()
+    &["~", "/", "/.", "\\", "\\.", "]:", "}", "b.", "f.", "M."]
 }
 
-fn primitive_conjunctions() -> Vec<String> {
+fn primitive_nouns() -> &'static [&'static str] {
     // https://code.jsoftware.com/wiki/NuVoc
-    vec![
+    &["_", "_.", "a.", "a:"]
+}
+
+fn primitive_conjunctions() -> &'static [&'static str] {
+    // https://code.jsoftware.com/wiki/NuVoc
+    &[
         "^:", ".", ":", ":.", "::", ";.", "!.", "!:", "[.", "].", "\"", "`", "`:", "@", "@.", "@:",
         "&", "&.", "&:", "&.:", "d.", "D.", "D:", "F.", "F..", "F.:", "F:", "F:.", "F::", "H.",
         "L:", "S:", "t.",
     ]
-    .into_iter()
-    .map(String::from)
-    .collect()
 }
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
@@ -276,7 +263,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
         //Ok(v) => Ok((l, Word::CharArray { v })),
         //Err(e) => Err(JError { message: e.to_string() }),
     //}
-    Ok((l, chararray![s]))
+    Ok((l, char_array(s)))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
@@ -379,13 +366,13 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
-    if primitive_nouns().contains(&String::from(sentence)) {
+    if primitive_nouns().contains(&sentence) {
         Ok(Word::Noun(String::from(sentence)))
-    } else if primitive_verbs().contains(&String::from(sentence)) {
+    } else if primitive_verbs().contains(&sentence) {
         Ok(Word::Verb(String::from(sentence)))
-    } else if primitive_adverbs().contains(&String::from(sentence)) {
+    } else if primitive_adverbs().contains(&sentence) {
         Ok(Word::Adverb(String::from(sentence)))
-    } else if primitive_conjunctions().contains(&String::from(sentence)) {
+    } else if primitive_conjunctions().contains(&sentence) {
         Ok(Word::Conjunction(String::from(sentence)))
     } else {
         return Err(JError {

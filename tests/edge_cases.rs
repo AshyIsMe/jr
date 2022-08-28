@@ -30,10 +30,7 @@ fn test_scan_num() {
 fn test_scan_string() {
     let words = jr::scan("'abc'").unwrap();
     println!("{:?}", words);
-    assert_eq!(
-        words,
-        [jr::chararray!["abc"]]
-    );
+    assert_eq!(words, [jr::char_array("abc")]);
 }
 
 #[test]
@@ -69,9 +66,9 @@ fn test_scan_string_verb_string() {
     assert_eq!(
         words,
         [
-            jr::chararray!["abc"],
+            jr::char_array("abc"),
             Word::Verb(String::from(",")),
-            jr::chararray!["def"],
+            jr::char_array("def"),
         ]
     );
 }
@@ -99,7 +96,7 @@ fn test_scan_primitives() {
         [
             Word::Noun(String::from("a.")),
             Word::Verb(String::from("I.")),
-            jr::chararray!["A"],
+            jr::char_array("A"),
         ]
     );
 }
@@ -113,7 +110,7 @@ fn test_scan_primitives_not_spaced() {
         [
             Word::Noun(String::from("a.")),
             Word::Verb(String::from("I.")),
-            jr::chararray!["A"],
+            jr::char_array("A"),
         ]
     );
 }
