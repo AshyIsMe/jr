@@ -19,10 +19,14 @@ pub enum Word {
 
 impl fmt::Debug for Word {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{}", match self {
-            LP => "LP",
-            _ => "whatevs",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                LP => "LP",
+                _ => "whatevs",
+            }
+        )
     }
 }
 
@@ -472,12 +476,12 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 3 {
         match &sentence[1] {
-            Word::Verb(v, f) => {
-                match f {
-                  Some(f) => f(Some(&sentence[0]), &sentence[2]),
-                  None => Err(JError { message: String::from(v.to_owned() + "not supported yet")})
-                }
-            }
+            Word::Verb(v, f) => match f {
+                Some(f) => f(Some(&sentence[0]), &sentence[2]),
+                None => Err(JError {
+                    message: String::from(v.to_owned() + "not supported yet"),
+                }),
+            },
             _ => Err(JError {
                 message: String::from("not supported yet"),
             }),

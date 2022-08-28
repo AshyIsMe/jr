@@ -1,5 +1,5 @@
-use jr::Word;
 use jr::JArray::*;
+use jr::Word;
 use ndarray::prelude::*;
 
 // TODO support unicode properly
