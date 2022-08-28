@@ -20,10 +20,10 @@ fn main() -> io::Result<()> {
                     Ok(tokens) => {
                         println!("tokens: {:?}", tokens);
                         println!("{:?}", jr::eval(tokens));
-                        buffer = String::from("");
                     }
-                    Err(e) => println!("error: {:?}", e)
+                    Err(e) => println!("error: {:?}", e),
                 }
+                buffer = String::from("");
             }
         }
     }
