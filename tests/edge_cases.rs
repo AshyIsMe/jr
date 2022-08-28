@@ -1,5 +1,5 @@
-use jr::Word;
 use jr::JArray::*;
+use jr::{VerbImpl, Word};
 use ndarray::prelude::*;
 
 // TODO support unicode properly
@@ -49,7 +49,7 @@ fn test_scan_name_verb_name() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+")),
+            Word::Verb(String::from("+"), Some(VerbImpl::Plus)),
             Word::Name(String::from("bar")),
         ]
     );
@@ -68,7 +68,7 @@ fn test_scan_string_verb_string() {
         words,
         [
             jr::char_array("abc"),
-            Word::Verb(String::from(",")),
+            Word::Verb(String::from(","), Some(VerbImpl::NotImplemented)),
             jr::char_array("def"),
         ]
     );
@@ -82,7 +82,7 @@ fn test_scan_name_verb_name_not_spaced() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+")),
+            Word::Verb(String::from("+"), Some(VerbImpl::Plus)),
             Word::Name(String::from("bar")),
         ]
     );
@@ -96,7 +96,7 @@ fn test_scan_primitives() {
         words,
         [
             jr::char_array("a."),
-            Word::Verb(String::from("I.")),
+            Word::Verb(String::from("I."), Some(VerbImpl::NotImplemented)),
             jr::char_array("A"),
         ]
     );
@@ -110,7 +110,7 @@ fn test_scan_primitives_not_spaced() {
         words,
         [
             jr::char_array("a."),
-            Word::Verb(String::from("I.")),
+            Word::Verb(String::from("I."), Some(VerbImpl::NotImplemented)),
             jr::char_array("A"),
         ]
     );
@@ -135,6 +135,29 @@ fn test_basic_addition() {
         result,
         Word::Noun(IntArray {
             v: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
+        })
+    );
+}
+
+#[test]
+fn test_basic_times() {
+    let words = jr::scan("2 * 2").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            v: Array::from_elem(IxDyn(&[1]), 4)
+        })
+    );
+
+    let words = jr::scan("1 2 3 * 4 5 6").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            v: Array::from_shape_vec(IxDyn(&[3]), vec![4, 10, 18]).unwrap()
         })
     );
 }
