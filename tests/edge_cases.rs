@@ -138,3 +138,26 @@ fn test_basic_addition() {
         })
     );
 }
+
+#[test]
+fn test_basic_times() {
+    let words = jr::scan("2 * 2").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            v: Array::from_elem(IxDyn(&[1]), 4)
+        })
+    );
+
+    let words = jr::scan("1 2 3 * 4 5 6").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            v: Array::from_shape_vec(IxDyn(&[3]), vec![4, 10, 18]).unwrap()
+        })
+    );
+}

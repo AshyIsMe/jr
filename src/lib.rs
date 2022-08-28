@@ -41,6 +41,8 @@ pub fn char_array(x: impl AsRef<str>) -> Word {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum VerbImpl {
     Plus,
+    Minus,
+    Times,
     NotImplemented,
 }
 
@@ -48,6 +50,8 @@ impl VerbImpl {
     fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         match self {
             VerbImpl::Plus => v_plus(x, y),
+            VerbImpl::Minus => v_minus(x, y),
+            VerbImpl::Times => v_times(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
         }
     }
@@ -69,10 +73,10 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("+", VerbImpl::Plus),
         ("+.", VerbImpl::NotImplemented),
         ("+:", VerbImpl::NotImplemented),
-        ("*", VerbImpl::NotImplemented),
+        ("*", VerbImpl::Times),
         ("*.", VerbImpl::NotImplemented),
         ("*:", VerbImpl::NotImplemented),
-        ("-", VerbImpl::NotImplemented),
+        ("-", VerbImpl::Minus),
         ("-.", VerbImpl::NotImplemented),
         ("-:", VerbImpl::NotImplemented),
         ("%", VerbImpl::NotImplemented),
@@ -494,8 +498,6 @@ fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, J
 }
 
 fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
-    //Clearly this isn't gonna scale... figure out a dispatch table or something
-
     match x {
         None => Err(JError {
             message: String::from("monadic + not implemented yet"),
@@ -511,3 +513,38 @@ fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
         }
     }
 }
+
+fn v_minus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+    match x {
+        None => Err(JError {
+            message: String::from("monadic - not implemented yet"),
+        }),
+        Some(x) => {
+            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { v: x - y }))
+            } else {
+                Err(JError {
+                    message: String::from("minus not supported for these types yet"),
+                })
+            }
+        }
+    }
+}
+
+fn v_times<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+    match x {
+        None => Err(JError {
+            message: String::from("monadic * not implemented yet"),
+        }),
+        Some(x) => {
+            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { v: x * y }))
+            } else {
+                Err(JError {
+                    message: String::from("times not supported for these types yet"),
+                })
+            }
+        }
+    }
+}
+
