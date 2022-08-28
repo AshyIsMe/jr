@@ -1,17 +1,18 @@
 use ndarray::prelude::*;
 use std::collections::HashMap;
+use std::fmt;
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
-#[derive(Clone, Debug, PartialEq)]
-pub enum Word<'a> {
+#[derive(Clone, PartialEq, Debug)]
+pub enum Word {
     LP,
     RP,
     Name(String),
 
     Noun(JArray),
-    Verb(String, Option<&'a Verbfn>),
+    Verb(String, Option<VerbImpl>),
     Adverb(String),
     Conjunction(String),
 }
@@ -28,146 +29,159 @@ pub enum JArray {
     //EmptyArray // How do we do this properly?
 }
 
-type Verbfn = for<'a> fn(Option<&Word>, &'a Word) -> Result<Word<'a>, JError>;
-
 use JArray::*;
 
-pub fn char_array(x: impl AsRef<str>) -> Word<'static> {
+pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
     Word::Noun(JArray::CharArray {
         v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
     })
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum VerbImpl {
+    Plus,
+    NotImplemented,
+}
+
+impl VerbImpl {
+    fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+        match self {
+            VerbImpl::Plus => v_plus(x, y),
+            VerbImpl::NotImplemented => v_not_implemented(x, y),
+        }
+    }
+}
+
 //fn primitive_verbs() -> &'static [&'static str] {
-fn primitive_verbs() -> HashMap<&'static str, Verbfn> {
+fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
     HashMap::from([
-        ("=", v_not_implemented),
-        ("=.", v_not_implemented),
-        ("=:", v_not_implemented),
-        ("<", v_not_implemented),
-        ("<.", v_not_implemented),
-        ("<:", v_not_implemented),
-        (">", v_not_implemented),
-        (">.", v_not_implemented),
-        (">:", v_not_implemented),
-        ("_:", v_not_implemented),
-        ("+", v_plus),
-        ("+.", v_not_implemented),
-        ("+:", v_not_implemented),
-        ("*", v_not_implemented),
-        ("*.", v_not_implemented),
-        ("*:", v_not_implemented),
-        ("-", v_not_implemented),
-        ("-.", v_not_implemented),
-        ("-:", v_not_implemented),
-        ("%", v_not_implemented),
-        ("%.", v_not_implemented),
-        ("%:", v_not_implemented),
-        ("^", v_not_implemented),
-        ("^.", v_not_implemented),
-        ("^!.", v_not_implemented),
-        ("$", v_not_implemented),
-        ("$.", v_not_implemented),
-        ("$:", v_not_implemented),
-        ("~.", v_not_implemented),
-        ("~:", v_not_implemented),
-        ("|", v_not_implemented),
-        ("|.", v_not_implemented),
-        ("|:", v_not_implemented),
-        (".:", v_not_implemented),
-        ("..", v_not_implemented),
-        (",.", v_not_implemented),
-        (",", v_not_implemented),
-        (",:", v_not_implemented),
-        (";", v_not_implemented),
-        (";:", v_not_implemented),
-        ("#", v_not_implemented),
-        ("#.", v_not_implemented),
-        ("#:", v_not_implemented),
-        ("!", v_not_implemented),
-        ("/:", v_not_implemented),
-        ("\\:", v_not_implemented),
-        ("[", v_not_implemented),
-        ("[:", v_not_implemented),
-        ("]", v_not_implemented),
-        ("{", v_not_implemented),
-        ("{.", v_not_implemented),
-        ("{:", v_not_implemented),
-        ("{::", v_not_implemented),
-        ("}.", v_not_implemented),
-        ("}:", v_not_implemented),
-        ("\".", v_not_implemented),
-        ("\":", v_not_implemented),
-        ("?", v_not_implemented),
-        ("?.", v_not_implemented),
-        ("A.", v_not_implemented),
-        ("C.", v_not_implemented),
-        ("C.!.2", v_not_implemented),
-        ("e.", v_not_implemented),
-        ("E.", v_not_implemented),
-        ("i.", v_not_implemented),
-        ("i:", v_not_implemented),
-        ("I.", v_not_implemented),
-        ("j.", v_not_implemented),
-        ("L.", v_not_implemented),
-        ("o.", v_not_implemented),
-        ("p.", v_not_implemented),
-        ("p..", v_not_implemented),
-        ("p:", v_not_implemented),
-        ("q:", v_not_implemented),
-        ("r.", v_not_implemented),
-        ("s:", v_not_implemented),
-        ("T.", v_not_implemented),
-        ("u:", v_not_implemented),
-        ("x:", v_not_implemented),
-        ("Z:", v_not_implemented),
-        ("_9:", v_not_implemented),
-        ("_8:", v_not_implemented),
-        ("_7:", v_not_implemented),
-        ("_6:", v_not_implemented),
-        ("_5:", v_not_implemented),
-        ("_4:", v_not_implemented),
-        ("_3:", v_not_implemented),
-        ("_2:", v_not_implemented),
-        ("_1:", v_not_implemented),
-        ("0:", v_not_implemented),
-        ("1:", v_not_implemented),
-        ("2:", v_not_implemented),
-        ("3:", v_not_implemented),
-        ("4:", v_not_implemented),
-        ("5:", v_not_implemented),
-        ("6:", v_not_implemented),
-        ("7:", v_not_implemented),
-        ("8:", v_not_implemented),
-        ("9", v_not_implemented),
-        ("u.", v_not_implemented),
-        ("v.", v_not_implemented),
+        ("=", VerbImpl::NotImplemented),
+        ("=.", VerbImpl::NotImplemented),
+        ("=:", VerbImpl::NotImplemented),
+        ("<", VerbImpl::NotImplemented),
+        ("<.", VerbImpl::NotImplemented),
+        ("<:", VerbImpl::NotImplemented),
+        (">", VerbImpl::NotImplemented),
+        (">.", VerbImpl::NotImplemented),
+        (">:", VerbImpl::NotImplemented),
+        ("_:", VerbImpl::NotImplemented),
+        ("+", VerbImpl::Plus),
+        ("+.", VerbImpl::NotImplemented),
+        ("+:", VerbImpl::NotImplemented),
+        ("*", VerbImpl::NotImplemented),
+        ("*.", VerbImpl::NotImplemented),
+        ("*:", VerbImpl::NotImplemented),
+        ("-", VerbImpl::NotImplemented),
+        ("-.", VerbImpl::NotImplemented),
+        ("-:", VerbImpl::NotImplemented),
+        ("%", VerbImpl::NotImplemented),
+        ("%.", VerbImpl::NotImplemented),
+        ("%:", VerbImpl::NotImplemented),
+        ("^", VerbImpl::NotImplemented),
+        ("^.", VerbImpl::NotImplemented),
+        ("^!.", VerbImpl::NotImplemented),
+        ("$", VerbImpl::NotImplemented),
+        ("$.", VerbImpl::NotImplemented),
+        ("$:", VerbImpl::NotImplemented),
+        ("~.", VerbImpl::NotImplemented),
+        ("~:", VerbImpl::NotImplemented),
+        ("|", VerbImpl::NotImplemented),
+        ("|.", VerbImpl::NotImplemented),
+        ("|:", VerbImpl::NotImplemented),
+        (".:", VerbImpl::NotImplemented),
+        ("..", VerbImpl::NotImplemented),
+        (",.", VerbImpl::NotImplemented),
+        (",", VerbImpl::NotImplemented),
+        (",:", VerbImpl::NotImplemented),
+        (";", VerbImpl::NotImplemented),
+        (";:", VerbImpl::NotImplemented),
+        ("#", VerbImpl::NotImplemented),
+        ("#.", VerbImpl::NotImplemented),
+        ("#:", VerbImpl::NotImplemented),
+        ("!", VerbImpl::NotImplemented),
+        ("/:", VerbImpl::NotImplemented),
+        ("\\:", VerbImpl::NotImplemented),
+        ("[", VerbImpl::NotImplemented),
+        ("[:", VerbImpl::NotImplemented),
+        ("]", VerbImpl::NotImplemented),
+        ("{", VerbImpl::NotImplemented),
+        ("{.", VerbImpl::NotImplemented),
+        ("{:", VerbImpl::NotImplemented),
+        ("{::", VerbImpl::NotImplemented),
+        ("}.", VerbImpl::NotImplemented),
+        ("}:", VerbImpl::NotImplemented),
+        ("\".", VerbImpl::NotImplemented),
+        ("\":", VerbImpl::NotImplemented),
+        ("?", VerbImpl::NotImplemented),
+        ("?.", VerbImpl::NotImplemented),
+        ("A.", VerbImpl::NotImplemented),
+        ("C.", VerbImpl::NotImplemented),
+        ("C.!.2", VerbImpl::NotImplemented),
+        ("e.", VerbImpl::NotImplemented),
+        ("E.", VerbImpl::NotImplemented),
+        ("i.", VerbImpl::NotImplemented),
+        ("i:", VerbImpl::NotImplemented),
+        ("I.", VerbImpl::NotImplemented),
+        ("j.", VerbImpl::NotImplemented),
+        ("L.", VerbImpl::NotImplemented),
+        ("o.", VerbImpl::NotImplemented),
+        ("p.", VerbImpl::NotImplemented),
+        ("p..", VerbImpl::NotImplemented),
+        ("p:", VerbImpl::NotImplemented),
+        ("q:", VerbImpl::NotImplemented),
+        ("r.", VerbImpl::NotImplemented),
+        ("s:", VerbImpl::NotImplemented),
+        ("T.", VerbImpl::NotImplemented),
+        ("u:", VerbImpl::NotImplemented),
+        ("x:", VerbImpl::NotImplemented),
+        ("Z:", VerbImpl::NotImplemented),
+        ("_9:", VerbImpl::NotImplemented),
+        ("_8:", VerbImpl::NotImplemented),
+        ("_7:", VerbImpl::NotImplemented),
+        ("_6:", VerbImpl::NotImplemented),
+        ("_5:", VerbImpl::NotImplemented),
+        ("_4:", VerbImpl::NotImplemented),
+        ("_3:", VerbImpl::NotImplemented),
+        ("_2:", VerbImpl::NotImplemented),
+        ("_1:", VerbImpl::NotImplemented),
+        ("0:", VerbImpl::NotImplemented),
+        ("1:", VerbImpl::NotImplemented),
+        ("2:", VerbImpl::NotImplemented),
+        ("3:", VerbImpl::NotImplemented),
+        ("4:", VerbImpl::NotImplemented),
+        ("5:", VerbImpl::NotImplemented),
+        ("6:", VerbImpl::NotImplemented),
+        ("7:", VerbImpl::NotImplemented),
+        ("8:", VerbImpl::NotImplemented),
+        ("9", VerbImpl::NotImplemented),
+        ("u.", VerbImpl::NotImplemented),
+        ("v.", VerbImpl::NotImplemented),
         // TODO Controls need to be handled differently
-        ("NB.", v_not_implemented),
-        ("{{", v_not_implemented),
-        ("}}", v_not_implemented),
-        ("assert.", v_not_implemented),
-        ("break.", v_not_implemented),
-        ("continue.", v_not_implemented),
-        ("else.", v_not_implemented),
-        ("elseif.", v_not_implemented),
-        ("for.", v_not_implemented),
-        ("for_ijk.", v_not_implemented), // TODO handle ijk label properly
-        ("goto_lbl.", v_not_implemented), // TODO handle lbl properly
-        ("label_lbl.", v_not_implemented), // TODO handle lbl properly
-        ("if.", v_not_implemented),
-        ("return.", v_not_implemented),
-        ("select.", v_not_implemented),
-        ("case.", v_not_implemented),
-        ("fcase.", v_not_implemented),
-        ("throw.", v_not_implemented),
-        ("try.", v_not_implemented),
-        ("catch.", v_not_implemented),
-        ("catchd.", v_not_implemented),
-        ("catcht.", v_not_implemented),
-        ("while.", v_not_implemented),
-        ("whilst.", v_not_implemented),
+        ("NB.", VerbImpl::NotImplemented),
+        ("{{", VerbImpl::NotImplemented),
+        ("}}", VerbImpl::NotImplemented),
+        ("assert.", VerbImpl::NotImplemented),
+        ("break.", VerbImpl::NotImplemented),
+        ("continue.", VerbImpl::NotImplemented),
+        ("else.", VerbImpl::NotImplemented),
+        ("elseif.", VerbImpl::NotImplemented),
+        ("for.", VerbImpl::NotImplemented),
+        ("for_ijk.", VerbImpl::NotImplemented), // TODO handle ijk label properly
+        ("goto_lbl.", VerbImpl::NotImplemented), // TODO handle lbl properly
+        ("label_lbl.", VerbImpl::NotImplemented), // TODO handle lbl properly
+        ("if.", VerbImpl::NotImplemented),
+        ("return.", VerbImpl::NotImplemented),
+        ("select.", VerbImpl::NotImplemented),
+        ("case.", VerbImpl::NotImplemented),
+        ("fcase.", VerbImpl::NotImplemented),
+        ("throw.", VerbImpl::NotImplemented),
+        ("try.", VerbImpl::NotImplemented),
+        ("catch.", VerbImpl::NotImplemented),
+        ("catchd.", VerbImpl::NotImplemented),
+        ("catcht.", VerbImpl::NotImplemented),
+        ("while.", VerbImpl::NotImplemented),
+        ("whilst.", VerbImpl::NotImplemented),
     ])
 }
 
@@ -435,7 +449,11 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     if primitive_nouns().contains(&sentence) {
         Ok(char_array(sentence)) // TODO - actually lookup the noun
     } else if primitive_verbs().contains_key(&sentence) {
-        Ok(Word::Verb(String::from(sentence), primitive_verbs().get(&sentence)))
+        let refd = match primitive_verbs().get(&sentence) {
+            Some(v) => Some(v.clone()),
+            None => None,
+        };
+        Ok(Word::Verb(String::from(sentence), refd))
     } else if primitive_adverbs().contains(&sentence) {
         Ok(Word::Adverb(String::from(sentence)))
     } else if primitive_conjunctions().contains(&sentence) {
@@ -452,12 +470,12 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 3 {
         match &sentence[1] {
-            Word::Verb(v, f) => {
-                match f {
-                  Some(f) => f(Some(&sentence[0]), &sentence[2]),
-                  None => Err(JError { message: String::from(v.to_owned() + "not supported yet")})
-                }
-            }
+            Word::Verb(v, f) => match f {
+                Some(f) => f.exec(Some(&sentence[0]), &sentence[2]),
+                None => Err(JError {
+                    message: String::from(v.to_owned() + "not supported yet"),
+                }),
+            },
             _ => Err(JError {
                 message: String::from("not supported yet"),
             }),
@@ -469,13 +487,13 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     }
 }
 
-fn v_not_implemented<'a>(x: Option<&Word>, y: &'a Word) -> Result<Word<'a>, JError> {
+fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
     Err(JError {
         message: String::from("verb not implemented yet"),
     })
 }
 
-fn v_plus<'a>(x: Option<&Word>, y: &'a Word) -> Result<Word<'a>, JError> {
+fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
     //Clearly this isn't gonna scale... figure out a dispatch table or something
 
     match x {
