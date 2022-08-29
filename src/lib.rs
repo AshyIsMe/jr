@@ -1,6 +1,11 @@
+
+mod verbs;
+
 use ndarray::prelude::*;
 use std::collections::HashMap;
 use std::fmt;
+
+pub use crate::verbs::*;
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
@@ -498,62 +503,5 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
         Err(JError {
             message: String::from("not supported yet"),
         })
-    }
-}
-
-fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
-    Err(JError {
-        message: String::from("verb not implemented yet"),
-    })
-}
-
-fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
-    match x {
-        None => Err(JError {
-            message: String::from("monadic + not implemented yet"),
-        }),
-        Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x + y }))
-            } else {
-                Err(JError {
-                    message: String::from("plus not supported for these types yet"),
-                })
-            }
-        }
-    }
-}
-
-fn v_minus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
-    match x {
-        None => Err(JError {
-            message: String::from("monadic - not implemented yet"),
-        }),
-        Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x - y }))
-            } else {
-                Err(JError {
-                    message: String::from("minus not supported for these types yet"),
-                })
-            }
-        }
-    }
-}
-
-fn v_times<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
-    match x {
-        None => Err(JError {
-            message: String::from("monadic * not implemented yet"),
-        }),
-        Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x * y }))
-            } else {
-                Err(JError {
-                    message: String::from("times not supported for these types yet"),
-                })
-            }
-        }
     }
 }
