@@ -34,7 +34,7 @@ use JArray::*;
 pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
     Word::Noun(JArray::CharArray {
-        v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), String::from(x).chars().collect()).unwrap(),
+        v: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
     })
 }
 
@@ -346,8 +346,15 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
             },
         }
     }
-    let s = &sentence[1..l].replace("''", "'");
-    Ok((l, char_array(s)))
+
+    assert!(l <= sentence.chars().count(), "l past end of string: {}", l);
+    let s = sentence
+        .chars()
+        .take(l)
+        .skip(1)
+        .collect::<String>()
+        .replace("''", "'");
+    Ok((l, char_array(&s)))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
@@ -446,7 +453,10 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
             }
         }
     }
-    Ok((l, str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?))
+    Ok((
+        l,
+        str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?,
+    ))
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {

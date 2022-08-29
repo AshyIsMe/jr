@@ -8,6 +8,11 @@ fn test_scan_nunez() {
 }
 
 #[test]
+fn test_scan_prime_nunez() {
+    let _ = jr::scan("'йй");
+}
+
+#[test]
 fn invalid_prime() {
     // TODO: error matcher / diagnostics
     assert!(jr::scan("'").is_err());
