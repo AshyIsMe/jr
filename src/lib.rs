@@ -446,7 +446,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
             }
         }
     }
-    Ok((l, str_to_primitive(&sentence[0..=l])?))
+    Ok((l, str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?))
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
@@ -547,4 +547,3 @@ fn v_times<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
         }
     }
 }
-
