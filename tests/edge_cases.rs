@@ -2,11 +2,10 @@ use jr::JArray::*;
 use jr::{VerbImpl, Word};
 use ndarray::prelude::*;
 
-// TODO support unicode properly
-//#[test]
-//fn test_scan_nunez() {
-//let _ =jr::scan("й");
-//}
+#[test]
+fn test_scan_nunez() {
+    let _ = jr::scan("й");
+}
 
 #[test]
 fn invalid_prime() {
