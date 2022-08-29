@@ -1,4 +1,3 @@
-
 mod verbs;
 
 use ndarray::prelude::*;
@@ -275,6 +274,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             message: String::from("Empty number literal"),
         });
     }
+    // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match c {
@@ -288,22 +288,35 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
         }
     }
 
-    // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
-    let a = sentence[0..=l]
-        .split_whitespace()
-        .map(|s| s.replace("_", "-"))
-        .map(|s| s.parse::<i64>())
-        .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
-    match a {
-        Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
-            Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
+    if sentence[0..=l].contains('j') {
+        Err(JError {
+            message: String::from("complex numbers not supported yet"),
+        })
+    } else if sentence[0..=l].contains('r') {
+        Err(JError {
+            message: String::from("rational numbers not supported yet"),
+        })
+    } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
+        Err(JError {
+            message: String::from("floating point numbers not supported yet"),
+        })
+    } else {
+        let a = sentence[0..=l]
+            .split_whitespace()
+            .map(|s| s.replace("_", "-"))
+            .map(|s| s.parse::<i64>())
+            .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
+        match a {
+            Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
+                Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
+                Err(e) => Err(JError {
+                    message: e.to_string(),
+                }),
+            },
             Err(e) => Err(JError {
                 message: e.to_string(),
             }),
-        },
-        Err(e) => Err(JError {
-            message: e.to_string(),
-        }),
+        }
     }
 }
 

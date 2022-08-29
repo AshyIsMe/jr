@@ -1,7 +1,6 @@
-
-use crate::Word;
 use crate::JArray::*;
 use crate::JError;
+use crate::Word;
 
 pub fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
     Err(JError {
