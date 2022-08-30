@@ -1,7 +1,7 @@
 mod verbs;
 
 use ndarray::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fmt;
 
 pub use crate::verbs::*;
@@ -13,6 +13,7 @@ pub use crate::verbs::*;
 pub enum Word {
     LP,
     RP,
+    Nothing, // used as placeholder when parsing
     Name(String),
 
     Noun(JArray),
@@ -34,6 +35,7 @@ pub enum JArray {
 }
 
 use JArray::*;
+use Word::*;
 
 pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
@@ -498,7 +500,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
 }
 
 pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
-    //TODO: implement this properly
+    //TODO: replace this with parse() function below
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 3 {
         match &sentence[1] {
@@ -516,5 +518,60 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
         Err(JError {
             message: String::from("not supported yet"),
         })
+    }
+}
+
+pub fn parse(sentence: Vec<Word>) -> Result<Word, JError> {
+    // Attempt to parse j properly as per the documentation here:
+    // https://www.jsoftware.com/ioj/iojSent.htm
+    // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
+
+    let mut queue = VecDeque::from(sentence);
+    let mut stack: VecDeque<Word> = VecDeque::from([]);
+
+    while !queue.is_empty() {
+        stack.push_front(queue.pop_back().unwrap());
+
+        let fragment = get_fragment(&stack.clone());
+        match fragment {
+            (Verb(_, v), Noun(m), _, _) => println!("0 monad"),
+            (Verb(_, _), Verb(s, v), Noun(m), _) => println!("1 monad"),
+            (Noun(n), Verb(s, v), Noun(m), _) => println!("2 dyad"),
+            (Verb(_, v), Adverb(a), _, _) => println!("3 adverb V A _"),
+            (Noun(n), Adverb(a), _, _) => println!("3 adverb N A _"),
+            (Verb(_, u), Conjunction(a), Verb(_, v), _) => println!("4 Conj V C V"),
+            (Verb(_, u), Conjunction(a), Noun(m), _) => println!("4 Conj V C N"),
+            (Noun(n), Conjunction(a), Verb(_, v), _) => println!("4 Conj N C V"),
+            (Noun(n), Conjunction(a), Noun(m), _) => println!("4 Conj N C N"),
+            (Verb(_, f), Verb(_, g), Verb(_, h), _) => println!("5 Fork V V V"),
+            (Noun(n), Verb(_, f), Verb(_, v), _) => println!("5 Fork N V V"),
+            // TODO 6 Hook/Adverb
+            // TODO 7 Is
+            // TODO 8 Paren
+            _ => println!("fragment doesn't match any execution cases"),
+        }
+    }
+    Err(JError {
+        message: String::from("not implemented yet"),
+    })
+}
+
+fn get_fragment(stack: &VecDeque<Word>) -> (Word, Word, Word, Word) {
+    match stack.len() {
+        0 => (Nothing, Nothing, Nothing, Nothing),
+        1 => (stack[0].clone(), Nothing, Nothing, Nothing),
+        2 => (stack[0].clone(), stack[1].clone(), Nothing, Nothing),
+        3 => (
+            stack[0].clone(),
+            stack[1].clone(),
+            stack[2].clone(),
+            Nothing,
+        ),
+        _ => (
+            stack[0].clone(),
+            stack[1].clone(),
+            stack[2].clone(),
+            stack[3].clone(),
+        ),
     }
 }
