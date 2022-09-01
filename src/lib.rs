@@ -509,23 +509,6 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
 }
 
 pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
-    //TODO: replace this with parse() function below
-    //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
-    if sentence.len() == 3 {
-        match &sentence[1] {
-            Word::Verb(v, f) => f.exec(Some(&sentence[0]), &sentence[2]),
-            _ => Err(JError {
-                message: String::from("not supported yet"),
-            }),
-        }
-    } else {
-        Err(JError {
-            message: String::from("not supported yet"),
-        })
-    }
-}
-
-pub fn parse(sentence: Vec<Word>) -> Result<Word, JError> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -634,7 +617,7 @@ pub fn parse(sentence: Vec<Word>) -> Result<Word, JError> {
             },
         };
 
-        println!("result: {:?}", result);
+        //println!("result: {:?}", result);
 
         if let Ok(r) = result {
             //stack.push_front(r);
@@ -643,14 +626,14 @@ pub fn parse(sentence: Vec<Word>) -> Result<Word, JError> {
             return Err(e);
         }
     }
-    println!("stack: {:?}", stack);
+    //println!("stack: {:?}", stack);
     let mut new_stack: VecDeque<&Word> = stack
         .iter()
         .filter(|&w| if let StartOfLine = w { false } else { true })
         .filter(|&w| if let Nothing = w { false } else { true })
         .collect::<Vec<&Word>>()
         .into();
-    println!("new_stack: {:?}", new_stack);
+    //println!("new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {

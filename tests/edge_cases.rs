@@ -174,7 +174,7 @@ fn test_parse_basics() {
         Word::Noun(IntArray { v: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap() }),
     ];
     println!("{:?}", words);
-    let result = jr::parse(words).unwrap();
+    let result = jr::eval(words).unwrap();
     assert_eq!(
         result,
         Word::Noun(IntArray {
