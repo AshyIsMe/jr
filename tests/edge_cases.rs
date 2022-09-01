@@ -53,7 +53,7 @@ fn test_scan_name_verb_name() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), Some(VerbImpl::Plus)),
+            Word::Verb(String::from("+"), VerbImpl::Plus),
             Word::Name(String::from("bar")),
         ]
     );
@@ -72,7 +72,7 @@ fn test_scan_string_verb_string() {
         words,
         [
             jr::char_array("abc"),
-            Word::Verb(String::from(","), Some(VerbImpl::NotImplemented)),
+            Word::Verb(String::from(","), VerbImpl::NotImplemented),
             jr::char_array("def"),
         ]
     );
@@ -86,7 +86,7 @@ fn test_scan_name_verb_name_not_spaced() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), Some(VerbImpl::Plus)),
+            Word::Verb(String::from("+"), VerbImpl::Plus),
             Word::Name(String::from("bar")),
         ]
     );
@@ -100,7 +100,7 @@ fn test_scan_primitives() {
         words,
         [
             jr::char_array("a."),
-            Word::Verb(String::from("I."), Some(VerbImpl::NotImplemented)),
+            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
             jr::char_array("A"),
         ]
     );
@@ -114,7 +114,7 @@ fn test_scan_primitives_not_spaced() {
         words,
         [
             jr::char_array("a."),
-            Word::Verb(String::from("I."), Some(VerbImpl::NotImplemented)),
+            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
             jr::char_array("A"),
         ]
     );
@@ -170,7 +170,7 @@ fn test_basic_times() {
 fn test_parse_basics() {
     let words = vec![
         Word::Noun(IntArray { v: Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap() }),
-        Word::Verb(String::from("+"), Some(VerbImpl::Plus)),
+        Word::Verb(String::from("+"), VerbImpl::Plus),
         Word::Noun(IntArray { v: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap() }),
     ];
     println!("{:?}", words);
@@ -178,7 +178,7 @@ fn test_parse_basics() {
     assert_eq!(
         result,
         Word::Noun(IntArray {
-            v: Array::from_elem(IxDyn(&[1]), 4)
+            v: Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()
         })
     );
 }

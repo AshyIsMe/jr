@@ -1,5 +1,6 @@
 mod verbs;
 
+use itertools::Itertools;
 use ndarray::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use std::fmt;
@@ -13,13 +14,14 @@ pub use crate::verbs::*;
 pub enum Word {
     LP,
     RP,
-    Nothing, // used as placeholder when parsing
+    StartOfLine, // used as placeholder when parsing
+    Nothing,     // used as placeholder when parsing
     Name(String),
 
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, Option<VerbImpl>),
+    Verb(String, VerbImpl),
     Adverb(String),
     Conjunction(String),
 }
@@ -227,7 +229,6 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
 
     let mut skip: usize = 0;
 
-    //TODO recursive descent instead of a dumb loop.
     //TODO support multiline definitions.
     for (i, c) in sentence.chars().enumerate() {
         if skip > 0 {
@@ -486,8 +487,8 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         Ok(char_array(sentence)) // TODO - actually lookup the noun
     } else if primitive_verbs().contains_key(&sentence) {
         let refd = match primitive_verbs().get(&sentence) {
-            Some(v) => Some(v.clone()),
-            None => None,
+            Some(v) => v.clone(),
+            None => VerbImpl::NotImplemented,
         };
         Ok(Word::Verb(String::from(sentence), refd))
     } else if primitive_adverbs().contains(&sentence) {
@@ -512,12 +513,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     //https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
     if sentence.len() == 3 {
         match &sentence[1] {
-            Word::Verb(v, f) => match f {
-                Some(f) => f.exec(Some(&sentence[0]), &sentence[2]),
-                None => Err(JError {
-                    message: String::from(v.to_owned() + "not supported yet"),
-                }),
-            },
+            Word::Verb(v, f) => f.exec(Some(&sentence[0]), &sentence[2]),
             _ => Err(JError {
                 message: String::from("not supported yet"),
             }),
@@ -535,94 +531,150 @@ pub fn parse(sentence: Vec<Word>) -> Result<Word, JError> {
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
 
     let mut queue = VecDeque::from(sentence);
-    let mut stack: VecDeque<Word> = VecDeque::from([]);
+    queue.push_front(Word::StartOfLine);
+    //let mut stack: VecDeque<Word> = VecDeque::from([]);
+    let mut stack: VecDeque<Word> = [].into();
 
     while !queue.is_empty() {
         stack.push_front(queue.pop_back().unwrap());
 
-        let fragment = get_fragment(&stack.clone());
-        match fragment {
+        let fragment = get_fragment(&mut stack);
+        let result: Result<Vec<Word>, JError> = match fragment {
             // TODO Fix all left hand side matches!!!
             // Not all Words can go on far left for all cases!
-            (w, Verb(_, v), Noun(m), _) => println!("0 monad"),
-            (w, Verb(_, _), Verb(s, v), Noun(m)) => println!("1 monad"),
-            (w, Noun(n), Verb(s, v), Noun(m)) => println!("2 dyad"),
-            // (V|N) A anything - 3 Adverb
-            (w, Verb(_, v), Adverb(a), _) => println!("3 adverb V A _"),
-            (w, Noun(n), Adverb(a), _) => println!("3 adverb N A _"),
-            // (V|N) C (V|N) - 4 Conjunction
-            (w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
-            (w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
-            (w, Noun(n), Conjunction(a), Verb(_, v)) => println!("4 Conj N C V"),
-            (w, Noun(n), Conjunction(a), Noun(m)) => println!("4 Conj N C N"),
-            // (V|N) V V - 5 Fork
-            (w, Verb(_, f), Verb(_, g), Verb(_, h)) => println!("5 Fork V V V"),
-            (w, Noun(n), Verb(_, f), Verb(_, v)) => println!("5 Fork N V V"),
-            // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
-            // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
-            // the rest result in syntax errors.
-            (w, Adverb(a), Adverb(b), _) => println!("6 Hook/Adverb A A _"),
-            (w, Conjunction(c), Noun(m), _) => println!("6 Hook/Adverb C N _"),
-            (w, Conjunction(c), Verb(_, v), _) => println!("6 Hook/Adverb C V _"),
-            (w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
-            (w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (w, Verb(_, u), Verb(_, v), _) => println!("6 Hook/Adverb V V _"),
+            //(w, Verb(_, v), Noun(y), any) => {
+            (StartOfLine, Verb(_, v), Noun(y), any)
+            | (IsGlobal, Verb(_, v), Noun(y), any)
+            | (IsLocal, Verb(_, v), Noun(y), any)
+            | (LP, Verb(_, v), Noun(y), any) => {
+                println!("0 monad");
+                Ok(vec![fragment.0, v.exec(None, &Noun(y)).unwrap(), any])
+            }
+            (StartOfLine, Verb(us, u), Verb(_, v), Noun(y))
+            | (IsGlobal, Verb(us, u), Verb(_, v), Noun(y))
+            | (IsLocal, Verb(us, u), Verb(_, v), Noun(y))
+            | (LP, Verb(us, u), Verb(_, v), Noun(y))
+            | (Adverb(_), Verb(us, u), Verb(_, v), Noun(y))
+            | (Verb(_, _), Verb(us, u), Verb(_, v), Noun(y))
+            | (Noun(_), Verb(us, u), Verb(_, v), Noun(y)) => {
+                println!("1 monad");
+                Ok(vec![
+                    fragment.0,
+                    Verb(us, u),
+                    v.exec(None, &Noun(y)).unwrap(),
+                ])
+            }
+            (StartOfLine, Noun(x), Verb(s, v), Noun(y))
+            | (IsGlobal, Noun(x), Verb(s, v), Noun(y))
+            | (IsLocal, Noun(x), Verb(s, v), Noun(y))
+            | (LP, Noun(x), Verb(s, v), Noun(y))
+            | (Adverb(_), Noun(x), Verb(s, v), Noun(y))
+            | (Verb(_, _), Noun(x), Verb(s, v), Noun(y))
+            | (Noun(_), Noun(x), Verb(s, v), Noun(y)) => {
+                println!("2 dyad");
+                Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
+            }
+            // TODO:
+            //// (V|N) A anything - 3 Adverb
+            //(w, Verb(_, v), Adverb(a), _) => println!("3 adverb V A _"),
+            //(w, Noun(n), Adverb(a), _) => println!("3 adverb N A _"),
+            //// (V|N) C (V|N) - 4 Conjunction
+            //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
+            //(w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
+            //(w, Noun(n), Conjunction(a), Verb(_, v)) => println!("4 Conj N C V"),
+            //(w, Noun(n), Conjunction(a), Noun(m)) => println!("4 Conj N C N"),
+            //// (V|N) V V - 5 Fork
+            //(w, Verb(_, f), Verb(_, g), Verb(_, h)) => println!("5 Fork V V V"),
+            //(w, Noun(n), Verb(_, f), Verb(_, v)) => println!("5 Fork N V V"),
+            //// (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
+            //// Only the combinations A A, C N, C V, N C, V C, and V V are valid;
+            //// the rest result in syntax errors.
+            //(w, Adverb(a), Adverb(b), _) => println!("6 Hook/Adverb A A _"),
+            //(w, Conjunction(c), Noun(m), _) => println!("6 Hook/Adverb C N _"),
+            //(w, Conjunction(c), Verb(_, v), _) => println!("6 Hook/Adverb C V _"),
+            //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
+            //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
+            //(w, Verb(_, u), Verb(_, v), _) => println!("6 Hook/Adverb V V _"),
 
-            (w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
-            (w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
-            (w, Noun(n), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb N A _"),
-            (w, Noun(n), Verb(_, v), _) => println!("SYNTAX ERROR 6 Hook/Adverb N V _"),
-            (w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
+            //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
+            //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
+            //(w, Noun(n), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb N A _"),
+            //(w, Noun(n), Verb(_, v), _) => println!("SYNTAX ERROR 6 Hook/Adverb N V _"),
+            //(w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
 
-            // (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
-            (Name(n), IsLocal, Conjunction(c), _) => println!("7 Is Local Name C"),
-            (Name(n), IsLocal, Adverb(a), _) => println!("7 Is Local Name A"),
-            (Name(n), IsLocal, Verb(_, v), _) => println!("7 Is Local Name V"),
-            (Name(n), IsLocal, Noun(m), _) => println!("7 Is Local Name N"),
-            (Noun(n), IsLocal, Conjunction(c), _) => println!("7 Is Local N C"),
-            (Noun(n), IsLocal, Adverb(a), _) => println!("7 Is Local N A"),
-            (Noun(n), IsLocal, Verb(_, v), _) => println!("7 Is Local N V"),
-            (Noun(n), IsLocal, Noun(m), _) => println!("7 Is Local N N"),
+            //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
+            //(Name(n), IsLocal, Conjunction(c), _) => println!("7 Is Local Name C"),
+            //(Name(n), IsLocal, Adverb(a), _) => println!("7 Is Local Name A"),
+            //(Name(n), IsLocal, Verb(_, v), _) => println!("7 Is Local Name V"),
+            //(Name(n), IsLocal, Noun(m), _) => println!("7 Is Local Name N"),
+            //(Noun(n), IsLocal, Conjunction(c), _) => println!("7 Is Local N C"),
+            //(Noun(n), IsLocal, Adverb(a), _) => println!("7 Is Local N A"),
+            //(Noun(n), IsLocal, Verb(_, v), _) => println!("7 Is Local N V"),
+            //(Noun(n), IsLocal, Noun(m), _) => println!("7 Is Local N N"),
 
-            (Name(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global Name C"),
-            (Name(n), IsGlobal, Adverb(a), _) => println!("7 Is Global Name A"),
-            (Name(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global Name V"),
-            (Name(n), IsGlobal, Noun(m), _) => println!("7 Is Global Name N"),
-            (Noun(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global N C"),
-            (Noun(n), IsGlobal, Adverb(a), _) => println!("7 Is Global N A"),
-            (Noun(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global N V"),
-            (Noun(n), IsGlobal, Noun(m), _) => println!("7 Is Global N N"),
+            //(Name(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global Name C"),
+            //(Name(n), IsGlobal, Adverb(a), _) => println!("7 Is Global Name A"),
+            //(Name(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global Name V"),
+            //(Name(n), IsGlobal, Noun(m), _) => println!("7 Is Global Name N"),
+            //(Noun(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global N C"),
+            //(Noun(n), IsGlobal, Adverb(a), _) => println!("7 Is Global N A"),
+            //(Noun(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global N V"),
+            //(Noun(n), IsGlobal, Noun(m), _) => println!("7 Is Global N N"),
 
-            // LP (C|A|V|N) RP anything - 8 Paren
-            (LP, Conjunction(c), RP, _) => println!("8 Paren"),
-            (LP, Adverb(a), RP, _) => println!("8 Paren"),
-            (LP, Verb(_, v), RP, _) => println!("8 Paren"),
-            (LP, Noun(m), RP, _) => println!("8 Paren"),
+            //// LP (C|A|V|N) RP anything - 8 Paren
+            //(LP, Conjunction(c), RP, _) => println!("8 Paren"),
+            //(LP, Adverb(a), RP, _) => println!("8 Paren"),
+            //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
+            //(LP, Noun(m), RP, _) => println!("8 Paren"),
 
-            _ => println!("fragment doesn't match any execution cases"),
+            //_ => Err(JError { message: String::from("fragment doesn't match any execution cases"), }),
+            _ => match fragment {
+                (w1, w2, w3, w4) => Ok(vec![w1, w2, w3, w4]),
+                _ => panic!("parse error"),
+            },
+        };
+
+        println!("result: {:?}", result);
+
+        if let Ok(r) = result {
+            //stack.push_front(r);
+            stack = vec![r, stack.into()].concat().into();
+        } else if let Err(e) = result {
+            return Err(e);
         }
     }
-    Err(JError {
-        message: String::from("not implemented yet"),
-    })
+    println!("stack: {:?}", stack);
+    let mut new_stack: VecDeque<&Word> = stack
+        .iter()
+        .filter(|&w| if let StartOfLine = w { false } else { true })
+        .filter(|&w| if let Nothing = w { false } else { true })
+        .collect::<Vec<&Word>>()
+        .into();
+    println!("new_stack: {:?}", new_stack);
+    match new_stack.len() {
+        1 => Ok(new_stack.pop_front().unwrap().clone()),
+        _ => Err(JError {
+            message: String::from("syntax error"),
+        }),
+    }
 }
 
-fn get_fragment(stack: &VecDeque<Word>) -> (Word, Word, Word, Word) {
+fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
     match stack.len() {
         0 => (Nothing, Nothing, Nothing, Nothing),
-        1 => (stack[0].clone(), Nothing, Nothing, Nothing),
-        2 => (stack[0].clone(), stack[1].clone(), Nothing, Nothing),
-        3 => (
-            stack[0].clone(),
-            stack[1].clone(),
-            stack[2].clone(),
+        1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),
+        2 => (
+            stack.pop_front().unwrap(),
+            stack.pop_front().unwrap(),
+            Nothing,
             Nothing,
         ),
-        _ => (
-            stack[0].clone(),
-            stack[1].clone(),
-            stack[2].clone(),
-            stack[3].clone(),
+        3 => (
+            stack.pop_front().unwrap(),
+            stack.pop_front().unwrap(),
+            stack.pop_front().unwrap(),
+            Nothing,
         ),
+        _ => stack.drain(..4).collect_tuple().unwrap(),
     }
 }
