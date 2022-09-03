@@ -523,23 +523,18 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
 
         let fragment = get_fragment(&mut stack);
         let result: Result<Vec<Word>, JError> = match fragment {
-            // TODO Fix all left hand side matches!!!
-            // Not all Words can go on far left for all cases!
-            //(w, Verb(_, v), Noun(y), any) => {
-            (StartOfLine, Verb(_, v), Noun(y), any)
-            | (IsGlobal, Verb(_, v), Noun(y), any)
-            | (IsLocal, Verb(_, v), Noun(y), any)
-            | (LP, Verb(_, v), Noun(y), any) => {
+            (ref w, Verb(_, v), Noun(y), any) //monad
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
                 println!("0 monad");
                 Ok(vec![fragment.0, v.exec(None, &Noun(y)).unwrap(), any])
             }
-            (StartOfLine, Verb(us, u), Verb(_, v), Noun(y))
-            | (IsGlobal, Verb(us, u), Verb(_, v), Noun(y))
-            | (IsLocal, Verb(us, u), Verb(_, v), Noun(y))
-            | (LP, Verb(us, u), Verb(_, v), Noun(y))
-            | (Adverb(_), Verb(us, u), Verb(_, v), Noun(y))
-            | (Verb(_, _), Verb(us, u), Verb(_, v), Noun(y))
-            | (Noun(_), Verb(us, u), Verb(_, v), Noun(y)) => {
+            (ref w, Verb(us, u), Verb(_, v), Noun(y)) //monad
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                ) =>
+            {
                 println!("1 monad");
                 Ok(vec![
                     fragment.0,
@@ -547,20 +542,34 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     v.exec(None, &Noun(y)).unwrap(),
                 ])
             }
-            (StartOfLine, Noun(x), Verb(s, v), Noun(y))
-            | (IsGlobal, Noun(x), Verb(s, v), Noun(y))
-            | (IsLocal, Noun(x), Verb(s, v), Noun(y))
-            | (LP, Noun(x), Verb(s, v), Noun(y))
-            | (Adverb(_), Noun(x), Verb(s, v), Noun(y))
-            | (Verb(_, _), Noun(x), Verb(s, v), Noun(y))
-            | (Noun(_), Noun(x), Verb(s, v), Noun(y)) => {
+            (ref w, Noun(x), Verb(_, v), Noun(y)) //dyad
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                ) =>
+            {
                 println!("2 dyad");
                 Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
             }
-            // TODO:
             //// (V|N) A anything - 3 Adverb
-            //(w, Verb(_, v), Adverb(a), _) => println!("3 adverb V A _"),
-            //(w, Noun(n), Adverb(a), _) => println!("3 adverb N A _"),
+            //(ref w, Verb(sv, v), Adverb(sa, a), any) //adverb
+                //if matches!(
+                    //w,
+                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                //) => {
+                    //println!("3 adverb V A _");
+                    //Ok(vec![fragment.0, a.exec(&Verb(sv,v)).unwrap()])
+                //}
+            //(w, Noun(n), Adverb(a), any)
+            //(ref w, Noun(n), Adverb(a), any) //adverb
+                //if matches!(
+                    //w,
+                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                //) => {
+                    //println!("3 adverb N A _");
+                    //Ok(())
+                //}
+            // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
             //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
             //(w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
