@@ -68,7 +68,7 @@ impl VerbImpl<'_> {
             VerbImpl::Times => v_times(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { v, a } => match (v, a) {
-                (Verb(s, v), Adverb(_, a)) => a.exec(x, &Verb(s, *v), y),
+                (Verb(s, v), Adverb(_, a)) => a.exec(x, &Verb(s, v.clone()), y),
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
         }
@@ -102,7 +102,7 @@ pub struct JError<'a> {
 }
 
 //fn primitive_verbs() -> &'static [&'static str] {
-fn primitive_verbs<'a>() -> HashMap<&'static str, VerbImpl<'a>> {
+fn primitive_verbs() -> HashMap<&'static str, VerbImpl<'static>> {
     HashMap::from([
         ("=", VerbImpl::NotImplemented),
         //("=.", VerbImpl::NotImplemented), IsLocal
@@ -508,10 +508,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
             }
         }
     }
-    Ok((
-        l,
-        str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?,
-    ))
+    Ok((l, str_to_primitive(&sentence[..=l])?))
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
@@ -554,14 +551,14 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
         stack.push_front(queue.pop_back().unwrap());
 
         let fragment = get_fragment(&mut stack);
-        let result: Result<Vec<Word>, JError> = match fragment {
+        let result: Result<Vec<Word<'a>>, JError> = match fragment {
             (ref w, Verb(_, v), Noun(y), any) //monad
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 println!("0 monad");
                 Ok(vec![fragment.0, v.exec(None, &Noun(y)).unwrap(), any])
             }
-            (ref w, Verb(us, u), Verb(_, v), Noun(y)) //monad
+            (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y)) //monad
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
@@ -570,11 +567,11 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
                 println!("1 monad");
                 Ok(vec![
                     fragment.0,
-                    Verb(us, u),
+                    Verb(us, u.clone()),
                     v.exec(None, &Noun(y)).unwrap(),
                 ])
             }
-            (ref w, Noun(x), Verb(_, v), Noun(y)) //dyad
+            (ref w, Noun(x), Verb(_, ref v), Noun(y)) //dyad
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
@@ -584,14 +581,14 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
                 Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, Verb(sv, v), Adverb(sa, a), any) //adverb
+            (ref w, Verb(sv, ref v), Adverb(sa, a), any) //adverb
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     println!("3 adverb V A _");
                     //Ok(vec![fragment.0, a.exec(&Verb(sv,v)).unwrap(), any])
-                    Ok(vec![fragment.0, Verb("", Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v), a: Adverb(sa,a)})), any])
+                    Ok(vec![fragment.0, Verb("", Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v.clone()), a: Adverb(sa,a)})), any])
                 }
             // TODO:
             //(ref w, Noun(n), Adverb(sa,a), any) //adverb
@@ -653,7 +650,7 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
 
             //_ => Err(JError { message: String::from("fragment doesn't match any execution cases"), }),
             _ => match fragment {
-                (w1, w2, w3, w4) => Ok(vec![w1, w2, w3, w4]),
+                (w1, ref w2, ref w3, w4) => Ok(vec![w1, w2.clone(), w3.clone(), w4]),
             },
         };
 
@@ -667,11 +664,11 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
         }
     }
     //println!("stack: {:?}", stack);
-    let mut new_stack: VecDeque<&Word> = stack
-        .iter()
-        .filter(|&w| if let StartOfLine = w { false } else { true })
-        .filter(|&w| if let Nothing = w { false } else { true })
-        .collect::<Vec<&Word>>()
+    let mut new_stack: VecDeque<Word<'a>> = stack
+        .into_iter()
+        .filter(|w| if let StartOfLine = w { false } else { true })
+        .filter(|w| if let Nothing = w { false } else { true })
+        .collect::<Vec<Word>>()
         .into();
     //println!("new_stack: {:?}", new_stack);
     match new_stack.len() {
@@ -682,7 +679,9 @@ pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
     }
 }
 
-fn get_fragment<'a>(stack: &'a mut VecDeque<Word>) -> (Word<'a>, Word<'a>, Word<'a>, Word<'a>) {
+fn get_fragment<'a, 'b>(
+    stack: &'b mut VecDeque<Word<'a>>,
+) -> (Word<'a>, Word<'a>, Word<'a>, Word<'a>) {
     match stack.len() {
         0 => (Nothing, Nothing, Nothing, Nothing),
         1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),

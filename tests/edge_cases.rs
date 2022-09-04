@@ -169,9 +169,13 @@ fn test_basic_times() {
 #[test]
 fn test_parse_basics() {
     let words = vec![
-        Word::Noun(IntArray { v: Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap() }),
+        Word::Noun(IntArray {
+            v: Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap(),
+        }),
         Word::Verb(String::from("+"), VerbImpl::Plus),
-        Word::Noun(IntArray { v: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap() }),
+        Word::Noun(IntArray {
+            v: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap(),
+        }),
     ];
     println!("{:?}", words);
     let result = jr::eval(words).unwrap();
