@@ -2,57 +2,57 @@ use crate::JArray::*;
 use crate::JError;
 use crate::Word;
 
-pub fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_not_implemented<'a>(_x: Option<&Word<'a>>, _y: &Word<'a>) -> Result<Word<'a>, JError<'a>> {
     Err(JError {
-        message: String::from("verb not implemented yet"),
+        message: "verb not implemented yet",
     })
 }
 
-pub fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_plus<'a>(x: Option<&Word<'a>>, y: &Word<'a>) -> Result<Word<'a>, JError<'a>> {
     match x {
         None => Err(JError {
-            message: String::from("monadic + not implemented yet"),
+            message: "monadic + not implemented yet",
         }),
         Some(x) => {
             if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
                 Ok(Word::Noun(IntArray { v: x + y }))
             } else {
                 Err(JError {
-                    message: String::from("plus not supported for these types yet"),
+                    message: "plus not supported for these types yet",
                 })
             }
         }
     }
 }
 
-pub fn v_minus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_minus<'a>(x: Option<&Word<'a>>, y: &Word<'a>) -> Result<Word<'a>, JError<'a>> {
     match x {
         None => Err(JError {
-            message: String::from("monadic - not implemented yet"),
+            message: "monadic - not implemented yet",
         }),
         Some(x) => {
             if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
                 Ok(Word::Noun(IntArray { v: x - y }))
             } else {
                 Err(JError {
-                    message: String::from("minus not supported for these types yet"),
+                    message: "minus not supported for these types yet",
                 })
             }
         }
     }
 }
 
-pub fn v_times<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_times<'a>(x: Option<&Word<'a>>, y: &Word<'a>) -> Result<Word<'a>, JError<'a>> {
     match x {
         None => Err(JError {
-            message: String::from("monadic * not implemented yet"),
+            message: "monadic * not implemented yet",
         }),
         Some(x) => {
             if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
                 Ok(Word::Noun(IntArray { v: x * y }))
             } else {
                 Err(JError {
-                    message: String::from("times not supported for these types yet"),
+                    message: "times not supported for these types yet",
                 })
             }
         }

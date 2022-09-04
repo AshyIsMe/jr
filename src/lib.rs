@@ -1,29 +1,31 @@
+mod adverbs;
 mod verbs;
 
 use itertools::Itertools;
 use ndarray::prelude::*;
 use std::collections::{HashMap, VecDeque};
-use std::fmt;
+//use std::fmt;
 
+pub use crate::adverbs::*;
 pub use crate::verbs::*;
 
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
 #[derive(Clone, PartialEq, Debug)]
-pub enum Word {
+pub enum Word<'a> {
     LP,
     RP,
     StartOfLine, // used as placeholder when parsing
     Nothing,     // used as placeholder when parsing
-    Name(String),
+    Name(&'a str),
 
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, VerbImpl),
-    Adverb(String),
-    Conjunction(String),
+    Verb(&'a str, Box<VerbImpl<'a>>),
+    Adverb(&'a str, AdverbImpl),
+    Conjunction(&'a str),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,34 +43,66 @@ pub enum JArray {
 use JArray::*;
 use Word::*;
 
-pub fn char_array(x: impl AsRef<str>) -> Word {
+pub fn char_array<'a>(x: impl AsRef<str>) -> Word<'a> {
     let x = x.as_ref();
     Word::Noun(JArray::CharArray {
         v: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
     })
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum VerbImpl {
+#[derive(Clone, Debug, PartialEq)]
+pub enum VerbImpl<'a> {
     Plus,
     Minus,
     Times,
     NotImplemented,
+
+    DerivedVerb { v: Word<'a>, a: Word<'a> }, //Adverb modified Verb eg. +/
 }
 
-impl VerbImpl {
-    fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+impl VerbImpl<'_> {
+    fn exec<'a>(&'a self, x: Option<&Word<'a>>, y: &Word<'a>) -> Result<Word<'a>, JError<'a>> {
         match self {
             VerbImpl::Plus => v_plus(x, y),
             VerbImpl::Minus => v_minus(x, y),
             VerbImpl::Times => v_times(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
+            VerbImpl::DerivedVerb { v, a } => match (v, a) {
+                (Verb(s, v), Adverb(_, a)) => a.exec(x, &Verb(s, *v), y),
+                _ => panic!("invalid DerivedVerb {:?}", self),
+            },
         }
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AdverbImpl {
+    Insert,
+    NotImplemented,
+}
+
+impl AdverbImpl {
+    fn exec<'a>(
+        &'a self,
+        x: Option<&Word<'a>>,
+        v: &Word<'a>,
+        y: &Word<'a>,
+    ) -> Result<Word, JError> {
+        match self {
+            AdverbImpl::Insert => a_insert(x, v, y),
+            AdverbImpl::NotImplemented => a_not_implemented(x, v, y),
+        }
+    }
+}
+
+// TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
+#[derive(Debug)]
+pub struct JError<'a> {
+    message: &'a str,
+}
+
 //fn primitive_verbs() -> &'static [&'static str] {
-fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
+fn primitive_verbs<'a>() -> HashMap<&'static str, VerbImpl<'a>> {
     HashMap::from([
         ("=", VerbImpl::NotImplemented),
         //("=.", VerbImpl::NotImplemented), IsLocal
@@ -218,12 +252,6 @@ fn primitive_conjunctions() -> &'static [&'static str] {
     ]
 }
 
-// TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
-#[derive(Debug)]
-pub struct JError {
-    message: String,
-}
-
 pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
     let mut words: Vec<Word> = Vec::new();
 
@@ -276,7 +304,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     let mut l: usize = usize::MAX;
     if sentence.len() == 0 {
         return Err(JError {
-            message: String::from("Empty number literal"),
+            message: "Empty number literal",
         });
     }
     // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
@@ -295,15 +323,15 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
 
     if sentence[0..=l].contains('j') {
         Err(JError {
-            message: String::from("complex numbers not supported yet"),
+            message: "complex numbers not supported yet",
         })
     } else if sentence[0..=l].contains('r') {
         Err(JError {
-            message: String::from("rational numbers not supported yet"),
+            message: "rational numbers not supported yet",
         })
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
         Err(JError {
-            message: String::from("floating point numbers not supported yet"),
+            message: "floating point numbers not supported yet",
         })
     } else {
         let a = sentence[0..=l]
@@ -312,14 +340,18 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
         match a {
-            Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
-                Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
-                Err(e) => Err(JError {
-                    message: e.to_string(),
+            //Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
+            //Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
+            //Err(e) => Err(JError { message: e }),
+            //},
+            Ok(a) => Ok((
+                l,
+                Noun(IntArray {
+                    v: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
                 }),
-            },
-            Err(e) => Err(JError {
-                message: e.to_string(),
+            )),
+            Err(_) => Err(JError {
+                message: "parse int error",
             }),
         }
     }
@@ -328,7 +360,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
 fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
     if sentence.len() < 2 {
         return Err(JError {
-            message: String::from("Empty literal string"),
+            message: "Empty literal string",
         });
     }
 
@@ -353,7 +385,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
                     break;
                 } else {
                     return Err(JError {
-                        message: String::from("open quote"),
+                        message: "open quote",
                     });
                 }
             }
@@ -386,7 +418,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     let mut p: Option<Word> = None;
     if sentence.len() == 0 {
         return Err(JError {
-            message: String::from("Empty name"),
+            message: "Empty name",
         });
     }
     for (i, c) in sentence.chars().enumerate() {
@@ -430,7 +462,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     }
     match p {
         Some(p) => Ok((l, p)),
-        None => Ok((l, Word::Name(String::from(&sentence[0..=l])))),
+        None => Ok((l, Word::Name(&sentence[0..=l]))),
     }
 }
 
@@ -444,7 +476,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
     //  - OR {{ }} for definitions
     if sentence.len() == 0 {
         return Err(JError {
-            message: String::from("Empty primitive"),
+            message: "Empty primitive",
         });
     }
     for (i, c) in sentence.chars().enumerate() {
@@ -488,27 +520,27 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     } else if primitive_verbs().contains_key(&sentence) {
         let refd = match primitive_verbs().get(&sentence) {
             Some(v) => v.clone(),
-            None => VerbImpl::NotImplemented,
+            None => VerbImpl::NotImplemented.clone(),
         };
-        Ok(Word::Verb(String::from(sentence), refd))
+        Ok(Word::Verb(sentence, Box::new(refd)))
     } else if primitive_adverbs().contains(&sentence) {
-        Ok(Word::Adverb(String::from(sentence)))
+        Ok(Word::Adverb(sentence, AdverbImpl::NotImplemented))
     } else if primitive_conjunctions().contains(&sentence) {
-        Ok(Word::Conjunction(String::from(sentence)))
+        Ok(Word::Conjunction(sentence))
     } else {
         match sentence {
             "=:" => Ok(Word::IsGlobal),
             "=." => Ok(Word::IsLocal),
             _ => {
                 return Err(JError {
-                    message: String::from("Invalid primitive"),
+                    message: "Invalid primitive",
                 })
             }
         }
     }
 }
 
-pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
+pub fn eval<'a>(sentence: Vec<Word<'a>>) -> Result<Word<'a>, JError<'a>> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -532,7 +564,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             (ref w, Verb(us, u), Verb(_, v), Noun(y)) //monad
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 println!("1 monad");
@@ -545,31 +577,31 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             (ref w, Noun(x), Verb(_, v), Noun(y)) //dyad
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 println!("2 dyad");
                 Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
             }
-            //// (V|N) A anything - 3 Adverb
-            //(ref w, Verb(sv, v), Adverb(sa, a), any) //adverb
+            // (V|N) A anything - 3 Adverb
+            (ref w, Verb(sv, v), Adverb(sa, a), any) //adverb
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                ) => {
+                    println!("3 adverb V A _");
+                    //Ok(vec![fragment.0, a.exec(&Verb(sv,v)).unwrap(), any])
+                    Ok(vec![fragment.0, Verb("", Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v), a: Adverb(sa,a)})), any])
+                }
+            // TODO:
+            //(ref w, Noun(n), Adverb(sa,a), any) //adverb
                 //if matches!(
                     //w,
-                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
-                //) => {
-                    //println!("3 adverb V A _");
-                    //Ok(vec![fragment.0, a.exec(&Verb(sv,v)).unwrap()])
-                //}
-            //(w, Noun(n), Adverb(a), any)
-            //(ref w, Noun(n), Adverb(a), any) //adverb
-                //if matches!(
-                    //w,
-                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_, _) | Noun(_)
+                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 //) => {
                     //println!("3 adverb N A _");
-                    //Ok(())
+                    //Ok(vec![fragment.0, a.exec(&Noun(n)).unwrap(), any])
                 //}
-            // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
             //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
             //(w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
@@ -622,7 +654,6 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //_ => Err(JError { message: String::from("fragment doesn't match any execution cases"), }),
             _ => match fragment {
                 (w1, w2, w3, w4) => Ok(vec![w1, w2, w3, w4]),
-                _ => panic!("parse error"),
             },
         };
 
@@ -646,12 +677,12 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
-            message: String::from("syntax error"),
+            message: "syntax error",
         }),
     }
 }
 
-fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
+fn get_fragment<'a>(stack: &'a mut VecDeque<Word>) -> (Word<'a>, Word<'a>, Word<'a>, Word<'a>) {
     match stack.len() {
         0 => (Nothing, Nothing, Nothing, Nothing),
         1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),
