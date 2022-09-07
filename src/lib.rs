@@ -30,11 +30,11 @@ pub enum Word {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
-    IntArray { v: ArrayD<i64> },
-    ExtIntArray { v: ArrayD<i128> }, // TODO: num::bigint::BigInt
-    FloatArray { v: ArrayD<f64> },
-    BoolArray { v: ArrayD<u8> },
-    CharArray { v: ArrayD<char> },
+    IntArray { a: ArrayD<i64> },
+    ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
+    FloatArray { a: ArrayD<f64> },
+    BoolArray { a: ArrayD<u8> },
+    CharArray { a: ArrayD<char> },
     //RationalArray { ... }, // TODO: num::rational::Rational64
     //ComplexArray { ... },  // TODO: num::complex::Complex64
     //EmptyArray // How do we do this properly?
@@ -46,9 +46,17 @@ use Word::*;
 pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
     Word::Noun(JArray::CharArray {
-        v: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
+        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
     })
 }
+
+////pub fn int_array(x: Vec<i64>) -> Word {
+//pub fn int_array(x: Array1<i64>) -> Word {
+//Word::Noun(JArray::IntArray {
+////v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), x).unwrap(),
+//a: x.into_dyn(),
+//})
+//}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
@@ -228,9 +236,24 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
     ])
 }
 
-fn primitive_adverbs() -> &'static [&'static str] {
-    // https://code.jsoftware.com/wiki/NuVoc
-    &["~", "/", "/.", "\\", "\\.", "]:", "}", "b.", "f.", "M."]
+//fn primitive_adverbs() -> &'static [&'static str] {
+//// https://code.jsoftware.com/wiki/NuVoc
+//&["~", "/", "/.", "\\", "\\.", "]:", "}", "b.", "f.", "M."]
+//}
+
+fn primitive_adverbs() -> HashMap<&'static str, AdverbImpl> {
+    HashMap::from([
+        ("~", AdverbImpl::NotImplemented),
+        ("/", AdverbImpl::Insert),
+        ("/.", AdverbImpl::NotImplemented),
+        ("\\", AdverbImpl::NotImplemented),
+        ("\\.", AdverbImpl::NotImplemented),
+        ("]:", AdverbImpl::NotImplemented),
+        ("}", AdverbImpl::NotImplemented),
+        ("b.", AdverbImpl::NotImplemented),
+        ("f.", AdverbImpl::NotImplemented),
+        ("M.", AdverbImpl::NotImplemented),
+    ])
 }
 
 fn primitive_nouns() -> &'static [&'static str] {
@@ -342,7 +365,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             Ok(a) => Ok((
                 l,
                 Noun(IntArray {
-                    v: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
+                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
                 }),
             )),
             Err(_) => Err(JError {
@@ -515,10 +538,13 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
             None => VerbImpl::NotImplemented.clone(),
         };
         Ok(Word::Verb(sentence.to_string(), Box::new(refd)))
-    } else if primitive_adverbs().contains(&sentence) {
+    } else if primitive_adverbs().contains_key(&sentence) {
         Ok(Word::Adverb(
             sentence.to_string(),
-            AdverbImpl::NotImplemented,
+            match primitive_adverbs().get(&sentence) {
+                Some(a) => a.clone(),
+                None => AdverbImpl::NotImplemented.clone(),
+            },
         ))
     } else if primitive_conjunctions().contains(&sentence) {
         Ok(Word::Conjunction(sentence.to_string()))

@@ -14,8 +14,8 @@ pub fn v_plus<'a>(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             message: "monadic + not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x + y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x + y }))
             } else {
                 Err(JError {
                     message: "plus not supported for these types yet".to_string(),
@@ -31,8 +31,8 @@ pub fn v_minus<'a>(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             message: "monadic - not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x - y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x - y }))
             } else {
                 Err(JError {
                     message: "minus not supported for these types yet".to_string(),
@@ -48,8 +48,8 @@ pub fn v_times<'a>(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             message: "monadic * not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x * y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x * y }))
             } else {
                 Err(JError {
                     message: "times not supported for these types yet".to_string(),
