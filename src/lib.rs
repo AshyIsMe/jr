@@ -571,8 +571,11 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
     //let mut stack: VecDeque<Word> = VecDeque::from([]);
     let mut stack: VecDeque<Word> = [].into();
 
+    // TODO: broken example: +/ 1 2 3
+    // When the queue is empty we need to keep processing the stack until change stops
     while !queue.is_empty() {
         stack.push_front(queue.pop_back().unwrap());
+        println!("stack step: {:?}", stack);
 
         let fragment = get_fragment(&mut stack);
         let result: Result<Vec<Word>, JError> = match fragment {
@@ -687,14 +690,14 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             return Err(e);
         }
     }
-    //println!("stack: {:?}", stack);
+    println!("stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
         .into_iter()
         .filter(|w| if let StartOfLine = w { false } else { true })
         .filter(|w| if let Nothing = w { false } else { true })
         .collect::<Vec<Word>>()
         .into();
-    //println!("new_stack: {:?}", new_stack);
+    println!("new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
