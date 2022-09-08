@@ -50,6 +50,12 @@ pub fn char_array(x: impl AsRef<str>) -> Word {
     })
 }
 
+pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
+    Ok(Word::Noun(IntArray {
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v).unwrap(),
+    }))
+}
+
 ////pub fn int_array(x: Vec<i64>) -> Word {
 //pub fn int_array(x: Array1<i64>) -> Word {
 //Word::Noun(JArray::IntArray {
@@ -63,6 +69,7 @@ pub enum VerbImpl {
     Plus,
     Minus,
     Times,
+    Number,
     NotImplemented,
 
     DerivedVerb { v: Word, a: Word }, //Adverb modified Verb eg. +/
@@ -74,6 +81,7 @@ impl VerbImpl {
             VerbImpl::Plus => v_plus(x, y),
             VerbImpl::Minus => v_minus(x, y),
             VerbImpl::Times => v_times(x, y),
+            VerbImpl::Number => v_number(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { v, a } => match (v, a) {
                 (Verb(s, v), Adverb(_, a)) => a.exec(x, &Verb(s.to_string(), v.clone()), y),
@@ -147,7 +155,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         (",:", VerbImpl::NotImplemented),
         (";", VerbImpl::NotImplemented),
         (";:", VerbImpl::NotImplemented),
-        ("#", VerbImpl::NotImplemented),
+        ("#", VerbImpl::Number),
         ("#.", VerbImpl::NotImplemented),
         ("#:", VerbImpl::NotImplemented),
         ("!", VerbImpl::NotImplemented),
