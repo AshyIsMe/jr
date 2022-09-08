@@ -16,8 +16,8 @@ pub fn a_insert(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
                 Word::Noun(_) => match y
                     .to_cells()
                     .unwrap()
-                    .iter()
-                    .reduce(|x, y| &v.exec(Some(&x), &y).unwrap())
+                    .into_iter()
+                    .reduce(|x, y| v.exec(Some(&x), &y).unwrap())
                 {
                     Some(w) => Ok(w.clone()),
                     None => Err(JError {
@@ -37,10 +37,3 @@ pub fn a_insert(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
         }
     }
 }
-
-//fn find_or_create<'w, 's>(words: &'w [Word], name: &'s str) -> Word {
-//match words.iter().find(|w| w.name == name).next() {
-//Some(word) => word.clone(),
-//None => Word::new(),
-//}
-//} // a solution for copyable words?
