@@ -598,16 +598,14 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
 
     let mut queue = VecDeque::from(sentence);
     queue.push_front(Word::StartOfLine);
-    //let mut stack: VecDeque<Word> = VecDeque::from([]);
     let mut stack: VecDeque<Word> = [].into();
 
-    // TODO: broken example: +/ 1 2 3
-    // When the queue is empty we need to keep processing the stack until change stops
     while !queue.is_empty() {
         stack.push_front(queue.pop_back().unwrap());
-        println!("stack step: {:?}", stack);
+        //println!("stack step: {:?}", stack);
 
         let fragment = get_fragment(&mut stack);
+        //println!("fragment: {:?}", fragment);
         let result: Result<Vec<Word>, JError> = match fragment {
             (ref w, Verb(_, v), Noun(y), any) //monad
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
@@ -644,8 +642,10 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     println!("3 adverb V A _");
-                    //Ok(vec![fragment.0, a.exec(&Verb(sv,v)).unwrap(), any])
-                    Ok(vec![fragment.0, Verb("".to_string(), Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v.clone()), a: Adverb(sa,a)})), any])
+                    // Create the DerivedVerb, put it on the top of the stack, roll the queue back
+                    // one word.
+                    queue.push_back(w.clone());
+                    Ok(vec![Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v.clone()), a: Adverb(sa,a)})), any])
                 }
             // TODO:
             //(ref w, Noun(n), Adverb(sa,a), any) //adverb
@@ -720,14 +720,14 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             return Err(e);
         }
     }
-    println!("stack: {:?}", stack);
+    //println!("stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
         .into_iter()
         .filter(|w| if let StartOfLine = w { false } else { true })
         .filter(|w| if let Nothing = w { false } else { true })
         .collect::<Vec<Word>>()
         .into();
-    println!("new_stack: {:?}", new_stack);
+    //println!("new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
