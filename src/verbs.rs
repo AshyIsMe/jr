@@ -1,60 +1,85 @@
+use crate::int_array;
 use crate::JArray::*;
 use crate::JError;
 use crate::Word;
+use ndarray::prelude::*;
 
-pub fn v_not_implemented<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
     Err(JError {
-        message: String::from("verb not implemented yet"),
+        message: "verb not implemented yet".to_string(),
     })
 }
 
-pub fn v_plus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError {
-            message: String::from("monadic + not implemented yet"),
+            message: "monadic + not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x + y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x + y }))
             } else {
                 Err(JError {
-                    message: String::from("plus not supported for these types yet"),
+                    message: "plus not supported for these types yet".to_string(),
                 })
             }
         }
     }
 }
 
-pub fn v_minus<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError {
-            message: String::from("monadic - not implemented yet"),
+            message: "monadic - not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x - y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x - y }))
             } else {
                 Err(JError {
-                    message: String::from("minus not supported for these types yet"),
+                    message: "minus not supported for these types yet".to_string(),
                 })
             }
         }
     }
 }
 
-pub fn v_times<'x, 'y>(x: Option<&'x Word>, y: &'y Word) -> Result<Word, JError> {
+pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError {
-            message: String::from("monadic * not implemented yet"),
+            message: "monadic * not implemented yet".to_string(),
         }),
         Some(x) => {
-            if let (Word::Noun(IntArray { v: x }), Word::Noun(IntArray { v: y })) = (x, y) {
-                Ok(Word::Noun(IntArray { v: x * y }))
+            if let (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) = (x, y) {
+                Ok(Word::Noun(IntArray { a: x * y }))
             } else {
                 Err(JError {
-                    message: String::from("times not supported for these types yet"),
+                    message: "times not supported for these types yet".to_string(),
                 })
             }
         }
+    }
+}
+
+pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => {
+            // Tally
+            match y {
+                Word::Noun(ja) => match ja {
+                    IntArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                    ExtIntArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                    FloatArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                    BoolArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                    CharArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                },
+                _ => Err(JError {
+                    message: "domain error".to_string(),
+                }),
+            }
+        }
+        Some(_x) => Err(JError {
+            message: "dyadic # not implemented yet".to_string(),
+        }), // Copy
     }
 }
