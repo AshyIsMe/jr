@@ -37,11 +37,17 @@ pub enum JArray {
     CharArray { a: ArrayD<char> },
     //RationalArray { ... }, // TODO: num::rational::Rational64
     //ComplexArray { ... },  // TODO: num::complex::Complex64
-    //EmptyArray // How do we do this properly?
+    //EmptyArray, // How do we do this properly?
 }
 
 use JArray::*;
 use Word::*;
+
+pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
+    Ok(Word::Noun(IntArray {
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v).unwrap(),
+    }))
+}
 
 pub fn char_array(x: impl AsRef<str>) -> Word {
     let x = x.as_ref();
@@ -50,19 +56,35 @@ pub fn char_array(x: impl AsRef<str>) -> Word {
     })
 }
 
-pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
-    Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v).unwrap(),
-    }))
+impl Word {
+    pub fn to_cells(&self) -> Result<Vec<Word>, JError> {
+        match self {
+            Noun(ja) => match ja {
+                IntArray { a } => Ok(a
+                    .outer_iter()
+                    .map(|a| Noun(IntArray { a: a.into_owned() }))
+                    .collect::<Vec<Word>>()),
+                ExtIntArray { a } => Ok(a
+                    .outer_iter()
+                    .map(|a| Noun(ExtIntArray { a: a.into_owned() }))
+                    .collect::<Vec<Word>>()),
+                FloatArray { a } => Ok(a
+                    .outer_iter()
+                    .map(|a| Noun(FloatArray { a: a.into_owned() }))
+                    .collect::<Vec<Word>>()),
+                BoolArray { a } => Ok(a
+                    .outer_iter()
+                    .map(|a| Noun(BoolArray { a: a.into_owned() }))
+                    .collect::<Vec<Word>>()),
+                CharArray { a } => Ok(a
+                    .outer_iter()
+                    .map(|a| Noun(CharArray { a: a.into_owned() }))
+                    .collect::<Vec<Word>>()),
+            },
+            _ => panic!("only nouns can be split into cells"),
+        }
+    }
 }
-
-////pub fn int_array(x: Vec<i64>) -> Word {
-//pub fn int_array(x: Array1<i64>) -> Word {
-//Word::Noun(JArray::IntArray {
-////v: ArrayD::from_shape_vec(IxDyn(&[x.len()]), x).unwrap(),
-//a: x.into_dyn(),
-//})
-//}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {

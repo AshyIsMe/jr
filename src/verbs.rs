@@ -2,6 +2,7 @@ use crate::int_array;
 use crate::JArray::*;
 use crate::JError;
 use crate::Word;
+use ndarray::prelude::*;
 
 pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
     Err(JError {
@@ -77,7 +78,7 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 }),
             }
         }
-        Some(x) => Err(JError {
+        Some(_x) => Err(JError {
             message: "dyadic # not implemented yet".to_string(),
         }), // Copy
     }
