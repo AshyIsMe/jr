@@ -191,28 +191,13 @@ fn test_parse_basics() {
 
 #[test]
 fn test_insert_adverb() {
-    let words = jr::scan("0 + +/1 2 3").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
-    assert_eq!(
-        result,
-        Word::Noun(IntArray {
-            a: Array::from_elem(IxDyn(&[1]), 6)
-        })
-    );
-}
-
-#[test]
-fn test_insert_adverb_atom() {
     let words = jr::scan("+/1 2 3").unwrap();
     println!("{:?}", words);
     let result = jr::eval(words).unwrap();
-    // TODO Handle atom results properly.
-    // This fails because 6 != [6]
     assert_eq!(
         result,
         Word::Noun(IntArray {
-            a: Array::from_elem(IxDyn(&[1]), 6)
+            a: Array::from_elem(IxDyn(&[]), 6)
         })
     );
 }
