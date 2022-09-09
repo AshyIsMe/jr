@@ -32,8 +32,14 @@ pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
                 message: "verb expected".to_string(),
             }),
         },
-        Some(_x) => {
-            todo!("dyadic")
-        }
+        Some(_x) => Err(JError {
+            message: "dyadic / not implemented yet".to_string(),
+        }),
     }
+}
+
+pub fn a_curlyrt(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError> {
+    Err(JError {
+        message: "adverb not implemented yet".to_string(),
+    })
 }
