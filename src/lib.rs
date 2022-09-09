@@ -94,7 +94,7 @@ pub enum VerbImpl {
     Number,
     NotImplemented,
 
-    DerivedVerb { v: Word, a: Word }, //Adverb modified Verb eg. +/
+    DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
 }
 
 impl VerbImpl {
@@ -105,8 +105,9 @@ impl VerbImpl {
             VerbImpl::Times => v_times(x, y),
             VerbImpl::Number => v_number(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { v, a } => match (v, a) {
-                (Verb(s, v), Adverb(_, a)) => a.exec(x, &Verb(s.to_string(), v.clone()), y),
+            VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
+                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, &u, y),
+                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, &m, y),
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
         }
@@ -651,20 +652,21 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     println!("3 adverb V A _");
-                    // Create the DerivedVerb, put it on the top of the stack, roll the queue back
-                    // one word.
+                    // Create DerivedVerb, put on top of stack, roll queue back one word.
                     queue.push_back(w.clone());
-                    Ok(vec![Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{v: Verb(sv,v.clone()), a: Adverb(sa,a)})), any])
+                    Ok(vec![Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), m: Nothing, a: Adverb(sa,a)})), any])
+                }
+            (ref w, Noun(n), Adverb(sa,a), any) //adverb
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                ) => {
+                    println!("3 adverb N A _");
+                    // Create DerivedVerb, put on top of stack, roll queue back one word.
+                    queue.push_back(w.clone());
+                    Ok(vec![Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
                 }
             // TODO:
-            //(ref w, Noun(n), Adverb(sa,a), any) //adverb
-                //if matches!(
-                    //w,
-                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
-                //) => {
-                    //println!("3 adverb N A _");
-                    //Ok(vec![fragment.0, a.exec(&Noun(n)).unwrap(), any])
-                //}
             //// (V|N) C (V|N) - 4 Conjunction
             //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
             //(w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
@@ -723,20 +725,19 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
         //println!("result: {:?}", result);
 
         if let Ok(r) = result {
-            //stack.push_front(r);
-            stack = vec![r, stack.into()].concat().into();
+            stack = vec![r, stack.into()].concat().into(); //push_front
         } else if let Err(e) = result {
             return Err(e);
         }
     }
-    //println!("stack: {:?}", stack);
+    //println!("DEBUG stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
         .into_iter()
         .filter(|w| if let StartOfLine = w { false } else { true })
         .filter(|w| if let Nothing = w { false } else { true })
         .collect::<Vec<Word>>()
         .into();
-    //println!("new_stack: {:?}", new_stack);
+    println!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
