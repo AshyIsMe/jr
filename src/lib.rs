@@ -116,14 +116,14 @@ impl VerbImpl {
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AdverbImpl {
-    Insert,
+    Slash,
     NotImplemented,
 }
 
 impl AdverbImpl {
     fn exec<'a>(&'a self, x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
         match self {
-            AdverbImpl::Insert => a_insert(x, v, y),
+            AdverbImpl::Slash => a_slash(x, v, y),
             AdverbImpl::NotImplemented => a_not_implemented(x, v, y),
         }
     }
@@ -275,7 +275,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
 fn primitive_adverbs() -> HashMap<&'static str, AdverbImpl> {
     HashMap::from([
         ("~", AdverbImpl::NotImplemented),
-        ("/", AdverbImpl::Insert),
+        ("/", AdverbImpl::Slash),
         ("/.", AdverbImpl::NotImplemented),
         ("\\", AdverbImpl::NotImplemented),
         ("\\.", AdverbImpl::NotImplemented),

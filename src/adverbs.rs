@@ -9,7 +9,7 @@ pub fn a_not_implemented(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word
     })
 }
 
-pub fn a_insert(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
+pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
     match x {
         None => match v {
             Word::Verb(_, v) => match y {
