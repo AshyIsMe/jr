@@ -378,9 +378,22 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             message: "rational numbers not supported yet".to_string(),
         })
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
-        Err(JError {
-            message: "floating point numbers not supported yet".to_string(),
-        })
+        let a = sentence[0..=l]
+            .split_whitespace()
+            .map(|s| s.replace("_", "-"))
+            .map(|s| s.parse::<f64>())
+            .collect::<Result<Vec<f64>, std::num::ParseFloatError>>();
+        match a {
+            Ok(a) => Ok((
+                l,
+                Noun(FloatArray {
+                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
+                }),
+            )),
+            Err(_) => Err(JError {
+                message: "parse float error".to_string(),
+            }),
+        }
     } else {
         let a = sentence[0..=l]
             .split_whitespace()
@@ -388,10 +401,6 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
         match a {
-            //Ok(a) => match ArrayD::from_shape_vec(IxDyn(&[a.len()]), a) {
-            //Ok(v) => Ok((l, Word::Noun(IntArray { v }))),
-            //Err(e) => Err(JError { message: e }),
-            //},
             Ok(a) => Ok((
                 l,
                 Noun(IntArray {
