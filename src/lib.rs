@@ -2,7 +2,7 @@ mod adverbs;
 mod verbs;
 
 use itertools::Itertools;
-use log::{debug, error, info, log_enabled, trace, Level};
+use log::{debug, trace};
 use ndarray::prelude::*;
 use std::collections::{HashMap, VecDeque};
 //use std::fmt;

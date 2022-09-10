@@ -1,4 +1,4 @@
-use log::{debug, error, info, log_enabled, Level};
+use log::debug;
 use std::io::{self, Write};
 
 fn main() -> io::Result<()> {
