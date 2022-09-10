@@ -1,6 +1,9 @@
+use log::{debug, error, info, log_enabled, Level};
 use std::io::{self, Write};
 
 fn main() -> io::Result<()> {
+    env_logger::init();
+
     let mut buffer = String::new();
     let stdin = io::stdin();
     let mut stdout = io::stdout();
@@ -18,7 +21,7 @@ fn main() -> io::Result<()> {
             _sentence => {
                 match jr::scan(&buffer) {
                     Ok(tokens) => {
-                        println!("tokens: {:?}", tokens);
+                        debug!("tokens: {:?}", tokens);
                         println!("{:?}", jr::eval(tokens));
                     }
                     Err(e) => println!("error: {:?}", e),

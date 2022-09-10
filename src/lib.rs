@@ -2,6 +2,7 @@ mod adverbs;
 mod verbs;
 
 use itertools::Itertools;
+use log::{debug, error, info, log_enabled, trace, Level};
 use ndarray::prelude::*;
 use std::collections::{HashMap, VecDeque};
 //use std::fmt;
@@ -615,15 +616,15 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
     while !converged {
-        //println!("stack step: {:?}", stack);
+        trace!("stack step: {:?}", stack);
 
         let fragment = get_fragment(&mut stack);
-        //println!("fragment: {:?}", fragment);
+        trace!("fragment: {:?}", fragment);
         let result: Result<Vec<Word>, JError> = match fragment {
             (ref w, Verb(_, v), Noun(y), any) //monad
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
-                println!("0 monad");
+                debug!("0 monad");
                 Ok(vec![fragment.0, v.exec(None, &Noun(y)).unwrap(), any])
             }
             (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y)) //monad
@@ -632,7 +633,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) =>
             {
-                println!("1 monad");
+                debug!("1 monad");
                 Ok(vec![
                     fragment.0,
                     Verb(us, u.clone()),
@@ -645,7 +646,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) =>
             {
-                println!("2 dyad");
+                debug!("2 dyad");
                 Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
             }
             // (V|N) A anything - 3 Adverb
@@ -654,7 +655,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
-                    println!("3 adverb V A _");
+                    debug!("3 adverb V A _");
                     Ok(vec![fragment.0, Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), m: Nothing, a: Adverb(sa,a)})), any])
                 }
             (ref w, Noun(n), Adverb(sa,a), any) //adverb
@@ -662,7 +663,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
-                    println!("3 adverb N A _");
+                    debug!("3 adverb N A _");
                     Ok(vec![fragment.0, Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
                 }
             // TODO:
@@ -725,7 +726,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             },
         };
 
-        //println!("result: {:?}", result);
+        debug!("result: {:?}", result);
 
         if let Ok(r) = result {
             stack = vec![r, stack.into()].concat().into(); //push_front
@@ -733,14 +734,14 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             return Err(e);
         }
     }
-    //println!("DEBUG stack: {:?}", stack);
+    trace!("DEBUG stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
         .into_iter()
         .filter(|w| if let StartOfLine = w { false } else { true })
         .filter(|w| if let Nothing = w { false } else { true })
         .collect::<Vec<Word>>()
         .into();
-    //println!("DEBUG new_stack: {:?}", new_stack);
+    trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
