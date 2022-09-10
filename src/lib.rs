@@ -612,8 +612,9 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
     queue.push_front(Word::StartOfLine);
     let mut stack: VecDeque<Word> = [].into();
 
-    while !queue.is_empty() {
-        stack.push_front(queue.pop_back().unwrap());
+    let mut converged = false;
+    // loop until queue is empty and stack has stopped changing
+    while !converged {
         //println!("stack step: {:?}", stack);
 
         let fragment = get_fragment(&mut stack);
@@ -654,9 +655,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     println!("3 adverb V A _");
-                    // Create DerivedVerb, put on top of stack, roll queue back one word.
-                    queue.push_back(w.clone());
-                    Ok(vec![Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), m: Nothing, a: Adverb(sa,a)})), any])
+                    Ok(vec![fragment.0, Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), m: Nothing, a: Adverb(sa,a)})), any])
                 }
             (ref w, Noun(n), Adverb(sa,a), any) //adverb
                 if matches!(
@@ -664,9 +663,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     println!("3 adverb N A _");
-                    // Create DerivedVerb, put on top of stack, roll queue back one word.
-                    queue.push_back(w.clone());
-                    Ok(vec![Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
+                    Ok(vec![fragment.0, Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
                 }
             // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
@@ -719,7 +716,12 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
 
             _ => match fragment {
-                (w1, w2, w3, w4) => Ok(vec![w1, w2, w3, w4]),
+                (w1, w2, w3, w4) => if queue.is_empty() {
+                    converged = true;
+                    Ok(vec![w1, w2, w3, w4])
+                } else {
+                    Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4])
+                }
             },
         };
 
@@ -738,7 +740,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
         .filter(|w| if let Nothing = w { false } else { true })
         .collect::<Vec<Word>>()
         .into();
-    println!("DEBUG new_stack: {:?}", new_stack);
+    //println!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
         _ => Err(JError {
