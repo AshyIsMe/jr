@@ -718,9 +718,8 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
 
-            //_ => Err(JError { message: String::from("fragment doesn't match any execution cases"), }),
             _ => match fragment {
-                (w1, ref w2, ref w3, w4) => Ok(vec![w1, w2.clone(), w3.clone(), w4]),
+                (w1, w2, w3, w4) => Ok(vec![w1, w2, w3, w4]),
             },
         };
 
