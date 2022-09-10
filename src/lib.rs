@@ -93,6 +93,7 @@ pub enum VerbImpl {
     Minus,
     Times,
     Number,
+    Dollar,
     NotImplemented,
 
     DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
@@ -105,6 +106,7 @@ impl VerbImpl {
             VerbImpl::Minus => v_minus(x, y),
             VerbImpl::Times => v_times(x, y),
             VerbImpl::Number => v_number(x, y),
+            VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
                 (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, &u, y),
@@ -166,7 +168,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("^", VerbImpl::NotImplemented),
         ("^.", VerbImpl::NotImplemented),
         ("^!.", VerbImpl::NotImplemented),
-        ("$", VerbImpl::NotImplemented),
+        ("$", VerbImpl::Dollar),
         ("$.", VerbImpl::NotImplemented),
         ("$:", VerbImpl::NotImplemented),
         ("~.", VerbImpl::NotImplemented),

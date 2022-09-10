@@ -94,3 +94,36 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         }), // Copy
     }
 }
+
+pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => {
+            // Shape-of
+            match y {
+                Word::Noun(ja) => match ja {
+                    IntArray { a } => {
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                    }
+                    ExtIntArray { a } => {
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                    }
+                    FloatArray { a } => {
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                    }
+                    BoolArray { a } => {
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                    }
+                    CharArray { a } => {
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                    }
+                },
+                _ => Err(JError {
+                    message: "domain error".to_string(),
+                }),
+            }
+        }
+        Some(_x) => Err(JError {
+            message: "dyadic $ not implemented yet".to_string(),
+        }), // Copy
+    }
+}
