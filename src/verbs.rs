@@ -122,8 +122,41 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 }),
             }
         }
-        Some(_x) => Err(JError {
-            message: "dyadic $ not implemented yet".to_string(),
-        }), // Copy
+        Some(x) => {
+            // Reshape
+            // TODO: ndarray's ArrayBase.into_shape() is incorrect behaviour for j
+            // Need to implement full reshape behaviour.
+            match x {
+                Word::Noun(ja) => match ja {
+                    IntArray { a: x } => match y {
+                        Word::Noun(ja) => match ja {
+                            IntArray { a: y } => Ok(Word::Noun(IntArray {
+                                a: y.clone()
+                                    .into_shape(
+                                        x.clone()
+                                            .into_raw_vec()
+                                            .iter()
+                                            .map(|i| *i as usize)
+                                            .collect::<Vec<ndarray::Ix>>(),
+                                    )
+                                    .unwrap(),
+                            })),
+                            _ => {
+                                todo!("reshape not implemented for the rest of the array types yet")
+                            }
+                        },
+                        _ => Err(JError {
+                            message: "domain error".to_string(),
+                        }),
+                    },
+                    _ => Err(JError {
+                        message: "domain error".to_string(),
+                    }),
+                },
+                _ => Err(JError {
+                    message: "domain error".to_string(),
+                }),
+            }
+        }
     }
 }

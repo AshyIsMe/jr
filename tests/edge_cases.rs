@@ -201,3 +201,27 @@ fn test_insert_adverb() {
         })
     );
 }
+
+#[test]
+fn test_reshape() {
+    let words = jr::scan("2 2 $ 1 2 3 4").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![1, 2, 3, 4]).unwrap()
+        })
+    );
+
+    // TODO fix reshape to work like j
+    let words = jr::scan("4 $ 1").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[4]), 1)
+        })
+    );
+}
