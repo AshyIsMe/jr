@@ -30,12 +30,12 @@ pub enum Word {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
-    IntArray { a: ArrayD<i64> },
-    ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
-    FloatArray { a: ArrayD<f64> },
     BoolArray { a: ArrayD<u8> },
     CharArray { a: ArrayD<char> },
+    IntArray { a: ArrayD<i64> },
+    ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
     //RationalArray { ... }, // TODO: num::rational::Rational64
+    FloatArray { a: ArrayD<f64> },
     //ComplexArray { ... },  // TODO: num::complex::Complex64
     //EmptyArray, // How do we do this properly?
 }

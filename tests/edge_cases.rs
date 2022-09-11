@@ -143,6 +143,16 @@ fn test_basic_addition() {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
         })
     );
+
+    let words = jr::scan("1 + 3.14").unwrap();
+    println!("{:?}", words);
+    let result = jr::eval(words).unwrap();
+    assert_eq!(
+        result,
+        Word::Noun(FloatArray {
+            a: Array::from_elem(IxDyn(&[1]), 1.0 + 3.14)
+        })
+    );
 }
 
 #[test]

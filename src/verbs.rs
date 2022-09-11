@@ -1,8 +1,9 @@
 use crate::int_array;
-use crate::JArray::*;
+use crate::JArray;
 use crate::JError;
 use crate::Word;
 
+use JArray::*;
 use Word::*;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -35,6 +36,58 @@ impl VerbImpl {
     }
 }
 
+fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
+    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
+    match (x, y) {
+        (BoolArray { a: x }, BoolArray { a: y }) => Ok((
+            IntArray {
+                a: x.map(|i| *i as i64),
+            },
+            IntArray {
+                a: y.map(|i| *i as i64),
+            },
+        )),
+        (BoolArray { a: x }, IntArray { a: y }) => Ok((
+            IntArray {
+                a: x.map(|i| *i as i64),
+            },
+            IntArray { a: y.clone() },
+        )),
+        (IntArray { a: x }, BoolArray { a: y }) => Ok((
+            IntArray { a: x.clone() },
+            IntArray {
+                a: y.map(|i| *i as i64),
+            },
+        )),
+        (BoolArray { a: x }, FloatArray { a: y }) => Ok((
+            FloatArray {
+                a: x.map(|i| *i as f64),
+            },
+            FloatArray { a: y.clone() },
+        )),
+        (FloatArray { a: x }, BoolArray { a: y }) => Ok((
+            FloatArray { a: x.clone() },
+            FloatArray {
+                a: y.map(|i| *i as f64),
+            },
+        )),
+
+        (IntArray { a: x }, FloatArray { a: y }) => Ok((
+            FloatArray {
+                a: x.map(|i| *i as f64),
+            },
+            FloatArray { a: y.clone() },
+        )),
+        (FloatArray { a: x }, IntArray { a: y }) => Ok((
+            FloatArray { a: x.clone() },
+            FloatArray {
+                a: y.map(|i| *i as f64),
+            },
+        )),
+        _ => Ok((x.clone(), y.clone())),
+    }
+}
+
 pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
     Err(JError {
         message: "verb not implemented yet".to_string(),
@@ -47,21 +100,19 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             message: "monadic + not implemented yet".to_string(),
         }),
         Some(x) => match (x, y) {
-            // TODO extract promotion to function:
-            // https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions
-            (Word::Noun(IntArray { a: x }), Word::Noun(IntArray { a: y })) => {
-                Ok(Word::Noun(IntArray { a: x + y }))
-            }
-            (Word::Noun(IntArray { a: x }), Word::Noun(FloatArray { a: y })) => {
-                Ok(Word::Noun(FloatArray {
-                    a: x.map(|i| *i as f64) + y,
-                }))
-            }
-            (Word::Noun(FloatArray { a: x }), Word::Noun(IntArray { a: y })) => {
-                Ok(Word::Noun(FloatArray {
-                    a: x + y.map(|i| *i as f64),
-                }))
-            }
+            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
+                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x + y })),
+                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
+                    Ok(Word::Noun(ExtIntArray { a: x + y }))
+                }
+                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
+                    Ok(Word::Noun(FloatArray { a: x + y }))
+                }
+                Err(e) => Err(e),
+                _ => Err(JError {
+                    message: "domain error".to_string(),
+                }),
+            },
             _ => Err(JError {
                 message: "plus not supported for these types yet".to_string(),
             }),
@@ -70,6 +121,7 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
 }
 
 pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    //TODO use promotion()
     match x {
         None => Err(JError {
             message: "monadic - not implemented yet".to_string(),
@@ -87,6 +139,7 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
 }
 
 pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    //TODO use promotion()
     match x {
         None => Err(JError {
             message: "monadic * not implemented yet".to_string(),
