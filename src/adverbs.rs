@@ -1,7 +1,22 @@
-use crate::JArray::*;
 use crate::JError;
 use crate::Word;
-use ndarray::prelude::*;
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AdverbImpl {
+    Slash,
+    CurlyRt,
+    NotImplemented,
+}
+
+impl AdverbImpl {
+    pub fn exec<'a>(&'a self, x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
+        match self {
+            AdverbImpl::Slash => a_slash(x, v, y),
+            AdverbImpl::CurlyRt => a_curlyrt(x, v, y),
+            AdverbImpl::NotImplemented => a_not_implemented(x, v, y),
+        }
+    }
+}
 
 pub fn a_not_implemented(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError> {
     Err(JError {

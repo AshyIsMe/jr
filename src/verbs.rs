@@ -2,7 +2,38 @@ use crate::int_array;
 use crate::JArray::*;
 use crate::JError;
 use crate::Word;
-use ndarray::prelude::*;
+
+use Word::*;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum VerbImpl {
+    Plus,
+    Minus,
+    Times,
+    Number,
+    Dollar,
+    NotImplemented,
+
+    DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
+}
+
+impl VerbImpl {
+    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+        match self {
+            VerbImpl::Plus => v_plus(x, y),
+            VerbImpl::Minus => v_minus(x, y),
+            VerbImpl::Times => v_times(x, y),
+            VerbImpl::Number => v_number(x, y),
+            VerbImpl::Dollar => v_dollar(x, y),
+            VerbImpl::NotImplemented => v_not_implemented(x, y),
+            VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
+                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, &u, y),
+                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, &m, y),
+                _ => panic!("invalid DerivedVerb {:?}", self),
+            },
+        }
+    }
+}
 
 pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
     Err(JError {
