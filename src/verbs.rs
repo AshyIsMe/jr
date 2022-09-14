@@ -238,19 +238,19 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                             match y {
                                 Word::Noun(ja) => match ja {
                                     BoolArray { a: y } => Ok(Word::Noun(BoolArray {
-                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                        a: reshape(x, y.clone()).unwrap(),
                                     })),
                                     CharArray { a: y } => Ok(Word::Noun(CharArray {
-                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                        a: reshape(x, y.clone()).unwrap(),
                                     })),
                                     IntArray { a: y } => Ok(Word::Noun(IntArray {
-                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                        a: reshape(x, y.clone()).unwrap(),
                                     })),
                                     ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
-                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                        a: reshape(x, y.clone()).unwrap(),
                                     })),
                                     FloatArray { a: y } => Ok(Word::Noun(FloatArray {
-                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                        a: reshape(x, y.clone()).unwrap(),
                                     })),
                                 },
                                 _ => Err(JError {
@@ -271,7 +271,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn reshape<T>(x: Vec<i64>, y: ArrayD<T>) -> Result<ArrayD<T>, JError>
+pub fn reshape<T>(x: &ArrayD<i64>, y: ArrayD<T>) -> Result<ArrayD<T>, JError>
 where
     T: Debug + Clone,
 {
@@ -285,13 +285,12 @@ where
         // flatten y -> into_shape(ns)
         // TODO: This whole section should be x.outer_iter() and then
         // collected.
-        let mut ns: Vec<usize> = x.clone().iter().map(|i| *i as usize).collect();
-        let y_cell_shape = Vec::from(y.shape());
-        if y_cell_shape.len() > 1 {
-            ns.extend(&y_cell_shape[1..]);
-        }
-        let ns = ns;
-        let flat_len = ns.iter().map(|i| *i as i64).product::<i64>() as usize;
+        let ns: Vec<usize> = x
+            .iter()
+            .map(|&i| i as usize)
+            .chain(y.shape().iter().skip(1).copied())
+            .collect();
+        let flat_len = ns.iter().product();
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
         Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
