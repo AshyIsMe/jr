@@ -2,6 +2,9 @@ use crate::int_array;
 use crate::JArray;
 use crate::JError;
 use crate::Word;
+use log::debug;
+use ndarray::prelude::*;
+use std::fmt::Debug;
 
 use JArray::*;
 use Word::*;
@@ -37,7 +40,7 @@ impl VerbImpl {
 }
 
 fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
-    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
+    // https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     match (x, y) {
         (BoolArray { a: x }, BoolArray { a: y }) => Ok((
             IntArray {
@@ -224,31 +227,38 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         }
         Some(x) => {
             // Reshape
-            // TODO: ndarray's ArrayBase.into_shape() is incorrect behaviour for j
-            // Need to implement full reshape behaviour.
             match x {
                 Word::Noun(ja) => match ja {
-                    IntArray { a: x } => match y {
-                        Word::Noun(ja) => match ja {
-                            IntArray { a: y } => Ok(Word::Noun(IntArray {
-                                a: y.clone()
-                                    .into_shape(
-                                        x.clone()
-                                            .into_raw_vec()
-                                            .iter()
-                                            .map(|i| *i as usize)
-                                            .collect::<Vec<ndarray::Ix>>(),
-                                    )
-                                    .unwrap(),
-                            })),
-                            _ => {
-                                todo!("reshape not implemented for the rest of the array types yet")
+                    IntArray { a: x } => {
+                        if x.product() < 0 {
+                            Err(JError {
+                                message: "domain error".to_string(),
+                            })
+                        } else {
+                            match y {
+                                Word::Noun(ja) => match ja {
+                                    BoolArray { a: y } => Ok(Word::Noun(BoolArray {
+                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                    })),
+                                    CharArray { a: y } => Ok(Word::Noun(CharArray {
+                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                    })),
+                                    IntArray { a: y } => Ok(Word::Noun(IntArray {
+                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                    })),
+                                    ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
+                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                    })),
+                                    FloatArray { a: y } => Ok(Word::Noun(FloatArray {
+                                        a: reshape(x.clone().into_raw_vec(), y.clone()).unwrap(),
+                                    })),
+                                },
+                                _ => Err(JError {
+                                    message: "domain error".to_string(),
+                                }),
                             }
-                        },
-                        _ => Err(JError {
-                            message: "domain error".to_string(),
-                        }),
-                    },
+                        }
+                    }
                     _ => Err(JError {
                         message: "domain error".to_string(),
                     }),
@@ -258,5 +268,32 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 }),
             }
         }
+    }
+}
+
+pub fn reshape<T>(x: Vec<i64>, y: ArrayD<T>) -> Result<ArrayD<T>, JError>
+where
+    T: Debug + Clone,
+{
+    if x.iter().product::<i64>() < 0 {
+        Err(JError {
+            message: "domain error".to_string(),
+        })
+    } else {
+        // get shape of y cells
+        // get new shape: concat x with sy
+        // flatten y -> into_shape(ns)
+        // TODO: This whole section should be x.outer_iter() and then
+        // collected.
+        let mut ns: Vec<usize> = x.clone().iter().map(|i| *i as usize).collect();
+        let y_cell_shape = Vec::from(y.shape());
+        if y_cell_shape.len() > 1 {
+            ns.extend(&y_cell_shape[1..]);
+        }
+        let ns = ns;
+        let flat_len = ns.iter().map(|i| *i as i64).product::<i64>() as usize;
+        let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
+        debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
+        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
     }
 }

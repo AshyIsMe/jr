@@ -1,3 +1,4 @@
+use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::{VerbImpl, Word};
 use ndarray::prelude::*;
@@ -224,7 +225,6 @@ fn test_reshape() {
         })
     );
 
-    // TODO fix reshape to work like j
     let words = jr::scan("4 $ 1").unwrap();
     println!("{:?}", words);
     let result = jr::eval(words).unwrap();
@@ -233,5 +233,21 @@ fn test_reshape() {
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[4]), 1)
         })
+    );
+}
+
+#[test]
+fn test_reshape_helper() {
+    let y = Array::from_elem(IxDyn(&[1]), 1);
+    let r = reshape(vec![4], y).unwrap();
+    assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
+}
+
+#[test]
+fn test_TEMP_range() {
+    assert_eq!((0..5), std::ops::Range { start: 0, end: 5 });
+    assert_eq!(
+        (0..5).collect::<Vec<i64>>(),
+        std::ops::Range { start: 0, end: 5 }.collect::<Vec<i64>>()
     );
 }

@@ -1,7 +1,7 @@
-mod adverbs;
-mod arrays;
-mod scan;
-mod verbs;
+pub mod adverbs;
+pub mod arrays;
+pub mod scan;
+pub mod verbs;
 
 use itertools::Itertools;
 use log::{debug, trace};
