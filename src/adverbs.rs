@@ -19,9 +19,7 @@ impl AdverbImpl {
 }
 
 pub fn a_not_implemented(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError> {
-    Err(JError {
-        message: "adverb not implemented yet".to_string(),
-    })
+    Err(JError::custom("adverb not implemented yet"))
 }
 
 pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
@@ -35,26 +33,16 @@ pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
                     .reduce(|x, y| v.exec(Some(&x), &y).unwrap())
                 {
                     Some(w) => Ok(w.clone()),
-                    None => Err(JError {
-                        message: "domain error".to_string(),
-                    }),
+                    None => Err(JError::custom("domain error")),
                 },
-                _ => Err(JError {
-                    message: "noun expected".to_string(),
-                }),
+                _ => Err(JError::custom("noun expected")),
             },
-            _ => Err(JError {
-                message: "verb expected".to_string(),
-            }),
+            _ => Err(JError::custom("verb expected")),
         },
-        Some(_x) => Err(JError {
-            message: "dyadic / not implemented yet".to_string(),
-        }),
+        Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
     }
 }
 
 pub fn a_curlyrt(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError> {
-    Err(JError {
-        message: "adverb not implemented yet".to_string(),
-    })
+    Err(JError::custom("adverb not implemented yet"))
 }

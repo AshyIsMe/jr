@@ -316,9 +316,9 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
     trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.len() {
         1 => Ok(new_stack.pop_front().unwrap().clone()),
-        _ => Err(JError {
-            message: "if you're happy and you know it, syntax error".to_string(),
-        }),
+        _ => Err(JError::custom(
+            "if you're happy and you know it, syntax error",
+        )),
     }
 }
 

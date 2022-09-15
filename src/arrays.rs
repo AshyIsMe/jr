@@ -6,7 +6,15 @@ use ndarray::prelude::*;
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
 #[derive(Debug)]
 pub struct JError {
-    pub message: String,
+    message: String,
+}
+
+impl JError {
+    pub(crate) fn custom(message: impl ToString) -> JError {
+        JError {
+            message: message.to_string(),
+        }
+    }
 }
 
 // All terminology should match J terminology:
