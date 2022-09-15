@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::iter::repeat;
 
 use itertools::Itertools;
 use log::{debug, trace};
@@ -158,21 +159,9 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
 }
 
 fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
-    match stack.len() {
-        0 => (Nothing, Nothing, Nothing, Nothing),
-        1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),
-        2 => (
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            Nothing,
-            Nothing,
-        ),
-        3 => (
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            Nothing,
-        ),
-        _ => stack.drain(..4).collect_tuple().unwrap(),
-    }
+    stack
+        .drain(..stack.len().min(4))
+        .chain(repeat(Nothing))
+        .next_tuple()
+        .expect("infinite iterator can't be empty")
 }
