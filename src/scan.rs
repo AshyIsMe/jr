@@ -56,7 +56,7 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
 
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     let mut l: usize = usize::MAX;
-    if sentence.len() == 0 {
+    if sentence.is_empty() {
         return Err(JError::custom("Empty number literal"));
     }
     // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
@@ -78,7 +78,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
         let a = sentence[0..=l]
             .split_whitespace()
-            .map(|s| s.replace("_", "-"))
+            .map(|s| s.replace('_', "-"))
             .map(|s| s.parse::<f64>())
             .collect::<Result<Vec<f64>, std::num::ParseFloatError>>();
         match a {
@@ -93,7 +93,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     } else {
         let a = sentence[0..=l]
             .split_whitespace()
-            .map(|s| s.replace("_", "-"))
+            .map(|s| s.replace('_', "-"))
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
         match a {
@@ -142,9 +142,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
                     l -= 1;
                     break;
                 }
-                false => {
-                    () //still valid keep iterating
-                }
+                false => (), //still valid keep iterating
             },
         }
     }
@@ -163,7 +161,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
     let mut p: Option<Word> = None;
-    if sentence.len() == 0 {
+    if sentence.is_empty() {
         return Err(JError::custom("Empty name"));
     }
     for (i, c) in sentence.chars().enumerate() {
@@ -183,10 +181,11 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
             }
             '.' | ':' => {
                 match p {
-                    None => match str_to_primitive(&sentence[0..=l]) {
-                        Ok(w) => p = Some(w),
-                        Err(_) => (),
-                    },
+                    None => {
+                        if let Ok(w) = str_to_primitive(&sentence[0..=l]) {
+                            p = Some(w);
+                        }
+                    }
                     Some(_) => {
                         match str_to_primitive(&sentence[0..=l]) {
                             Ok(w) => p = Some(w),
@@ -219,7 +218,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
     //  - one symbol
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
-    if sentence.len() == 0 {
+    if sentence.is_empty() {
         return Err(JError::custom("Empty primitive"));
     }
     for (i, c) in sentence.chars().enumerate() {
@@ -267,7 +266,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         Ok(Word::Adverb(
             sentence.to_string(),
             match primitive_adverbs().get(&sentence) {
-                Some(a) => a.clone(),
+                Some(&a) => a,
                 None => AdverbImpl::NotImplemented,
             },
         ))
@@ -277,7 +276,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         match sentence {
             "=:" => Ok(Word::IsGlobal),
             "=." => Ok(Word::IsLocal),
-            _ => return Err(JError::custom("Invalid primitive")),
+            _ => Err(JError::custom("Invalid primitive")),
         }
     }
 }

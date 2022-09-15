@@ -1,7 +1,7 @@
 use crate::JError;
 use crate::Word;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AdverbImpl {
     Slash,
     CurlyRt,
@@ -26,15 +26,12 @@ pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
     match x {
         None => match v {
             Word::Verb(_, v) => match y {
-                Word::Noun(_) => match y
+                Word::Noun(_) => y
                     .to_cells()
                     .unwrap()
                     .into_iter()
                     .reduce(|x, y| v.exec(Some(&x), &y).unwrap())
-                {
-                    Some(w) => Ok(w.clone()),
-                    None => Err(JError::DomainError),
-                },
+                    .ok_or(JError::DomainError),
                 _ => Err(JError::custom("noun expected")),
             },
             _ => Err(JError::custom("verb expected")),
