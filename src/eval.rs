@@ -23,54 +23,56 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
         let fragment = get_fragment(&mut stack);
         trace!("fragment: {:?}", fragment);
         let result: Result<Vec<Word>, JError> = match fragment {
-            (ref w, Verb(_, v), Noun(y), any) //monad
-            if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
-                {
-                    debug!("0 monad");
-                    Ok(vec![fragment.0, v.exec(None, &Noun(y))?, any])
-                }
-            (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y)) //monad
-            if matches!(
+            (ref w, Verb(_, v), Noun(y), any)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("0 monad");
+                Ok(vec![fragment.0, v.exec(None, &Noun(y))?, any])
+            }
+            (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y))
+                if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
-                {
-                    debug!("1 monad");
-                    Ok(vec![
-                        fragment.0,
-                        Verb(us, u.clone()),
-                        v.exec(None, &Noun(y))?,
-                    ])
-                }
-            (ref w, Noun(x), Verb(_, ref v), Noun(y)) //dyad
-            if matches!(
+            {
+                debug!("1 monad");
+                Ok(vec![
+                    fragment.0,
+                    Verb(us, u.clone()),
+                    v.exec(None, &Noun(y))?,
+                ])
+            }
+            (ref w, Noun(x), Verb(_, ref v), Noun(y))
+                if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
-                {
-                    debug!("2 dyad");
-                    Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y))?])
-                }
+            {
+                debug!("2 dyad");
+                Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y))?])
+            }
             // (V|N) A anything - 3 Adverb
-            (ref w, Verb(sv, ref v), Adverb(sa, a), any) //adverb
-            if matches!(
+            (ref w, Verb(sv, ref v), Adverb(sa, a), any)
+                if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
-                ) => {
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                ) =>
+            {
                 debug!("3 adverb V A _");
                 let conc = format!("{}{}", sv, sa);
                 let dv = VerbImpl::DerivedVerb {
                     u: Box::new(Verb(sv, v.clone())),
                     m: Box::new(Nothing),
-                    a: Box::new(Adverb(sa, a))
+                    a: Box::new(Adverb(sa, a)),
                 };
                 Ok(vec![fragment.0, Verb(conc, dv), any])
-            },
-            (ref w, Noun(n), Adverb(sa,a), any) //adverb
-            if matches!(
+            }
+            (ref w, Noun(n), Adverb(sa, a), any)
+                if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
-                ) => {
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                ) =>
+            {
                 debug!("3 adverb N A _");
                 let conc = format!("m{}", sa);
                 let dv = VerbImpl::DerivedVerb {
@@ -78,7 +80,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     m: Box::new(Noun(n)),
                     a: Box::new(Adverb(sa, a)),
                 };
-                Ok(vec![fragment.0, Verb(conc,dv), any])
+                Ok(vec![fragment.0, Verb(conc, dv), any])
             }
             // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
@@ -129,14 +131,11 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Adverb(a), RP, _) => println!("8 Paren"),
             //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
-
             (w1, w2, w3, w4) if queue.is_empty() => {
                 converged = true;
                 Ok(vec![w1, w2, w3, w4])
-            },
-            (w1, w2, w3, w4) => {
-                Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4])
             }
+            (w1, w2, w3, w4) => Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4]),
         };
 
         debug!("result: {:?}", result);
