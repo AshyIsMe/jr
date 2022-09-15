@@ -27,11 +27,11 @@ pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
         None => match v {
             Word::Verb(_, v) => match y {
                 Word::Noun(_) => y
-                    .to_cells()
-                    .unwrap()
+                    .to_cells()?
                     .into_iter()
-                    .reduce(|x, y| v.exec(Some(&x), &y).unwrap())
-                    .ok_or(JError::DomainError),
+                    .map(Ok)
+                    .reduce(|x, y| v.exec(Some(&x?), &y?))
+                    .ok_or(JError::DomainError)?,
                 _ => Err(JError::custom("noun expected")),
             },
             _ => Err(JError::custom("verb expected")),

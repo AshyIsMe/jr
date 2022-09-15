@@ -150,8 +150,8 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
         .collect::<Vec<Word>>()
         .into();
     trace!("DEBUG new_stack: {:?}", new_stack);
-    match new_stack.len() {
-        1 => Ok(new_stack.pop_front().unwrap()),
+    match new_stack.pop_front() {
+        Some(val) if new_stack.is_empty() => Ok(val),
         _ => Err(JError::custom(
             "if you're happy and you know it, syntax error",
         )),
