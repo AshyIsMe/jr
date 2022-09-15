@@ -229,11 +229,11 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                 ) => {
                     debug!("3 adverb V A _");
                 let conc = format!("{}{}", sv, sa);
-                let dv = Box::new(VerbImpl::DerivedVerb {
-                    u: Verb(sv, v.clone()),
-                    m: Nothing,
-                    a: Adverb(sa, a)
-                });
+                let dv = VerbImpl::DerivedVerb {
+                    u: Box::new(Verb(sv, v.clone())),
+                    m: Box::new(Nothing),
+                    a: Box::new(Adverb(sa, a))
+                };
                 Ok(vec![fragment.0, Verb(conc, dv), any])
             },
             (ref w, Noun(n), Adverb(sa,a), any) //adverb
@@ -242,8 +242,14 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     debug!("3 adverb N A _");
-                    Ok(vec![fragment.0, Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
-                }
+                let conc = format!("m{}", sa);
+                let dv = VerbImpl::DerivedVerb {
+                    u: Box::new(Nothing),
+                    m: Box::new(Noun(n)),
+                    a: Box::new(Adverb(sa, a)),
+                };
+                Ok(vec![fragment.0, Verb(conc, dv), any])
+            }
             // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
             //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),

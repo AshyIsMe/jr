@@ -261,7 +261,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
             Some(v) => v.clone(),
             None => VerbImpl::NotImplemented,
         };
-        Ok(Word::Verb(sentence.to_string(), Box::new(refd)))
+        Ok(Word::Verb(sentence.to_string(), refd))
     } else if primitive_adverbs().contains_key(&sentence) {
         Ok(Word::Adverb(
             sentence.to_string(),

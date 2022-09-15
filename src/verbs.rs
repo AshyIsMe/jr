@@ -5,6 +5,7 @@ use crate::Word;
 use log::debug;
 use ndarray::prelude::*;
 use std::fmt::Debug;
+use std::ops::Deref;
 
 use JArray::*;
 use Word::*;
@@ -18,7 +19,11 @@ pub enum VerbImpl {
     Dollar,
     NotImplemented,
 
-    DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
+    DerivedVerb {
+        u: Box<Word>,
+        m: Box<Word>,
+        a: Box<Word>,
+    }, //Adverb modified Verb eg. +/
 }
 
 impl VerbImpl {
@@ -30,7 +35,7 @@ impl VerbImpl {
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
+            VerbImpl::DerivedVerb { u, m, a } => match (u.deref(), m.deref(), a.deref()) {
                 (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, y),
                 (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, m, y),
                 _ => panic!("invalid DerivedVerb {:?}", self),

@@ -96,7 +96,7 @@ pub enum Word {
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, Box<VerbImpl>),
+    Verb(String, VerbImpl),
     Adverb(String, AdverbImpl),
     Conjunction(String),
 }
