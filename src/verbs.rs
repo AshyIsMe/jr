@@ -166,11 +166,11 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // Tally
             match y {
                 Word::Noun(ja) => match ja {
-                    IntArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
-                    ExtIntArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
-                    FloatArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
-                    BoolArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
-                    CharArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
+                    IntArray { a } => Ok(int_array(vec![a.len() as i64])?),
+                    ExtIntArray { a } => Ok(int_array(vec![a.len() as i64])?),
+                    FloatArray { a } => Ok(int_array(vec![a.len() as i64])?),
+                    BoolArray { a } => Ok(int_array(vec![a.len() as i64])?),
+                    CharArray { a } => Ok(int_array(vec![a.len() as i64])?),
                 },
                 _ => Err(JError::DomainError),
             }
@@ -185,20 +185,18 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // Shape-of
             match y {
                 Word::Noun(ja) => match ja {
-                    IntArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
-                    }
+                    IntArray { a } => Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?),
                     ExtIntArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
                     }
                     FloatArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
                     }
                     BoolArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
                     }
                     CharArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
+                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
                     }
                 },
                 _ => Err(JError::DomainError),
@@ -214,19 +212,19 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         match y {
                             Word::Noun(ja) => match ja {
                                 BoolArray { a: y } => Ok(Word::Noun(BoolArray {
-                                    a: reshape(x, y.clone()).unwrap(),
+                                    a: reshape(x, y.clone())?,
                                 })),
                                 CharArray { a: y } => Ok(Word::Noun(CharArray {
-                                    a: reshape(x, y.clone()).unwrap(),
+                                    a: reshape(x, y.clone())?,
                                 })),
                                 IntArray { a: y } => Ok(Word::Noun(IntArray {
-                                    a: reshape(x, y.clone()).unwrap(),
+                                    a: reshape(x, y.clone())?,
                                 })),
                                 ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
-                                    a: reshape(x, y.clone()).unwrap(),
+                                    a: reshape(x, y.clone())?,
                                 })),
                                 FloatArray { a: y } => Ok(Word::Noun(FloatArray {
-                                    a: reshape(x, y.clone()).unwrap(),
+                                    a: reshape(x, y.clone())?,
                                 })),
                             },
                             _ => Err(JError::DomainError),

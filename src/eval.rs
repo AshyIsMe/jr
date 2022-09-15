@@ -132,11 +132,13 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Adverb(a), RP, _) => println!("8 Paren"),
             //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
-            (w1, w2, w3, w4) if queue.is_empty() => {
-                converged = true;
-                Ok(vec![w1, w2, w3, w4])
-            }
-            (w1, w2, w3, w4) => Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4]),
+            (w1, w2, w3, w4) => match queue.pop_back() {
+                Some(v) => Ok(vec![v, w1, w2, w3, w4]),
+                None => {
+                    converged = true;
+                    Ok(vec![w1, w2, w3, w4])
+                }
+            },
         };
 
         debug!("result: {:?}", result);
