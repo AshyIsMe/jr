@@ -33,7 +33,7 @@ pub fn a_slash(x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
                     .reduce(|x, y| v.exec(Some(&x), &y).unwrap())
                 {
                     Some(w) => Ok(w.clone()),
-                    None => Err(JError::custom("domain error")),
+                    None => Err(JError::DomainError),
                 },
                 _ => Err(JError::custom("noun expected")),
             },

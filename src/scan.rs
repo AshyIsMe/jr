@@ -63,9 +63,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match c {
-            '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t' => {
-                () //still valid keep iterating
-            }
+            '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t' => (), // still valid keep iterating
             _ => {
                 l -= 1;
                 break;
@@ -262,7 +260,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     } else if primitive_verbs().contains_key(&sentence) {
         let refd = match primitive_verbs().get(&sentence) {
             Some(v) => v.clone(),
-            None => VerbImpl::NotImplemented.clone(),
+            None => VerbImpl::NotImplemented,
         };
         Ok(Word::Verb(sentence.to_string(), Box::new(refd)))
     } else if primitive_adverbs().contains_key(&sentence) {
@@ -270,7 +268,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
             sentence.to_string(),
             match primitive_adverbs().get(&sentence) {
                 Some(a) => a.clone(),
-                None => AdverbImpl::NotImplemented.clone(),
+                None => AdverbImpl::NotImplemented,
             },
         ))
     } else if primitive_conjunctions().contains(&sentence) {

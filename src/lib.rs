@@ -176,7 +176,7 @@ fn primitive_conjunctions() -> &'static [&'static str] {
     ]
 }
 
-pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
+pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -288,41 +288,35 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
 
-            _ => match fragment {
-                (w1, w2, w3, w4) => if queue.is_empty() {
-                    converged = true;
-                    Ok(vec![w1, w2, w3, w4])
-                } else {
-                    Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4])
-                }
+            (w1, w2, w3, w4) if queue.is_empty() => {
+                converged = true;
+                Ok(vec![w1, w2, w3, w4])
             },
+            (w1, w2, w3, w4) => {
+                Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4])
+            }
         };
 
         debug!("result: {:?}", result);
-
-        if let Ok(r) = result {
-            stack = vec![r, stack.into()].concat().into(); //push_front
-        } else if let Err(e) = result {
-            return Err(e);
-        }
+        stack = vec![result?, stack.into()].concat().into(); //push_front
     }
     trace!("DEBUG stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
         .into_iter()
-        .filter(|w| if let StartOfLine = w { false } else { true })
-        .filter(|w| if let Nothing = w { false } else { true })
+        .filter(|w| !matches!(w, StartOfLine))
+        .filter(|w| !matches!(w, Nothing))
         .collect::<Vec<Word>>()
         .into();
     trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.len() {
-        1 => Ok(new_stack.pop_front().unwrap().clone()),
+        1 => Ok(new_stack.pop_front().unwrap()),
         _ => Err(JError::custom(
             "if you're happy and you know it, syntax error",
         )),
     }
 }
 
-fn get_fragment<'a, 'b>(stack: &'b mut VecDeque<Word>) -> (Word, Word, Word, Word) {
+fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
     match stack.len() {
         0 => (Nothing, Nothing, Nothing, Nothing),
         1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),
