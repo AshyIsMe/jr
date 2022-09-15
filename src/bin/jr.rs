@@ -1,3 +1,4 @@
+use jr::{JError, Word};
 use log::debug;
 use std::io::{self, Write};
 
@@ -12,24 +13,27 @@ fn main() -> io::Result<()> {
 
     loop {
         // repl
-        stdout.write(b"   ")?; //prompt
+        stdout.write_all(b"   ")?; //prompt
         stdout.flush()?;
         stdin.read_line(&mut buffer)?;
 
         match buffer.trim() {
             "exit" => break,
             _sentence => {
-                match jr::scan(&buffer) {
-                    Ok(tokens) => {
-                        debug!("tokens: {:?}", tokens);
-                        println!("{:?}", jr::eval(tokens));
-                    }
-                    Err(e) => println!("error: {:?}", e),
+                match scan_eval(&buffer) {
+                    Ok(output) => println!("{:?}", output),
+                    Err(e) => println!("error: {}", e),
                 }
-                buffer = String::from("");
+                buffer.truncate(0);
             }
         }
     }
 
     Ok(())
+}
+
+fn scan_eval(sentence: &str) -> Result<Word, JError> {
+    let tokens = jr::scan(sentence)?;
+    debug!("tokens: {:?}", tokens);
+    jr::eval(tokens)
 }

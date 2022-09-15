@@ -197,7 +197,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("0 monad");
-                Ok(vec![fragment.0, v.exec(None, &Noun(y)).unwrap(), any])
+                Ok(vec![fragment.0, v.exec(None, &Noun(y))?, any])
             }
             (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y)) //monad
                 if matches!(
@@ -209,7 +209,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                 Ok(vec![
                     fragment.0,
                     Verb(us, u.clone()),
-                    v.exec(None, &Noun(y)).unwrap(),
+                    v.exec(None, &Noun(y))?,
                 ])
             }
             (ref w, Noun(x), Verb(_, ref v), Noun(y)) //dyad
@@ -219,7 +219,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                 ) =>
             {
                 debug!("2 dyad");
-                Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y)).unwrap()])
+                Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y))?])
             }
             // (V|N) A anything - 3 Adverb
             (ref w, Verb(sv, ref v), Adverb(sa, a), any) //adverb

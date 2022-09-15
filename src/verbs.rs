@@ -92,7 +92,7 @@ fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
 }
 
 pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
-    Err(JError::custom("verb not implemented yet"))
+    Err(JError::NonceError)
 }
 
 pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
