@@ -24,8 +24,6 @@ fn invalid_prime() {
 #[test]
 fn test_scan_num() {
     let words = jr::scan("1 2 _3\n").unwrap();
-    println!("{:?}", words);
-    //assert_eq!(words, [Word::LitNumArray(String::from("1 2 _3"))]);
     assert_eq!(
         words,
         [Word::Noun(IntArray {
@@ -37,21 +35,18 @@ fn test_scan_num() {
 #[test]
 fn test_scan_string() {
     let words = jr::scan("'abc'").unwrap();
-    println!("{:?}", words);
     assert_eq!(words, [jr::char_array("abc")]);
 }
 
 #[test]
 fn test_scan_name() {
     let words = jr::scan("abc\n").unwrap();
-    println!("{:?}", words);
     assert_eq!(words, [Word::Name(String::from("abc"))]);
 }
 
 #[test]
 fn test_scan_name_verb_name() {
     let words = jr::scan("foo + bar\n").unwrap();
-    println!("{:?}", words);
     assert_eq!(
         words,
         [
@@ -70,7 +65,6 @@ fn only_whitespace() {
 #[test]
 fn test_scan_string_verb_string() {
     let words = jr::scan("'abc','def'").unwrap();
-    println!("{:?}", words);
     assert_eq!(
         words,
         [
@@ -84,7 +78,6 @@ fn test_scan_string_verb_string() {
 #[test]
 fn test_scan_name_verb_name_not_spaced() {
     let words = jr::scan("foo+bar\n").unwrap();
-    println!("{:?}", words);
     assert_eq!(
         words,
         [
@@ -98,7 +91,6 @@ fn test_scan_name_verb_name_not_spaced() {
 #[test]
 fn test_scan_primitives() {
     let words = jr::scan("a. I. 'A' \n").unwrap();
-    println!("{:?}", words);
     assert_eq!(
         words,
         [
@@ -112,7 +104,6 @@ fn test_scan_primitives() {
 #[test]
 fn test_scan_primitives_not_spaced() {
     let words = jr::scan("a.I.'A' \n").unwrap();
-    println!("{:?}", words);
     assert_eq!(
         words,
         [
@@ -126,30 +117,24 @@ fn test_scan_primitives_not_spaced() {
 #[test]
 fn test_basic_addition() {
     let words = jr::scan("2 + 2").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 4)
         })
     );
 
     let words = jr::scan("1 2 3 + 4 5 6").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
         })
     );
 
     let words = jr::scan("1 + 3.14").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(FloatArray {
             a: Array::from_elem(IxDyn(&[1]), 1.0 + 3.14)
         })
@@ -159,20 +144,16 @@ fn test_basic_addition() {
 #[test]
 fn test_basic_times() {
     let words = jr::scan("2 * 2").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 4)
         })
     );
 
     let words = jr::scan("1 2 3 * 4 5 6").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![4, 10, 18]).unwrap()
         })
@@ -190,10 +171,8 @@ fn test_parse_basics() {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap(),
         }),
     ];
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()
         })
@@ -203,10 +182,8 @@ fn test_parse_basics() {
 #[test]
 fn test_insert_adverb() {
     let words = jr::scan("+/1 2 3").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[]), 6)
         })
@@ -216,22 +193,34 @@ fn test_insert_adverb() {
 #[test]
 fn test_reshape() {
     let words = jr::scan("2 2 $ 1 2 3 4").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![1, 2, 3, 4]).unwrap()
         })
     );
 
     let words = jr::scan("4 $ 1").unwrap();
-    println!("{:?}", words);
-    let result = jr::eval(words).unwrap();
     assert_eq!(
-        result,
+        jr::eval(words).unwrap(),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[4]), 1)
+        })
+    );
+
+    let words = jr::scan("1 2 3 $ 1 2").unwrap();
+    assert_eq!(
+        jr::eval(words).unwrap(),
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[1, 2, 3]), vec![1, 2, 1, 2, 1, 2]).unwrap()
+        })
+    );
+
+    let words = jr::scan("3 $ 2 2 $ 0 1 2 3").unwrap();
+    assert_eq!(
+        jr::eval(words).unwrap(),
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[3, 2]), vec![0, 1, 2, 3, 0, 1]).unwrap()
         })
     );
 }
