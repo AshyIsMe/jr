@@ -129,6 +129,28 @@ macro_rules! map_array {
     };
 }
 
+macro_rules! impl_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => $func(a),
+            JArray::CharArray { a } => $func(a),
+            JArray::IntArray { a } => $func(a),
+            JArray::ExtIntArray { a } => $func(a),
+            JArray::FloatArray { a } => $func(a),
+        }
+    };
+}
+
+impl JArray {
+    pub fn len(&self) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len())
+    }
+
+    pub fn shape<'s>(&'s self) -> &[usize] {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
+    }
+}
+
 use JArray::*;
 use Word::*;
 
