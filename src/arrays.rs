@@ -119,9 +119,38 @@ pub enum JArray {
 use JArray::*;
 use Word::*;
 
-pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
+// like IntoIterator<Item = T> + ExactSizeIterator
+pub trait Arrayable<T> {
+    fn len(&self) -> usize;
+    fn into_vec(self) -> Result<Vec<T>, JError>;
+}
+
+impl<T> Arrayable<T> for Vec<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self)
+    }
+}
+
+// This is designed for use with shape(), sorry if it caught something else.
+impl Arrayable<i64> for &[usize] {
+    fn len(&self) -> usize {
+        <[usize]>::len(self)
+    }
+
+    fn into_vec(self) -> Result<Vec<i64>, JError> {
+        self.iter()
+            .map(|&v| i64::try_from(v).map_err(|_| JError::LimitError))
+            .collect()
+    }
+}
+
+pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
     Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v)?,
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v.into_vec()?)?,
     }))
 }
 

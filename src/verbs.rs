@@ -185,19 +185,11 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // Shape-of
             match y {
                 Word::Noun(ja) => match ja {
-                    IntArray { a } => Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?),
-                    ExtIntArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    FloatArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    BoolArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    CharArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
+                    IntArray { a } => Ok(int_array(a.shape())?),
+                    ExtIntArray { a } => Ok(int_array(a.shape())?),
+                    FloatArray { a } => Ok(int_array(a.shape())?),
+                    BoolArray { a } => Ok(int_array(a.shape())?),
+                    CharArray { a } => Ok(int_array(a.shape())?),
                 },
                 _ => Err(JError::DomainError),
             }
