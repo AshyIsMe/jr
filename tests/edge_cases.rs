@@ -232,7 +232,7 @@ fn test_reshape() {
 #[test]
 fn test_reshape_helper() {
     let y = Array::from_elem(IxDyn(&[1]), 1);
-    let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), y).unwrap();
+    let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
     assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
 }
 
