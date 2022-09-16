@@ -116,6 +116,19 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+#[macro_export]
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => JArray::BoolArray { a: $func(a)? },
+            JArray::CharArray { a } => JArray::CharArray { a: $func(a)? },
+            JArray::IntArray { a } => JArray::IntArray { a: $func(a)? },
+            JArray::ExtIntArray { a } => JArray::ExtIntArray { a: $func(a)? },
+            JArray::FloatArray { a } => JArray::FloatArray { a: $func(a)? },
+        }
+    };
+}
+
 use JArray::*;
 use Word::*;
 
