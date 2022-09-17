@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{VerbImpl, Word};
+use jr::{JError, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -33,9 +33,10 @@ fn test_scan_num() {
 }
 
 #[test]
-fn test_scan_string() {
+fn test_scan_string() -> Result<(), JError> {
     let words = jr::scan("'abc'").unwrap();
-    assert_eq!(words, [jr::char_array("abc")]);
+    assert_eq!(words, [jr::char_array("abc")?]);
+    Ok(())
 }
 
 #[test]
@@ -51,7 +52,7 @@ fn test_scan_name_verb_name() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), Box::new(VerbImpl::Plus)),
+            Word::Verb(String::from("+"), VerbImpl::Plus),
             Word::Name(String::from("bar")),
         ]
     );
@@ -63,16 +64,17 @@ fn only_whitespace() {
 }
 
 #[test]
-fn test_scan_string_verb_string() {
+fn test_scan_string_verb_string() -> Result<(), JError> {
     let words = jr::scan("'abc','def'").unwrap();
     assert_eq!(
         words,
         [
-            jr::char_array("abc"),
-            Word::Verb(String::from(","), Box::new(VerbImpl::NotImplemented)),
-            jr::char_array("def"),
+            jr::char_array("abc")?,
+            Word::Verb(String::from(","), VerbImpl::NotImplemented),
+            jr::char_array("def")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
@@ -82,36 +84,38 @@ fn test_scan_name_verb_name_not_spaced() {
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), Box::new(VerbImpl::Plus)),
+            Word::Verb(String::from("+"), VerbImpl::Plus),
             Word::Name(String::from("bar")),
         ]
     );
 }
 
 #[test]
-fn test_scan_primitives() {
+fn test_scan_primitives() -> Result<(), JError> {
     let words = jr::scan("a. I. 'A' \n").unwrap();
     assert_eq!(
         words,
         [
-            jr::char_array("a."),
-            Word::Verb(String::from("I."), Box::new(VerbImpl::NotImplemented)),
-            jr::char_array("A"),
+            jr::char_array("a.")?,
+            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
+            jr::char_array("A")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
-fn test_scan_primitives_not_spaced() {
-    let words = jr::scan("a.I.'A' \n").unwrap();
+fn test_scan_primitives_not_spaced() -> Result<(), JError> {
+    let words = jr::scan("a.I.'A' \n")?;
     assert_eq!(
         words,
         [
-            jr::char_array("a."),
-            Word::Verb(String::from("I."), Box::new(VerbImpl::NotImplemented)),
-            jr::char_array("A"),
+            jr::char_array("a.")?,
+            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
+            jr::char_array("A")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
@@ -166,7 +170,7 @@ fn test_parse_basics() {
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap(),
         }),
-        Word::Verb(String::from("+"), Box::new(VerbImpl::Plus)),
+        Word::Verb(String::from("+"), VerbImpl::Plus),
         Word::Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap(),
         }),
@@ -228,15 +232,15 @@ fn test_reshape() {
 #[test]
 fn test_reshape_helper() {
     let y = Array::from_elem(IxDyn(&[1]), 1);
-    let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), y).unwrap();
+    let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
     assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
 }
 
 #[test]
 fn test_power_conjunction() {
-    //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO
+    //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
-        Word::Verb(String::from("*:"), Box::new(VerbImpl::Plus)),
+        Word::Verb(String::from("*:"), VerbImpl::Plus),
         Word::Conjunction(String::from("^:")),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[]), 2),

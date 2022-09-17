@@ -2,11 +2,87 @@ pub use crate::adverbs::*;
 pub use crate::verbs::*;
 
 use ndarray::prelude::*;
+use thiserror::Error;
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
-#[derive(Debug)]
-pub struct JError {
-    pub message: String,
+#[derive(Debug, Error)]
+pub enum JError {
+    #[error("Your assert. line did not produce (a list of all) 1 (true)")]
+    AssertionFailure,
+    #[error("You interrupted execution with the JBreak icon")]
+    Break,
+    #[error("While loading script: bad use of if. else. end. etc")]
+    ControlError,
+    #[error(
+        "Invalid valence: The verb doesn't have a definition for the valence it was executed with"
+    )]
+    // #[error("Invalid value: An argument or operand has an invalid value")] ,
+    // #[error("Invalid public assignment: You've used both (z=:) and (z=.) for some name z")] ,
+    // #[error("Pun in definitions: A name was referred to as one part of speech, but the definition was later changed to another part of speech")] ,
+    DomainError,
+    #[error("nonexistent device or file")]
+    FileNameError,
+    #[error("no file open with that number")]
+    FileNumberError,
+    #[error("your Fold did not terminate when you expected")]
+    FoldLimit,
+    #[error("Invalid underscores in a name")]
+    IllFormedName,
+    #[error("A word starting with a number is not a valid number")]
+    IllFormedNumber,
+    #[error("accessing out of bounds of your array")]
+    IndexError,
+    #[error("illegal filename or request")]
+    InterfaceError,
+    #[error("x and y do not agree, or an argument has invalid length")]
+    LengthError,
+    #[error("You tried to use an expired locale")]
+    LocaleError,
+    #[error("number is beyond J's limit")]
+    LimitError,
+    #[error("result is not a valid number")]
+    NaNError,
+    #[error("feature not supported yet")]
+    NonceError,
+    #[error(
+        "You attempted an operation on a sparse array that would have required expanding the array"
+    )]
+    NonUniqueSparseElements,
+    #[error("Verbs, and test blocks within explicit definitions, must produce noun results")]
+    NounResultWasRequired,
+    #[error("string started but not ended")]
+    OpenQuote,
+    #[error("noun too big for computer")]
+    OutOfMemory,
+    #[error("operand can't have that rank")]
+    RankError,
+    #[error("J has attempted something insecure after you demanded heightened security")]
+    SecurityViolation,
+    #[error("You've . or : in the wrong place")]
+    SpellingError,
+    // #[error("During debugging: You tried to change the definition of a suspended entity")]
+    #[error("Any time: Too many recursions took place")]
+    StackError,
+    #[error("Sentence has an unexecutable phrase")]
+    SyntaxError,
+    #[error("Execution took too long")]
+    TimeLimit,
+    #[error("There was no catcht. block to pick up your throw")]
+    UncaughtThrow,
+    #[error("that name has no value yet")]
+    ValueError,
+
+    #[error("shape error: {0}")]
+    ShapeError(#[from] ndarray::ShapeError),
+
+    #[error("{0} (legacy)")]
+    Legacy(String),
+}
+
+impl JError {
+    pub(crate) fn custom(message: impl ToString) -> JError {
+        JError::Legacy(message.to_string())
+    }
 }
 
 // All terminology should match J terminology:
@@ -23,7 +99,7 @@ pub enum Word {
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, Box<VerbImpl>),
+    Verb(String, VerbImpl),
     Adverb(String, AdverbImpl),
     Conjunction(String), // TODO ConjunctionImpl in conjunctions.rs
 }
@@ -40,20 +116,84 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+#[macro_export]
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => JArray::BoolArray { a: $func(a)? },
+            JArray::CharArray { a } => JArray::CharArray { a: $func(a)? },
+            JArray::IntArray { a } => JArray::IntArray { a: $func(a)? },
+            JArray::ExtIntArray { a } => JArray::ExtIntArray { a: $func(a)? },
+            JArray::FloatArray { a } => JArray::FloatArray { a: $func(a)? },
+        }
+    };
+}
+
+macro_rules! impl_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => $func(a),
+            JArray::CharArray { a } => $func(a),
+            JArray::IntArray { a } => $func(a),
+            JArray::ExtIntArray { a } => $func(a),
+            JArray::FloatArray { a } => $func(a),
+        }
+    };
+}
+
+impl JArray {
+    pub fn len(&self) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len())
+    }
+
+    pub fn shape<'s>(&'s self) -> &[usize] {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
+    }
+}
+
 use JArray::*;
 use Word::*;
 
-pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
+// like IntoIterator<Item = T> + ExactSizeIterator
+pub trait Arrayable<T> {
+    fn len(&self) -> usize;
+    fn into_vec(self) -> Result<Vec<T>, JError>;
+}
+
+impl<T> Arrayable<T> for Vec<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self)
+    }
+}
+
+// This is designed for use with shape(), sorry if it caught something else.
+impl Arrayable<i64> for &[usize] {
+    fn len(&self) -> usize {
+        <[usize]>::len(self)
+    }
+
+    fn into_vec(self) -> Result<Vec<i64>, JError> {
+        self.iter()
+            .map(|&v| i64::try_from(v).map_err(|_| JError::LimitError))
+            .collect()
+    }
+}
+
+pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
     Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v).unwrap(),
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v.into_vec()?)?,
     }))
 }
 
-pub fn char_array(x: impl AsRef<str>) -> Word {
+pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
     let x = x.as_ref();
-    Word::Noun(JArray::CharArray {
-        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
-    })
+    Ok(Word::Noun(JArray::CharArray {
+        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect())?,
+    }))
 }
 
 impl Word {
