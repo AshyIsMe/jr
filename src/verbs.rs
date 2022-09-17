@@ -7,6 +7,8 @@ use ndarray::prelude::*;
 use std::fmt::Debug;
 use std::ops::Deref;
 
+use crate::map_array;
+
 use JArray::*;
 use Word::*;
 
@@ -165,13 +167,7 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Tally
             match y {
-                Word::Noun(ja) => match ja {
-                    IntArray { a } => Ok(int_array(vec![a.len() as i64])?),
-                    ExtIntArray { a } => Ok(int_array(vec![a.len() as i64])?),
-                    FloatArray { a } => Ok(int_array(vec![a.len() as i64])?),
-                    BoolArray { a } => Ok(int_array(vec![a.len() as i64])?),
-                    CharArray { a } => Ok(int_array(vec![a.len() as i64])?),
-                },
+                Word::Noun(ja) => int_array([ja.len()].as_slice()),
                 _ => Err(JError::DomainError),
             }
         }
@@ -184,21 +180,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Shape-of
             match y {
-                Word::Noun(ja) => match ja {
-                    IntArray { a } => Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?),
-                    ExtIntArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    FloatArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    BoolArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                    CharArray { a } => {
-                        Ok(int_array(a.shape().iter().map(|i| *i as i64).collect())?)
-                    }
-                },
+                Word::Noun(ja) => int_array(ja.shape()),
                 _ => Err(JError::DomainError),
             }
         }
@@ -210,23 +192,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         Err(JError::DomainError)
                     } else {
                         match y {
-                            Word::Noun(ja) => match ja {
-                                BoolArray { a: y } => Ok(Word::Noun(BoolArray {
-                                    a: reshape(x, y.clone())?,
-                                })),
-                                CharArray { a: y } => Ok(Word::Noun(CharArray {
-                                    a: reshape(x, y.clone())?,
-                                })),
-                                IntArray { a: y } => Ok(Word::Noun(IntArray {
-                                    a: reshape(x, y.clone())?,
-                                })),
-                                ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
-                                    a: reshape(x, y.clone())?,
-                                })),
-                                FloatArray { a: y } => Ok(Word::Noun(FloatArray {
-                                    a: reshape(x, y.clone())?,
-                                })),
-                            },
+                            Word::Noun(ja) => Ok(Word::Noun(map_array!(ja, |y| reshape(x, y)))),
                             _ => Err(JError::DomainError),
                         }
                     }
@@ -237,7 +203,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn reshape<T>(x: &ArrayD<i64>, y: ArrayD<T>) -> Result<ArrayD<T>, JError>
+pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>, JError>
 where
     T: Debug + Clone,
 {

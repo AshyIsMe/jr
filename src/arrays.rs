@@ -116,12 +116,76 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+#[macro_export]
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => JArray::BoolArray { a: $func(a)? },
+            JArray::CharArray { a } => JArray::CharArray { a: $func(a)? },
+            JArray::IntArray { a } => JArray::IntArray { a: $func(a)? },
+            JArray::ExtIntArray { a } => JArray::ExtIntArray { a: $func(a)? },
+            JArray::FloatArray { a } => JArray::FloatArray { a: $func(a)? },
+        }
+    };
+}
+
+macro_rules! impl_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray { a } => $func(a),
+            JArray::CharArray { a } => $func(a),
+            JArray::IntArray { a } => $func(a),
+            JArray::ExtIntArray { a } => $func(a),
+            JArray::FloatArray { a } => $func(a),
+        }
+    };
+}
+
+impl JArray {
+    pub fn len(&self) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len())
+    }
+
+    pub fn shape<'s>(&'s self) -> &[usize] {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
+    }
+}
+
 use JArray::*;
 use Word::*;
 
-pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
+// like IntoIterator<Item = T> + ExactSizeIterator
+pub trait Arrayable<T> {
+    fn len(&self) -> usize;
+    fn into_vec(self) -> Result<Vec<T>, JError>;
+}
+
+impl<T> Arrayable<T> for Vec<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self)
+    }
+}
+
+// This is designed for use with shape(), sorry if it caught something else.
+impl Arrayable<i64> for &[usize] {
+    fn len(&self) -> usize {
+        <[usize]>::len(self)
+    }
+
+    fn into_vec(self) -> Result<Vec<i64>, JError> {
+        self.iter()
+            .map(|&v| i64::try_from(v).map_err(|_| JError::LimitError))
+            .collect()
+    }
+}
+
+pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
     Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v)?,
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v.into_vec()?)?,
     }))
 }
 
