@@ -25,7 +25,7 @@ pub enum Word {
     Noun(JArray),
     Verb(String, Box<VerbImpl>),
     Adverb(String, AdverbImpl),
-    Conjunction(String),
+    Conjunction(String), // TODO ConjunctionImpl in conjunctions.rs
 }
 
 #[derive(Clone, Debug, PartialEq)]

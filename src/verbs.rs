@@ -18,7 +18,13 @@ pub enum VerbImpl {
     Dollar,
     NotImplemented,
 
-    DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
+    DerivedVerb {
+        u: Word,
+        v: Word,
+        m: Word,
+        n: Word,
+        a: Word,
+    }, //Adverb or Conjunction modified Verb eg. +/ or u^:n etc
 }
 
 impl VerbImpl {
@@ -30,10 +36,11 @@ impl VerbImpl {
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
-                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, &u, y),
-                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, &m, y),
-                _ => panic!("invalid DerivedVerb {:?}", self),
+            VerbImpl::DerivedVerb { u, v, m, n, a } => match (u, v, m, n, a) {
+                (Verb(_, _), Nothing, Nothing, Nothing, Adverb(_, a)) => a.exec(x, &u, y),
+                (Nothing, Nothing, Noun(_), Nothing, Adverb(_, a)) => a.exec(x, &m, y),
+                //_ => panic!("invalid DerivedVerb {:?}", self),
+                _ => todo!("add conjunctions support {:?}", self),
             },
         }
     }

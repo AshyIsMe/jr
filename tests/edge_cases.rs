@@ -233,6 +233,27 @@ fn test_reshape_helper() {
 }
 
 #[test]
+fn test_power_conjunction() {
+    //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO
+    let words = vec![
+        Word::Verb(String::from("*:"), Box::new(VerbImpl::Plus)),
+        Word::Conjunction(String::from("^:")),
+        Word::Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[]), 2),
+        }),
+        Word::Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[]), 4),
+        }),
+    ];
+    assert_eq!(
+        jr::eval(words).unwrap(),
+        Word::Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[]), 256)
+        })
+    );
+}
+
+#[test]
 fn test_TEMP_range() {
     assert_eq!((0..5), std::ops::Range { start: 0, end: 5 });
     assert_eq!(

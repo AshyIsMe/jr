@@ -228,7 +228,7 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     debug!("3 adverb V A _");
-                    Ok(vec![fragment.0, Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), m: Nothing, a: Adverb(sa,a)})), any])
+                    Ok(vec![fragment.0, Verb(format!("{}{}",sv,sa), Box::new(VerbImpl::DerivedVerb{u: Verb(sv,v.clone()), v: Nothing, m: Nothing, n: Nothing, a: Adverb(sa,a)})), any])
                 }
             (ref w, Noun(n), Adverb(sa,a), any) //adverb
                 if matches!(
@@ -236,12 +236,32 @@ pub fn eval<'a>(sentence: Vec<Word>) -> Result<Word, JError> {
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
                 ) => {
                     debug!("3 adverb N A _");
-                    Ok(vec![fragment.0, Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, m: Noun(n), a: Adverb(sa,a)})), any])
+                    Ok(vec![fragment.0, Verb(format!("m{}",sa), Box::new(VerbImpl::DerivedVerb{u: Nothing, v: Nothing, m: Noun(n), n: Nothing, a: Adverb(sa,a)})), any])
+                }
+            //TODO
+            //// (V|N) C (V|N) - 4 Conjunction
+            //(w, Verb(_, u), Conjunction(a), Verb(_, v))
+                //if matches!(
+                    //w,
+                    //StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                //) => {
+                    //// TODO
+                    //// https://code.jsoftware.com/wiki/Vocabulary/Glossary#Conjunction
+                    //// A conjunction modifies the words or phrases to its left and right to
+                    ////  produce a derived entity which is usually a verb, though it can be any of
+                    ////  the four primary parts of speech. 
+                    //// https://code.jsoftware.com/wiki/Vocabulary/Glossary#Primary
+                    //// A subset of the parts of speech, viz. noun, verb, conjunction, and adverb. 
+                    //todo!("4 Conj V C V")
+                //}
+            (ref w, Verb(su, u), Conjunction(c), Noun(m)) if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_,_) | Verb(_, _) | Noun(_)
+                ) => {
+                    debug!("4 Conj V C N");
+                    Ok(vec![fragment.0, Verb(format!("{}{}",su,c), Box::new(VerbImpl::DerivedVerb{u: Verb(su,u.clone()), v: Nothing, m: Noun(m), n: Nothing, a: Conjunction(c)}))])
                 }
             // TODO:
-            //// (V|N) C (V|N) - 4 Conjunction
-            //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
-            //(w, Verb(_, u), Conjunction(a), Noun(m)) => println!("4 Conj V C N"),
             //(w, Noun(n), Conjunction(a), Verb(_, v)) => println!("4 Conj N C V"),
             //(w, Noun(n), Conjunction(a), Noun(m)) => println!("4 Conj N C N"),
             //// (V|N) V V - 5 Fork
