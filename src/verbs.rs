@@ -5,6 +5,7 @@ use crate::Word;
 use log::debug;
 use ndarray::prelude::*;
 use std::fmt::Debug;
+use std::ops::Deref;
 
 use JArray::*;
 use Word::*;
@@ -18,7 +19,11 @@ pub enum VerbImpl {
     Dollar,
     NotImplemented,
 
-    DerivedVerb { u: Word, m: Word, a: Word }, //Adverb modified Verb eg. +/
+    DerivedVerb {
+        u: Box<Word>,
+        m: Box<Word>,
+        a: Box<Word>,
+    }, //Adverb modified Verb eg. +/
 }
 
 impl VerbImpl {
@@ -30,9 +35,9 @@ impl VerbImpl {
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { u, m, a } => match (u, m, a) {
-                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, &u, y),
-                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, &m, y),
+            VerbImpl::DerivedVerb { u, m, a } => match (u.deref(), m.deref(), a.deref()) {
+                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, y),
+                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, m, y),
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
         }
@@ -108,7 +113,7 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x + y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError::custom("domain error")),
+                _ => Err(JError::DomainError),
             },
             _ => Err(JError::custom("plus not supported for these types yet")),
         },
@@ -128,7 +133,7 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x - y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError::custom("domain error")),
+                _ => Err(JError::DomainError),
             },
             _ => Err(JError::custom("minus not supported for these types yet")),
         },
@@ -148,7 +153,7 @@ pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x * y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError::custom("domain error")),
+                _ => Err(JError::DomainError),
             },
             _ => Err(JError::custom("plus not supported for these types yet")),
         },
@@ -167,7 +172,7 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     BoolArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
                     CharArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
                 },
-                _ => Err(JError::custom("domain error")),
+                _ => Err(JError::DomainError),
             }
         }
         Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
@@ -196,42 +201,39 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
                     }
                 },
-                _ => Err(JError::custom("domain error")),
+                _ => Err(JError::DomainError),
             }
         }
         Some(x) => {
             // Reshape
             match x {
-                Word::Noun(ja) => match ja {
-                    IntArray { a: x } => {
-                        if x.product() < 0 {
-                            Err(JError::custom("domain error"))
-                        } else {
-                            match y {
-                                Word::Noun(ja) => match ja {
-                                    BoolArray { a: y } => Ok(Word::Noun(BoolArray {
-                                        a: reshape(x, y.clone()).unwrap(),
-                                    })),
-                                    CharArray { a: y } => Ok(Word::Noun(CharArray {
-                                        a: reshape(x, y.clone()).unwrap(),
-                                    })),
-                                    IntArray { a: y } => Ok(Word::Noun(IntArray {
-                                        a: reshape(x, y.clone()).unwrap(),
-                                    })),
-                                    ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
-                                        a: reshape(x, y.clone()).unwrap(),
-                                    })),
-                                    FloatArray { a: y } => Ok(Word::Noun(FloatArray {
-                                        a: reshape(x, y.clone()).unwrap(),
-                                    })),
-                                },
-                                _ => Err(JError::custom("domain error")),
-                            }
+                Word::Noun(IntArray { a: x }) => {
+                    if x.product() < 0 {
+                        Err(JError::DomainError)
+                    } else {
+                        match y {
+                            Word::Noun(ja) => match ja {
+                                BoolArray { a: y } => Ok(Word::Noun(BoolArray {
+                                    a: reshape(x, y.clone()).unwrap(),
+                                })),
+                                CharArray { a: y } => Ok(Word::Noun(CharArray {
+                                    a: reshape(x, y.clone()).unwrap(),
+                                })),
+                                IntArray { a: y } => Ok(Word::Noun(IntArray {
+                                    a: reshape(x, y.clone()).unwrap(),
+                                })),
+                                ExtIntArray { a: y } => Ok(Word::Noun(ExtIntArray {
+                                    a: reshape(x, y.clone()).unwrap(),
+                                })),
+                                FloatArray { a: y } => Ok(Word::Noun(FloatArray {
+                                    a: reshape(x, y.clone()).unwrap(),
+                                })),
+                            },
+                            _ => Err(JError::DomainError),
                         }
                     }
-                    _ => Err(JError::custom("domain error")),
-                },
-                _ => Err(JError::custom("domain error")),
+                }
+                _ => Err(JError::DomainError),
             }
         }
     }
@@ -242,7 +244,7 @@ where
     T: Debug + Clone,
 {
     if x.iter().product::<i64>() < 0 {
-        Err(JError::custom("domain error"))
+        Err(JError::DomainError)
     } else {
         // get shape of y cells
         // get new shape: concat x with sy

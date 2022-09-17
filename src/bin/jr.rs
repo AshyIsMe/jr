@@ -9,7 +9,7 @@ fn main() -> io::Result<()> {
     let stdin = io::stdin();
     let mut stdout = io::stdout();
 
-    println!("jr {}", option_env!("CARGO_PKG_VERSION").unwrap());
+    println!("jr {}", env!("CARGO_PKG_VERSION"));
 
     loop {
         // repl

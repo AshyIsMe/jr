@@ -5,7 +5,7 @@ use ndarray::prelude::*;
 use thiserror::Error;
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum JError {
     #[error("Your assert. line did not produce (a list of all) 1 (true)")]
     AssertionFailure,
@@ -96,7 +96,7 @@ pub enum Word {
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, Box<VerbImpl>),
+    Verb(String, VerbImpl),
     Adverb(String, AdverbImpl),
     Conjunction(String),
 }
