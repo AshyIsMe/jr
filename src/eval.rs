@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::iter::repeat;
 
 use itertools::Itertools;
 use log::{debug, trace};
@@ -131,11 +132,13 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(LP, Adverb(a), RP, _) => println!("8 Paren"),
             //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
             //(LP, Noun(m), RP, _) => println!("8 Paren"),
-            (w1, w2, w3, w4) if queue.is_empty() => {
-                converged = true;
-                Ok(vec![w1, w2, w3, w4])
-            }
-            (w1, w2, w3, w4) => Ok(vec![queue.pop_back().unwrap(), w1, w2, w3, w4]),
+            (w1, w2, w3, w4) => match queue.pop_back() {
+                Some(v) => Ok(vec![v, w1, w2, w3, w4]),
+                None => {
+                    converged = true;
+                    Ok(vec![w1, w2, w3, w4])
+                }
+            },
         };
 
         debug!("result: {:?}", result);
@@ -149,8 +152,8 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
         .collect::<Vec<Word>>()
         .into();
     trace!("DEBUG new_stack: {:?}", new_stack);
-    match new_stack.len() {
-        1 => Ok(new_stack.pop_front().unwrap()),
+    match new_stack.pop_front() {
+        Some(val) if new_stack.is_empty() => Ok(val),
         _ => Err(JError::custom(
             "if you're happy and you know it, syntax error",
         )),
@@ -158,21 +161,9 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
 }
 
 fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
-    match stack.len() {
-        0 => (Nothing, Nothing, Nothing, Nothing),
-        1 => (stack.pop_front().unwrap(), Nothing, Nothing, Nothing),
-        2 => (
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            Nothing,
-            Nothing,
-        ),
-        3 => (
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            stack.pop_front().unwrap(),
-            Nothing,
-        ),
-        _ => stack.drain(..4).collect_tuple().unwrap(),
-    }
+    stack
+        .drain(..stack.len().min(4))
+        .chain(repeat(Nothing))
+        .next_tuple()
+        .expect("infinite iterator can't be empty")
 }

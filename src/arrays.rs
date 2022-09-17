@@ -5,7 +5,7 @@ use ndarray::prelude::*;
 use thiserror::Error;
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error)]
 pub enum JError {
     #[error("Your assert. line did not produce (a list of all) 1 (true)")]
     AssertionFailure,
@@ -72,6 +72,9 @@ pub enum JError {
     #[error("that name has no value yet")]
     ValueError,
 
+    #[error("shape error: {0}")]
+    ShapeError(#[from] ndarray::ShapeError),
+
     #[error("{0} (legacy)")]
     Legacy(String),
 }
@@ -118,15 +121,15 @@ use Word::*;
 
 pub fn int_array(v: Vec<i64>) -> Result<Word, JError> {
     Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v).unwrap(),
+        a: Array::from_shape_vec(IxDyn(&[v.len()]), v)?,
     }))
 }
 
-pub fn char_array(x: impl AsRef<str>) -> Word {
+pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
     let x = x.as_ref();
-    Word::Noun(JArray::CharArray {
-        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect()).unwrap(),
-    })
+    Ok(Word::Noun(JArray::CharArray {
+        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect())?,
+    }))
 }
 
 impl Word {

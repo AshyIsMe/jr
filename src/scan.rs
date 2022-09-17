@@ -85,7 +85,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             Ok(a) => Ok((
                 l,
                 Noun(FloatArray {
-                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
+                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?,
                 }),
             )),
             Err(_) => Err(JError::custom("parse float error")),
@@ -100,7 +100,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
             Ok(a) => Ok((
                 l,
                 Noun(IntArray {
-                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
+                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?,
                 }),
             )),
             Err(_) => Err(JError::custom("parse int error")),
@@ -154,7 +154,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
         .skip(1)
         .collect::<String>()
         .replace("''", "'");
-    Ok((l, char_array(&s)))
+    Ok((l, char_array(&s)?))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
@@ -255,7 +255,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
 
 fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
     if primitive_nouns().contains(&sentence) {
-        Ok(char_array(sentence)) // TODO - actually lookup the noun
+        Ok(char_array(sentence)?) // TODO - actually lookup the noun
     } else if primitive_verbs().contains_key(&sentence) {
         let refd = match primitive_verbs().get(&sentence) {
             Some(v) => v.clone(),

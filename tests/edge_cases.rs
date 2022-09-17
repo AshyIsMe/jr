@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{VerbImpl, Word};
+use jr::{JError, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -33,9 +33,10 @@ fn test_scan_num() {
 }
 
 #[test]
-fn test_scan_string() {
+fn test_scan_string() -> Result<(), JError> {
     let words = jr::scan("'abc'").unwrap();
-    assert_eq!(words, [jr::char_array("abc")]);
+    assert_eq!(words, [jr::char_array("abc")?]);
+    Ok(())
 }
 
 #[test]
@@ -63,16 +64,17 @@ fn only_whitespace() {
 }
 
 #[test]
-fn test_scan_string_verb_string() {
+fn test_scan_string_verb_string() -> Result<(), JError> {
     let words = jr::scan("'abc','def'").unwrap();
     assert_eq!(
         words,
         [
-            jr::char_array("abc"),
+            jr::char_array("abc")?,
             Word::Verb(String::from(","), VerbImpl::NotImplemented),
-            jr::char_array("def"),
+            jr::char_array("def")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
@@ -89,29 +91,31 @@ fn test_scan_name_verb_name_not_spaced() {
 }
 
 #[test]
-fn test_scan_primitives() {
+fn test_scan_primitives() -> Result<(), JError> {
     let words = jr::scan("a. I. 'A' \n").unwrap();
     assert_eq!(
         words,
         [
-            jr::char_array("a."),
+            jr::char_array("a.")?,
             Word::Verb(String::from("I."), VerbImpl::NotImplemented),
-            jr::char_array("A"),
+            jr::char_array("A")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
-fn test_scan_primitives_not_spaced() {
-    let words = jr::scan("a.I.'A' \n").unwrap();
+fn test_scan_primitives_not_spaced() -> Result<(), JError> {
+    let words = jr::scan("a.I.'A' \n")?;
     assert_eq!(
         words,
         [
-            jr::char_array("a."),
+            jr::char_array("a.")?,
             Word::Verb(String::from("I."), VerbImpl::NotImplemented),
-            jr::char_array("A"),
+            jr::char_array("A")?,
         ]
     );
+    Ok(())
 }
 
 #[test]
