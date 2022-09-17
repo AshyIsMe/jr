@@ -57,9 +57,7 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     let mut l: usize = usize::MAX;
     if sentence.len() == 0 {
-        return Err(JError {
-            message: "Empty number literal".to_string(),
-        });
+        return Err(JError::custom("Empty number literal"));
     }
     // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
     for (i, c) in sentence.chars().enumerate() {
@@ -76,13 +74,9 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     }
 
     if sentence[0..=l].contains('j') {
-        Err(JError {
-            message: "complex numbers not supported yet".to_string(),
-        })
+        Err(JError::custom("complex numbers not supported yet"))
     } else if sentence[0..=l].contains('r') {
-        Err(JError {
-            message: "rational numbers not supported yet".to_string(),
-        })
+        Err(JError::custom("rational numbers not supported yet"))
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
         let a = sentence[0..=l]
             .split_whitespace()
@@ -96,9 +90,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
                     a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
                 }),
             )),
-            Err(_) => Err(JError {
-                message: "parse float error".to_string(),
-            }),
+            Err(_) => Err(JError::custom("parse float error")),
         }
     } else {
         let a = sentence[0..=l]
@@ -113,18 +105,14 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
                     a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a).unwrap(),
                 }),
             )),
-            Err(_) => Err(JError {
-                message: "parse int error".to_string(),
-            }),
+            Err(_) => Err(JError::custom("parse int error")),
         }
     }
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
     if sentence.len() < 2 {
-        return Err(JError {
-            message: "Empty literal string".to_string(),
-        });
+        return Err(JError::custom("Empty literal string"));
     }
 
     let mut l: usize = usize::MAX;
@@ -147,9 +135,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
                     l -= 1;
                     break;
                 } else {
-                    return Err(JError {
-                        message: "open quote".to_string(),
-                    });
+                    return Err(JError::custom("open quote"));
                 }
             }
             _ => match prev_c_is_quote {
@@ -180,9 +166,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     let mut l: usize = usize::MAX;
     let mut p: Option<Word> = None;
     if sentence.len() == 0 {
-        return Err(JError {
-            message: "Empty name".to_string(),
-        });
+        return Err(JError::custom("Empty name"));
     }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
@@ -238,9 +222,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
     if sentence.len() == 0 {
-        return Err(JError {
-            message: "Empty primitive".to_string(),
-        });
+        return Err(JError::custom("Empty primitive"));
     }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
@@ -297,11 +279,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         match sentence {
             "=:" => Ok(Word::IsGlobal),
             "=." => Ok(Word::IsLocal),
-            _ => {
-                return Err(JError {
-                    message: "Invalid primitive".to_string(),
-                })
-            }
+            _ => return Err(JError::custom("Invalid primitive")),
         }
     }
 }

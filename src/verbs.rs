@@ -92,16 +92,12 @@ fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
 }
 
 pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
-    Err(JError {
-        message: "verb not implemented yet".to_string(),
-    })
+    Err(JError::NonceError)
 }
 
 pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
-        None => Err(JError {
-            message: "monadic + not implemented yet".to_string(),
-        }),
+        None => Err(JError::custom("monadic + not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
                 Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x + y })),
@@ -112,22 +108,16 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x + y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             },
-            _ => Err(JError {
-                message: "plus not supported for these types yet".to_string(),
-            }),
+            _ => Err(JError::custom("plus not supported for these types yet")),
         },
     }
 }
 
 pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
-        None => Err(JError {
-            message: "monadic - not implemented yet".to_string(),
-        }),
+        None => Err(JError::custom("monadic - not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
                 Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x - y })),
@@ -138,22 +128,16 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x - y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             },
-            _ => Err(JError {
-                message: "minus not supported for these types yet".to_string(),
-            }),
+            _ => Err(JError::custom("minus not supported for these types yet")),
         },
     }
 }
 
 pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
-        None => Err(JError {
-            message: "monadic * not implemented yet".to_string(),
-        }),
+        None => Err(JError::custom("monadic * not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
                 Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x * y })),
@@ -164,13 +148,9 @@ pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(FloatArray { a: x * y }))
                 }
                 Err(e) => Err(e),
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             },
-            _ => Err(JError {
-                message: "plus not supported for these types yet".to_string(),
-            }),
+            _ => Err(JError::custom("plus not supported for these types yet")),
         },
     }
 }
@@ -187,14 +167,10 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     BoolArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
                     CharArray { a } => Ok(int_array(vec![a.len() as i64]).unwrap()),
                 },
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             }
         }
-        Some(_x) => Err(JError {
-            message: "dyadic # not implemented yet".to_string(),
-        }), // Copy
+        Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
     }
 }
 
@@ -220,9 +196,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         Ok(int_array(a.shape().iter().map(|i| *i as i64).collect()).unwrap())
                     }
                 },
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             }
         }
         Some(x) => {
@@ -231,9 +205,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 Word::Noun(ja) => match ja {
                     IntArray { a: x } => {
                         if x.product() < 0 {
-                            Err(JError {
-                                message: "domain error".to_string(),
-                            })
+                            Err(JError::custom("domain error"))
                         } else {
                             match y {
                                 Word::Noun(ja) => match ja {
@@ -253,19 +225,13 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                         a: reshape(x, y.clone()).unwrap(),
                                     })),
                                 },
-                                _ => Err(JError {
-                                    message: "domain error".to_string(),
-                                }),
+                                _ => Err(JError::custom("domain error")),
                             }
                         }
                     }
-                    _ => Err(JError {
-                        message: "domain error".to_string(),
-                    }),
+                    _ => Err(JError::custom("domain error")),
                 },
-                _ => Err(JError {
-                    message: "domain error".to_string(),
-                }),
+                _ => Err(JError::custom("domain error")),
             }
         }
     }
@@ -276,9 +242,7 @@ where
     T: Debug + Clone,
 {
     if x.iter().product::<i64>() < 0 {
-        Err(JError {
-            message: "domain error".to_string(),
-        })
+        Err(JError::custom("domain error"))
     } else {
         // get shape of y cells
         // get new shape: concat x with sy
