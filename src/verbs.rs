@@ -19,6 +19,7 @@ pub enum VerbImpl {
     Times,
     Number,
     Dollar,
+    StarCo,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -39,6 +40,7 @@ impl VerbImpl {
             VerbImpl::Times => v_times(x, y),
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
+            VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -232,5 +234,29 @@ where
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
         Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
+    }
+}
+
+pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => {
+            // Square
+            match y {
+                Word::Noun(BoolArray { a }) => Ok(Word::Noun(BoolArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(IntArray { a }) => Ok(Word::Noun(IntArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(ExtIntArray { a }) => Ok(Word::Noun(ExtIntArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(FloatArray { a }) => Ok(Word::Noun(FloatArray {
+                    a: a.clone() * a.clone(),
+                })),
+                _ => Err(JError::DomainError),
+            }
+        }
+        Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
     }
 }

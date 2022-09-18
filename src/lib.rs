@@ -29,7 +29,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("+:", VerbImpl::NotImplemented),
         ("*", VerbImpl::Times),
         ("*.", VerbImpl::NotImplemented),
-        ("*:", VerbImpl::NotImplemented),
+        ("*:", VerbImpl::StarCo),
         ("-", VerbImpl::Minus),
         ("-.", VerbImpl::NotImplemented),
         ("-:", VerbImpl::NotImplemented),

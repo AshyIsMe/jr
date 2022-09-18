@@ -240,7 +240,7 @@ fn test_reshape_helper() {
 fn test_power_conjunction() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
-        Word::Verb(String::from("*:"), VerbImpl::Plus),
+        Word::Verb(String::from("*:"), VerbImpl::StarCo),
         Word::Conjunction(String::from("^:"), ModifierImpl::HatCo),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[]), 2),
@@ -259,9 +259,20 @@ fn test_power_conjunction() {
 
 #[test]
 fn test_TEMP_range() {
+    // TODO DELETE
     assert_eq!((0..5), std::ops::Range { start: 0, end: 5 });
     assert_eq!(
         (0..5).collect::<Vec<i64>>(),
         std::ops::Range { start: 0, end: 5 }.collect::<Vec<i64>>()
+    );
+}
+
+#[test]
+fn test_TEMP_square() {
+    // TODO DELETE
+    let a = Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap();
+    assert_eq!(
+        a.clone() * a.clone(),
+        Array::from_shape_vec(IxDyn(&[3]), vec![1, 4, 9]).unwrap()
     );
 }
