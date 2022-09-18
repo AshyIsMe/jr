@@ -40,14 +40,16 @@ impl VerbImpl {
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { l, r, m } => {
-                match (l.deref(), r.deref(), m.deref()) {
-                    (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, y),
-                    (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, y),
-                    //_ => panic!("invalid DerivedVerb {:?}", self),
-                    _ => todo!("add conjunctions support {:?}", self),
+            VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
+                (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
+                (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
+                (l, r, Conjunction(_, c))
+                    if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
+                {
+                    c.exec(x, l, r, y)
                 }
-            }
+                _ => panic!("invalid DerivedVerb {:?}", self),
+            },
         }
     }
 }

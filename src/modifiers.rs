@@ -16,12 +16,18 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec<'a>(&'a self, x: Option<&Word>, v: &Word, y: &Word) -> Result<Word, JError> {
+    pub fn exec<'a>(
+        &'a self,
+        x: Option<&Word>,
+        u: &Word,
+        v: &Word,
+        y: &Word,
+    ) -> Result<Word, JError> {
         match self {
-            ModifierImpl::NotImplemented => a_not_implemented(x, v, y),
-            ModifierImpl::Slash => a_slash(x, v, y),
-            ModifierImpl::CurlyRt => a_curlyrt(x, v, y),
-            ModifierImpl::HatCo => c_hatco(x, v, y),
+            ModifierImpl::NotImplemented => a_not_implemented(x, u, y),
+            ModifierImpl::Slash => a_slash(x, u, y),
+            ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
+            ModifierImpl::HatCo => c_hatco(x, u, v, y),
         }
     }
 }
@@ -52,6 +58,6 @@ pub fn a_curlyrt(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError
     Err(JError::custom("adverb not implemented yet"))
 }
 
-pub fn c_hatco(_x: Option<&Word>, _v: &Word, _y: &Word) -> Result<Word, JError> {
+pub fn c_hatco(_x: Option<&Word>, _u: &Word, _v: &Word, _y: &Word) -> Result<Word, JError> {
     Err(JError::custom("power conjunction not implemented yet"))
 }
