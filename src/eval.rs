@@ -62,11 +62,9 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                 debug!("3 adverb V A _");
                 let verb_str = format!("{}{}", sv, sa);
                 let dv = VerbImpl::DerivedVerb {
-                    u: Box::new(Verb(sv, v.clone())),
-                    v: Box::new(Nothing),
-                    m: Box::new(Nothing),
-                    n: Box::new(Nothing),
-                    a: Box::new(Adverb(sa, a)),
+                    l: Box::new(Verb(sv, v.clone())),
+                    r: Box::new(Nothing),
+                    m: Box::new(Adverb(sa, a)),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv), any])
             }
@@ -79,31 +77,27 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                 debug!("3 adverb N A _");
                 let verb_str = format!("m{}", sa);
                 let dv = VerbImpl::DerivedVerb {
-                    u: Box::new(Nothing),
-                    v: Box::new(Nothing),
-                    m: Box::new(Noun(n)),
-                    n: Box::new(Nothing),
-                    a: Box::new(Adverb(sa, a)),
+                    l: Box::new(Noun(n)),
+                    r: Box::new(Nothing),
+                    m: Box::new(Adverb(sa, a)),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv), any])
             }
             // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
             //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
-            (ref w, Verb(su, u), Conjunction(c), Noun(m))
+            (ref w, Verb(su, u), Conjunction(sc, c), Noun(m))
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 debug!("4 Conj V C N");
-                let verb_str = format!("{}{}", su, c);
+                let verb_str = format!("{}{}", su, sc);
                 let dv = VerbImpl::DerivedVerb {
-                    u: Box::new(Verb(su, u.clone())),
-                    v: Box::new(Nothing),
-                    m: Box::new(Noun(m)),
-                    n: Box::new(Nothing),
-                    a: Box::new(Conjunction(c)),
+                    l: Box::new(Verb(su, u.clone())),
+                    r: Box::new(Noun(m)),
+                    m: Box::new(Conjunction(sc, c)),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
             }

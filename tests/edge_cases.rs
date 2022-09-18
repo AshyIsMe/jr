@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{JError, VerbImpl, Word};
+use jr::{JError, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -241,7 +241,7 @@ fn test_power_conjunction() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
         Word::Verb(String::from("*:"), VerbImpl::Plus),
-        Word::Conjunction(String::from("^:")),
+        Word::Conjunction(String::from("^:"), ModifierImpl::HatCo),
         Word::Noun(IntArray {
             a: Array::from_elem(IxDyn(&[]), 2),
         }),

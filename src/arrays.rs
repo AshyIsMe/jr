@@ -1,4 +1,4 @@
-pub use crate::adverbs::*;
+pub use crate::modifiers::*;
 pub use crate::verbs::*;
 
 use ndarray::prelude::*;
@@ -100,8 +100,8 @@ pub enum Word {
     IsGlobal,
     Noun(JArray),
     Verb(String, VerbImpl),
-    Adverb(String, AdverbImpl),
-    Conjunction(String), // TODO ConjunctionImpl in conjunctions.rs
+    Adverb(String, ModifierImpl),
+    Conjunction(String, ModifierImpl),
 }
 
 #[derive(Clone, Debug, PartialEq)]

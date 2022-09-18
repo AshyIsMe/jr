@@ -267,11 +267,17 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
             sentence.to_string(),
             match primitive_adverbs().get(&sentence) {
                 Some(&a) => a,
-                None => AdverbImpl::NotImplemented,
+                None => ModifierImpl::NotImplemented,
             },
         ))
-    } else if primitive_conjunctions().contains(&sentence) {
-        Ok(Word::Conjunction(sentence.to_string()))
+    } else if primitive_conjunctions().contains_key(&sentence) {
+        Ok(Word::Conjunction(
+            sentence.to_string(),
+            match primitive_conjunctions().get(&sentence) {
+                Some(&a) => a,
+                None => ModifierImpl::NotImplemented,
+            },
+        ))
     } else {
         match sentence {
             "=:" => Ok(Word::IsGlobal),

@@ -21,13 +21,14 @@ pub enum VerbImpl {
     Dollar,
     NotImplemented,
 
+    //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
+    //Modifiers take a left and right argument refered to as either
+    //u and v if verbs or m and n if nouns (or combinations of either).
     DerivedVerb {
-        u: Box<Word>,
-        v: Box<Word>,
+        l: Box<Word>,
+        r: Box<Word>,
         m: Box<Word>,
-        n: Box<Word>,
-        a: Box<Word>,
-    }, //Adverb or Conjunction modified Verb eg. +/ or u^:n etc
+    },
 }
 
 impl VerbImpl {
@@ -39,10 +40,10 @@ impl VerbImpl {
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { u, v, m, n, a } => {
-                match (u.deref(), v.deref(), m.deref(), n.deref(), a.deref()) {
-                    (Verb(_, _), Nothing, Nothing, Nothing, Adverb(_, a)) => a.exec(x, u, y),
-                    (Nothing, Nothing, Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, y),
+            VerbImpl::DerivedVerb { l, r, m } => {
+                match (l.deref(), r.deref(), m.deref()) {
+                    (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, y),
+                    (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, y),
                     //_ => panic!("invalid DerivedVerb {:?}", self),
                     _ => todo!("add conjunctions support {:?}", self),
                 }
