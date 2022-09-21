@@ -88,7 +88,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
     // Collect a Vec<Word::Noun> into a single Word::Noun.
     // Must all be the same JArray type. ie. IntArray, etc
 
-    let arrays = n
+    let arr = n
         .iter()
         .map(|w| match w {
             Word::Noun(arr) => Ok(arr),
@@ -96,25 +96,28 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
         })
         .collect::<Result<Vec<_>, JError>>()?;
 
-    let new_array = collect_int_arrs(&arrays)?;
+    use JArray::*;
+
+    let new_array = match arr.iter().next().ok_or(JError::DomainError)? {
+        BoolArray { .. } => BoolArray {
+            a: collect(&homo_array!(BoolArray, arr.iter()))?,
+        },
+        IntArray { .. } => IntArray {
+            a: collect(&homo_array!(IntArray, arr.iter()))?,
+        },
+        ExtIntArray { .. } => ExtIntArray {
+            a: collect(&homo_array!(ExtIntArray, arr.iter()))?,
+        },
+        FloatArray { .. } => FloatArray {
+            a: collect(&homo_array!(FloatArray, arr.iter()))?,
+        },
+        CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
+    };
 
     Ok(Word::Noun(new_array))
 }
 
-fn do_copy<T: Clone + Zero>(
-    arr: &[&ArrayD<T>],
-    empty_shape: &[usize],
-) -> Result<ArrayD<T>, JError> {
-    let mut result = Array::zeros(empty_shape);
-    for item in arr {
-        result
-            .push(Axis(0), item.view())
-            .map_err(JError::ShapeError)?;
-    }
-    Ok(result)
-}
-
-fn collect_int_arrs(arr: &[&JArray]) -> Result<JArray, JError> {
+fn collect<T: Clone + Zero>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
     let cell_shape = arr
         .iter()
         .map(|arr| arr.shape())
@@ -124,19 +127,11 @@ fn collect_int_arrs(arr: &[&JArray]) -> Result<JArray, JError> {
         .chain(cell_shape.iter().copied())
         .collect::<Vec<_>>();
 
-    macro_rules! impl_copy {
-        ($k:path) => {{
-            $k {
-                a: do_copy(&homo_array!($k, arr.iter()), &empty_shape)?,
-            }
-        }};
+    let mut result = Array::zeros(empty_shape);
+    for item in arr {
+        result
+            .push(Axis(0), item.view())
+            .map_err(JError::ShapeError)?;
     }
-
-    Ok(match arr.iter().next().expect("non-empty") {
-        JArray::BoolArray { .. } => impl_copy!(JArray::BoolArray),
-        JArray::IntArray { .. } => impl_copy!(JArray::IntArray),
-        JArray::ExtIntArray { .. } => impl_copy!(JArray::ExtIntArray),
-        JArray::FloatArray { .. } => impl_copy!(JArray::FloatArray),
-        JArray::CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
-    })
+    Ok(result)
 }
