@@ -1,6 +1,5 @@
-use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{JError, ModifierImpl, VerbImpl, Word};
+use jr::{JError, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]

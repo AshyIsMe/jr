@@ -1,8 +1,7 @@
 use std::iter;
 
-use crate::JArray::{ExtIntArray, IntArray};
 use crate::Word;
-use crate::{map_array, map_array_map, JArray, JError};
+use crate::{homo_array, JArray, JError};
 
 use ndarray::prelude::*;
 use num_traits::Zero;
@@ -66,7 +65,7 @@ pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
     match (u, v) {
-        (Word::Verb(_, u), Word::Noun(IntArray { a: n })) => {
+        (Word::Verb(_, u), Word::Noun(JArray::IntArray { a: n })) => {
             // TODO framing fill properly https://code.jsoftware.com/wiki/Vocabulary/FramingFill
             Ok(collect_nouns(
                 n.iter()
@@ -89,14 +88,17 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
     // Collect a Vec<Word::Noun> into a single Word::Noun.
     // Must all be the same JArray type. ie. IntArray, etc
 
-    //TODO This is clearly the wrong way to do this...
-    match collect_int_nouns(n.clone()) {
-        Ok(n) => Ok(n),
-        _ => match collect_extint_nouns(n.clone()) {
-            Ok(n) => Ok(n),
-            _ => todo!("collect_nouns other JArray types"),
-        },
-    }
+    let arrays = n
+        .iter()
+        .map(|w| match w {
+            Word::Noun(arr) => Ok(arr),
+            _ => Err(JError::DomainError),
+        })
+        .collect::<Result<Vec<_>, JError>>()?;
+
+    let new_array = collect_int_arrs(&arrays)?;
+
+    Ok(Word::Noun(new_array))
 }
 
 fn do_copy<T: Clone + Zero>(
@@ -122,71 +124,19 @@ fn collect_int_arrs(arr: &[&JArray]) -> Result<JArray, JError> {
         .chain(cell_shape.iter().copied())
         .collect::<Vec<_>>();
 
-    Ok(match arr.iter().next().expect("non-empty") {
-        JArray::IntArray { .. } => {
-            let items = arr
-                .iter()
-                .map(|x| match x {
-                    JArray::IntArray { a } => Ok(a),
-                    _ => Err(JError::DomainError),
-                })
-                .collect::<Result<Vec<_>, JError>>()?;
-
-            JArray::IntArray {
-                a: do_copy(&items, &empty_shape)?,
+    macro_rules! impl_copy {
+        ($k:path) => {{
+            $k {
+                a: do_copy(&homo_array!($k, arr.iter()), &empty_shape)?,
             }
-        }
-        _ => todo!(),
-    })
-
-    // Ok(map_array_map!(arr, empty_shape, |a: &mut ArrayBase<_, _>, i: &ArrayBase<_, _>| a
-    //     .push(Axis(0), i.view())
-    //     .map_err(JError::ShapeError)))
-}
-
-//TODO This is clearly the wrong way to do this...
-pub fn collect_int_nouns(n: Vec<Word>) -> Result<Word, JError> {
-    let arrays = n
-        .iter()
-        .map(|w| match w {
-            Word::Noun(arr) => Ok(arr),
-            _ => Err(JError::DomainError),
-        })
-        .collect::<Result<Vec<_>, JError>>()?;
-
-    let new_array = collect_int_arrs(&arrays)?;
-
-    Ok(Word::Noun(new_array))
-}
-
-//TODO This is clearly the wrong way to do this...
-pub fn collect_extint_nouns(n: Vec<Word>) -> Result<Word, JError> {
-    let mut cell_shape: &[usize] = &[];
-    let cells: Result<Vec<_>, _> = n
-        .iter()
-        .map(|w| match w {
-            Word::Noun(ExtIntArray { a }) => {
-                if a.shape() > cell_shape {
-                    cell_shape = a.shape();
-                }
-                Ok(a)
-            }
-            _ => Err(JError::DomainError),
-        })
-        .collect();
-    match cells {
-        Ok(cells) => {
-            // result new shape
-            let mut empty_shape = Vec::new();
-            empty_shape.extend_from_slice(&[0]);
-            empty_shape.extend_from_slice(cell_shape);
-
-            let mut a = Array::zeros(empty_shape);
-            for i in cells.iter() {
-                a.push(Axis(0), i.view()).unwrap();
-            }
-            Ok(Word::Noun(ExtIntArray { a }))
-        }
-        Err(e) => Err(e),
+        }};
     }
+
+    Ok(match arr.iter().next().expect("non-empty") {
+        JArray::BoolArray { .. } => impl_copy!(JArray::BoolArray),
+        JArray::IntArray { .. } => impl_copy!(JArray::IntArray),
+        JArray::ExtIntArray { .. } => impl_copy!(JArray::ExtIntArray),
+        JArray::FloatArray { .. } => impl_copy!(JArray::FloatArray),
+        JArray::CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
+    })
 }
