@@ -1,4 +1,5 @@
 pub mod arrays;
+mod char_array;
 pub mod eval;
 pub mod modifiers;
 pub mod scan;
@@ -11,6 +12,8 @@ pub use crate::eval::*;
 pub use crate::modifiers::*;
 pub use crate::scan::*;
 pub use crate::verbs::*;
+
+pub use char_array::Char;
 
 fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
     HashMap::from([

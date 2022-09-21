@@ -4,6 +4,8 @@ pub use crate::verbs::*;
 use ndarray::prelude::*;
 use thiserror::Error;
 
+use crate::char_array::Char;
+
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
 #[derive(Debug, Error)]
 pub enum JError {
@@ -107,7 +109,7 @@ pub enum Word {
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
     BoolArray { a: ArrayD<u8> },
-    CharArray { a: ArrayD<char> },
+    CharArray { a: ArrayD<Char> },
     IntArray { a: ArrayD<i64> },
     ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
     //RationalArray { ... }, // TODO: num::rational::Rational64
@@ -145,7 +147,9 @@ macro_rules! apply_array_homo {
             JArray::FloatArray { .. } => JArray::FloatArray {
                 a: $func(&homo_array!(JArray::FloatArray, $arr.iter()))?,
             },
-            JArray::CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
+            JArray::CharArray { .. } => JArray::CharArray {
+                a: $func(&homo_array!(JArray::CharArray, $arr.iter()))?,
+            },
         }
     };
 }
@@ -225,7 +229,10 @@ pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
     let x = x.as_ref();
     Ok(Word::Noun(JArray::CharArray {
-        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect())?,
+        a: ArrayD::from_shape_vec(
+            IxDyn(&[x.chars().count()]),
+            x.chars().map(Char::new).collect(),
+        )?,
     }))
 }
 

@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{collect_nouns, JError, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, Char, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -248,10 +248,10 @@ fn test_collect_extint_nouns() {
 fn test_collect_char_nouns() {
     let a = vec![
         Word::Noun(CharArray {
-            a: Array::from_shape_vec(IxDyn(&[2]), vec!['a', 'b']).unwrap(),
+            a: Array::from_shape_vec(IxDyn(&[2]), vec![Char::new('a'), Char::new('b')]).unwrap(),
         }),
         Word::Noun(CharArray {
-            a: Array::from_shape_vec(IxDyn(&[2]), vec!['c', 'd']).unwrap(),
+            a: Array::from_shape_vec(IxDyn(&[2]), vec![Char::new('c'), Char::new('d')]).unwrap(),
         }),
     ];
     let result = collect_nouns(a).unwrap();
@@ -259,7 +259,16 @@ fn test_collect_char_nouns() {
     assert_eq!(
         result,
         Word::Noun(CharArray {
-            a: Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'c', 'd']).unwrap(),
+            a: Array::from_shape_vec(
+                IxDyn(&[2, 2]),
+                vec![
+                    Char::new('a'),
+                    Char::new('b'),
+                    Char::new('c'),
+                    Char::new('d')
+                ]
+            )
+            .unwrap(),
         }),
     );
 }
