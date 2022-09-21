@@ -107,7 +107,7 @@ pub enum Word {
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
     BoolArray { a: ArrayD<u8> },
-    CharArray { a: ArrayD<char> },
+    CharArray { a: ArrayD<u16> },
     IntArray { a: ArrayD<i64> },
     ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
     //RationalArray { ... }, // TODO: num::rational::Rational64
@@ -127,6 +127,78 @@ macro_rules! map_array {
             JArray::FloatArray { a } => JArray::FloatArray { a: $func(a)? },
         }
     };
+}
+
+#[macro_export]
+macro_rules! map_array_map {
+    ($arr:ident, $shape:ident, $func:expr) => {{
+        match $arr.iter().next() {
+            None => todo!(),
+            Some(arr) => map_array!(arr, |_| {
+                let mut result = Array::zeros($shape);
+                for item in $arr {
+                    // match item {
+                    //     JArray::BoolArray { a } => $func(&mut result, a)?,
+                    //     _ => Err(JError::DomainError)?,
+                    // }
+                }
+                Ok::<_, JError>(result)
+            }),
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! map_array_map3 {
+    ($arr:ident, $shape:ident, $func:expr) => {{
+        match $arr.iter().next() {
+            None => todo!(),
+            Some(arr) => map_array!(arr, |_| {
+                let mut result = Array::zeros($shape);
+                for item in $arr {
+                    // match item {
+                    //     JArray::BoolArray { a } => $func(&mut result, a)?,
+                    //     _ => Err(JError::DomainError)?,
+                    // }
+                }
+                Ok::<_, JError>(result)
+            }),
+        }
+    }};
+}
+
+// #[macro_export]
+// macro_rules! impl_copy {
+//     ($jarr:pat, $arr: ident, $shape: ident) => {{
+//         let mut result = Array::zeros($shape);
+//         for item in $arr {
+//             match item {
+//                 $jarr { a } => result.push(Axis(0), a.view()).map_err(JError::ShapeError)?,
+//                 _ => Err(JError::DomainError)?,
+//             }
+//         }
+//         $jarr { a: result }
+//     }}
+// }
+
+#[macro_export]
+macro_rules! map_array_map2 {
+    ($arr:ident, $shape:ident, $func:expr) => {{
+        match $arr.iter().next() {
+            None => todo!(),
+            Some(JArray::BoolArray { .. }) => {
+                let mut result = Array::zeros($shape);
+                for item in $arr {
+                    match item {
+                        JArray::BoolArray { a } => $func(&mut result, a)?,
+                        _ => Err(JError::DomainError)?,
+                    }
+                }
+                JArray::BoolArray { a: result }
+            }
+            _ => unimplemented!(),
+        }
+    }};
 }
 
 macro_rules! impl_array {
@@ -192,7 +264,10 @@ pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
     let x = x.as_ref();
     Ok(Word::Noun(JArray::CharArray {
-        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect())?,
+        a: ArrayD::from_shape_vec(
+            IxDyn(&[x.chars().count()]),
+            x.chars().map(|c| c as u16).collect(),
+        )?,
     }))
 }
 

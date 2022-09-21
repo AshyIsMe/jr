@@ -109,6 +109,7 @@ dependencies = [
  "itertools",
  "log",
  "ndarray",
+ "num-traits",
  "thiserror",
 ]
 
