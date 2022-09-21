@@ -100,7 +100,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
 //TODO This is clearly the wrong way to do this...
 pub fn collect_int_nouns(n: Vec<Word>) -> Result<Word, JError> {
     let mut cell_shape: &[usize] = &[];
-    let cells: Result<Vec<_>, _> = n
+    let cells = n
         .iter()
         .map(|w| match w {
             Word::Noun(IntArray { a }) => {
@@ -111,22 +111,18 @@ pub fn collect_int_nouns(n: Vec<Word>) -> Result<Word, JError> {
             }
             _ => Err(JError::DomainError),
         })
-        .collect();
-    match cells {
-        Ok(cells) => {
-            // result new shape
-            let mut empty_shape = Vec::new();
-            empty_shape.extend_from_slice(&[0]);
-            empty_shape.extend_from_slice(cell_shape);
+        .collect::<Result<Vec<_>, _>>()?;
 
-            let mut a = Array::zeros(empty_shape);
-            for i in cells.iter() {
-                a.push(Axis(0), i.view()).unwrap();
-            }
-            Ok(Word::Noun(IntArray { a }))
-        }
-        Err(e) => Err(e),
+    // result new shape
+    let mut empty_shape = Vec::new();
+    empty_shape.extend_from_slice(&[0]);
+    empty_shape.extend_from_slice(cell_shape);
+
+    let mut a = Array::zeros(empty_shape);
+    for i in cells.iter() {
+        a.push(Axis(0), i.view()).unwrap();
     }
+    Ok(Word::Noun(IntArray { a }))
 }
 
 //TODO This is clearly the wrong way to do this...
