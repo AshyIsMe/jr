@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{collect_nouns, Char, ModifierImpl, VerbImpl, Word};
+use jr::{char_array, collect_nouns, Char, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -246,14 +246,7 @@ fn test_collect_extint_nouns() {
 
 #[test]
 fn test_collect_char_nouns() {
-    let a = vec![
-        Word::Noun(CharArray {
-            a: Array::from_shape_vec(IxDyn(&[2]), vec![Char::new('a'), Char::new('b')]).unwrap(),
-        }),
-        Word::Noun(CharArray {
-            a: Array::from_shape_vec(IxDyn(&[2]), vec![Char::new('c'), Char::new('d')]).unwrap(),
-        }),
-    ];
+    let a = vec![char_array("ab").unwrap(), char_array("cd").unwrap()];
     let result = collect_nouns(a).unwrap();
     println!("result: {:?}", result);
     assert_eq!(
