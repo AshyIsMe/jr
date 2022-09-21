@@ -1,5 +1,7 @@
 use crate::JArray::{ExtIntArray, IntArray};
 use crate::JError;
+use ndarray::concatenate;
+use ndarray::prelude::*;
 
 use crate::Word;
 
@@ -63,9 +65,9 @@ pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(IntArray { a: n })) => {
-            if n.len() == 1 {
-                let r: Vec<Word> = n
-                    .iter()
+            // TODO framing fill properly https://code.jsoftware.com/wiki/Vocabulary/FramingFill
+            Ok(collect_nouns(
+                n.iter()
                     .map(|i| {
                         let mut t = y.clone();
                         for _ in 0..*i {
@@ -73,15 +75,88 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, J
                         }
                         t
                     })
-                    .collect();
-                //TODO Handle shape of array properly
-                Ok(r[0].clone())
-            } else {
-                //TODO Handle shape of array properly
-                todo!("power conjunction noun right argument properly")
-            }
+                    .collect(),
+            )?)
         }
         (Word::Verb(_, _), Word::Verb(_, _)) => todo!("power conjunction verb right argument"),
         _ => Err(JError::DomainError),
+    }
+}
+
+pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
+    // Collect a Vec<Word::Noun> into a single Word::Noun.
+    // Must all be the same JArray type. ie. IntArray, etc
+
+    //TODO This is clearly the wrong way to do this...
+    match collect_int_nouns(n.clone()) {
+        Ok(n) => Ok(n),
+        _ => match collect_extint_nouns(n.clone()) {
+            Ok(n) => Ok(n),
+            _ => todo!("collect_nouns other JArray types"),
+        },
+    }
+}
+
+//TODO This is clearly the wrong way to do this...
+pub fn collect_int_nouns(n: Vec<Word>) -> Result<Word, JError> {
+    let mut cell_shape: &[usize] = &[];
+    let cells: Result<Vec<_>, _> = n
+        .iter()
+        .map(|w| match w {
+            Word::Noun(IntArray { a }) => {
+                if a.shape() > cell_shape {
+                    cell_shape = a.shape();
+                }
+                Ok(a)
+            }
+            _ => Err(JError::DomainError),
+        })
+        .collect();
+    match cells {
+        Ok(cells) => {
+            // result new shape
+            let mut empty_shape = Vec::new();
+            empty_shape.extend_from_slice(&[0]);
+            empty_shape.extend_from_slice(cell_shape);
+
+            let mut a = Array::zeros(empty_shape);
+            for i in cells.iter() {
+                a.push(Axis(0), i.view()).unwrap();
+            }
+            Ok(Word::Noun(IntArray { a }))
+        }
+        Err(e) => Err(e),
+    }
+}
+
+//TODO This is clearly the wrong way to do this...
+pub fn collect_extint_nouns(n: Vec<Word>) -> Result<Word, JError> {
+    let mut cell_shape: &[usize] = &[];
+    let cells: Result<Vec<_>, _> = n
+        .iter()
+        .map(|w| match w {
+            Word::Noun(ExtIntArray { a }) => {
+                if a.shape() > cell_shape {
+                    cell_shape = a.shape();
+                }
+                Ok(a)
+            }
+            _ => Err(JError::DomainError),
+        })
+        .collect();
+    match cells {
+        Ok(cells) => {
+            // result new shape
+            let mut empty_shape = Vec::new();
+            empty_shape.extend_from_slice(&[0]);
+            empty_shape.extend_from_slice(cell_shape);
+
+            let mut a = Array::zeros(empty_shape);
+            for i in cells.iter() {
+                a.push(Axis(0), i.view()).unwrap();
+            }
+            Ok(Word::Noun(ExtIntArray { a }))
+        }
+        Err(e) => Err(e),
     }
 }

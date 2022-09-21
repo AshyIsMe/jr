@@ -85,7 +85,21 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             }
             // TODO:
             //// (V|N) C (V|N) - 4 Conjunction
-            //(w, Verb(_, u), Conjunction(a), Verb(_, v)) => println!("4 Conj V C V"),
+            (ref w, Verb(su, u), Conjunction(sc, c), Verb(sv, v))
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                ) =>
+            {
+                debug!("4 Conj V C V");
+                let verb_str = format!("{}{}{}", su, sc, sv);
+                let dv = VerbImpl::DerivedVerb {
+                    l: Box::new(Verb(su, u.clone())),
+                    r: Box::new(Verb(sv, v.clone())),
+                    m: Box::new(Conjunction(sc, c)),
+                };
+                Ok(vec![fragment.0, Verb(verb_str, dv)])
+            }
             (ref w, Verb(su, u), Conjunction(sc, c), Noun(m))
                 if matches!(
                     w,
