@@ -1,6 +1,6 @@
 use std::iter;
 
-use crate::Word;
+use crate::{apply_array_homo, Word};
 use crate::{homo_array, JArray, JError};
 
 use ndarray::prelude::*;
@@ -96,25 +96,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
         })
         .collect::<Result<Vec<_>, JError>>()?;
 
-    use JArray::*;
-
-    let new_array = match arr.iter().next().ok_or(JError::DomainError)? {
-        BoolArray { .. } => BoolArray {
-            a: collect(&homo_array!(BoolArray, arr.iter()))?,
-        },
-        IntArray { .. } => IntArray {
-            a: collect(&homo_array!(IntArray, arr.iter()))?,
-        },
-        ExtIntArray { .. } => ExtIntArray {
-            a: collect(&homo_array!(ExtIntArray, arr.iter()))?,
-        },
-        FloatArray { .. } => FloatArray {
-            a: collect(&homo_array!(FloatArray, arr.iter()))?,
-        },
-        CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
-    };
-
-    Ok(Word::Noun(new_array))
+    Ok(Word::Noun(apply_array_homo!(arr, collect)))
 }
 
 fn collect<T: Clone + Zero>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {

@@ -129,6 +129,27 @@ macro_rules! map_array {
     };
 }
 
+#[macro_export]
+macro_rules! apply_array_homo {
+    ($arr:ident, $func:expr) => {
+        match $arr.iter().next().ok_or(JError::DomainError)? {
+            JArray::BoolArray { .. } => JArray::BoolArray {
+                a: $func(&homo_array!(JArray::BoolArray, $arr.iter()))?,
+            },
+            JArray::IntArray { .. } => JArray::IntArray {
+                a: $func(&homo_array!(JArray::IntArray, $arr.iter()))?,
+            },
+            JArray::ExtIntArray { .. } => JArray::ExtIntArray {
+                a: $func(&homo_array!(JArray::ExtIntArray, $arr.iter()))?,
+            },
+            JArray::FloatArray { .. } => JArray::FloatArray {
+                a: $func(&homo_array!(JArray::FloatArray, $arr.iter()))?,
+            },
+            JArray::CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
+        }
+    };
+}
+
 macro_rules! impl_array {
     ($arr:ident, $func:expr) => {
         match $arr {
