@@ -16,8 +16,9 @@ use Word::*;
 pub enum VerbImpl {
     Plus,
     Minus,
-    Times,
+    Star,
     Number,
+    Percent,
     Dollar,
     StarCo,
     NotImplemented,
@@ -30,6 +31,11 @@ pub enum VerbImpl {
         r: Box<Word>,
         m: Box<Word>,
     },
+    Fork {
+        f: Box<Word>,
+        g: Box<Word>,
+        h: Box<Word>,
+    },
 }
 
 impl VerbImpl {
@@ -37,8 +43,9 @@ impl VerbImpl {
         match self {
             VerbImpl::Plus => v_plus(x, y),
             VerbImpl::Minus => v_minus(x, y),
-            VerbImpl::Times => v_times(x, y),
+            VerbImpl::Star => v_star(x, y),
             VerbImpl::Number => v_number(x, y),
+            VerbImpl::Percent => v_percent(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
@@ -51,6 +58,15 @@ impl VerbImpl {
                     c.exec(x, l, r, y)
                 }
                 _ => panic!("invalid DerivedVerb {:?}", self),
+            },
+            VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
+                (Verb(_, f), Verb(_, g), Verb(_, h)) => {
+                    g.exec(Some(&f.exec(x, y).unwrap()), &h.exec(x, y).unwrap())
+                }
+                (Noun(m), Verb(_, g), Verb(_, h)) => {
+                    g.exec(Some(&Noun(m.clone())), &h.exec(x, y).unwrap())
+                }
+                _ => panic!("invalid Fork {:?}", self),
             },
         }
     }
@@ -152,7 +168,7 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError::custom("monadic * not implemented yet")),
         Some(x) => match (x, y) {
@@ -167,7 +183,27 @@ pub fn v_times(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 Err(e) => Err(e),
                 _ => Err(JError::DomainError),
             },
-            _ => Err(JError::custom("plus not supported for these types yet")),
+            _ => Err(JError::DomainError),
+        },
+    }
+}
+
+pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => Err(JError::custom("monadic % not implemented yet")),
+        Some(x) => match (x, y) {
+            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
+                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x / y })),
+                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
+                    Ok(Word::Noun(ExtIntArray { a: x / y }))
+                }
+                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
+                    Ok(Word::Noun(FloatArray { a: x / y }))
+                }
+                Err(e) => Err(e),
+                _ => Err(JError::DomainError),
+            },
+            _ => Err(JError::DomainError),
         },
     }
 }
