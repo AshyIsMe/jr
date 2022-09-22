@@ -63,9 +63,17 @@ pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError
 }
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
+    //TODO: inverse and converge, see: https://code.jsoftware.com/wiki/Vocabulary/hatco
     match (u, v) {
-        (Word::Verb(_, u), Word::Noun(JArray::IntArray { a: n })) => {
-            // TODO framing fill properly https://code.jsoftware.com/wiki/Vocabulary/FramingFill
+        (Word::Verb(_, u), Word::Noun(ja)) => {
+            let n = match ja {
+                // TODO is there a better way to do this without needing to cast?
+                JArray::BoolArray { a } => Ok(a.map(|i| *i as i64)),
+                JArray::IntArray { a } => Ok(a.map(|i| *i as i64)),
+                JArray::ExtIntArray { a } => Ok(a.map(|i| *i as i64)),
+                _ => Err(JError::DomainError),
+            }
+            .unwrap();
             Ok(collect_nouns(
                 n.iter()
                     .map(|i| {
