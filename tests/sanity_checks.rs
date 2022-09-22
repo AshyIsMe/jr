@@ -1,6 +1,6 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
-use jr::{collect_int_nouns, collect_nouns, JError, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, JError, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]

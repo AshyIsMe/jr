@@ -1,9 +1,10 @@
-use crate::JArray::{ExtIntArray, IntArray};
-use crate::JError;
-use ndarray::concatenate;
-use ndarray::prelude::*;
+use std::iter;
 
-use crate::Word;
+use crate::{apply_array_homo, Word};
+use crate::{homo_array, JArray, JError};
+
+use ndarray::prelude::*;
+use num_traits::Zero;
 
 // Implementations for Adverbs and Conjuntions
 // https://code.jsoftware.com/wiki/Vocabulary/Modifiers
@@ -64,7 +65,7 @@ pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
     match (u, v) {
-        (Word::Verb(_, u), Word::Noun(IntArray { a: n })) => {
+        (Word::Verb(_, u), Word::Noun(JArray::IntArray { a: n })) => {
             // TODO framing fill properly https://code.jsoftware.com/wiki/Vocabulary/FramingFill
             Ok(collect_nouns(
                 n.iter()
@@ -87,76 +88,32 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
     // Collect a Vec<Word::Noun> into a single Word::Noun.
     // Must all be the same JArray type. ie. IntArray, etc
 
-    //TODO This is clearly the wrong way to do this...
-    match collect_int_nouns(n.clone()) {
-        Ok(n) => Ok(n),
-        _ => match collect_extint_nouns(n.clone()) {
-            Ok(n) => Ok(n),
-            _ => todo!("collect_nouns other JArray types"),
-        },
-    }
-}
-
-//TODO This is clearly the wrong way to do this...
-pub fn collect_int_nouns(n: Vec<Word>) -> Result<Word, JError> {
-    let mut cell_shape: &[usize] = &[];
-    let cells: Result<Vec<_>, _> = n
+    let arr = n
         .iter()
         .map(|w| match w {
-            Word::Noun(IntArray { a }) => {
-                if a.shape() > cell_shape {
-                    cell_shape = a.shape();
-                }
-                Ok(a)
-            }
+            Word::Noun(arr) => Ok(arr),
             _ => Err(JError::DomainError),
         })
-        .collect();
-    match cells {
-        Ok(cells) => {
-            // result new shape
-            let mut empty_shape = Vec::new();
-            empty_shape.extend_from_slice(&[0]);
-            empty_shape.extend_from_slice(cell_shape);
+        .collect::<Result<Vec<_>, JError>>()?;
 
-            let mut a = Array::zeros(empty_shape);
-            for i in cells.iter() {
-                a.push(Axis(0), i.view()).unwrap();
-            }
-            Ok(Word::Noun(IntArray { a }))
-        }
-        Err(e) => Err(e),
-    }
+    Ok(Word::Noun(apply_array_homo!(arr, collect)))
 }
 
-//TODO This is clearly the wrong way to do this...
-pub fn collect_extint_nouns(n: Vec<Word>) -> Result<Word, JError> {
-    let mut cell_shape: &[usize] = &[];
-    let cells: Result<Vec<_>, _> = n
+fn collect<T: Clone + Zero>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
+    let cell_shape = arr
         .iter()
-        .map(|w| match w {
-            Word::Noun(ExtIntArray { a }) => {
-                if a.shape() > cell_shape {
-                    cell_shape = a.shape();
-                }
-                Ok(a)
-            }
-            _ => Err(JError::DomainError),
-        })
-        .collect();
-    match cells {
-        Ok(cells) => {
-            // result new shape
-            let mut empty_shape = Vec::new();
-            empty_shape.extend_from_slice(&[0]);
-            empty_shape.extend_from_slice(cell_shape);
+        .map(|arr| arr.shape())
+        .max()
+        .ok_or(JError::DomainError)?;
+    let empty_shape = iter::once(0)
+        .chain(cell_shape.iter().copied())
+        .collect::<Vec<_>>();
 
-            let mut a = Array::zeros(empty_shape);
-            for i in cells.iter() {
-                a.push(Axis(0), i.view()).unwrap();
-            }
-            Ok(Word::Noun(ExtIntArray { a }))
-        }
-        Err(e) => Err(e),
+    let mut result = Array::zeros(empty_shape);
+    for item in arr {
+        result
+            .push(Axis(0), item.view())
+            .map_err(JError::ShapeError)?;
     }
+    Ok(result)
 }
