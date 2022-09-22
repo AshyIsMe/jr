@@ -145,7 +145,9 @@ macro_rules! apply_array_homo {
             JArray::FloatArray { .. } => JArray::FloatArray {
                 a: $func(&homo_array!(JArray::FloatArray, $arr.iter()))?,
             },
-            JArray::CharArray { .. } => todo!("char isn't Zero, so we can't create an array of it"),
+            JArray::CharArray { .. } => JArray::CharArray {
+                a: $func(&homo_array!(JArray::CharArray, $arr.iter()))?,
+            },
         }
     };
 }
@@ -186,6 +188,26 @@ impl JArray {
 
 use JArray::*;
 use Word::*;
+
+pub trait HasEmpty {
+    fn empty() -> Self;
+}
+
+macro_rules! impl_empty {
+    ($t:ty, $e:expr) => {
+        impl HasEmpty for $t {
+            fn empty() -> $t {
+                $e
+            }
+        }
+    };
+}
+
+impl_empty!(char, ' ');
+impl_empty!(u8, 0);
+impl_empty!(i64, 0);
+impl_empty!(i128, 0);
+impl_empty!(f64, 0.);
 
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {

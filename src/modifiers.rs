@@ -1,10 +1,9 @@
 use std::iter;
 
 use crate::{apply_array_homo, Word};
-use crate::{homo_array, JArray, JError};
+use crate::{homo_array, HasEmpty, JArray, JError};
 
 use ndarray::prelude::*;
-use num_traits::Zero;
 
 // Implementations for Adverbs and Conjuntions
 // https://code.jsoftware.com/wiki/Vocabulary/Modifiers
@@ -99,7 +98,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
     Ok(Word::Noun(apply_array_homo!(arr, collect)))
 }
 
-fn collect<T: Clone + Zero>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
+fn collect<T: Clone + HasEmpty>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
     let cell_shape = arr
         .iter()
         .map(|arr| arr.shape())
@@ -109,7 +108,7 @@ fn collect<T: Clone + Zero>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
         .chain(cell_shape.iter().copied())
         .collect::<Vec<_>>();
 
-    let mut result = Array::zeros(empty_shape);
+    let mut result = Array::from_elem(empty_shape, T::empty());
     for item in arr {
         result
             .push(Axis(0), item.view())
