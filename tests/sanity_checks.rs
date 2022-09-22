@@ -181,28 +181,6 @@ fn test_power_conjunction_noun_arg() {
     );
 }
 
-//#[test]
-//fn test_power_conjunction_verb_arg() {
-////TODO test with verb arg to power conjunction
-////let words = jr::scan("*: ^:(2 3) 4 4").unwrap(); //TODO use this when parens are implemented
-//let words = vec![
-//Word::Verb(String::from("*:"), VerbImpl::StarCo),
-//Word::Conjunction(String::from("^:"), ModifierImpl::HatCo),
-//Word::Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
-//}),
-//Word::Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![256, 256, 65536, 65536]).unwrap(),
-//}),
-//];
-//assert_eq!(
-//jr::eval(words).unwrap(),
-//Word::Noun(IntArray {
-//a: Array::from_elem(IxDyn(&[]), 256)
-//})
-//);
-//}
-
 #[test]
 fn test_collect_int_nouns() {
     let a = vec![

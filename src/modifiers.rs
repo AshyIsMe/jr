@@ -63,7 +63,8 @@ pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError
 }
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
-    //TODO: inverse and converge, see: https://code.jsoftware.com/wiki/Vocabulary/hatco
+    // TODO: inverse, converge and Dynamic Power (verb argument)
+    // https://code.jsoftware.com/wiki/Vocabulary/hatco
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
             let n = match ja {
