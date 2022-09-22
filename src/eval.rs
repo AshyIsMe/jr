@@ -144,9 +144,23 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
             }
-            // TODO:
             //// (V|N) V V - 5 Fork
-            //(w, Verb(_, f), Verb(_, g), Verb(_, h)) => println!("5 Fork V V V"),
+            (ref w, Verb(sf, f), Verb(sg, g), Verb(sh, h))
+                if matches!(
+                    w,
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                ) =>
+            {
+                debug!("5 Fork V V V");
+                let verb_str = format!("{}{}{}", sf, sg, sh);
+                let fork = VerbImpl::Fork {
+                    f: Box::new(Verb(sf, f.clone())),
+                    g: Box::new(Verb(sh, h.clone())),
+                    h: Box::new(Verb(sg, g.clone())),
+                };
+                Ok(vec![fragment.0, Verb(verb_str, fork)])
+            }
+            // TODO:
             //(w, Noun(n), Verb(_, f), Verb(_, v)) => println!("5 Fork N V V"),
             //// (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             //// Only the combinations A A, C N, C V, N C, V C, and V V are valid;
