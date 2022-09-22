@@ -269,3 +269,22 @@ fn test_fork() {
     ];
     assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
 }
+
+#[test]
+fn test_fork_noun() {
+    //let words = jr::scan("(15 % #) 1 2 3 4 5").unwrap(); //TODO use this when parens are implemented
+    let words = vec![
+        Verb(
+            String::from("+/%#"),
+            VerbImpl::Fork {
+                f: Box::new(int_array(vec![15]).unwrap()),
+                g: Box::new(Verb(String::from("%"), VerbImpl::Percent)),
+                h: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+            },
+        ),
+        Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[5]), vec![1, 2, 3, 4, 5]).unwrap(),
+        }),
+    ];
+    assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
+}

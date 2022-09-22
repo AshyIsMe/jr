@@ -63,6 +63,9 @@ impl VerbImpl {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
                     g.exec(Some(&f.exec(x, y).unwrap()), &h.exec(x, y).unwrap())
                 }
+                (Noun(m), Verb(_, g), Verb(_, h)) => {
+                    g.exec(Some(&Noun(m.clone())), &h.exec(x, y).unwrap())
+                }
                 _ => panic!("invalid Fork {:?}", self),
             },
         }
