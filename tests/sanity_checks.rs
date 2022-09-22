@@ -155,30 +155,30 @@ fn test_power_conjunction_noun_arg() {
             a: Array::from_elem(IxDyn(&[]), 4),
         }),
     ];
+    // TODO Should the result be an atom 256 here? rather than an array of shape 1?
     assert_eq!(
         jr::eval(words).unwrap(),
         Word::Noun(IntArray {
-            a: Array::from_elem(IxDyn(&[]), 256)
+            a: Array::from_elem(IxDyn(&[1]), 256)
         })
     );
 
-    // TODO test n-dimensional noun arg: *: ^:(2 3) 1 2 3
-    //let words = vec![
-    //Word::Verb(String::from("*:"), VerbImpl::StarCo),
-    //Word::Conjunction(String::from("^:"), ModifierImpl::HatCo),
-    //Word::Noun(IntArray {
-    //a: Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
-    //}),
-    //Word::Noun(IntArray {
-    //a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![256, 256, 65536, 65536]).unwrap(),
-    //}),
-    //];
-    //assert_eq!(
-    //jr::eval(words).unwrap(),
-    //Word::Noun(IntArray {
-    //a: Array::from_elem(IxDyn(&[]), 256)
-    //})
-    //);
+    let words = vec![
+        Word::Verb(String::from("*:"), VerbImpl::StarCo),
+        Word::Conjunction(String::from("^:"), ModifierImpl::HatCo),
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
+        }),
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
+        }),
+    ];
+    assert_eq!(
+        jr::eval(words).unwrap(),
+        Word::Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![16, 81, 256, 6561]).unwrap(),
+        }),
+    );
 }
 
 #[test]
