@@ -1,4 +1,4 @@
-pub use crate::adverbs::*;
+pub use crate::modifiers::*;
 pub use crate::verbs::*;
 
 use ndarray::prelude::*;
@@ -100,8 +100,8 @@ pub enum Word {
     IsGlobal,
     Noun(JArray),
     Verb(String, VerbImpl),
-    Adverb(String, AdverbImpl),
-    Conjunction(String),
+    Adverb(String, ModifierImpl),
+    Conjunction(String, ModifierImpl),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -129,6 +129,29 @@ macro_rules! map_array {
     };
 }
 
+#[macro_export]
+macro_rules! apply_array_homo {
+    ($arr:ident, $func:expr) => {
+        match $arr.iter().next().ok_or(JError::DomainError)? {
+            JArray::BoolArray { .. } => JArray::BoolArray {
+                a: $func(&homo_array!(JArray::BoolArray, $arr.iter()))?,
+            },
+            JArray::IntArray { .. } => JArray::IntArray {
+                a: $func(&homo_array!(JArray::IntArray, $arr.iter()))?,
+            },
+            JArray::ExtIntArray { .. } => JArray::ExtIntArray {
+                a: $func(&homo_array!(JArray::ExtIntArray, $arr.iter()))?,
+            },
+            JArray::FloatArray { .. } => JArray::FloatArray {
+                a: $func(&homo_array!(JArray::FloatArray, $arr.iter()))?,
+            },
+            JArray::CharArray { .. } => JArray::CharArray {
+                a: $func(&homo_array!(JArray::CharArray, $arr.iter()))?,
+            },
+        }
+    };
+}
+
 macro_rules! impl_array {
     ($arr:ident, $func:expr) => {
         match $arr {
@@ -138,6 +161,18 @@ macro_rules! impl_array {
             JArray::ExtIntArray { a } => $func(a),
             JArray::FloatArray { a } => $func(a),
         }
+    };
+}
+
+#[macro_export]
+macro_rules! homo_array {
+    ($wot:path, $iter:expr) => {
+        $iter
+            .map(|x| match x {
+                $wot { a } => Ok(a),
+                _ => Err(JError::DomainError),
+            })
+            .collect::<Result<Vec<_>, JError>>()?
     };
 }
 
@@ -153,6 +188,26 @@ impl JArray {
 
 use JArray::*;
 use Word::*;
+
+pub trait HasEmpty {
+    fn empty() -> Self;
+}
+
+macro_rules! impl_empty {
+    ($t:ty, $e:expr) => {
+        impl HasEmpty for $t {
+            fn empty() -> $t {
+                $e
+            }
+        }
+    };
+}
+
+impl_empty!(char, ' ');
+impl_empty!(u8, 0);
+impl_empty!(i64, 0);
+impl_empty!(i128, 0);
+impl_empty!(f64, 0.);
 
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {

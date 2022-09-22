@@ -1,14 +1,14 @@
-pub mod adverbs;
 pub mod arrays;
 pub mod eval;
+pub mod modifiers;
 pub mod scan;
 pub mod verbs;
 
 use std::collections::HashMap;
 
-pub use crate::adverbs::*;
 pub use crate::arrays::*;
 pub use crate::eval::*;
+pub use crate::modifiers::*;
 pub use crate::scan::*;
 pub use crate::verbs::*;
 
@@ -29,7 +29,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("+:", VerbImpl::NotImplemented),
         ("*", VerbImpl::Times),
         ("*.", VerbImpl::NotImplemented),
-        ("*:", VerbImpl::NotImplemented),
+        ("*:", VerbImpl::StarCo),
         ("-", VerbImpl::Minus),
         ("-.", VerbImpl::NotImplemented),
         ("-:", VerbImpl::NotImplemented),
@@ -143,18 +143,18 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
     ])
 }
 
-fn primitive_adverbs() -> HashMap<&'static str, AdverbImpl> {
+fn primitive_adverbs() -> HashMap<&'static str, ModifierImpl> {
     HashMap::from([
-        ("~", AdverbImpl::NotImplemented),
-        ("/", AdverbImpl::Slash),
-        ("/.", AdverbImpl::NotImplemented),
-        ("\\", AdverbImpl::NotImplemented),
-        ("\\.", AdverbImpl::NotImplemented),
-        ("]:", AdverbImpl::NotImplemented),
-        ("}", AdverbImpl::CurlyRt),
-        ("b.", AdverbImpl::NotImplemented),
-        ("f.", AdverbImpl::NotImplemented),
-        ("M.", AdverbImpl::NotImplemented),
+        ("~", ModifierImpl::NotImplemented),
+        ("/", ModifierImpl::Slash),
+        ("/.", ModifierImpl::NotImplemented),
+        ("\\", ModifierImpl::NotImplemented),
+        ("\\.", ModifierImpl::NotImplemented),
+        ("]:", ModifierImpl::NotImplemented),
+        ("}", ModifierImpl::CurlyRt),
+        ("b.", ModifierImpl::NotImplemented),
+        ("f.", ModifierImpl::NotImplemented),
+        ("M.", ModifierImpl::NotImplemented),
     ])
 }
 
@@ -164,12 +164,41 @@ fn primitive_nouns() -> &'static [&'static str] {
     &["_", "_.", "a.", "a:"]
 }
 
-fn primitive_conjunctions() -> &'static [&'static str] {
-    // TODO
+fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
     // https://code.jsoftware.com/wiki/NuVoc
-    &[
-        "^:", ".", ":", ":.", "::", ";.", "!.", "!:", "[.", "].", "\"", "`", "`:", "@", "@.", "@:",
-        "&", "&.", "&:", "&.:", "d.", "D.", "D:", "F.", "F..", "F.:", "F:", "F:.", "F::", "H.",
-        "L:", "S:", "t.",
-    ]
+    HashMap::from([
+        ("^:", ModifierImpl::NotImplemented),
+        (".", ModifierImpl::NotImplemented),
+        (":", ModifierImpl::NotImplemented),
+        (":.", ModifierImpl::NotImplemented),
+        ("::", ModifierImpl::NotImplemented),
+        (";.", ModifierImpl::NotImplemented),
+        ("!.", ModifierImpl::NotImplemented),
+        ("!:", ModifierImpl::NotImplemented),
+        ("[.", ModifierImpl::NotImplemented),
+        ("].", ModifierImpl::NotImplemented),
+        ("\"", ModifierImpl::NotImplemented),
+        ("`", ModifierImpl::NotImplemented),
+        ("`:", ModifierImpl::NotImplemented),
+        ("@", ModifierImpl::NotImplemented),
+        ("@.", ModifierImpl::NotImplemented),
+        ("@:", ModifierImpl::NotImplemented),
+        ("&", ModifierImpl::NotImplemented),
+        ("&.", ModifierImpl::NotImplemented),
+        ("&:", ModifierImpl::NotImplemented),
+        ("&.:", ModifierImpl::NotImplemented),
+        ("d.", ModifierImpl::NotImplemented),
+        ("D.", ModifierImpl::NotImplemented),
+        ("D:", ModifierImpl::NotImplemented),
+        ("F.", ModifierImpl::NotImplemented),
+        ("F..", ModifierImpl::NotImplemented),
+        ("F.:", ModifierImpl::NotImplemented),
+        ("F:", ModifierImpl::NotImplemented),
+        ("F:.", ModifierImpl::NotImplemented),
+        ("F::", ModifierImpl::NotImplemented),
+        ("H.", ModifierImpl::NotImplemented),
+        ("L:", ModifierImpl::NotImplemented),
+        ("S:", ModifierImpl::NotImplemented),
+        ("t.", ModifierImpl::NotImplemented),
+    ])
 }

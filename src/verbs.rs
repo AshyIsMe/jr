@@ -19,13 +19,17 @@ pub enum VerbImpl {
     Times,
     Number,
     Dollar,
+    StarCo,
     NotImplemented,
 
+    //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
+    //Modifiers take a left and right argument refered to as either
+    //u and v if verbs or m and n if nouns (or combinations of either).
     DerivedVerb {
-        u: Box<Word>,
+        l: Box<Word>,
+        r: Box<Word>,
         m: Box<Word>,
-        a: Box<Word>,
-    }, //Adverb modified Verb eg. +/
+    },
 }
 
 impl VerbImpl {
@@ -36,10 +40,16 @@ impl VerbImpl {
             VerbImpl::Times => v_times(x, y),
             VerbImpl::Number => v_number(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
+            VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
-            VerbImpl::DerivedVerb { u, m, a } => match (u.deref(), m.deref(), a.deref()) {
-                (Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, y),
-                (Nothing, Noun(_), Adverb(_, a)) => a.exec(x, m, y),
+            VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
+                (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
+                (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
+                (l, r, Conjunction(_, c))
+                    if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
+                {
+                    c.exec(x, l, r, y)
+                }
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
         }
@@ -224,5 +234,29 @@ where
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
         Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
+    }
+}
+
+pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => {
+            // Square
+            match y {
+                Word::Noun(BoolArray { a }) => Ok(Word::Noun(BoolArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(IntArray { a }) => Ok(Word::Noun(IntArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(ExtIntArray { a }) => Ok(Word::Noun(ExtIntArray {
+                    a: a.clone() * a.clone(),
+                })),
+                Word::Noun(FloatArray { a }) => Ok(Word::Noun(FloatArray {
+                    a: a.clone() * a.clone(),
+                })),
+                _ => Err(JError::DomainError),
+            }
+        }
+        Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
     }
 }
