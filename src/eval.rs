@@ -175,6 +175,10 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                 };
                 Ok(vec![fragment.0, Verb(verb_str, fork)])
             }
+            // TODO: The new (old) modifier tridents and bidents:
+            // https://code.jsoftware.com/wiki/Vocabulary/Parsing#The_Parsing_Table
+            // https://code.jsoftware.com/wiki/Vocabulary/fork#invisiblemodifiers
+
             // TODO:
             //// (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             //// Only the combinations A A, C N, C V, N C, V C, and V V are valid;
