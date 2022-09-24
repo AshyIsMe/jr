@@ -188,7 +188,17 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(w, Conjunction(c), Verb(_, v), _) => println!("6 Hook/Adverb C V _"),
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            //(w, Verb(_, u), Verb(_, v), _) => println!("6 Hook/Adverb V V _"),
+            (ref w, Verb(su, u), Verb(sv, v), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb V V _");
+                let verb_str = format!("{}{}", su, sv);
+                let fork = VerbImpl::Hook {
+                    l: Box::new(Verb(su, u.clone())),
+                    r: Box::new(Verb(sv, v.clone())),
+                };
+                Ok(vec![fragment.0, Verb(verb_str, fork)])
+            }
 
             //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
             //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),

@@ -288,3 +288,21 @@ fn test_fork_noun() {
     ];
     assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
 }
+
+#[test]
+fn test_hook() {
+    //let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap(); //TODO use this when parens are implemented
+    let words = vec![
+        Verb(
+            String::from("i.#"),
+            VerbImpl::Hook {
+                r: Box::new(Verb(String::from("i."), VerbImpl::IDot)),
+                l: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+            },
+        ),
+        Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[5]), vec![1, 2, 3, 4, 5]).unwrap(),
+        }),
+    ];
+    assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
+}
