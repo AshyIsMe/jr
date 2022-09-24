@@ -324,7 +324,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     }))
                 }
             }
-            Word::Noun(ExtIntArray { a }) => {
+            Word::Noun(ExtIntArray { a: _ }) => {
                 todo!("monadic i. ExtIntArray")
             }
             _ => Err(JError::DomainError),

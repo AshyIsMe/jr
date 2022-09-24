@@ -296,8 +296,8 @@ fn test_hook() {
         Verb(
             String::from("i.#"),
             VerbImpl::Hook {
-                r: Box::new(Verb(String::from("i."), VerbImpl::IDot)),
-                l: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+                l: Box::new(Verb(String::from("i."), VerbImpl::IDot)),
+                r: Box::new(Verb(String::from("#"), VerbImpl::Number)),
             },
         ),
         Noun(IntArray {
