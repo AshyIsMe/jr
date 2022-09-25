@@ -301,8 +301,8 @@ fn test_hook() {
             },
         ),
         Noun(IntArray {
-            a: Array::from_shape_vec(IxDyn(&[5]), vec![1, 2, 3, 4, 5]).unwrap(),
+            a: Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
         }),
     ];
-    assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
+    assert_eq!(jr::eval(words).unwrap(), int_array(vec![6]).unwrap());
 }

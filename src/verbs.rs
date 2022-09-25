@@ -313,6 +313,7 @@ pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
 pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => match y {
+            // monadic i.
             Word::Noun(IntArray { a }) => {
                 let p = a.product();
                 if p < 0 {
@@ -329,6 +330,85 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             }
             _ => Err(JError::DomainError),
         },
-        Some(_x) => Err(JError::custom("dyadic i. not implemented yet")),
+        Some(x) => match (x, y) {
+            // dyadic i.
+            (Word::Noun(x), Word::Noun(y)) => match (x, y) {
+                // TODO remove code duplication: map_array!, apply_array_homo!, homo_array!, impl_array! ???
+                (BoolArray { a: x }, BoolArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (CharArray { a: x }, CharArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (IntArray { a: x }, IntArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (ExtIntArray { a: x }, ExtIntArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (FloatArray { a: x }, FloatArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                _ => {
+                    // mismatched array types
+                    let xl = x.len_of(Axis(0)) as i64;
+                    let yl = y.len_of(Axis(0));
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_elem(IxDyn(&[yl]), xl),
+                    }))
+                }
+            },
+            _ => Err(JError::DomainError),
+        },
     }
 }
