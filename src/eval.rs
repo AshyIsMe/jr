@@ -188,14 +188,34 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             {
                 debug!("6 Hook/Adverb A A _");
                 let adverb_str = format!("{}{}", sa0, sa1);
-                let hook = ModifierImpl::DerivedAdverb {
+                let da = ModifierImpl::DerivedAdverb {
                     l: Box::new(Adverb(sa0, a0.clone())),
                     r: Box::new(Adverb(sa1, a1.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, hook)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
             }
-            //(w, Conjunction(c), Noun(m), _) => println!("6 Hook/Adverb C N _"),
-            //(w, Conjunction(c), Verb(_, v), _) => println!("6 Hook/Adverb C V _"),
+            (ref w, Conjunction(sc, c), Noun(n), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb C N _");
+                let adverb_str = format!("{}n", sc);
+                let da = ModifierImpl::DerivedAdverb {
+                    l: Box::new(Conjunction(sc, c.clone())),
+                    r: Box::new(Noun(n)),
+                };
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+            }
+            (ref w, Conjunction(sc, c), Verb(sv, v), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb C V _");
+                let adverb_str = format!("{}{}", sc, sv);
+                let da = ModifierImpl::DerivedAdverb {
+                    l: Box::new(Conjunction(sc, c.clone())),
+                    r: Box::new(Verb(sv, v.clone())),
+                };
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+            }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
             (ref w, Verb(su, u), Verb(sv, v), _)
