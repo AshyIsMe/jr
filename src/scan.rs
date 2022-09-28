@@ -266,7 +266,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         Ok(Word::Adverb(
             sentence.to_string(),
             match primitive_adverbs().get(&sentence) {
-                Some(&a) => a,
+                Some(a) => a.clone(),
                 None => ModifierImpl::NotImplemented,
             },
         ))
@@ -274,7 +274,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
         Ok(Word::Conjunction(
             sentence.to_string(),
             match primitive_conjunctions().get(&sentence) {
-                Some(&a) => a,
+                Some(a) => a.clone(),
                 None => ModifierImpl::NotImplemented,
             },
         ))

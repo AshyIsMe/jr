@@ -5,7 +5,7 @@ use itertools::Itertools;
 use log::{debug, trace};
 
 use crate::Word::{self, *};
-use crate::{JError, VerbImpl};
+use crate::{JError, ModifierImpl, VerbImpl};
 
 pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
     // Attempt to parse j properly as per the documentation here:
@@ -179,17 +179,56 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             // https://code.jsoftware.com/wiki/Vocabulary/Parsing#The_Parsing_Table
             // https://code.jsoftware.com/wiki/Vocabulary/fork#invisiblemodifiers
 
-            // TODO:
-            //// (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
-            //// Only the combinations A A, C N, C V, N C, V C, and V V are valid;
-            //// the rest result in syntax errors.
-            //(w, Adverb(a), Adverb(b), _) => println!("6 Hook/Adverb A A _"),
-            //(w, Conjunction(c), Noun(m), _) => println!("6 Hook/Adverb C N _"),
-            //(w, Conjunction(c), Verb(_, v), _) => println!("6 Hook/Adverb C V _"),
+            // TODO: Figure out how the rest of the hook combinations work.
+            // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
+            // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
+            // the rest result in syntax errors.
+            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb A A _");
+                let adverb_str = format!("{}{}", sa0, sa1);
+                let da = ModifierImpl::DerivedAdverb {
+                    l: Box::new(Adverb(sa0, a0.clone())),
+                    r: Box::new(Adverb(sa1, a1.clone())),
+                };
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+            }
+            (ref w, Conjunction(sc, c), Noun(n), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb C N _");
+                let adverb_str = format!("{}n", sc);
+                let da = ModifierImpl::DerivedAdverb {
+                    l: Box::new(Conjunction(sc, c.clone())),
+                    r: Box::new(Noun(n)),
+                };
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+            }
+            (ref w, Conjunction(sc, c), Verb(sv, v), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb C V _");
+                let adverb_str = format!("{}{}", sc, sv);
+                let da = ModifierImpl::DerivedAdverb {
+                    l: Box::new(Conjunction(sc, c.clone())),
+                    r: Box::new(Verb(sv, v.clone())),
+                };
+                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+            }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            //(w, Verb(_, u), Verb(_, v), _) => println!("6 Hook/Adverb V V _"),
-
+            (ref w, Verb(su, u), Verb(sv, v), _)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            {
+                debug!("6 Hook/Adverb V V _");
+                let verb_str = format!("{}{}", su, sv);
+                let hook = VerbImpl::Hook {
+                    l: Box::new(Verb(su, u.clone())),
+                    r: Box::new(Verb(sv, v.clone())),
+                };
+                Ok(vec![fragment.0, Verb(verb_str, hook)])
+            }
             //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
             //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
             //(w, Noun(n), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb N A _"),

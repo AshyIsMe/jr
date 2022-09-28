@@ -7,13 +7,15 @@ use ndarray::prelude::*;
 
 // Implementations for Adverbs and Conjuntions
 // https://code.jsoftware.com/wiki/Vocabulary/Modifiers
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     NotImplemented,
 
     //adverbs
     Slash,
     CurlyRt,
+
+    DerivedAdverb { l: Box<Word>, r: Box<Word> },
 
     //conjunctions
     HatCo,
@@ -32,6 +34,7 @@ impl ModifierImpl {
             ModifierImpl::Slash => a_slash(x, u, y),
             ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
             ModifierImpl::HatCo => c_hatco(x, u, v, y),
+            ModifierImpl::DerivedAdverb { l, r } => todo!("DerivedAdverb"),
         }
     }
 }

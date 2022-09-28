@@ -78,7 +78,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("C.!.2", VerbImpl::NotImplemented),
         ("e.", VerbImpl::NotImplemented),
         ("E.", VerbImpl::NotImplemented),
-        ("i.", VerbImpl::NotImplemented),
+        ("i.", VerbImpl::IDot),
         ("i:", VerbImpl::NotImplemented),
         ("I.", VerbImpl::NotImplemented),
         ("j.", VerbImpl::NotImplemented),

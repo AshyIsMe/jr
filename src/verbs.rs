@@ -21,6 +21,7 @@ pub enum VerbImpl {
     Percent,
     Dollar,
     StarCo,
+    IDot,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -36,6 +37,10 @@ pub enum VerbImpl {
         g: Box<Word>,
         h: Box<Word>,
     },
+    Hook {
+        l: Box<Word>,
+        r: Box<Word>,
+    },
 }
 
 impl VerbImpl {
@@ -48,6 +53,7 @@ impl VerbImpl {
             VerbImpl::Percent => v_percent(x, y),
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::StarCo => v_starco(x, y),
+            VerbImpl::IDot => v_idot(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -67,6 +73,13 @@ impl VerbImpl {
                     g.exec(Some(&Noun(m.clone())), &h.exec(x, y).unwrap())
                 }
                 _ => panic!("invalid Fork {:?}", self),
+            },
+            VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
+                (Verb(_, u), Verb(_, v)) => match x {
+                    None => u.exec(Some(&y), &v.exec(None, y).unwrap()),
+                    Some(x) => u.exec(Some(&x), &v.exec(None, y).unwrap()),
+                },
+                _ => panic!("invalid Hook {:?}", self),
             },
         }
     }
@@ -294,5 +307,112 @@ pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             }
         }
         Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
+    }
+}
+
+pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => match y {
+            // monadic i.
+            Word::Noun(IntArray { a }) => {
+                let p = a.product();
+                if p < 0 {
+                    todo!("monadic i. negative args");
+                } else {
+                    let ints = Array::from_vec((0..p).collect());
+                    Ok(Noun(IntArray {
+                        a: reshape(a, &ints.into_dyn()).unwrap(),
+                    }))
+                }
+            }
+            Word::Noun(ExtIntArray { a: _ }) => {
+                todo!("monadic i. ExtIntArray")
+            }
+            _ => Err(JError::DomainError),
+        },
+        Some(x) => match (x, y) {
+            // TODO fix for n-dimensional arguments. currently broken
+            // dyadic i.
+            (Word::Noun(x), Word::Noun(y)) => match (x, y) {
+                // TODO remove code duplication: map_array!, apply_array_homo!, homo_array!, impl_array! ???
+                (BoolArray { a: x }, BoolArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (CharArray { a: x }, CharArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (IntArray { a: x }, IntArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| {
+                                    debug!("j:{}, i:{}", j, i);
+                                    j == i
+                                })
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (ExtIntArray { a: x }, ExtIntArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                (FloatArray { a: x }, FloatArray { a: y }) => {
+                    let positions: Vec<i64> = y
+                        .outer_iter()
+                        .map(|i| {
+                            x.outer_iter()
+                                .position(|j| j == i)
+                                .unwrap_or(x.len_of(Axis(0))) as i64
+                        })
+                        .collect();
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    }))
+                }
+                _ => {
+                    // mismatched array types
+                    let xl = x.len_of(Axis(0)) as i64;
+                    let yl = y.len_of(Axis(0));
+                    Ok(Word::Noun(IntArray {
+                        a: Array::from_elem(IxDyn(&[yl]), xl),
+                    }))
+                }
+            },
+            _ => Err(JError::DomainError),
+        },
     }
 }

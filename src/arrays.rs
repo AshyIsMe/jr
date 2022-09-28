@@ -181,6 +181,10 @@ impl JArray {
         impl_array!(self, |a: &ArrayBase<_, _>| a.len())
     }
 
+    pub fn len_of(&self, axis: Axis) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len_of(axis))
+    }
+
     pub fn shape<'s>(&'s self) -> &[usize] {
         impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
     }
