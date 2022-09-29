@@ -3,12 +3,13 @@ use jr::JArray::*;
 use jr::Word::*;
 use jr::{collect_nouns, int_array, JError, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
+use std::collections::HashMap;
 
 #[test]
 fn test_basic_addition() {
     let words = jr::scan("2 + 2").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 4)
         })
@@ -16,7 +17,7 @@ fn test_basic_addition() {
 
     let words = jr::scan("1 2 3 + 4 5 6").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
         })
@@ -24,7 +25,7 @@ fn test_basic_addition() {
 
     let words = jr::scan("1 + 3.14").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(FloatArray {
             a: Array::from_elem(IxDyn(&[1]), 1.0 + 3.14)
         })
@@ -35,7 +36,7 @@ fn test_basic_addition() {
 fn test_basic_times() {
     let words = jr::scan("2 * 2").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 4)
         })
@@ -43,7 +44,7 @@ fn test_basic_times() {
 
     let words = jr::scan("1 2 3 * 4 5 6").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![4, 10, 18]).unwrap()
         })
@@ -62,7 +63,7 @@ fn test_parse_basics() {
         }),
     ];
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()
         })
@@ -73,7 +74,7 @@ fn test_parse_basics() {
 fn test_insert_adverb() {
     let words = jr::scan("+/1 2 3").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[]), 6)
         })
@@ -84,7 +85,7 @@ fn test_insert_adverb() {
 fn test_reshape() {
     let words = jr::scan("2 2 $ 1 2 3 4").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![1, 2, 3, 4]).unwrap()
         })
@@ -92,7 +93,7 @@ fn test_reshape() {
 
     let words = jr::scan("4 $ 1").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[4]), 1)
         })
@@ -100,7 +101,7 @@ fn test_reshape() {
 
     let words = jr::scan("1 2 3 $ 1 2").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[1, 2, 3]), vec![1, 2, 1, 2, 1, 2]).unwrap()
         })
@@ -108,7 +109,7 @@ fn test_reshape() {
 
     let words = jr::scan("3 $ 2 2 $ 0 1 2 3").unwrap();
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[3, 2]), vec![0, 1, 2, 3, 0, 1]).unwrap()
         })
@@ -136,7 +137,7 @@ fn test_power_conjunction_bool_arg() {
         }),
     ];
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[2]), vec![4, 16]).unwrap(),
         })
@@ -158,7 +159,7 @@ fn test_power_conjunction_noun_arg() {
     ];
     // TODO Should the result be an atom 256 here? rather than an array of shape 1?
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 256)
         })
@@ -175,7 +176,7 @@ fn test_power_conjunction_noun_arg() {
         }),
     ];
     assert_eq!(
-        jr::eval(words).unwrap(),
+        jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[2, 2]), vec![16, 81, 256, 6561]).unwrap(),
         }),
@@ -267,7 +268,10 @@ fn test_fork() {
             a: Array::from_shape_vec(IxDyn(&[5]), vec![1, 2, 3, 4, 5]).unwrap(),
         }),
     ];
-    assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        int_array(vec![3]).unwrap()
+    );
 }
 
 #[test]
@@ -286,7 +290,10 @@ fn test_fork_noun() {
             a: Array::from_shape_vec(IxDyn(&[5]), vec![1, 2, 3, 4, 5]).unwrap(),
         }),
     ];
-    assert_eq!(jr::eval(words).unwrap(), int_array(vec![3]).unwrap());
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        int_array(vec![3]).unwrap()
+    );
 }
 
 #[test]
@@ -304,19 +311,22 @@ fn test_hook() {
             a: Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
         }),
     ];
-    assert_eq!(jr::eval(words).unwrap(), int_array(vec![6]).unwrap());
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        int_array(vec![6]).unwrap()
+    );
 }
 
 #[test]
 fn test_idot() {
     assert_eq!(
-        jr::eval(jr::scan("i. 4").unwrap()).unwrap(),
+        jr::eval(jr::scan("i. 4").unwrap(), &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[4]), vec![0, 1, 2, 3]).unwrap(),
         })
     );
     assert_eq!(
-        jr::eval(jr::scan("i. 2 3").unwrap()).unwrap(),
+        jr::eval(jr::scan("i. 2 3").unwrap(), &mut HashMap::new()).unwrap(),
         Noun(IntArray {
             a: Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         })
