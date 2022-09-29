@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::iter::repeat;
 
 use itertools::Itertools;
@@ -7,7 +7,7 @@ use log::{debug, trace};
 use crate::Word::{self, *};
 use crate::{JError, ModifierImpl, VerbImpl};
 
-pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
+pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word, JError> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -236,23 +236,20 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
-            //(Name(n), IsLocal, Conjunction(c), _) => println!("7 Is Local Name C"),
-            //(Name(n), IsLocal, Adverb(a), _) => println!("7 Is Local Name A"),
-            //(Name(n), IsLocal, Verb(_, v), _) => println!("7 Is Local Name V"),
-            //(Name(n), IsLocal, Noun(m), _) => println!("7 Is Local Name N"),
-            //(Noun(n), IsLocal, Conjunction(c), _) => println!("7 Is Local N C"),
-            //(Noun(n), IsLocal, Adverb(a), _) => println!("7 Is Local N A"),
-            //(Noun(n), IsLocal, Verb(_, v), _) => println!("7 Is Local N V"),
-            //(Noun(n), IsLocal, Noun(m), _) => println!("7 Is Local N N"),
-
-            //(Name(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global Name C"),
-            //(Name(n), IsGlobal, Adverb(a), _) => println!("7 Is Global Name A"),
-            //(Name(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global Name V"),
-            //(Name(n), IsGlobal, Noun(m), _) => println!("7 Is Global Name N"),
-            //(Noun(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global N C"),
-            //(Noun(n), IsGlobal, Adverb(a), _) => println!("7 Is Global N A"),
-            //(Noun(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global N V"),
-            //(Noun(n), IsGlobal, Noun(m), _) => println!("7 Is Global N N"),
+            (Name(n), IsLocal, w, _)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Local Name w");
+                names.insert(n, w.clone());
+                Ok(vec![w.clone()])
+            }
+            (Name(n), IsGlobal, w, _)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Local Name w");
+                names.insert(n, w.clone());
+                Ok(vec![w.clone()])
+            }
 
             //// LP (C|A|V|N) RP anything - 8 Paren
             //(LP, Conjunction(c), RP, _) => println!("8 Paren"),
