@@ -72,9 +72,9 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, J
         (Word::Verb(_, u), Word::Noun(ja)) => {
             let n = match ja {
                 // TODO is there a better way to do this without needing to cast?
-                JArray::BoolArray { a } => Ok(a.map(|i| *i as i64)),
-                JArray::IntArray { a } => Ok(a.map(|i| *i as i64)),
-                JArray::ExtIntArray { a } => Ok(a.map(|i| *i as i64)),
+                JArray::BoolArray(a) => Ok(a.map(|i| *i as i64)),
+                JArray::IntArray(a) => Ok(a.map(|i| *i as i64)),
+                JArray::ExtIntArray(a) => Ok(a.map(|i| *i as i64)),
                 _ => Err(JError::DomainError),
             }
             .unwrap();

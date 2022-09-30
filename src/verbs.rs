@@ -88,51 +88,25 @@ impl VerbImpl {
 fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
     // https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     match (x, y) {
-        (BoolArray { a: x }, BoolArray { a: y }) => Ok((
-            IntArray {
-                a: x.map(|i| *i as i64),
-            },
-            IntArray {
-                a: y.map(|i| *i as i64),
-            },
+        (BoolArray(x), BoolArray(y)) => Ok((
+            IntArray(x.map(|i| *i as i64)),
+            IntArray(y.map(|i| *i as i64)),
         )),
-        (BoolArray { a: x }, IntArray { a: y }) => Ok((
-            IntArray {
-                a: x.map(|i| *i as i64),
-            },
-            IntArray { a: y.clone() },
-        )),
-        (IntArray { a: x }, BoolArray { a: y }) => Ok((
-            IntArray { a: x.clone() },
-            IntArray {
-                a: y.map(|i| *i as i64),
-            },
-        )),
-        (BoolArray { a: x }, FloatArray { a: y }) => Ok((
-            FloatArray {
-                a: x.map(|i| *i as f64),
-            },
-            FloatArray { a: y.clone() },
-        )),
-        (FloatArray { a: x }, BoolArray { a: y }) => Ok((
-            FloatArray { a: x.clone() },
-            FloatArray {
-                a: y.map(|i| *i as f64),
-            },
-        )),
+        (BoolArray(x), IntArray(y)) => Ok((IntArray(x.map(|i| *i as i64)), IntArray(y.clone()))),
+        (IntArray(x), BoolArray(y)) => Ok((IntArray(x.clone()), IntArray(y.map(|i| *i as i64)))),
+        (BoolArray(x), FloatArray(y)) => {
+            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
+        }
+        (FloatArray(x), BoolArray(y)) => {
+            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
+        }
 
-        (IntArray { a: x }, FloatArray { a: y }) => Ok((
-            FloatArray {
-                a: x.map(|i| *i as f64),
-            },
-            FloatArray { a: y.clone() },
-        )),
-        (FloatArray { a: x }, IntArray { a: y }) => Ok((
-            FloatArray { a: x.clone() },
-            FloatArray {
-                a: y.map(|i| *i as f64),
-            },
-        )),
+        (IntArray(x), FloatArray(y)) => {
+            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
+        }
+        (FloatArray(x), IntArray(y)) => {
+            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
+        }
         _ => Ok((x.clone(), y.clone())),
     }
 }
@@ -146,13 +120,9 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => Err(JError::custom("monadic + not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x + y })),
-                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
-                    Ok(Word::Noun(ExtIntArray { a: x + y }))
-                }
-                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
-                    Ok(Word::Noun(FloatArray { a: x + y }))
-                }
+                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x + y))),
+                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x + y))),
+                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x + y))),
                 Err(e) => Err(e),
                 _ => Err(JError::DomainError),
             },
@@ -166,13 +136,9 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => Err(JError::custom("monadic - not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x - y })),
-                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
-                    Ok(Word::Noun(ExtIntArray { a: x - y }))
-                }
-                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
-                    Ok(Word::Noun(FloatArray { a: x - y }))
-                }
+                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x - y))),
+                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x - y))),
+                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x - y))),
                 Err(e) => Err(e),
                 _ => Err(JError::DomainError),
             },
@@ -186,13 +152,9 @@ pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => Err(JError::custom("monadic * not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x * y })),
-                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
-                    Ok(Word::Noun(ExtIntArray { a: x * y }))
-                }
-                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
-                    Ok(Word::Noun(FloatArray { a: x * y }))
-                }
+                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x * y))),
+                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x * y))),
+                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x * y))),
                 Err(e) => Err(e),
                 _ => Err(JError::DomainError),
             },
@@ -206,13 +168,9 @@ pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => Err(JError::custom("monadic % not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray { a: x }, IntArray { a: y })) => Ok(Word::Noun(IntArray { a: x / y })),
-                Ok((ExtIntArray { a: x }, ExtIntArray { a: y })) => {
-                    Ok(Word::Noun(ExtIntArray { a: x / y }))
-                }
-                Ok((FloatArray { a: x }, FloatArray { a: y })) => {
-                    Ok(Word::Noun(FloatArray { a: x / y }))
-                }
+                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x / y))),
+                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x / y))),
+                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x / y))),
                 Err(e) => Err(e),
                 _ => Err(JError::DomainError),
             },
@@ -246,7 +204,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         Some(x) => {
             // Reshape
             match x {
-                Word::Noun(IntArray { a: x }) => {
+                Word::Noun(IntArray(x)) => {
                     if x.product() < 0 {
                         Err(JError::DomainError)
                     } else {
@@ -291,18 +249,10 @@ pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Square
             match y {
-                Word::Noun(BoolArray { a }) => Ok(Word::Noun(BoolArray {
-                    a: a.clone() * a.clone(),
-                })),
-                Word::Noun(IntArray { a }) => Ok(Word::Noun(IntArray {
-                    a: a.clone() * a.clone(),
-                })),
-                Word::Noun(ExtIntArray { a }) => Ok(Word::Noun(ExtIntArray {
-                    a: a.clone() * a.clone(),
-                })),
-                Word::Noun(FloatArray { a }) => Ok(Word::Noun(FloatArray {
-                    a: a.clone() * a.clone(),
-                })),
+                Word::Noun(BoolArray(a)) => Ok(Word::Noun(BoolArray(a.clone() * a.clone()))),
+                Word::Noun(IntArray(a)) => Ok(Word::Noun(IntArray(a.clone() * a.clone()))),
+                Word::Noun(ExtIntArray(a)) => Ok(Word::Noun(ExtIntArray(a.clone() * a.clone()))),
+                Word::Noun(FloatArray(a)) => Ok(Word::Noun(FloatArray(a.clone() * a.clone()))),
                 _ => Err(JError::DomainError),
             }
         }
@@ -314,18 +264,16 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => match y {
             // monadic i.
-            Word::Noun(IntArray { a }) => {
+            Word::Noun(IntArray(a)) => {
                 let p = a.product();
                 if p < 0 {
                     todo!("monadic i. negative args");
                 } else {
                     let ints = Array::from_vec((0..p).collect());
-                    Ok(Noun(IntArray {
-                        a: reshape(a, &ints.into_dyn()).unwrap(),
-                    }))
+                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn()).unwrap())))
                 }
             }
-            Word::Noun(ExtIntArray { a: _ }) => {
+            Word::Noun(ExtIntArray(_)) => {
                 todo!("monadic i. ExtIntArray")
             }
             _ => Err(JError::DomainError),
@@ -335,7 +283,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // dyadic i.
             (Word::Noun(x), Word::Noun(y)) => match (x, y) {
                 // TODO remove code duplication: map_array!, apply_array_homo!, homo_array!, impl_array! ???
-                (BoolArray { a: x }, BoolArray { a: y }) => {
+                (BoolArray(x), BoolArray(y)) => {
                     let positions: Vec<i64> = y
                         .outer_iter()
                         .map(|i| {
@@ -344,11 +292,11 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    }))
+                    Ok(Word::Noun(IntArray(
+                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    )))
                 }
-                (CharArray { a: x }, CharArray { a: y }) => {
+                (CharArray(x), CharArray(y)) => {
                     let positions: Vec<i64> = y
                         .outer_iter()
                         .map(|i| {
@@ -357,11 +305,11 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    }))
+                    Ok(Word::Noun(IntArray(
+                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    )))
                 }
-                (IntArray { a: x }, IntArray { a: y }) => {
+                (IntArray(x), IntArray(y)) => {
                     let positions: Vec<i64> = y
                         .outer_iter()
                         .map(|i| {
@@ -373,11 +321,11 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    }))
+                    Ok(Word::Noun(IntArray(
+                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    )))
                 }
-                (ExtIntArray { a: x }, ExtIntArray { a: y }) => {
+                (ExtIntArray(x), ExtIntArray(y)) => {
                     let positions: Vec<i64> = y
                         .outer_iter()
                         .map(|i| {
@@ -386,11 +334,11 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    }))
+                    Ok(Word::Noun(IntArray(
+                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    )))
                 }
-                (FloatArray { a: x }, FloatArray { a: y }) => {
+                (FloatArray(x), FloatArray(y)) => {
                     let positions: Vec<i64> = y
                         .outer_iter()
                         .map(|i| {
@@ -399,17 +347,15 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    }))
+                    Ok(Word::Noun(IntArray(
+                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
+                    )))
                 }
                 _ => {
                     // mismatched array types
                     let xl = x.len_of(Axis(0)) as i64;
                     let yl = y.len_of(Axis(0));
-                    Ok(Word::Noun(IntArray {
-                        a: Array::from_elem(IxDyn(&[yl]), xl),
-                    }))
+                    Ok(Word::Noun(IntArray(Array::from_elem(IxDyn(&[yl]), xl))))
                 }
             },
             _ => Err(JError::DomainError),
