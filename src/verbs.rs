@@ -6,7 +6,8 @@ use ndarray::prelude::*;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::map_array;
+use crate::arrays::IntoJArray as _;
+use crate::impl_array;
 
 use JArray::*;
 use Word::*;
@@ -210,7 +211,9 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         Err(JError::DomainError)
                     } else {
                         match y {
-                            Word::Noun(ja) => Ok(Word::Noun(map_array!(ja, |y| reshape(x, y)))),
+                            Word::Noun(ja) => {
+                                impl_array!(ja, |y| reshape(x, y).map(|x| x.into_noun()))
+                            }
                             _ => Err(JError::DomainError),
                         }
                     }

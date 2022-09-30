@@ -117,19 +117,6 @@ pub enum JArray {
 }
 
 #[macro_export]
-macro_rules! map_array {
-    ($arr:ident, $func:expr) => {
-        match $arr {
-            JArray::BoolArray(a) => JArray::BoolArray($func(a)?),
-            JArray::CharArray(a) => JArray::CharArray($func(a)?),
-            JArray::IntArray(a) => JArray::IntArray($func(a)?),
-            JArray::ExtIntArray(a) => JArray::ExtIntArray($func(a)?),
-            JArray::FloatArray(a) => JArray::FloatArray($func(a)?),
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! apply_array_homo {
     ($arr:ident, $func:expr) => {
         match $arr.iter().next().ok_or(JError::DomainError)? {
@@ -152,6 +139,7 @@ macro_rules! apply_array_homo {
     };
 }
 
+#[macro_export]
 macro_rules! impl_array {
     ($arr:ident, $func:expr) => {
         match $arr {
@@ -215,6 +203,12 @@ impl_empty!(f64, 0.);
 
 pub trait IntoJArray {
     fn into_jarray(self) -> JArray;
+    fn into_noun(self) -> Word
+    where
+        Self: Sized,
+    {
+        Word::Noun(self.into_jarray())
+    }
 }
 
 macro_rules! impl_into_jarray {
