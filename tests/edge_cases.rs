@@ -25,9 +25,9 @@ fn test_scan_num() {
     let words = jr::scan("1 2 _3\n").unwrap();
     assert_eq!(
         words,
-        [Word::Noun(IntArray {
-            a: ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
-        })]
+        [Word::Noun(IntArray(
+            ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
+        ))]
     );
 }
 
