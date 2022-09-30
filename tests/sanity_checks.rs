@@ -252,7 +252,7 @@ fn test_fork() {
     ];
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        int_array(vec![3]).unwrap()
+        Word::noun([3i64]).unwrap()
     );
 }
 

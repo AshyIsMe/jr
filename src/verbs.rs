@@ -1,4 +1,3 @@
-use crate::int_array;
 use crate::JArray;
 use crate::JError;
 use crate::Word;
@@ -184,7 +183,9 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Tally
             match y {
-                Word::Noun(ja) => int_array([ja.len()].as_slice()),
+                Word::Noun(ja) => {
+                    Word::noun([i64::try_from(ja.len()).map_err(|_| JError::LimitError)?])
+                }
                 _ => Err(JError::DomainError),
             }
         }
@@ -197,7 +198,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Shape-of
             match y {
-                Word::Noun(ja) => int_array(ja.shape()),
+                Word::Noun(ja) => Word::noun(ja.shape()),
                 _ => Err(JError::DomainError),
             }
         }

@@ -213,10 +213,45 @@ impl_empty!(i64, 0);
 impl_empty!(i128, 0);
 impl_empty!(f64, 0.);
 
+pub trait IntoJArray {
+    fn into_jarray(self) -> JArray;
+}
+
+macro_rules! impl_into_jarray {
+    ($t:ty, $j:path) => {
+        impl IntoJArray for $t {
+            fn into_jarray(self) -> JArray {
+                $j(self)
+            }
+        }
+    };
+}
+
+impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
+impl_into_jarray!(ArrayD<char>, JArray::CharArray);
+impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
+impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
+impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
+
+// impl IntoJArray for ArrayD<i64> {
+//     fn into_jarray(self) -> JArray {
+//         JArray::IntArray(self)
+//     }
+// }
+
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
     fn len(&self) -> usize;
     fn into_vec(self) -> Result<Vec<T>, JError>;
+
+    fn into_array(self) -> Result<ArrayD<T>, JError>
+    where
+        Self: Sized,
+    {
+        let len = self.len();
+        let vec = self.into_vec()?;
+        Array::from_shape_vec(IxDyn(&[len]), vec).map_err(JError::ShapeError)
+    }
 }
 
 impl<T> Arrayable<T> for Vec<T> {
@@ -242,11 +277,27 @@ impl Arrayable<i64> for &[usize] {
     }
 }
 
+impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
+    fn len(&self) -> usize {
+        N
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self.to_vec())
+    }
+}
+
+impl Word {
+    pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word, JError>
+    where
+        ArrayD<T>: IntoJArray,
+    {
+        Ok(Word::Noun(v.into_array()?.into_jarray()))
+    }
+}
+
 pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
-    Ok(Word::Noun(IntArray(Array::from_shape_vec(
-        IxDyn(&[v.len()]),
-        v.into_vec()?,
-    )?)))
+    Ok(Word::Noun(v.into_array()?.into_jarray()))
 }
 
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
