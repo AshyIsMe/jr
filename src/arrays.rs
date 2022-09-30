@@ -226,12 +226,6 @@ impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
 impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 
-// impl IntoJArray for ArrayD<i64> {
-//     fn into_jarray(self) -> JArray {
-//         JArray::IntArray(self)
-//     }
-// }
-
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
     fn len(&self) -> usize;
@@ -289,16 +283,9 @@ impl Word {
     }
 }
 
-pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
-    Word::noun(v)
-}
-
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
-    let x = x.as_ref();
-    Ok(Word::Noun(JArray::CharArray(ArrayD::from_shape_vec(
-        IxDyn(&[x.chars().count()]),
-        x.chars().collect(),
-    )?)))
+    let v: Vec<char> = x.as_ref().chars().collect();
+    Word::noun(v)
 }
 
 impl Word {

@@ -1,7 +1,7 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, int_array, resolve_names, JError, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, JError, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 use std::collections::HashMap;
 
@@ -263,7 +263,7 @@ fn test_fork_noun() {
         Verb(
             String::from("+/%#"),
             VerbImpl::Fork {
-                f: Box::new(int_array(vec![15]).unwrap()),
+                f: Box::new(Word::noun(vec![15i64]).unwrap()),
                 g: Box::new(Verb(String::from("%"), VerbImpl::Percent)),
                 h: Box::new(Verb(String::from("#"), VerbImpl::Number)),
             },
@@ -274,7 +274,7 @@ fn test_fork_noun() {
     ];
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        int_array(vec![3]).unwrap()
+        Word::noun(vec![3i64]).unwrap()
     );
 }
 
@@ -295,7 +295,7 @@ fn test_hook() {
     ];
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        int_array(vec![6]).unwrap()
+        Word::noun(vec![6i64]).unwrap()
     );
 }
 
@@ -365,11 +365,11 @@ fn test_assignment() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("a =: 42").unwrap(), &mut names).unwrap(),
-        int_array([42].as_slice()).unwrap()
+        Word::noun([42i64]).unwrap()
     );
     assert_eq!(
         jr::eval(jr::scan("a").unwrap(), &mut names).unwrap(),
-        int_array([42].as_slice()).unwrap()
+        Word::noun([42i64]).unwrap()
     );
 }
 
@@ -378,13 +378,13 @@ fn test_resolve_names() {
     let mut names = HashMap::new();
     names.insert(
         String::from("a"),
-        int_array([3, 1, 4, 1, 5, 9].as_slice()).unwrap(),
+        Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
     );
 
     let words = (
         Name(String::from("a")),
         IsLocal,
-        int_array([3, 1, 4, 1, 5, 9].as_slice()).unwrap(),
+        Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
         Nothing,
     );
     assert_eq!(resolve_names(words.clone(), names.clone()), words);
@@ -400,7 +400,7 @@ fn test_resolve_names() {
         (
             Name(String::from("b")),
             IsLocal,
-            int_array(vec![3i64, 1, 4, 1, 5, 9]).unwrap(),
+            Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
             Nothing,
         )
     );
