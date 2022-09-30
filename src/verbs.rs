@@ -296,9 +296,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
+                    Word::noun(positions)
                 }
                 (CharArray(x), CharArray(y)) => {
                     let positions: Vec<i64> = y
@@ -309,9 +307,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
+                    Word::noun(positions)
                 }
                 (IntArray(x), IntArray(y)) => {
                     let positions: Vec<i64> = y
@@ -325,9 +321,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
+                    Word::noun(positions)
                 }
                 (ExtIntArray(x), ExtIntArray(y)) => {
                     let positions: Vec<i64> = y
@@ -338,9 +332,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
+                    Word::noun(positions)
                 }
                 (FloatArray(x), FloatArray(y)) => {
                     let positions: Vec<i64> = y
@@ -351,9 +343,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                                 .unwrap_or(x.len_of(Axis(0))) as i64
                         })
                         .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
+                    Word::noun(positions)
                 }
                 _ => {
                     // mismatched array types
