@@ -178,7 +178,6 @@ impl JArray {
     }
 }
 
-use JArray::*;
 use Word::*;
 
 pub trait HasEmpty {
@@ -291,7 +290,7 @@ impl Word {
 }
 
 pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
-    Ok(Word::Noun(v.into_array()?.into_jarray()))
+    Word::noun(v)
 }
 
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
@@ -304,30 +303,13 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
 
 impl Word {
     pub fn to_cells(&self) -> Result<Vec<Word>, JError> {
-        match self {
-            Noun(ja) => match ja {
-                IntArray(a) => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(IntArray(a.into_owned())))
-                    .collect::<Vec<Word>>()),
-                ExtIntArray(a) => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(ExtIntArray(a.into_owned())))
-                    .collect::<Vec<Word>>()),
-                FloatArray(a) => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(FloatArray(a.into_owned())))
-                    .collect::<Vec<Word>>()),
-                BoolArray(a) => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(BoolArray(a.into_owned())))
-                    .collect::<Vec<Word>>()),
-                CharArray(a) => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(CharArray(a.into_owned())))
-                    .collect::<Vec<Word>>()),
-            },
-            _ => panic!("only nouns can be split into cells"),
-        }
+        let ja = match self {
+            Noun(ja) => ja,
+            _ => return Err(JError::DomainError),
+        };
+        Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
+            .outer_iter()
+            .map(|a| Noun(a.into_owned().into_jarray()))
+            .collect()))
     }
 }
