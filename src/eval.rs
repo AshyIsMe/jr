@@ -23,6 +23,8 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
 
         let fragment = get_fragment(&mut stack);
         trace!("fragment: {:?}", fragment);
+        let fragment = resolve_names(fragment, names.clone());
+
         let result: Result<Vec<Word>, JError> = match fragment {
             (ref w, Verb(_, v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
@@ -290,4 +292,29 @@ fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
         .chain(repeat(Nothing))
         .next_tuple()
         .expect("infinite iterator can't be empty")
+}
+
+fn resolve_names(
+    fragment: (Word, Word, Word, Word),
+    names: HashMap<String, Word>,
+) -> (Word, Word, Word, Word) {
+    // TODO do this better
+    // TODO only resolve Names on the RHS of IsLocal/IsGlobal
+    let w0 = match fragment.0 {
+        Name(ref n) => names.get(n).unwrap_or(&fragment.0).clone(),
+        _ => fragment.0,
+    };
+    let w1 = match fragment.1 {
+        Name(ref n) => names.get(n).unwrap_or(&fragment.1).clone(),
+        _ => fragment.1,
+    };
+    let w2 = match fragment.2 {
+        Name(ref n) => names.get(n).unwrap_or(&fragment.2).clone(),
+        _ => fragment.2,
+    };
+    let w3 = match fragment.3 {
+        Name(ref n) => names.get(n).unwrap_or(&fragment.3).clone(),
+        _ => fragment.3,
+    };
+    (w0, w1, w2, w3)
 }

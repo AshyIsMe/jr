@@ -377,3 +377,20 @@ fn test_idot() {
 //})
 //);
 //}
+
+#[test]
+fn test_assignment() {
+    let mut names = HashMap::new();
+    assert_eq!(
+        jr::eval(jr::scan("a =: 42").unwrap(), &mut names).unwrap(),
+        Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[1]), 42)
+        })
+    );
+    assert_eq!(
+        jr::eval(jr::scan("a").unwrap(), &mut names).unwrap(),
+        Noun(IntArray {
+            a: Array::from_elem(IxDyn(&[1]), 42)
+        })
+    );
+}
