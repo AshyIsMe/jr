@@ -286,65 +286,12 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // TODO fix for n-dimensional arguments. currently broken
             // dyadic i.
             (Word::Noun(x), Word::Noun(y)) => match (x, y) {
-                // TODO remove code duplication: map_array!, apply_array_homo!, homo_array!, impl_array! ???
-                (BoolArray(x), BoolArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Word::noun(positions)
-                }
-                (CharArray(x), CharArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Word::noun(positions)
-                }
-                (IntArray(x), IntArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| {
-                                    debug!("j:{}, i:{}", j, i);
-                                    j == i
-                                })
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Word::noun(positions)
-                }
-                (ExtIntArray(x), ExtIntArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Word::noun(positions)
-                }
-                (FloatArray(x), FloatArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Word::noun(positions)
-                }
+                // TODO remove code duplication: impl_array_pair!? impl_array_binary!?
+                (BoolArray(x), BoolArray(y)) => v_idot_positions(x, y),
+                (CharArray(x), CharArray(y)) => v_idot_positions(x, y),
+                (IntArray(x), IntArray(y)) => v_idot_positions(x, y),
+                (ExtIntArray(x), ExtIntArray(y)) => v_idot_positions(x, y),
+                (FloatArray(x), FloatArray(y)) => v_idot_positions(x, y),
                 _ => {
                     // mismatched array types
                     let xl = x.len_of(Axis(0)) as i64;
@@ -355,4 +302,16 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             _ => Err(JError::DomainError),
         },
     }
+}
+
+fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, JError> {
+    Word::noun(
+        y.outer_iter()
+            .map(|i| {
+                x.outer_iter()
+                    .position(|j| j == i)
+                    .unwrap_or(x.len_of(Axis(0))) as i64
+            })
+            .collect::<Vec<i64>>(),
+    )
 }
