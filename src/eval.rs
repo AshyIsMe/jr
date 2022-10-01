@@ -185,7 +185,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
             // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
             // the rest result in syntax errors.
-            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), _)
+            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
@@ -194,9 +194,9 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                     l: Box::new(Adverb(sa0, a0.clone())),
                     r: Box::new(Adverb(sa1, a1.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(sc, c), Noun(n), _)
+            (ref w, Conjunction(sc, c), Noun(n), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C N _");
@@ -205,9 +205,9 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Noun(n)),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(sc, c), Verb(sv, v), _)
+            (ref w, Conjunction(sc, c), Verb(sv, v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C V _");
@@ -216,11 +216,11 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Verb(sv, v.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (ref w, Verb(su, u), Verb(sv, v), _)
+            (ref w, Verb(su, u), Verb(sv, v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb V V _");
@@ -229,7 +229,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                     l: Box::new(Verb(su, u.clone())),
                     r: Box::new(Verb(sv, v.clone())),
                 };
-                Ok(vec![fragment.0, Verb(verb_str, hook)])
+                Ok(vec![fragment.0, Verb(verb_str, hook), any])
             }
             //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
             //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
@@ -238,19 +238,19 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
             //(w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
-            (Name(n), IsLocal, w, _)
+            (Name(n), IsLocal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
                 names.insert(n, w.clone());
-                Ok(vec![w.clone()])
+                Ok(vec![w.clone(), any])
             }
-            (Name(n), IsGlobal, w, _)
+            (Name(n), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
                 names.insert(n, w.clone());
-                Ok(vec![w.clone()])
+                Ok(vec![w.clone(), any])
             }
 
             //// LP (C|A|V|N) RP anything - 8 Paren
