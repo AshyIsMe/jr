@@ -294,27 +294,34 @@ fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
         .expect("infinite iterator can't be empty")
 }
 
-fn resolve_names(
+pub fn resolve_names(
     fragment: (Word, Word, Word, Word),
     names: HashMap<String, Word>,
 ) -> (Word, Word, Word, Word) {
-    // TODO do this better
-    // TODO only resolve Names on the RHS of IsLocal/IsGlobal
-    let w0 = match fragment.0 {
-        Name(ref n) => names.get(n).unwrap_or(&fragment.0).clone(),
-        _ => fragment.0,
-    };
-    let w1 = match fragment.1 {
-        Name(ref n) => names.get(n).unwrap_or(&fragment.1).clone(),
-        _ => fragment.1,
-    };
-    let w2 = match fragment.2 {
-        Name(ref n) => names.get(n).unwrap_or(&fragment.2).clone(),
-        _ => fragment.2,
-    };
-    let w3 = match fragment.3 {
-        Name(ref n) => names.get(n).unwrap_or(&fragment.3).clone(),
-        _ => fragment.3,
-    };
-    (w0, w1, w2, w3)
+    let words = vec![
+        fragment.0.clone(),
+        fragment.1.clone(),
+        fragment.2.clone(),
+        fragment.3.clone(),
+    ];
+
+    // Resolve Names only on the RHS of IsLocal/IsGlobal
+    let mut resolved_words = Vec::new();
+    for w in words.iter().rev() {
+        match w {
+            IsGlobal => break,
+            IsLocal => break,
+            Name(ref n) => resolved_words.push(names.get(n).unwrap_or(&fragment.0).clone()),
+            _ => resolved_words.push(w.clone()),
+        }
+    }
+    resolved_words.reverse();
+
+    if resolved_words.len() == words.len() {
+        resolved_words.iter().cloned().collect_tuple().unwrap()
+    } else {
+        let l = words.len() - resolved_words.len();
+        let new_words = [&words[..l], &resolved_words[..]].concat();
+        new_words.iter().cloned().collect_tuple().unwrap()
+    }
 }

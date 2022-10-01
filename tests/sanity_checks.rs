@@ -1,7 +1,7 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, int_array, JError, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, int_array, resolve_names, JError, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 use std::collections::HashMap;
 
@@ -392,5 +392,44 @@ fn test_assignment() {
         Noun(IntArray {
             a: Array::from_elem(IxDyn(&[1]), 42)
         })
+    );
+}
+
+#[test]
+fn test_resolve_names() {
+    let mut names = HashMap::new();
+    names.insert(
+        String::from("a"),
+        Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
+        }),
+    );
+
+    let words = (
+        Name(String::from("a")),
+        IsLocal,
+        Noun(IntArray {
+            a: Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
+        }),
+        Nothing,
+    );
+    assert_eq!(resolve_names(words.clone(), names.clone()), words);
+
+    let words2 = (
+        Name(String::from("b")),
+        IsLocal,
+        Name(String::from("a")),
+        Nothing,
+    );
+    assert_eq!(
+        resolve_names(words2.clone(), names.clone()),
+        (
+            Name(String::from("b")),
+            IsLocal,
+            Noun(IntArray {
+                a: Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
+            }),
+            Nothing,
+        )
     );
 }
