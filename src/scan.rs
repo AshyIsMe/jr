@@ -84,9 +84,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
         match a {
             Ok(a) => Ok((
                 l,
-                Noun(FloatArray {
-                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?,
-                }),
+                Noun(FloatArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
             )),
             Err(_) => Err(JError::custom("parse float error")),
         }
@@ -99,9 +97,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
         match a {
             Ok(a) => Ok((
                 l,
-                Noun(IntArray {
-                    a: ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?,
-                }),
+                Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
             )),
             Err(_) => Err(JError::custom("parse int error")),
         }
