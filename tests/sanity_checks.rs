@@ -405,3 +405,16 @@ fn test_resolve_names() {
         )
     );
 }
+
+#[test]
+fn test_parens() {
+    let mut names = HashMap::new();
+    assert_eq!(
+        jr::eval(jr::scan("(2 * 2) + 4").unwrap(), &mut names).unwrap(),
+        Word::noun([8i64]).unwrap()
+    );
+    assert_eq!(
+        jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
+        Word::noun([12i64]).unwrap()
+    );
+}
