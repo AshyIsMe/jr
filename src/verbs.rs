@@ -1,12 +1,11 @@
-use crate::JArray;
 use crate::JError;
 use crate::Word;
+use crate::{IntoJArray, JArray};
 use log::debug;
 use ndarray::prelude::*;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::arrays::IntoJArray as _;
 use crate::impl_array;
 
 use JArray::*;
@@ -85,27 +84,33 @@ impl VerbImpl {
 
 fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
     // https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
-    match (x, y) {
-        (BoolArray(x), BoolArray(y)) => Ok((
-            IntArray(x.map(|i| *i as i64)),
-            IntArray(y.map(|i| *i as i64)),
-        )),
-        (BoolArray(x), IntArray(y)) => Ok((IntArray(x.map(|i| *i as i64)), IntArray(y.clone()))),
-        (IntArray(x), BoolArray(y)) => Ok((IntArray(x.clone()), IntArray(y.map(|i| *i as i64)))),
-        (BoolArray(x), FloatArray(y)) => {
-            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
-        }
-        (FloatArray(x), BoolArray(y)) => {
-            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
-        }
+    Ok(match (x, y) {
+        (BoolArray(x), BoolArray(y)) => (x.cast::<i64>()?, y.cast::<i64>()?),
+        (BoolArray(x), IntArray(y)) => (x.cast::<i64>()?, IntArray(y.clone())),
+        (IntArray(x), BoolArray(y)) => (IntArray(x.clone()), IntArray(y.map(|i| *i as i64))),
+        (BoolArray(x), FloatArray(y)) => (x.cast::<f64>()?, FloatArray(y.clone())),
+        (FloatArray(x), BoolArray(y)) => (FloatArray(x.clone()), y.cast::<f64>()?),
 
-        (IntArray(x), FloatArray(y)) => {
-            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
-        }
-        (FloatArray(x), IntArray(y)) => {
-            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
-        }
-        _ => Ok((x.clone(), y.clone())),
+        (IntArray(x), FloatArray(y)) => (FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())),
+        (FloatArray(x), IntArray(y)) => (FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))),
+        _ => (x.clone(), y.clone()),
+    })
+}
+
+trait ArrayUtil<A> {
+    fn cast<T: From<A>>(&self) -> Result<JArray, JError>
+    where
+        ArrayD<T>: IntoJArray;
+}
+
+impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
+    fn cast<T: From<A>>(&self) -> Result<JArray, JError>
+    where
+        ArrayD<T>: IntoJArray,
+    {
+        Ok(self
+            .map(|&e| T::try_from(e).expect("todo: LimitError?"))
+            .into_jarray())
     }
 }
 
