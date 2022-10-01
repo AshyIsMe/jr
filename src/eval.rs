@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::iter::repeat;
 
 use itertools::Itertools;
@@ -7,7 +7,7 @@ use log::{debug, trace};
 use crate::Word::{self, *};
 use crate::{JError, ModifierImpl, VerbImpl};
 
-pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
+pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word, JError> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -23,6 +23,8 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
 
         let fragment = get_fragment(&mut stack);
         trace!("fragment: {:?}", fragment);
+        let fragment = resolve_names(fragment, names.clone());
+
         let result: Result<Vec<Word>, JError> = match fragment {
             (ref w, Verb(_, v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
@@ -183,7 +185,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
             // the rest result in syntax errors.
-            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), _)
+            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
@@ -192,9 +194,9 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     l: Box::new(Adverb(sa0, a0.clone())),
                     r: Box::new(Adverb(sa1, a1.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(sc, c), Noun(n), _)
+            (ref w, Conjunction(sc, c), Noun(n), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C N _");
@@ -203,9 +205,9 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Noun(n)),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(sc, c), Verb(sv, v), _)
+            (ref w, Conjunction(sc, c), Verb(sv, v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C V _");
@@ -214,11 +216,11 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Verb(sv, v.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da)])
+                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (ref w, Verb(su, u), Verb(sv, v), _)
+            (ref w, Verb(su, u), Verb(sv, v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb V V _");
@@ -227,7 +229,7 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
                     l: Box::new(Verb(su, u.clone())),
                     r: Box::new(Verb(sv, v.clone())),
                 };
-                Ok(vec![fragment.0, Verb(verb_str, hook)])
+                Ok(vec![fragment.0, Verb(verb_str, hook), any])
             }
             //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
             //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
@@ -236,23 +238,20 @@ pub fn eval(sentence: Vec<Word>) -> Result<Word, JError> {
             //(w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
-            //(Name(n), IsLocal, Conjunction(c), _) => println!("7 Is Local Name C"),
-            //(Name(n), IsLocal, Adverb(a), _) => println!("7 Is Local Name A"),
-            //(Name(n), IsLocal, Verb(_, v), _) => println!("7 Is Local Name V"),
-            //(Name(n), IsLocal, Noun(m), _) => println!("7 Is Local Name N"),
-            //(Noun(n), IsLocal, Conjunction(c), _) => println!("7 Is Local N C"),
-            //(Noun(n), IsLocal, Adverb(a), _) => println!("7 Is Local N A"),
-            //(Noun(n), IsLocal, Verb(_, v), _) => println!("7 Is Local N V"),
-            //(Noun(n), IsLocal, Noun(m), _) => println!("7 Is Local N N"),
-
-            //(Name(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global Name C"),
-            //(Name(n), IsGlobal, Adverb(a), _) => println!("7 Is Global Name A"),
-            //(Name(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global Name V"),
-            //(Name(n), IsGlobal, Noun(m), _) => println!("7 Is Global Name N"),
-            //(Noun(n), IsGlobal, Conjunction(c), _) => println!("7 Is Global N C"),
-            //(Noun(n), IsGlobal, Adverb(a), _) => println!("7 Is Global N A"),
-            //(Noun(n), IsGlobal, Verb(_, v), _) => println!("7 Is Global N V"),
-            //(Noun(n), IsGlobal, Noun(m), _) => println!("7 Is Global N N"),
+            (Name(n), IsLocal, w, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Local Name w");
+                names.insert(n, w.clone());
+                Ok(vec![w.clone(), any])
+            }
+            (Name(n), IsGlobal, w, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Local Name w");
+                names.insert(n, w.clone());
+                Ok(vec![w.clone(), any])
+            }
 
             //// LP (C|A|V|N) RP anything - 8 Paren
             //(LP, Conjunction(c), RP, _) => println!("8 Paren"),
@@ -293,4 +292,32 @@ fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
         .chain(repeat(Nothing))
         .next_tuple()
         .expect("infinite iterator can't be empty")
+}
+
+pub fn resolve_names(
+    fragment: (Word, Word, Word, Word),
+    names: HashMap<String, Word>,
+) -> (Word, Word, Word, Word) {
+    let words = vec![
+        fragment.0.clone(),
+        fragment.1.clone(),
+        fragment.2.clone(),
+        fragment.3.clone(),
+    ];
+
+    // Resolve Names only on the RHS of IsLocal/IsGlobal
+    let mut resolved_words = Vec::new();
+    for w in words.iter().rev() {
+        match w {
+            IsGlobal => break,
+            IsLocal => break,
+            Name(ref n) => resolved_words.push(names.get(n).unwrap_or(&fragment.0).clone()),
+            _ => resolved_words.push(w.clone()),
+        }
+    }
+    resolved_words.reverse();
+
+    let l = words.len() - resolved_words.len();
+    let new_words = [&words[..l], &resolved_words[..]].concat();
+    new_words.iter().cloned().collect_tuple().unwrap()
 }
