@@ -1,4 +1,3 @@
-use crate::int_array;
 use crate::JArray;
 use crate::JError;
 use crate::Word;
@@ -7,7 +6,8 @@ use ndarray::prelude::*;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::map_array;
+use crate::arrays::IntoJArray as _;
+use crate::impl_array;
 
 use JArray::*;
 use Word::*;
@@ -184,7 +184,9 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Tally
             match y {
-                Word::Noun(ja) => int_array([ja.len()].as_slice()),
+                Word::Noun(ja) => {
+                    Word::noun([i64::try_from(ja.len()).map_err(|_| JError::LimitError)?])
+                }
                 _ => Err(JError::DomainError),
             }
         }
@@ -197,7 +199,7 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         None => {
             // Shape-of
             match y {
-                Word::Noun(ja) => int_array(ja.shape()),
+                Word::Noun(ja) => Word::noun(ja.shape()),
                 _ => Err(JError::DomainError),
             }
         }
@@ -209,7 +211,9 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                         Err(JError::DomainError)
                     } else {
                         match y {
-                            Word::Noun(ja) => Ok(Word::Noun(map_array!(ja, |y| reshape(x, y)))),
+                            Word::Noun(ja) => {
+                                impl_array!(ja, |y| reshape(x, y).map(|x| x.into_noun()))
+                            }
                             _ => Err(JError::DomainError),
                         }
                     }
@@ -282,75 +286,12 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             // TODO fix for n-dimensional arguments. currently broken
             // dyadic i.
             (Word::Noun(x), Word::Noun(y)) => match (x, y) {
-                // TODO remove code duplication: map_array!, apply_array_homo!, homo_array!, impl_array! ???
-                (BoolArray(x), BoolArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
-                }
-                (CharArray(x), CharArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
-                }
-                (IntArray(x), IntArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| {
-                                    debug!("j:{}, i:{}", j, i);
-                                    j == i
-                                })
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
-                }
-                (ExtIntArray(x), ExtIntArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
-                }
-                (FloatArray(x), FloatArray(y)) => {
-                    let positions: Vec<i64> = y
-                        .outer_iter()
-                        .map(|i| {
-                            x.outer_iter()
-                                .position(|j| j == i)
-                                .unwrap_or(x.len_of(Axis(0))) as i64
-                        })
-                        .collect();
-                    Ok(Word::Noun(IntArray(
-                        Array::from_shape_vec(IxDyn(&[positions.len()]), positions).unwrap(),
-                    )))
-                }
+                // TODO remove code duplication: impl_array_pair!? impl_array_binary!?
+                (BoolArray(x), BoolArray(y)) => v_idot_positions(x, y),
+                (CharArray(x), CharArray(y)) => v_idot_positions(x, y),
+                (IntArray(x), IntArray(y)) => v_idot_positions(x, y),
+                (ExtIntArray(x), ExtIntArray(y)) => v_idot_positions(x, y),
+                (FloatArray(x), FloatArray(y)) => v_idot_positions(x, y),
                 _ => {
                     // mismatched array types
                     let xl = x.len_of(Axis(0)) as i64;
@@ -361,4 +302,16 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             _ => Err(JError::DomainError),
         },
     }
+}
+
+fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, JError> {
+    Word::noun(
+        y.outer_iter()
+            .map(|i| {
+                x.outer_iter()
+                    .position(|j| j == i)
+                    .unwrap_or(x.len_of(Axis(0))) as i64
+            })
+            .collect::<Vec<i64>>(),
+    )
 }
