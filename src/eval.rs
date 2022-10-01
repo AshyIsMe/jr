@@ -317,11 +317,7 @@ pub fn resolve_names(
     }
     resolved_words.reverse();
 
-    if resolved_words.len() == words.len() {
-        resolved_words.iter().cloned().collect_tuple().unwrap()
-    } else {
-        let l = words.len() - resolved_words.len();
-        let new_words = [&words[..l], &resolved_words[..]].concat();
-        new_words.iter().cloned().collect_tuple().unwrap()
-    }
+    let l = words.len() - resolved_words.len();
+    let new_words = [&words[..l], &resolved_words[..]].concat();
+    new_words.iter().cloned().collect_tuple().unwrap()
 }
