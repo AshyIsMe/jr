@@ -106,60 +106,48 @@ pub enum Word {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
-    BoolArray { a: ArrayD<u8> },
-    CharArray { a: ArrayD<char> },
-    IntArray { a: ArrayD<i64> },
-    ExtIntArray { a: ArrayD<i128> }, // TODO: num::bigint::BigInt
+    BoolArray(ArrayD<u8>),
+    CharArray(ArrayD<char>),
+    IntArray(ArrayD<i64>),
+    ExtIntArray(ArrayD<i128>), // TODO: num::bigint::BigInt
     //RationalArray { ... }, // TODO: num::rational::Rational64
-    FloatArray { a: ArrayD<f64> },
+    FloatArray(ArrayD<f64>),
     //ComplexArray { ... },  // TODO: num::complex::Complex64
     //EmptyArray, // How do we do this properly?
-}
-
-#[macro_export]
-macro_rules! map_array {
-    ($arr:ident, $func:expr) => {
-        match $arr {
-            JArray::BoolArray { a } => JArray::BoolArray { a: $func(a)? },
-            JArray::CharArray { a } => JArray::CharArray { a: $func(a)? },
-            JArray::IntArray { a } => JArray::IntArray { a: $func(a)? },
-            JArray::ExtIntArray { a } => JArray::ExtIntArray { a: $func(a)? },
-            JArray::FloatArray { a } => JArray::FloatArray { a: $func(a)? },
-        }
-    };
 }
 
 #[macro_export]
 macro_rules! apply_array_homo {
     ($arr:ident, $func:expr) => {
         match $arr.iter().next().ok_or(JError::DomainError)? {
-            JArray::BoolArray { .. } => JArray::BoolArray {
-                a: $func(&homo_array!(JArray::BoolArray, $arr.iter()))?,
-            },
-            JArray::IntArray { .. } => JArray::IntArray {
-                a: $func(&homo_array!(JArray::IntArray, $arr.iter()))?,
-            },
-            JArray::ExtIntArray { .. } => JArray::ExtIntArray {
-                a: $func(&homo_array!(JArray::ExtIntArray, $arr.iter()))?,
-            },
-            JArray::FloatArray { .. } => JArray::FloatArray {
-                a: $func(&homo_array!(JArray::FloatArray, $arr.iter()))?,
-            },
-            JArray::CharArray { .. } => JArray::CharArray {
-                a: $func(&homo_array!(JArray::CharArray, $arr.iter()))?,
-            },
+            JArray::BoolArray(_) => {
+                JArray::BoolArray($func(&homo_array!(JArray::BoolArray, $arr.iter()))?)
+            }
+            JArray::IntArray(_) => {
+                JArray::IntArray($func(&homo_array!(JArray::IntArray, $arr.iter()))?)
+            }
+            JArray::ExtIntArray(_) => {
+                JArray::ExtIntArray($func(&homo_array!(JArray::ExtIntArray, $arr.iter()))?)
+            }
+            JArray::FloatArray(_) => {
+                JArray::FloatArray($func(&homo_array!(JArray::FloatArray, $arr.iter()))?)
+            }
+            JArray::CharArray(_) => {
+                JArray::CharArray($func(&homo_array!(JArray::CharArray, $arr.iter()))?)
+            }
         }
     };
 }
 
+#[macro_export]
 macro_rules! impl_array {
     ($arr:ident, $func:expr) => {
         match $arr {
-            JArray::BoolArray { a } => $func(a),
-            JArray::CharArray { a } => $func(a),
-            JArray::IntArray { a } => $func(a),
-            JArray::ExtIntArray { a } => $func(a),
-            JArray::FloatArray { a } => $func(a),
+            JArray::BoolArray(a) => $func(a),
+            JArray::CharArray(a) => $func(a),
+            JArray::IntArray(a) => $func(a),
+            JArray::ExtIntArray(a) => $func(a),
+            JArray::FloatArray(a) => $func(a),
         }
     };
 }
@@ -169,7 +157,7 @@ macro_rules! homo_array {
     ($wot:path, $iter:expr) => {
         $iter
             .map(|x| match x {
-                $wot { a } => Ok(a),
+                $wot(a) => Ok(a),
                 _ => Err(JError::DomainError),
             })
             .collect::<Result<Vec<_>, JError>>()?
@@ -190,7 +178,6 @@ impl JArray {
     }
 }
 
-use JArray::*;
 use Word::*;
 
 pub trait HasEmpty {
@@ -213,10 +200,45 @@ impl_empty!(i64, 0);
 impl_empty!(i128, 0);
 impl_empty!(f64, 0.);
 
+pub trait IntoJArray {
+    fn into_jarray(self) -> JArray;
+    fn into_noun(self) -> Word
+    where
+        Self: Sized,
+    {
+        Word::Noun(self.into_jarray())
+    }
+}
+
+macro_rules! impl_into_jarray {
+    ($t:ty, $j:path) => {
+        impl IntoJArray for $t {
+            fn into_jarray(self) -> JArray {
+                $j(self)
+            }
+        }
+    };
+}
+
+impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
+impl_into_jarray!(ArrayD<char>, JArray::CharArray);
+impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
+impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
+impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
+
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
     fn len(&self) -> usize;
     fn into_vec(self) -> Result<Vec<T>, JError>;
+
+    fn into_array(self) -> Result<ArrayD<T>, JError>
+    where
+        Self: Sized,
+    {
+        let len = self.len();
+        let vec = self.into_vec()?;
+        Array::from_shape_vec(IxDyn(&[len]), vec).map_err(JError::ShapeError)
+    }
 }
 
 impl<T> Arrayable<T> for Vec<T> {
@@ -242,45 +264,39 @@ impl Arrayable<i64> for &[usize] {
     }
 }
 
-pub fn int_array(v: impl Arrayable<i64>) -> Result<Word, JError> {
-    Ok(Word::Noun(IntArray {
-        a: Array::from_shape_vec(IxDyn(&[v.len()]), v.into_vec()?)?,
-    }))
+impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
+    fn len(&self) -> usize {
+        N
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self.to_vec())
+    }
+}
+
+impl Word {
+    pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word, JError>
+    where
+        ArrayD<T>: IntoJArray,
+    {
+        Ok(Word::Noun(v.into_array()?.into_jarray()))
+    }
 }
 
 pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
-    let x = x.as_ref();
-    Ok(Word::Noun(JArray::CharArray {
-        a: ArrayD::from_shape_vec(IxDyn(&[x.chars().count()]), x.chars().collect())?,
-    }))
+    let v: Vec<char> = x.as_ref().chars().collect();
+    Word::noun(v)
 }
 
 impl Word {
     pub fn to_cells(&self) -> Result<Vec<Word>, JError> {
-        match self {
-            Noun(ja) => match ja {
-                IntArray { a } => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(IntArray { a: a.into_owned() }))
-                    .collect::<Vec<Word>>()),
-                ExtIntArray { a } => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(ExtIntArray { a: a.into_owned() }))
-                    .collect::<Vec<Word>>()),
-                FloatArray { a } => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(FloatArray { a: a.into_owned() }))
-                    .collect::<Vec<Word>>()),
-                BoolArray { a } => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(BoolArray { a: a.into_owned() }))
-                    .collect::<Vec<Word>>()),
-                CharArray { a } => Ok(a
-                    .outer_iter()
-                    .map(|a| Noun(CharArray { a: a.into_owned() }))
-                    .collect::<Vec<Word>>()),
-            },
-            _ => panic!("only nouns can be split into cells"),
-        }
+        let ja = match self {
+            Noun(ja) => ja,
+            _ => return Err(JError::DomainError),
+        };
+        Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
+            .outer_iter()
+            .map(|a| Noun(a.into_owned().into_jarray()))
+            .collect()))
     }
 }
