@@ -76,18 +76,17 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, J
                 JArray::IntArray(a) => Ok(a.map(|i| *i as i64)),
                 JArray::ExtIntArray(a) => Ok(a.map(|i| *i as i64)),
                 _ => Err(JError::DomainError),
-            }
-            .unwrap();
+            }?;
             Ok(collect_nouns(
                 n.iter()
-                    .map(|i| {
+                    .map(|i| -> Result<_, JError> {
                         let mut t = y.clone();
                         for _ in 0..*i {
-                            t = u.exec(x, &t).unwrap();
+                            t = u.exec(x, &t)?;
                         }
-                        t
+                        Ok(t)
                     })
-                    .collect(),
+                    .collect::<Result<_, _>>()?,
             )?)
         }
         (Word::Verb(_, _), Word::Verb(_, _)) => todo!("power conjunction verb right argument"),

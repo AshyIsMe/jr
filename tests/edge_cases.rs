@@ -21,32 +21,35 @@ fn invalid_prime() {
 }
 
 #[test]
-fn test_scan_num() {
-    let words = jr::scan("1 2 _3\n").unwrap();
+fn test_scan_num() -> Result<(), JError> {
+    let words = jr::scan("1 2 _3\n")?;
     assert_eq!(
         words,
-        [Word::Noun(IntArray(
-            ArrayD::from_shape_vec(IxDyn(&[3]), vec![1, 2, -3]).unwrap()
-        ))]
+        [Word::Noun(IntArray(ArrayD::from_shape_vec(
+            IxDyn(&[3]),
+            vec![1, 2, -3]
+        )?))]
     );
+    Ok(())
 }
 
 #[test]
 fn test_scan_string() -> Result<(), JError> {
-    let words = jr::scan("'abc'").unwrap();
+    let words = jr::scan("'abc'")?;
     assert_eq!(words, [jr::char_array("abc")?]);
     Ok(())
 }
 
 #[test]
-fn test_scan_name() {
-    let words = jr::scan("abc\n").unwrap();
+fn test_scan_name() -> Result<(), JError> {
+    let words = jr::scan("abc\n")?;
     assert_eq!(words, [Word::Name(String::from("abc"))]);
+    Ok(())
 }
 
 #[test]
-fn test_scan_name_verb_name() {
-    let words = jr::scan("foo + bar\n").unwrap();
+fn test_scan_name_verb_name() -> Result<(), JError> {
+    let words = jr::scan("foo + bar\n")?;
     assert_eq!(
         words,
         [
@@ -55,16 +58,18 @@ fn test_scan_name_verb_name() {
             Word::Name(String::from("bar")),
         ]
     );
+    Ok(())
 }
 
 #[test]
-fn only_whitespace() {
-    jr::scan("\r").unwrap();
+fn only_whitespace() -> Result<(), JError> {
+    jr::scan("\r")?;
+    Ok(())
 }
 
 #[test]
 fn test_scan_string_verb_string() -> Result<(), JError> {
-    let words = jr::scan("'abc','def'").unwrap();
+    let words = jr::scan("'abc','def'")?;
     assert_eq!(
         words,
         [
@@ -77,8 +82,8 @@ fn test_scan_string_verb_string() -> Result<(), JError> {
 }
 
 #[test]
-fn test_scan_name_verb_name_not_spaced() {
-    let words = jr::scan("foo+bar\n").unwrap();
+fn test_scan_name_verb_name_not_spaced() -> Result<(), JError> {
+    let words = jr::scan("foo+bar\n")?;
     assert_eq!(
         words,
         [
@@ -87,11 +92,12 @@ fn test_scan_name_verb_name_not_spaced() {
             Word::Name(String::from("bar")),
         ]
     );
+    Ok(())
 }
 
 #[test]
 fn test_scan_primitives() -> Result<(), JError> {
-    let words = jr::scan("a. I. 'A' \n").unwrap();
+    let words = jr::scan("a. I. 'A' \n")?;
     assert_eq!(
         words,
         [

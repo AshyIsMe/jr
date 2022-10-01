@@ -67,17 +67,15 @@ impl VerbImpl {
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(&f.exec(x, y).unwrap()), &h.exec(x, y).unwrap())
+                    g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
                 }
-                (Noun(m), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(&Noun(m.clone())), &h.exec(x, y).unwrap())
-                }
+                (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(&y), &v.exec(None, y).unwrap()),
-                    Some(x) => u.exec(Some(&x), &v.exec(None, y).unwrap()),
+                    None => u.exec(Some(&y), &v.exec(None, y)?),
+                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
@@ -244,7 +242,7 @@ where
         let flat_len = ns.iter().product();
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
-        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
+        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
     }
 }
 
@@ -274,7 +272,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     todo!("monadic i. negative args");
                 } else {
                     let ints = Array::from_vec((0..p).collect());
-                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn()).unwrap())))
+                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
                 }
             }
             Word::Noun(ExtIntArray(_)) => {
