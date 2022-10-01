@@ -252,12 +252,13 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 names.insert(n, w.clone());
                 Ok(vec![w.clone(), any])
             }
-
             //// LP (C|A|V|N) RP anything - 8 Paren
-            //(LP, Conjunction(c), RP, _) => println!("8 Paren"),
-            //(LP, Adverb(a), RP, _) => println!("8 Paren"),
-            //(LP, Verb(_, v), RP, _) => println!("8 Paren"),
-            //(LP, Noun(m), RP, _) => println!("8 Paren"),
+            (LP, w, RP, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("8 Paren");
+                Ok(vec![w.clone(), any])
+            }
             (w1, w2, w3, w4) => match queue.pop_back() {
                 Some(v) => Ok(vec![v, w1, w2, w3, w4]),
                 None => {
