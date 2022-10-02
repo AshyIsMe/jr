@@ -23,7 +23,8 @@ fn main() -> io::Result<()> {
             "exit" => break,
             _sentence => {
                 match scan_eval(&buffer, &mut names) {
-                    Ok(output) => println!("{:?}", output),
+                    //Ok(output) => println!("{:?}", output),
+                    Ok(output) => println!("{}", output),
                     Err(e) => println!("error: {}", e),
                 }
                 buffer.truncate(0);
