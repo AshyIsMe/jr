@@ -119,20 +119,36 @@ pub enum JArray {
 #[derive(Clone, Debug, PartialEq)]
 pub enum ArrayPair {
     BoolPair(ArrayD<u8>, ArrayD<u8>),
-    CharPair(ArrayD<char>, ArrayD<char>),
     IntPair(ArrayD<i64>, ArrayD<i64>),
     ExtIntPair(ArrayD<i128>, ArrayD<i128>),
     FloatPair(ArrayD<f64>, ArrayD<f64>),
+    // CharArray(..) // char, again, lacks maths operators, making this annoying
+}
+
+macro_rules! impl_pair {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            ArrayPair::BoolPair(x, y) => $func(x, y),
+            ArrayPair::IntPair(x, y) => $func(x, y),
+            ArrayPair::ExtIntPair(x, y) => $func(x, y),
+            ArrayPair::FloatPair(x, y) => $func(x, y),
+        }
+    };
+}
+
+macro_rules! impl_pair_op {
+    ($name:ident, $op:path) => {
+        pub fn $name(&self) -> JArray {
+            impl_pair!(self, |x: &ArrayD<_>, y: &ArrayD<_>| $op(x, y).into_jarray())
+        }
+    };
 }
 
 impl ArrayPair {
-    fn plus(&self) -> JArray {
-        use ArrayPair::*;
-        match self {
-            BoolPair(x, y) => (x + y).into_jarray(),
-            _ => todo!(),
-        }
-    }
+    impl_pair_op!(plus, ::std::ops::Add::add);
+    impl_pair_op!(minus, ::std::ops::Sub::sub);
+    impl_pair_op!(star, ::std::ops::Mul::mul);
+    impl_pair_op!(slash, ::std::ops::Div::div);
 }
 
 #[macro_export]
