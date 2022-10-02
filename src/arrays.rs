@@ -116,6 +116,25 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArrayPair {
+    BoolPair(ArrayD<u8>, ArrayD<u8>),
+    CharPair(ArrayD<char>, ArrayD<char>),
+    IntPair(ArrayD<i64>, ArrayD<i64>),
+    ExtIntPair(ArrayD<i128>, ArrayD<i128>),
+    FloatPair(ArrayD<f64>, ArrayD<f64>),
+}
+
+impl ArrayPair {
+    fn plus(&self) -> JArray {
+        use ArrayPair::*;
+        match self {
+            BoolPair(x, y) => (x + y).into_jarray(),
+            _ => todo!(),
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! apply_array_homo {
     ($arr:ident, $func:expr) => {
@@ -271,6 +290,20 @@ impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
 
     fn into_vec(self) -> Result<Vec<T>, JError> {
         Ok(self.to_vec())
+    }
+}
+
+impl<T> Arrayable<T> for ArrayD<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self.into_raw_vec())
+    }
+
+    fn into_array(self) -> Result<ArrayD<T>, JError> {
+        Ok(self)
     }
 }
 

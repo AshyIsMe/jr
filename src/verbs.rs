@@ -1,5 +1,5 @@
-use crate::JError;
 use crate::Word;
+use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 use log::debug;
 use ndarray::prelude::*;
@@ -97,20 +97,40 @@ fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
     })
 }
 
-trait ArrayUtil<A> {
-    fn cast<T: From<A>>(&self) -> Result<JArray, JError>
-    where
-        ArrayD<T>: IntoJArray;
+fn prohomo(x: &JArray, y: &JArray) -> Result<Option<ArrayPair>, JError> {
+    use ArrayPair::*;
+    Ok(Some(match (x, y) {
+        (BoolArray(x), BoolArray(y)) => IntPair(x.caast()?, y.caast()?),
+        (BoolArray(x), IntArray(y)) => IntPair(x.caast()?, y.clone()),
+        (IntArray(x), BoolArray(y)) => IntPair(x.clone(), y.caast()?),
+        (BoolArray(x), FloatArray(y)) => FloatPair(x.caast()?, y.clone()),
+        (FloatArray(x), BoolArray(y)) => FloatPair(x.clone(), y.caast()?),
+
+        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64), y.clone()),
+        (FloatArray(x), IntArray(y)) => FloatPair(x.clone(), y.map(|i| *i as f64)),
+
+        (CharArray(x), CharArray(y)) => CharPair(x.clone(), y.clone()),
+        (IntArray(x), IntArray(y)) => IntPair(x.clone(), y.clone()),
+        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.clone(), y.clone()),
+        (FloatArray(x), FloatArray(y)) => FloatPair(x.clone(), y.clone()),
+        _ => return Ok(None),
+    }))
 }
 
-impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
+trait ArrayUtil<A> {
     fn cast<T: From<A>>(&self) -> Result<JArray, JError>
     where
         ArrayD<T>: IntoJArray,
     {
-        Ok(self
-            .map(|&e| T::try_from(e).expect("todo: LimitError?"))
-            .into_jarray())
+        Ok(self.caast()?.into_jarray())
+    }
+
+    fn caast<T: From<A>>(&self) -> Result<ArrayD<T>, JError>;
+}
+
+impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
+    fn caast<T: From<A>>(&self) -> Result<ArrayD<T>, JError> {
+        Ok(self.map(|&e| T::try_from(e).expect("todo: LimitError?")))
     }
 }
 
@@ -119,16 +139,16 @@ pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
 }
 
 pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    use ArrayPair::*;
     match x {
         None => Err(JError::custom("monadic + not implemented yet")),
         Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x + y))),
-                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x + y))),
-                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x + y))),
-                Err(e) => Err(e),
-                _ => Err(JError::DomainError),
-            },
+            (Word::Noun(x), Word::Noun(y)) => Ok(match prohomo(x, y)? {
+                Some(IntPair(x, y)) => Word::noun(x + y)?,
+                Some(ExtIntPair(x, y)) => Word::noun(x + y)?,
+                Some(FloatPair(x, y)) => Word::noun(x + y)?,
+                _ => return Err(JError::DomainError),
+            }),
             _ => Err(JError::custom("plus not supported for these types yet")),
         },
     }
