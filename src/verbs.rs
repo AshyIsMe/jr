@@ -85,11 +85,11 @@ impl VerbImpl {
 fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
     use ArrayPair::*;
     Ok(match (x, y) {
-        (BoolArray(x), BoolArray(y)) => IntPair(x.caast()?, y.caast()?),
-        (BoolArray(x), IntArray(y)) => IntPair(x.caast()?, y.clone()),
-        (IntArray(x), BoolArray(y)) => IntPair(x.clone(), y.caast()?),
-        (BoolArray(x), FloatArray(y)) => FloatPair(x.caast()?, y.clone()),
-        (FloatArray(x), BoolArray(y)) => FloatPair(x.clone(), y.caast()?),
+        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?, y.cast()?),
+        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?, y.clone()),
+        (IntArray(x), BoolArray(y)) => IntPair(x.clone(), y.cast()?),
+        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?, y.clone()),
+        (FloatArray(x), BoolArray(y)) => FloatPair(x.clone(), y.cast()?),
 
         (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64), y.clone()),
         (FloatArray(x), IntArray(y)) => FloatPair(x.clone(), y.map(|i| *i as f64)),
@@ -103,18 +103,11 @@ fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
 }
 
 trait ArrayUtil<A> {
-    fn cast<T: From<A>>(&self) -> Result<JArray, JError>
-    where
-        ArrayD<T>: IntoJArray,
-    {
-        Ok(self.caast()?.into_jarray())
-    }
-
-    fn caast<T: From<A>>(&self) -> Result<ArrayD<T>, JError>;
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError>;
 }
 
 impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
-    fn caast<T: From<A>>(&self) -> Result<ArrayD<T>, JError> {
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError> {
         Ok(self.map(|&e| T::try_from(e).expect("todo: LimitError?")))
     }
 }
