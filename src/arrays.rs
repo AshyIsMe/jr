@@ -312,7 +312,11 @@ impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Noun(a) => write!(f, "{}", a),
-            _ => write!(f, "{:+}", self),
+            Verb(sv, _) => write!(f, "{}", sv),
+            Adverb(sa, _) => write!(f, "{}", sa),
+            Conjunction(sc, _) => write!(f, "{}", sc),
+            //_ => write!(f, "{:+}", self),
+            _ => todo!("Display for Word {:?}", self),
         }
     }
 }
