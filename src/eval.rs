@@ -93,7 +93,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("4 Conj V C V");
-                let verb_str = format!("{}{}{}", su, sc, sv);
+                let verb_str = format!("{} {} {}", su, sc, sv);
                 let dv = VerbImpl::DerivedVerb {
                     l: Box::new(Verb(su, u.clone())),
                     r: Box::new(Verb(sv, v.clone())),
@@ -108,7 +108,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("4 Conj V C N");
-                let verb_str = format!("{}{}", su, sc);
+                let verb_str = format!("{} {}", su, sc);
                 let dv = VerbImpl::DerivedVerb {
                     l: Box::new(Verb(su, u.clone())),
                     r: Box::new(Noun(n)),
@@ -123,7 +123,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("4 Conj N C V");
-                let verb_str = format!("m{}{}", sc, sv);
+                let verb_str = format!("m {} {}", sc, sv);
                 let dv = VerbImpl::DerivedVerb {
                     l: Box::new(Noun(m)),
                     r: Box::new(Verb(sv, v.clone())),
@@ -138,7 +138,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("4 Conj N C N");
-                let verb_str = format!("m{}n", sc);
+                let verb_str = format!("m {} n", sc);
                 let dv = VerbImpl::DerivedVerb {
                     l: Box::new(Noun(m)),
                     r: Box::new(Noun(n)),
@@ -154,7 +154,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("5 Fork V V V");
-                let verb_str = format!("{}{}{}", sf, sg, sh);
+                let verb_str = format!("{} {} {}", sf, sg, sh);
                 let fork = VerbImpl::Fork {
                     f: Box::new(Verb(sf, f.clone())),
                     g: Box::new(Verb(sh, h.clone())),
@@ -169,7 +169,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("5 Fork N V V");
-                let verb_str = format!("n{}{}", sg, sh);
+                let verb_str = format!("n {} {}", sg, sh);
                 let fork = VerbImpl::Fork {
                     f: Box::new(Noun(m)),
                     g: Box::new(Verb(sh, h.clone())),
@@ -189,7 +189,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
-                let adverb_str = format!("{}{}", sa0, sa1);
+                let adverb_str = format!("{} {}", sa0, sa1);
                 let da = ModifierImpl::DerivedAdverb {
                     l: Box::new(Adverb(sa0, a0.clone())),
                     r: Box::new(Adverb(sa1, a1.clone())),
@@ -200,7 +200,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C N _");
-                let adverb_str = format!("{}n", sc);
+                let adverb_str = format!("{} n", sc);
                 let da = ModifierImpl::DerivedAdverb {
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Noun(n)),
@@ -211,7 +211,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C V _");
-                let adverb_str = format!("{}{}", sc, sv);
+                let adverb_str = format!("{} {}", sc, sv);
                 let da = ModifierImpl::DerivedAdverb {
                     l: Box::new(Conjunction(sc, c.clone())),
                     r: Box::new(Verb(sv, v.clone())),
@@ -224,7 +224,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb V V _");
-                let verb_str = format!("{}{}", su, sv);
+                let verb_str = format!("{} {}", su, sv);
                 let hook = VerbImpl::Hook {
                     l: Box::new(Verb(su, u.clone())),
                     r: Box::new(Verb(sv, v.clone())),

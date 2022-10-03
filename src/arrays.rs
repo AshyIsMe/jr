@@ -1,5 +1,6 @@
 pub use crate::modifiers::*;
 pub use crate::verbs::*;
+use std::fmt;
 
 use ndarray::prelude::*;
 use thiserror::Error;
@@ -347,5 +348,26 @@ impl Word {
             .outer_iter()
             .map(|a| Noun(a.into_owned().into_jarray()))
             .collect()))
+    }
+}
+
+impl fmt::Display for JArray {
+    // TODO - match the real j output format style.
+    // ie. 1 2 3 4 not [1, 2, 3, 4]
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "{}", a))
+    }
+}
+
+impl fmt::Display for Word {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Noun(a) => write!(f, "{}", a),
+            Verb(sv, _) => write!(f, "{}", sv),
+            Adverb(sa, _) => write!(f, "{}", sa),
+            Conjunction(sc, _) => write!(f, "{}", sc),
+            //_ => write!(f, "{:+}", self),
+            _ => todo!("Display for Word {:?}", self),
+        }
     }
 }
