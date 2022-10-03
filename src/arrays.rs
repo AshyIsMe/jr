@@ -303,6 +303,8 @@ impl Word {
 }
 
 impl fmt::Display for JArray {
+    // TODO - match the real j output format style.
+    // ie. 1 2 3 4 not [1, 2, 3, 4]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "{}", a))
     }
