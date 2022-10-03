@@ -116,6 +116,41 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ArrayPair {
+    BoolPair(ArrayD<u8>, ArrayD<u8>),
+    IntPair(ArrayD<i64>, ArrayD<i64>),
+    ExtIntPair(ArrayD<i128>, ArrayD<i128>),
+    FloatPair(ArrayD<f64>, ArrayD<f64>),
+    // CharArray(..) // char, again, lacks maths operators, making this annoying
+}
+
+macro_rules! impl_pair {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            ArrayPair::BoolPair(x, y) => $func(x, y),
+            ArrayPair::IntPair(x, y) => $func(x, y),
+            ArrayPair::ExtIntPair(x, y) => $func(x, y),
+            ArrayPair::FloatPair(x, y) => $func(x, y),
+        }
+    };
+}
+
+macro_rules! impl_pair_op {
+    ($name:ident, $op:path) => {
+        pub fn $name(&self) -> JArray {
+            impl_pair!(self, |x: &ArrayD<_>, y: &ArrayD<_>| $op(x, y).into_jarray())
+        }
+    };
+}
+
+impl ArrayPair {
+    impl_pair_op!(plus, ::std::ops::Add::add);
+    impl_pair_op!(minus, ::std::ops::Sub::sub);
+    impl_pair_op!(star, ::std::ops::Mul::mul);
+    impl_pair_op!(slash, ::std::ops::Div::div);
+}
+
 #[macro_export]
 macro_rules! apply_array_homo {
     ($arr:ident, $func:expr) => {
@@ -271,6 +306,20 @@ impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
 
     fn into_vec(self) -> Result<Vec<T>, JError> {
         Ok(self.to_vec())
+    }
+}
+
+impl<T> Arrayable<T> for ArrayD<T> {
+    fn len(&self) -> usize {
+        self.len()
+    }
+
+    fn into_vec(self) -> Result<Vec<T>, JError> {
+        Ok(self.into_raw_vec())
+    }
+
+    fn into_array(self) -> Result<ArrayD<T>, JError> {
+        Ok(self)
     }
 }
 

@@ -1,12 +1,11 @@
-use crate::JArray;
-use crate::JError;
 use crate::Word;
+use crate::{ArrayPair, JError};
+use crate::{IntoJArray, JArray};
 use log::debug;
 use ndarray::prelude::*;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::arrays::IntoJArray as _;
 use crate::impl_array;
 
 use JArray::*;
@@ -67,17 +66,15 @@ impl VerbImpl {
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(&f.exec(x, y).unwrap()), &h.exec(x, y).unwrap())
+                    g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
                 }
-                (Noun(m), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(&Noun(m.clone())), &h.exec(x, y).unwrap())
-                }
+                (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(&y), &v.exec(None, y).unwrap()),
-                    Some(x) => u.exec(Some(&x), &v.exec(None, y).unwrap()),
+                    None => u.exec(Some(&y), &v.exec(None, y)?),
+                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
@@ -85,29 +82,33 @@ impl VerbImpl {
     }
 }
 
-fn promotion(x: &JArray, y: &JArray) -> Result<(JArray, JArray), JError> {
-    // https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
-    match (x, y) {
-        (BoolArray(x), BoolArray(y)) => Ok((
-            IntArray(x.map(|i| *i as i64)),
-            IntArray(y.map(|i| *i as i64)),
-        )),
-        (BoolArray(x), IntArray(y)) => Ok((IntArray(x.map(|i| *i as i64)), IntArray(y.clone()))),
-        (IntArray(x), BoolArray(y)) => Ok((IntArray(x.clone()), IntArray(y.map(|i| *i as i64)))),
-        (BoolArray(x), FloatArray(y)) => {
-            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
-        }
-        (FloatArray(x), BoolArray(y)) => {
-            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
-        }
+fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
+    use ArrayPair::*;
+    Ok(match (x, y) {
+        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?, y.cast()?),
+        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?, y.clone()),
+        (IntArray(x), BoolArray(y)) => IntPair(x.clone(), y.cast()?),
+        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?, y.clone()),
+        (FloatArray(x), BoolArray(y)) => FloatPair(x.clone(), y.cast()?),
 
-        (IntArray(x), FloatArray(y)) => {
-            Ok((FloatArray(x.map(|i| *i as f64)), FloatArray(y.clone())))
-        }
-        (FloatArray(x), IntArray(y)) => {
-            Ok((FloatArray(x.clone()), FloatArray(y.map(|i| *i as f64))))
-        }
-        _ => Ok((x.clone(), y.clone())),
+        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64), y.clone()),
+        (FloatArray(x), IntArray(y)) => FloatPair(x.clone(), y.map(|i| *i as f64)),
+
+        (CharArray(x), CharArray(y)) => IntPair(x.map(|&i| i as i64), y.map(|&i| i as i64)),
+        (IntArray(x), IntArray(y)) => IntPair(x.clone(), y.clone()),
+        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.clone(), y.clone()),
+        (FloatArray(x), FloatArray(y)) => FloatPair(x.clone(), y.clone()),
+        _ => return Err(JError::DomainError),
+    })
+}
+
+trait ArrayUtil<A> {
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError>;
+}
+
+impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError> {
+        Ok(self.map(|&e| T::try_from(e).expect("todo: LimitError?")))
     }
 }
 
@@ -119,13 +120,7 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError::custom("monadic + not implemented yet")),
         Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x + y))),
-                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x + y))),
-                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x + y))),
-                Err(e) => Err(e),
-                _ => Err(JError::DomainError),
-            },
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.plus())),
             _ => Err(JError::custom("plus not supported for these types yet")),
         },
     }
@@ -135,13 +130,7 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError::custom("monadic - not implemented yet")),
         Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x - y))),
-                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x - y))),
-                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x - y))),
-                Err(e) => Err(e),
-                _ => Err(JError::DomainError),
-            },
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.minus())),
             _ => Err(JError::custom("minus not supported for these types yet")),
         },
     }
@@ -151,13 +140,7 @@ pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError::custom("monadic * not implemented yet")),
         Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x * y))),
-                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x * y))),
-                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x * y))),
-                Err(e) => Err(e),
-                _ => Err(JError::DomainError),
-            },
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.star())),
             _ => Err(JError::DomainError),
         },
     }
@@ -167,13 +150,7 @@ pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => Err(JError::custom("monadic % not implemented yet")),
         Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => match promotion(x, y) {
-                Ok((IntArray(x), IntArray(y))) => Ok(Word::Noun(IntArray(x / y))),
-                Ok((ExtIntArray(x), ExtIntArray(y))) => Ok(Word::Noun(ExtIntArray(x / y))),
-                Ok((FloatArray(x), FloatArray(y))) => Ok(Word::Noun(FloatArray(x / y))),
-                Err(e) => Err(e),
-                _ => Err(JError::DomainError),
-            },
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.slash())),
             _ => Err(JError::DomainError),
         },
     }
@@ -244,7 +221,7 @@ where
         let flat_len = ns.iter().product();
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
-        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec()).unwrap())
+        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
     }
 }
 
@@ -274,7 +251,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     todo!("monadic i. negative args");
                 } else {
                     let ints = Array::from_vec((0..p).collect());
-                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn()).unwrap())))
+                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
                 }
             }
             Word::Noun(ExtIntArray(_)) => {
