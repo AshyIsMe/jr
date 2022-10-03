@@ -8,6 +8,13 @@ use std::fmt::Debug;
 use std::ops::Deref;
 
 use crate::impl_array;
+use crate::Word;
+use crate::{ArrayPair, JError};
+use crate::{IntoJArray, JArray};
+
+use anyhow::{anyhow, Context, Result};
+use log::debug;
+use ndarray::prelude::*;
 
 use JArray::*;
 use Word::*;
@@ -47,7 +54,7 @@ pub enum VerbImpl {
 }
 
 impl VerbImpl {
-    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
             VerbImpl::Plus => v_plus(x, y),
             VerbImpl::Minus => v_minus(x, y),
@@ -89,7 +96,7 @@ impl VerbImpl {
     }
 }
 
-fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
+fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair> {
     //promote_homogenous:
     //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     use ArrayPair::*;
@@ -107,25 +114,25 @@ fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
         (IntArray(x), IntArray(y)) => IntPair(x.clone(), y.clone()),
         (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.clone(), y.clone()),
         (FloatArray(x), FloatArray(y)) => FloatPair(x.clone(), y.clone()),
-        _ => return Err(JError::DomainError),
+        _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
     })
 }
 
 trait ArrayUtil<A> {
-    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError>;
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>>;
 }
 
 impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
-    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>, JError> {
+    fn cast<T: From<A>>(&self) -> Result<ArrayD<T>> {
         Ok(self.map(|&e| T::try_from(e).expect("todo: LimitError?")))
     }
 }
 
-pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word, JError> {
-    Err(JError::NonceError)
+pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
 }
 
-pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => Err(JError::custom("monadic + not implemented yet")),
         Some(x) => match (x, y) {
@@ -135,7 +142,7 @@ pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => Err(JError::custom("monadic - not implemented yet")),
         Some(x) => match (x, y) {
@@ -145,27 +152,27 @@ pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => Err(JError::custom("monadic * not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.star())),
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError.into()),
         },
     }
 }
 
-pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => Err(JError::custom("monadic % not implemented yet")),
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.slash())),
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError.into()),
         },
     }
 }
 
-pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => {
             // Tally
@@ -173,20 +180,20 @@ pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 Word::Noun(ja) => {
                     Word::noun([i64::try_from(ja.len()).map_err(|_| JError::LimitError)?])
                 }
-                _ => Err(JError::DomainError),
+                _ => Err(JError::DomainError.into()),
             }
         }
         Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
     }
 }
 
-pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => {
             // Shape-of
             match y {
                 Word::Noun(ja) => Word::noun(ja.shape()),
-                _ => Err(JError::DomainError),
+                _ => Err(JError::DomainError.into()),
             }
         }
         Some(x) => {
@@ -194,28 +201,28 @@ pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             match x {
                 Word::Noun(IntArray(x)) => {
                     if x.product() < 0 {
-                        Err(JError::DomainError)
+                        Err(JError::DomainError.into())
                     } else {
                         match y {
                             Word::Noun(ja) => {
                                 impl_array!(ja, |y| reshape(x, y).map(|x| x.into_noun()))
                             }
-                            _ => Err(JError::DomainError),
+                            _ => Err(JError::DomainError.into()),
                         }
                     }
                 }
-                _ => Err(JError::DomainError),
+                _ => Err(JError::DomainError.into()),
             }
         }
     }
 }
 
-pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>, JError>
+pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
     T: Debug + Clone,
 {
     if x.iter().product::<i64>() < 0 {
-        Err(JError::DomainError)
+        Err(JError::DomainError.into())
     } else {
         // get shape of y cells
         // get new shape: concat x with sy
@@ -234,7 +241,7 @@ where
     }
 }
 
-pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => {
             // Square
@@ -243,14 +250,14 @@ pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 Word::Noun(IntArray(a)) => Ok(Word::Noun(IntArray(a.clone() * a.clone()))),
                 Word::Noun(ExtIntArray(a)) => Ok(Word::Noun(ExtIntArray(a.clone() * a.clone()))),
                 Word::Noun(FloatArray(a)) => Ok(Word::Noun(FloatArray(a.clone() * a.clone()))),
-                _ => Err(JError::DomainError),
+                _ => Err(JError::DomainError.into()),
             }
         }
         Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
     }
 }
 
-pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => match y {
             // monadic i.
@@ -266,7 +273,7 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             Word::Noun(ExtIntArray(_)) => {
                 todo!("monadic i. ExtIntArray")
             }
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError.into()),
         },
         Some(x) => match (x, y) {
             // TODO fix for n-dimensional arguments. currently broken
@@ -285,12 +292,12 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                     Ok(Word::Noun(IntArray(Array::from_elem(IxDyn(&[yl]), xl))))
                 }
             },
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError.into()),
         },
     }
 }
 
-fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, JError> {
+fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> {
     Word::noun(
         y.outer_iter()
             .map(|i| {
@@ -302,11 +309,11 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, 
     )
 }
 
-pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => match y {
             Noun(y) => Word::noun([Noun(y.clone())]),
-            _ => return Err(JError::DomainError),
+            _ => return Err(JError::DomainError.into()),
         },
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),

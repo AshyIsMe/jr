@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use ndarray::prelude::*;
 
 use crate::arrays::*;
@@ -6,7 +7,7 @@ use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitiv
 use JArray::*;
 use Word::*;
 
-pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
+pub fn scan(sentence: &str) -> Result<Vec<Word>> {
     let mut words: Vec<Word> = Vec::new();
 
     let mut skip: usize = 0;
@@ -54,7 +55,7 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>, JError> {
     Ok(words)
 }
 
-fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
+fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let mut l: usize = usize::MAX;
     if sentence.is_empty() {
         return Err(JError::custom("Empty number literal"));
@@ -104,7 +105,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word), JError> {
     }
 }
 
-fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
+fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
     if sentence.len() < 2 {
         return Err(JError::custom("Empty literal string"));
     }
@@ -153,7 +154,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word), JError> {
     Ok((l, char_array(&s)?))
 }
 
-fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
+fn scan_name(sentence: &str) -> Result<(usize, Word)> {
     // user defined adverbs/verbs/nouns
     let mut l: usize = usize::MAX;
     let mut p: Option<Word> = None;
@@ -206,7 +207,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word), JError> {
     }
 }
 
-fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
+fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
     // built in adverbs/verbs
     let mut l: usize = 0;
     let mut p: Option<char> = None;
@@ -249,7 +250,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word), JError> {
     Ok((l, str_to_primitive(&sentence[..=l])?))
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Word, JError> {
+fn str_to_primitive(sentence: &str) -> Result<Word> {
     if primitive_nouns().contains(&sentence) {
         Ok(char_array(sentence)?) // TODO - actually lookup the noun
     } else if primitive_verbs().contains_key(&sentence) {

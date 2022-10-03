@@ -3,6 +3,7 @@ use std::iter;
 use crate::{apply_array_homo, Word};
 use crate::{homo_array, HasEmpty, JArray, JError};
 
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 
 // Implementations for Adverbs and Conjuntions
@@ -22,13 +23,7 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec<'a>(
-        &'a self,
-        x: Option<&Word>,
-        u: &Word,
-        v: &Word,
-        y: &Word,
-    ) -> Result<Word, JError> {
+    pub fn exec<'a>(&'a self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
         match self {
             ModifierImpl::NotImplemented => a_not_implemented(x, u, y),
             ModifierImpl::Slash => a_slash(x, u, y),
@@ -39,11 +34,11 @@ impl ModifierImpl {
     }
 }
 
-pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError> {
-    Err(JError::custom("adverb not implemented yet"))
+pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
+    Err(anyhow!("adverb not implemented yet"))
 }
 
-pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word, JError> {
+pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match x {
         None => match u {
             Word::Verb(_, u) => match y {
@@ -55,31 +50,31 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word, JError> {
                     .ok_or(JError::DomainError)?,
                 _ => Err(JError::custom("noun expected")),
             },
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
         },
         Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
     }
 }
 
-pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word, JError> {
+pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
     Err(JError::custom("adverb not implemented yet"))
 }
 
-pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, JError> {
+pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
             let n = match ja {
                 // TODO is there a better way to do this without needing to cast?
-                JArray::BoolArray(a) => Ok(a.map(|i| *i as i64)),
-                JArray::IntArray(a) => Ok(a.map(|i| *i as i64)),
-                JArray::ExtIntArray(a) => Ok(a.map(|i| *i as i64)),
-                _ => Err(JError::DomainError),
-            }?;
+                JArray::BoolArray(a) => a.map(|i| *i as i64),
+                JArray::IntArray(a) => a.map(|i| *i as i64),
+                JArray::ExtIntArray(a) => a.map(|i| *i as i64),
+                _ => return Err(JError::DomainError.into()),
+            };
             Ok(collect_nouns(
                 n.iter()
-                    .map(|i| -> Result<_, JError> {
+                    .map(|i| -> Result<_> {
                         let mut t = y.clone();
                         for _ in 0..*i {
                             t = u.exec(x, &t)?;
@@ -90,11 +85,11 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word, J
             )?)
         }
         (Word::Verb(_, _), Word::Verb(_, _)) => todo!("power conjunction verb right argument"),
-        _ => Err(JError::DomainError),
+        _ => Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     }
 }
 
-pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
+pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
     // Collect a Vec<Word::Noun> into a single Word::Noun.
     // Must all be the same JArray type. ie. IntArray, etc
 
@@ -102,14 +97,14 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word, JError> {
         .iter()
         .map(|w| match w {
             Word::Noun(arr) => Ok(arr),
-            _ => Err(JError::DomainError),
+            _ => Err(JError::DomainError).with_context(|| anyhow!("{w:?}")),
         })
-        .collect::<Result<Vec<_>, JError>>()?;
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(Word::Noun(apply_array_homo!(arr, collect)))
 }
 
-fn collect<T: Clone + HasEmpty>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>, JError> {
+fn collect<T: Clone + HasEmpty>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>> {
     let cell_shape = arr
         .iter()
         .map(|arr| arr.shape())

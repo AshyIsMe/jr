@@ -1,7 +1,9 @@
-pub use crate::modifiers::*;
-pub use crate::verbs::*;
 use std::fmt;
 
+pub use crate::modifiers::*;
+pub use crate::verbs::*;
+
+use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 use thiserror::Error;
 
@@ -81,8 +83,8 @@ pub enum JError {
 }
 
 impl JError {
-    pub(crate) fn custom(message: impl ToString) -> JError {
-        JError::Legacy(message.to_string())
+    pub(crate) fn custom(message: impl ToString) -> anyhow::Error {
+        anyhow::Error::from(JError::Legacy(message.to_string()))
     }
 }
 
@@ -209,9 +211,9 @@ macro_rules! homo_array {
         $iter
             .map(|x| match x {
                 $wot(a) => Ok(a),
-                _ => Err(JError::DomainError),
+                _ => Err(::anyhow::Error::from(JError::DomainError)),
             })
-            .collect::<Result<Vec<_>, JError>>()?
+            .collect::<Result<Vec<_>>>()?
     };
 }
 
@@ -283,15 +285,17 @@ impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
     fn len(&self) -> usize;
-    fn into_vec(self) -> Result<Vec<T>, JError>;
+    fn into_vec(self) -> Result<Vec<T>>;
 
-    fn into_array(self) -> Result<ArrayD<T>, JError>
+    fn into_array(self) -> Result<ArrayD<T>>
     where
         Self: Sized,
     {
         let len = self.len();
         let vec = self.into_vec()?;
-        Array::from_shape_vec(IxDyn(&[len]), vec).map_err(JError::ShapeError)
+        Array::from_shape_vec(IxDyn(&[len]), vec)
+            .map_err(JError::ShapeError)
+            .context("into_array")
     }
 }
 
@@ -300,7 +304,7 @@ impl<T> Arrayable<T> for Vec<T> {
         self.len()
     }
 
-    fn into_vec(self) -> Result<Vec<T>, JError> {
+    fn into_vec(self) -> Result<Vec<T>> {
         Ok(self)
     }
 }
@@ -311,9 +315,13 @@ impl Arrayable<i64> for &[usize] {
         <[usize]>::len(self)
     }
 
-    fn into_vec(self) -> Result<Vec<i64>, JError> {
+    fn into_vec(self) -> Result<Vec<i64>> {
         self.iter()
-            .map(|&v| i64::try_from(v).map_err(|_| JError::LimitError))
+            .map(|&v| {
+                i64::try_from(v)
+                    .map_err(|_| JError::LimitError)
+                    .with_context(|| anyhow!("{} doesn't fit in an i64", v))
+            })
             .collect()
     }
 }
@@ -323,7 +331,7 @@ impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
         N
     }
 
-    fn into_vec(self) -> Result<Vec<T>, JError> {
+    fn into_vec(self) -> Result<Vec<T>> {
         Ok(self.to_vec())
     }
 }
@@ -333,17 +341,17 @@ impl<T> Arrayable<T> for ArrayD<T> {
         self.len()
     }
 
-    fn into_vec(self) -> Result<Vec<T>, JError> {
+    fn into_vec(self) -> Result<Vec<T>> {
         Ok(self.into_raw_vec())
     }
 
-    fn into_array(self) -> Result<ArrayD<T>, JError> {
+    fn into_array(self) -> Result<ArrayD<T>> {
         Ok(self)
     }
 }
 
 impl Word {
-    pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word, JError>
+    pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word>
     where
         ArrayD<T>: IntoJArray,
     {
@@ -351,16 +359,16 @@ impl Word {
     }
 }
 
-pub fn char_array(x: impl AsRef<str>) -> Result<Word, JError> {
+pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
     let v: Vec<char> = x.as_ref().chars().collect();
     Word::noun(v)
 }
 
 impl Word {
-    pub fn to_cells(&self) -> Result<Vec<Word>, JError> {
+    pub fn to_cells(&self) -> Result<Vec<Word>> {
         let ja = match self {
             Noun(ja) => ja,
-            _ => return Err(JError::DomainError),
+            _ => return Err(JError::DomainError.into()),
         };
         Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
             .outer_iter()
