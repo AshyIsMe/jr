@@ -298,14 +298,11 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, 
 pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     match x {
         None => match y {
-            Noun(y) => Ok(Word::Noun(BoxArray(Array::from_elem(
-                IxDyn(&[1]),
-                Noun(y.clone()),
-            )))),
+            Noun(y) => Word::noun([Noun(y.clone())]),
             _ => return Err(JError::DomainError),
         },
         Some(x) => match (x, y) {
-            //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
             //_ => Err(JError::custom("lessthan not supported for these types yet")),
             _ => Err(JError::custom("dyadic < not implemented yet")),
         },
