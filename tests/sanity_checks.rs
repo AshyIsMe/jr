@@ -10,21 +10,19 @@ fn test_basic_addition() {
     let words = jr::scan("2 + 2").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(IntArray(Array::from_elem(IxDyn(&[1]), 4)))
+        Word::noun([4i64]).unwrap()
     );
 
     let words = jr::scan("1 2 3 + 4 5 6").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[3]), vec![5, 7, 9]).unwrap()
-        ))
+        Word::noun([5i64, 7, 9]).unwrap()
     );
 
     let words = jr::scan("1 + 3.14").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(FloatArray(Array::from_elem(IxDyn(&[1]), 1.0 + 3.14)))
+        Word::noun([1f64 + 3.14]).unwrap()
     );
 }
 
@@ -416,5 +414,14 @@ fn test_parens() {
     assert_eq!(
         jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
         Word::noun([12i64]).unwrap()
+    );
+}
+
+#[test]
+fn test_box() {
+    let mut names = HashMap::new();
+    assert_eq!(
+        jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
+        Word::noun([Word::noun([42i64]).unwrap()]).unwrap()
     );
 }
