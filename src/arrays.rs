@@ -114,6 +114,7 @@ pub enum JArray {
     //RationalArray { ... }, // TODO: num::rational::Rational64
     FloatArray(ArrayD<f64>),
     //ComplexArray { ... },  // TODO: num::complex::Complex64
+    BoxArray(ArrayD<Word>),
     //EmptyArray, // How do we do this properly?
 }
 
@@ -171,6 +172,9 @@ macro_rules! apply_array_homo {
             JArray::CharArray(_) => {
                 JArray::CharArray($func(&homo_array!(JArray::CharArray, $arr.iter()))?)
             }
+            JArray::BoxArray(_) => {
+                JArray::BoxArray($func(&homo_array!(JArray::BoxArray, $arr.iter()))?)
+            }
         }
     };
 }
@@ -184,6 +188,7 @@ macro_rules! impl_array {
             JArray::IntArray(a) => $func(a),
             JArray::ExtIntArray(a) => $func(a),
             JArray::FloatArray(a) => $func(a),
+            JArray::BoxArray(a) => $func(a),
         }
     };
 }
@@ -214,6 +219,7 @@ impl JArray {
     }
 }
 
+use JArray::*;
 use Word::*;
 
 pub trait HasEmpty {
@@ -235,6 +241,7 @@ impl_empty!(u8, 0);
 impl_empty!(i64, 0);
 impl_empty!(i128, 0);
 impl_empty!(f64, 0.);
+impl_empty!(Word, Noun(BoolArray(Array::from_elem(IxDyn(&[0]), 0))));
 
 pub trait IntoJArray {
     fn into_jarray(self) -> JArray;
@@ -261,6 +268,7 @@ impl_into_jarray!(ArrayD<char>, JArray::CharArray);
 impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
 impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
+impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
 
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
