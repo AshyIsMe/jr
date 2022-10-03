@@ -1,5 +1,6 @@
+use anyhow::Result;
 use jr::JArray::*;
-use jr::{JError, VerbImpl, Word};
+use jr::{VerbImpl, Word};
 use ndarray::prelude::*;
 
 #[test]
@@ -21,7 +22,7 @@ fn invalid_prime() {
 }
 
 #[test]
-fn test_scan_num() -> Result<(), JError> {
+fn test_scan_num() -> Result<()> {
     let words = jr::scan("1 2 _3\n")?;
     assert_eq!(
         words,
@@ -34,21 +35,21 @@ fn test_scan_num() -> Result<(), JError> {
 }
 
 #[test]
-fn test_scan_string() -> Result<(), JError> {
+fn test_scan_string() -> Result<()> {
     let words = jr::scan("'abc'")?;
     assert_eq!(words, [jr::char_array("abc")?]);
     Ok(())
 }
 
 #[test]
-fn test_scan_name() -> Result<(), JError> {
+fn test_scan_name() -> Result<()> {
     let words = jr::scan("abc\n")?;
     assert_eq!(words, [Word::Name(String::from("abc"))]);
     Ok(())
 }
 
 #[test]
-fn test_scan_name_verb_name() -> Result<(), JError> {
+fn test_scan_name_verb_name() -> Result<()> {
     let words = jr::scan("foo + bar\n")?;
     assert_eq!(
         words,
@@ -62,13 +63,13 @@ fn test_scan_name_verb_name() -> Result<(), JError> {
 }
 
 #[test]
-fn only_whitespace() -> Result<(), JError> {
+fn only_whitespace() -> Result<()> {
     jr::scan("\r")?;
     Ok(())
 }
 
 #[test]
-fn test_scan_string_verb_string() -> Result<(), JError> {
+fn test_scan_string_verb_string() -> Result<()> {
     let words = jr::scan("'abc','def'")?;
     assert_eq!(
         words,
@@ -82,7 +83,7 @@ fn test_scan_string_verb_string() -> Result<(), JError> {
 }
 
 #[test]
-fn test_scan_name_verb_name_not_spaced() -> Result<(), JError> {
+fn test_scan_name_verb_name_not_spaced() -> Result<()> {
     let words = jr::scan("foo+bar\n")?;
     assert_eq!(
         words,
@@ -96,7 +97,7 @@ fn test_scan_name_verb_name_not_spaced() -> Result<(), JError> {
 }
 
 #[test]
-fn test_scan_primitives() -> Result<(), JError> {
+fn test_scan_primitives() -> Result<()> {
     let words = jr::scan("a. I. 'A' \n")?;
     assert_eq!(
         words,
@@ -110,7 +111,7 @@ fn test_scan_primitives() -> Result<(), JError> {
 }
 
 #[test]
-fn test_scan_primitives_not_spaced() -> Result<(), JError> {
+fn test_scan_primitives_not_spaced() -> Result<()> {
     let words = jr::scan("a.I.'A' \n")?;
     assert_eq!(
         words,

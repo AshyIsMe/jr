@@ -1,13 +1,14 @@
 use std::collections::{HashMap, VecDeque};
 use std::iter::repeat;
 
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 
 use crate::Word::{self, *};
 use crate::{JError, ModifierImpl, VerbImpl};
 
-pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word, JError> {
+pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -25,7 +26,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
         trace!("fragment: {:?}", fragment);
         let fragment = resolve_names(fragment, names.clone());
 
-        let result: Result<Vec<Word>, JError> = match fragment {
+        let result: Result<Vec<Word>> = match fragment {
             (ref w, Verb(_, v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
@@ -281,9 +282,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
     trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.pop_front() {
         Some(val) if new_stack.is_empty() => Ok(val),
-        _ => Err(JError::custom(
-            "if you're happy and you know it, syntax error",
-        )),
+        _ => Err(anyhow!("if you're happy and you know it, syntax error",)),
     }
 }
 
