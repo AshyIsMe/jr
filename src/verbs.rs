@@ -21,6 +21,7 @@ pub enum VerbImpl {
     Dollar,
     StarCo,
     IDot,
+    LT,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -53,6 +54,7 @@ impl VerbImpl {
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::IDot => v_idot(x, y),
+            VerbImpl::LT => v_lt(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -291,4 +293,21 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, 
             })
             .collect::<Vec<i64>>(),
     )
+}
+
+pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => match y {
+            Noun(y) => Ok(Word::Noun(BoxArray(Array::from_elem(
+                IxDyn(&[1]),
+                Noun(y.clone()),
+            )))),
+            _ => return Err(JError::DomainError),
+        },
+        Some(x) => match (x, y) {
+            //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
+            //_ => Err(JError::custom("lessthan not supported for these types yet")),
+            _ => Err(JError::custom("dyadic < not implemented yet")),
+        },
+    }
 }
