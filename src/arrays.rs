@@ -151,6 +151,14 @@ impl ArrayPair {
     impl_pair_op!(minus, ::std::ops::Sub::sub);
     impl_pair_op!(star, ::std::ops::Mul::mul);
     impl_pair_op!(slash, ::std::ops::Div::div);
+    impl_pair_op!(lessthan, elementwise_lt);
+}
+
+fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(x: &ArrayD<T>, y: &ArrayD<T>) -> ArrayD<i64> {
+    let empty_shape = x.shape();
+    let mut result: ArrayD<i64> = ArrayD::from_elem(empty_shape, HasEmpty::empty());
+    azip!((a in &mut result, x in x, y in y) *a = if x < y { 1 } else { 0 });
+    result
 }
 
 #[macro_export]
