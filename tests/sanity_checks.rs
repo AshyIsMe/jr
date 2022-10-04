@@ -425,3 +425,12 @@ fn test_box() {
         Word::noun([Word::noun([42i64]).unwrap()]).unwrap()
     );
 }
+
+#[test]
+fn test_unbox() {
+    let mut names = HashMap::new();
+    assert_eq!(
+        jr::eval(jr::scan("> < 42").unwrap(), &mut names).unwrap(),
+        Word::noun([42i64]).unwrap()
+    );
+}

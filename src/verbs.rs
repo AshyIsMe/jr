@@ -22,6 +22,7 @@ pub enum VerbImpl {
     StarCo,
     IDot,
     LT,
+    GT,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -55,6 +56,7 @@ impl VerbImpl {
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::IDot => v_idot(x, y),
             VerbImpl::LT => v_lt(x, y),
+            VerbImpl::GT => v_gt(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -85,6 +87,8 @@ impl VerbImpl {
 }
 
 fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
+    //promote_homogenous:
+    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     use ArrayPair::*;
     Ok(match (x, y) {
         (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?, y.cast()?),
@@ -303,8 +307,25 @@ pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
         },
         Some(x) => match (x, y) {
             (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
-            //_ => Err(JError::custom("lessthan not supported for these types yet")),
-            _ => Err(JError::custom("dyadic < not implemented yet")),
+            _ => panic!("invalid types v_lt({:?}, {:?})", x, y),
+        },
+    }
+}
+
+pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => match y {
+            Noun(BoxArray(y)) => match y.len() {
+                1 => Ok(y[0].clone()),
+                _ => todo!("unbox BoxArray"),
+            },
+            Noun(y) => Ok(Noun(y.clone())),
+            _ => return Err(JError::DomainError),
+        },
+        Some(x) => match (x, y) {
+            //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.greaterthan())),
+            _ => Err(JError::custom("dyadic > not implemented yet")),
+            //_ => panic!("invalid types v_gt({:?}, {:?})", x, y),
         },
     }
 }

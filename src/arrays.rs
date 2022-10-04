@@ -155,6 +155,8 @@ impl ArrayPair {
 }
 
 fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(x: &ArrayD<T>, y: &ArrayD<T>) -> ArrayD<i64> {
+    // TODO - not quite right when x and y shapes are different, fix generically:
+    // https://code.jsoftware.com/wiki/Vocabulary/Agreement
     let empty_shape = x.shape();
     let mut result: ArrayD<i64> = ArrayD::from_elem(empty_shape, HasEmpty::empty());
     azip!((a in &mut result, x in x, y in y) *a = if x < y { 1 } else { 0 });
