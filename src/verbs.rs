@@ -1,7 +1,3 @@
-use crate::Word;
-use crate::{ArrayPair, JError};
-use crate::{IntoJArray, JArray};
-use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis};
 use std::fmt::Debug;
@@ -14,7 +10,6 @@ use crate::{IntoJArray, JArray};
 
 use anyhow::{anyhow, Context, Result};
 use log::debug;
-use ndarray::prelude::*;
 
 use JArray::*;
 use Word::*;
@@ -322,7 +317,7 @@ pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word> {
     }
 }
 
-pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         None => match y {
             Noun(BoxArray(y)) => match y.len() {
@@ -330,7 +325,7 @@ pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 _ => todo!("unbox BoxArray"),
             },
             Noun(y) => Ok(Noun(y.clone())),
-            _ => return Err(JError::DomainError),
+            _ => return Err(JError::DomainError.into()),
         },
         Some(x) => match (x, y) {
             //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.greaterthan())),
@@ -340,7 +335,7 @@ pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
     }
 }
 
-pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word> {
     match x {
         // raze
         None => Err(JError::custom("monadic ; not implemented yet")),

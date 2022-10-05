@@ -1,7 +1,7 @@
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JError, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
 use std::collections::HashMap;
 

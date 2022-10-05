@@ -29,7 +29,7 @@ impl ModifierImpl {
             ModifierImpl::Slash => a_slash(x, u, y),
             ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
             ModifierImpl::HatCo => c_hatco(x, u, v, y),
-            ModifierImpl::DerivedAdverb { l, r } => todo!("DerivedAdverb"),
+            ModifierImpl::DerivedAdverb { l: _l, r: _r } => todo!("DerivedAdverb"),
         }
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use ndarray::prelude::*;
 
 use crate::arrays::*;

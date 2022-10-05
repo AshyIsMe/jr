@@ -1,12 +1,12 @@
 use std::collections::{HashMap, VecDeque};
 use std::iter::repeat;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 
 use crate::Word::{self, *};
-use crate::{JError, ModifierImpl, VerbImpl};
+use crate::{ModifierImpl, VerbImpl};
 
 pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word> {
     // Attempt to parse j properly as per the documentation here:

@@ -3,7 +3,7 @@ use std::fmt;
 pub use crate::modifiers::*;
 pub use crate::verbs::*;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 use thiserror::Error;
 
