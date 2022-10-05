@@ -1,7 +1,9 @@
-use jr::{JError, Word};
-use log::debug;
 use std::collections::HashMap;
 use std::io::{self, Write};
+
+use anyhow::Result;
+use jr::Word;
+use log::debug;
 
 fn main() -> io::Result<()> {
     env_logger::init();
@@ -35,7 +37,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn scan_eval(sentence: &str, names: &mut HashMap<String, Word>) -> Result<Word, JError> {
+fn scan_eval(sentence: &str, names: &mut HashMap<String, Word>) -> Result<Word> {
     let tokens = jr::scan(sentence)?;
     debug!("tokens: {:?}", tokens);
     jr::eval(tokens, names)
