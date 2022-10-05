@@ -3,6 +3,7 @@ use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 use log::debug;
 use ndarray::prelude::*;
+use ndarray::{concatenate, Axis};
 use std::fmt::Debug;
 use std::ops::Deref;
 
@@ -21,6 +22,9 @@ pub enum VerbImpl {
     Dollar,
     StarCo,
     IDot,
+    LT,
+    GT,
+    Semi,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -53,6 +57,9 @@ impl VerbImpl {
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::IDot => v_idot(x, y),
+            VerbImpl::LT => v_lt(x, y),
+            VerbImpl::GT => v_gt(x, y),
+            VerbImpl::Semi => v_semi(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -83,6 +90,8 @@ impl VerbImpl {
 }
 
 fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair, JError> {
+    //promote_homogenous:
+    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     use ArrayPair::*;
     Ok(match (x, y) {
         (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?, y.cast()?),
@@ -291,4 +300,54 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word, 
             })
             .collect::<Vec<i64>>(),
     )
+}
+
+pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => match y {
+            Noun(y) => Word::noun([Noun(y.clone())]),
+            _ => return Err(JError::DomainError),
+        },
+        Some(x) => match (x, y) {
+            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
+            _ => panic!("invalid types v_lt({:?}, {:?})", x, y),
+        },
+    }
+}
+
+pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        None => match y {
+            Noun(BoxArray(y)) => match y.len() {
+                1 => Ok(y[0].clone()),
+                _ => todo!("unbox BoxArray"),
+            },
+            Noun(y) => Ok(Noun(y.clone())),
+            _ => return Err(JError::DomainError),
+        },
+        Some(x) => match (x, y) {
+            //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.greaterthan())),
+            _ => Err(JError::custom("dyadic > not implemented yet")),
+            //_ => panic!("invalid types v_gt({:?}, {:?})", x, y),
+        },
+    }
+}
+
+pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        // raze
+        None => Err(JError::custom("monadic ; not implemented yet")),
+        Some(x) => match (x, y) {
+            // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
+            // always box x, only box y if not already boxed
+            (Noun(x), Noun(BoxArray(y))) => match Word::noun([Noun(x.clone())]).unwrap() {
+                Noun(BoxArray(x)) => {
+                    Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
+                }
+                _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
+            },
+            (Noun(x), Noun(y)) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+            _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
+        },
+    }
 }

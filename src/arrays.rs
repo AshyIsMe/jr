@@ -114,6 +114,7 @@ pub enum JArray {
     //RationalArray { ... }, // TODO: num::rational::Rational64
     FloatArray(ArrayD<f64>),
     //ComplexArray { ... },  // TODO: num::complex::Complex64
+    BoxArray(ArrayD<Word>),
     //EmptyArray, // How do we do this properly?
 }
 
@@ -150,6 +151,16 @@ impl ArrayPair {
     impl_pair_op!(minus, ::std::ops::Sub::sub);
     impl_pair_op!(star, ::std::ops::Mul::mul);
     impl_pair_op!(slash, ::std::ops::Div::div);
+    impl_pair_op!(lessthan, elementwise_lt);
+}
+
+fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(x: &ArrayD<T>, y: &ArrayD<T>) -> ArrayD<i64> {
+    // TODO - not quite right when x and y shapes are different, fix generically:
+    // https://code.jsoftware.com/wiki/Vocabulary/Agreement
+    let empty_shape = x.shape();
+    let mut result: ArrayD<i64> = ArrayD::from_elem(empty_shape, HasEmpty::empty());
+    azip!((a in &mut result, x in x, y in y) *a = if x < y { 1 } else { 0 });
+    result
 }
 
 #[macro_export]
@@ -171,6 +182,9 @@ macro_rules! apply_array_homo {
             JArray::CharArray(_) => {
                 JArray::CharArray($func(&homo_array!(JArray::CharArray, $arr.iter()))?)
             }
+            JArray::BoxArray(_) => {
+                JArray::BoxArray($func(&homo_array!(JArray::BoxArray, $arr.iter()))?)
+            }
         }
     };
 }
@@ -184,6 +198,7 @@ macro_rules! impl_array {
             JArray::IntArray(a) => $func(a),
             JArray::ExtIntArray(a) => $func(a),
             JArray::FloatArray(a) => $func(a),
+            JArray::BoxArray(a) => $func(a),
         }
     };
 }
@@ -214,6 +229,7 @@ impl JArray {
     }
 }
 
+use JArray::*;
 use Word::*;
 
 pub trait HasEmpty {
@@ -235,6 +251,7 @@ impl_empty!(u8, 0);
 impl_empty!(i64, 0);
 impl_empty!(i128, 0);
 impl_empty!(f64, 0.);
+impl_empty!(Word, Noun(BoolArray(Array::from_elem(IxDyn(&[0]), 0))));
 
 pub trait IntoJArray {
     fn into_jarray(self) -> JArray;
@@ -261,6 +278,7 @@ impl_into_jarray!(ArrayD<char>, JArray::CharArray);
 impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
 impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
+impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
 
 // like IntoIterator<Item = T> + ExactSizeIterator
 pub trait Arrayable<T> {
@@ -354,8 +372,16 @@ impl Word {
 impl fmt::Display for JArray {
     // TODO - match the real j output format style.
     // ie. 1 2 3 4 not [1, 2, 3, 4]
+    // TODO - proper box array display:
+    //    < 1 2 3
+    //┌─────┐
+    //│1 2 3│
+    //└─────┘
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "{}", a))
+        match self {
+            BoxArray(_) => impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "|{}|", a)),
+            _ => impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "{}", a)),
+        }
     }
 }
 

@@ -17,10 +17,10 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         ("=", VerbImpl::NotImplemented),
         //("=.", VerbImpl::NotImplemented), IsLocal
         //("=:", VerbImpl::NotImplemented), IsGlobal
-        ("<", VerbImpl::NotImplemented),
+        ("<", VerbImpl::LT),
         ("<.", VerbImpl::NotImplemented),
         ("<:", VerbImpl::NotImplemented),
-        (">", VerbImpl::NotImplemented),
+        (">", VerbImpl::GT),
         (">.", VerbImpl::NotImplemented),
         (">:", VerbImpl::NotImplemented),
         ("_:", VerbImpl::NotImplemented),
@@ -52,7 +52,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         (",.", VerbImpl::NotImplemented),
         (",", VerbImpl::NotImplemented),
         (",:", VerbImpl::NotImplemented),
-        (";", VerbImpl::NotImplemented),
+        (";", VerbImpl::Semi),
         (";:", VerbImpl::NotImplemented),
         ("#", VerbImpl::Number),
         ("#.", VerbImpl::NotImplemented),
