@@ -434,3 +434,26 @@ fn test_unbox() {
         Word::noun([42i64]).unwrap()
     );
 }
+
+#[test]
+fn test_link() {
+    let mut names = HashMap::new();
+    assert_eq!(
+        jr::eval(jr::scan("1 ; 2 ; 3").unwrap(), &mut names).unwrap(),
+        Word::noun([
+            Word::noun([1i64]).unwrap(),
+            Word::noun([2i64]).unwrap(),
+            Word::noun([3i64]).unwrap()
+        ])
+        .unwrap()
+    );
+    assert_eq!(
+        jr::eval(jr::scan("1 ; 2 ; <3").unwrap(), &mut names).unwrap(),
+        Word::noun([
+            Word::noun([1i64]).unwrap(),
+            Word::noun([2i64]).unwrap(),
+            Word::noun([3i64]).unwrap()
+        ])
+        .unwrap()
+    );
+}

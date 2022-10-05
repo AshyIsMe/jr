@@ -3,6 +3,7 @@ use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 use log::debug;
 use ndarray::prelude::*;
+use ndarray::{concatenate, Axis};
 use std::fmt::Debug;
 use std::ops::Deref;
 
@@ -23,6 +24,7 @@ pub enum VerbImpl {
     IDot,
     LT,
     GT,
+    Semi,
     NotImplemented,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -57,6 +59,7 @@ impl VerbImpl {
             VerbImpl::IDot => v_idot(x, y),
             VerbImpl::LT => v_lt(x, y),
             VerbImpl::GT => v_gt(x, y),
+            VerbImpl::Semi => v_semi(x, y),
             VerbImpl::NotImplemented => v_not_implemented(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -326,6 +329,25 @@ pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
             //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.greaterthan())),
             _ => Err(JError::custom("dyadic > not implemented yet")),
             //_ => panic!("invalid types v_gt({:?}, {:?})", x, y),
+        },
+    }
+}
+
+pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
+    match x {
+        // raze
+        None => Err(JError::custom("monadic ; not implemented yet")),
+        Some(x) => match (x, y) {
+            // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
+            // always box x, only box y if not already boxed
+            (Noun(x), Noun(BoxArray(y))) => match Word::noun([Noun(x.clone())]).unwrap() {
+                Noun(BoxArray(x)) => {
+                    Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
+                }
+                _ => panic!("wat"),
+            },
+            (Noun(x), Noun(y)) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+            _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
         },
     }
 }
