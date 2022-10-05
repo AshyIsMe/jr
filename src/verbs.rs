@@ -344,7 +344,7 @@ pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word, JError> {
                 Noun(BoxArray(x)) => {
                     Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
                 }
-                _ => panic!("wat"),
+                _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
             },
             (Noun(x), Noun(y)) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
             _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
