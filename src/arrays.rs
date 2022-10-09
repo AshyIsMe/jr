@@ -129,6 +129,15 @@ pub enum ArrayPair {
     // CharArray(..) // char, again, lacks maths operators, making this annoying
 }
 
+pub enum JArrays<'a> {
+    BoolArrays(Vec<&'a ArrayD<u8>>),
+    CharArrays(Vec<&'a ArrayD<char>>),
+    IntArrays(Vec<&'a ArrayD<i64>>),
+    ExtIntArrays(Vec<&'a ArrayD<i128>>),
+    FloatArrays(Vec<&'a ArrayD<f64>>),
+    BoxArrays(Vec<&'a ArrayD<Word>>),
+}
+
 macro_rules! impl_pair {
     ($arr:ident, $func:expr) => {
         match $arr {
@@ -165,30 +174,18 @@ fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(x: &ArrayD<T>, y: &ArrayD<T>
     result
 }
 
-#[macro_export]
-macro_rules! apply_array_homo {
-    ($arr:ident, $func:expr) => {
-        match $arr.iter().next().ok_or(JError::DomainError)? {
-            JArray::BoolArray(_) => {
-                JArray::BoolArray($func(&homo_array!(JArray::BoolArray, $arr.iter()))?)
-            }
-            JArray::IntArray(_) => {
-                JArray::IntArray($func(&homo_array!(JArray::IntArray, $arr.iter()))?)
-            }
-            JArray::ExtIntArray(_) => {
-                JArray::ExtIntArray($func(&homo_array!(JArray::ExtIntArray, $arr.iter()))?)
-            }
-            JArray::FloatArray(_) => {
-                JArray::FloatArray($func(&homo_array!(JArray::FloatArray, $arr.iter()))?)
-            }
-            JArray::CharArray(_) => {
-                JArray::CharArray($func(&homo_array!(JArray::CharArray, $arr.iter()))?)
-            }
-            JArray::BoxArray(_) => {
-                JArray::BoxArray($func(&homo_array!(JArray::BoxArray, $arr.iter()))?)
-            }
-        }
-    };
+impl<'a> JArrays<'a> {
+    pub fn from_homo(arrs: &[&'a JArray]) -> Result<Self> {
+        use JArray::*;
+        Ok(match arrs.iter().next().ok_or(JError::DomainError)? {
+            BoolArray(_) => JArrays::BoolArrays(crate::homo_array!(BoolArray, arrs.iter())),
+            CharArray(_) => JArrays::CharArrays(crate::homo_array!(CharArray, arrs.iter())),
+            IntArray(_) => JArrays::IntArrays(crate::homo_array!(IntArray, arrs.iter())),
+            ExtIntArray(_) => JArrays::ExtIntArrays(crate::homo_array!(ExtIntArray, arrs.iter())),
+            FloatArray(_) => JArrays::FloatArrays(crate::homo_array!(FloatArray, arrs.iter())),
+            BoxArray(_) => JArrays::BoxArrays(crate::homo_array!(BoxArray, arrs.iter())),
+        })
+    }
 }
 
 #[macro_export]
@@ -201,6 +198,20 @@ macro_rules! impl_array {
             JArray::ExtIntArray(a) => $func(a),
             JArray::FloatArray(a) => $func(a),
             JArray::BoxArray(a) => $func(a),
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! reduce_arrays {
+    ($arr:expr, $func:expr) => {
+        match $arr {
+            JArrays::BoolArrays(ref a) => JArray::BoolArray($func(a)?),
+            JArrays::CharArrays(ref a) => JArray::CharArray($func(a)?),
+            JArrays::IntArrays(ref a) => JArray::IntArray($func(a)?),
+            JArrays::ExtIntArrays(ref a) => JArray::ExtIntArray($func(a)?),
+            JArrays::FloatArrays(ref a) => JArray::FloatArray($func(a)?),
+            JArrays::BoxArrays(ref a) => JArray::BoxArray($func(a)?),
         }
     };
 }
