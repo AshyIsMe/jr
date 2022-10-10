@@ -1,7 +1,6 @@
 use std::iter;
 
-use crate::{apply_array_homo, Word};
-use crate::{homo_array, HasEmpty, JArray, JError};
+use crate::{reduce_arrays, HasEmpty, JArray, JArrays, JError, Word};
 
 use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
@@ -101,7 +100,9 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
         })
         .collect::<Result<Vec<_>>>()?;
 
-    Ok(Word::Noun(apply_array_homo!(arr, collect)))
+    let arrs = JArrays::from_homo(&arr)?;
+
+    Ok(Word::Noun(reduce_arrays!(arrs, collect)))
 }
 
 fn collect<T: Clone + HasEmpty>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>> {
