@@ -10,6 +10,6 @@ fn test_not_impl() -> Result<()> {
         .downcast_ref::<JError>()
         .expect("caused by jerror");
     assert!(matches!(root, JError::NonceError));
-    assert_eq!("feature not supported yet", format!("{}", err));
+    assert_eq!("feature not supported yet", format!("{}", err.root_cause()));
     Ok(())
 }

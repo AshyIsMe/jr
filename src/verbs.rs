@@ -27,7 +27,7 @@ pub enum VerbImpl {
     LT,
     GT,
     Semi,
-    NotImplemented,
+    NotImplemented(String),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -62,7 +62,9 @@ impl VerbImpl {
             VerbImpl::LT => v_lt(x, y),
             VerbImpl::GT => v_gt(x, y),
             VerbImpl::Semi => v_semi(x, y),
-            VerbImpl::NotImplemented => v_not_implemented(x, y),
+            VerbImpl::NotImplemented(hint) => {
+                v_not_implemented(x, y).with_context(|| anyhow!("verb {:?} not supported", hint))
+            }
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
                 (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),

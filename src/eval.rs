@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::iter::repeat;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 
@@ -53,7 +53,11 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("2 dyad");
-                Ok(vec![fragment.0, v.exec(Some(&Noun(x)), &Noun(y))?])
+                Ok(vec![
+                    fragment.0,
+                    v.exec(Some(&Noun(x)), &Noun(y))
+                        .context("evaluating 2 dyad")?,
+                ])
             }
             // (V|N) A anything - 3 Adverb
             (ref w, Verb(sv, ref v), Adverb(sa, a), any)

@@ -256,7 +256,7 @@ fn str_to_primitive(sentence: &str) -> Result<Word> {
     } else if primitive_verbs().contains_key(&sentence) {
         let refd = match primitive_verbs().get(&sentence) {
             Some(v) => v.clone(),
-            None => VerbImpl::NotImplemented,
+            None => VerbImpl::NotImplemented(sentence.to_string()),
         };
         Ok(Word::Verb(sentence.to_string(), refd))
     } else if primitive_adverbs().contains_key(&sentence) {
