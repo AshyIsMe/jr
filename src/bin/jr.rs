@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use jr::Word;
 use log::debug;
 
@@ -27,7 +27,7 @@ fn main() -> io::Result<()> {
                 match scan_eval(&buffer, &mut names) {
                     //Ok(output) => println!("{:?}", output),
                     Ok(output) => println!("{}", output),
-                    Err(e) => println!("error: {}", e),
+                    Err(e) => println!("error: {:?}", e),
                 }
                 buffer.truncate(0);
             }
@@ -40,5 +40,5 @@ fn main() -> io::Result<()> {
 fn scan_eval(sentence: &str, names: &mut HashMap<String, Word>) -> Result<Word> {
     let tokens = jr::scan(sentence)?;
     debug!("tokens: {:?}", tokens);
-    jr::eval(tokens, names)
+    jr::eval(tokens, names).with_context(|| anyhow!("evaluating {:?}", sentence))
 }

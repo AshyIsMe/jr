@@ -75,7 +75,7 @@ fn test_scan_string_verb_string() -> Result<()> {
         words,
         [
             jr::char_array("abc")?,
-            Word::Verb(String::from(","), VerbImpl::NotImplemented),
+            Word::Verb(String::from(","), VerbImpl::NotImplemented(",".to_string())),
             jr::char_array("def")?,
         ]
     );
@@ -103,7 +103,10 @@ fn test_scan_primitives() -> Result<()> {
         words,
         [
             jr::char_array("a.")?,
-            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
+            Word::Verb(
+                String::from("I."),
+                VerbImpl::NotImplemented("I.".to_string())
+            ),
             jr::char_array("A")?,
         ]
     );
@@ -117,7 +120,10 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
         words,
         [
             jr::char_array("a.")?,
-            Word::Verb(String::from("I."), VerbImpl::NotImplemented),
+            Word::Verb(
+                String::from("I."),
+                VerbImpl::NotImplemented("I.".to_string())
+            ),
             jr::char_array("A")?,
         ]
     );
