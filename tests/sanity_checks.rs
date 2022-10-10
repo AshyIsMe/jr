@@ -1,5 +1,7 @@
+use anyhow::Result;
 use jr::verbs::reshape;
 use jr::JArray::*;
+use jr::JError;
 use jr::Word::*;
 use jr::{collect_nouns, resolve_names, ModifierImpl, VerbImpl, Word};
 use ndarray::prelude::*;
@@ -456,4 +458,25 @@ fn test_link() {
         ])
         .unwrap()
     );
+}
+
+#[test]
+fn test_agreement() {
+    let words = jr::scan("1 2 + i.2 3").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![1, 2, 3, 5, 6, 7]).unwrap(),
+        ))
+    );
+}
+
+#[test]
+fn test_agreement_2() -> Result<()> {
+    let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut HashMap::new()).unwrap_err();
+    let root = dbg!(err.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(root, JError::LengthError));
+    Ok(())
 }
