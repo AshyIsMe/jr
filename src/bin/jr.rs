@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::{self, Write};
 
 use anyhow::{anyhow, Context, Result};
@@ -27,7 +27,20 @@ fn main() -> io::Result<()> {
                 match scan_eval(&buffer, &mut names) {
                     //Ok(output) => println!("{:?}", output),
                     Ok(output) => println!("{}", output),
-                    Err(e) => println!("error: {:?}", e),
+                    Err(e) => {
+                        let mut stack: VecDeque<_> = e.chain().rev().collect();
+
+                        println!(
+                            "error: {}",
+                            stack
+                                .pop_front()
+                                .expect("chain contains at least the error")
+                        );
+
+                        for error in stack {
+                            println!("cause: {}", error);
+                        }
+                    }
                 }
                 buffer.truncate(0);
             }
