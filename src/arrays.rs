@@ -88,6 +88,8 @@ impl JError {
     }
 }
 
+type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
+
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
@@ -121,11 +123,11 @@ pub enum JArray {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum ArrayPair {
-    BoolPair(ArrayD<u8>, ArrayD<u8>),
-    IntPair(ArrayD<i64>, ArrayD<i64>),
-    ExtIntPair(ArrayD<i128>, ArrayD<i128>),
-    FloatPair(ArrayD<f64>, ArrayD<f64>),
+pub enum ArrayPair<'l, 'r> {
+    BoolPair(CowArrayD<'l, u8>, CowArrayD<'r, u8>),
+    IntPair(CowArrayD<'l, i64>, CowArrayD<'r, i64>),
+    ExtIntPair(CowArrayD<'l, i128>, CowArrayD<'r, i128>),
+    FloatPair(CowArrayD<'l, f64>, CowArrayD<'r, f64>),
     // CharArray(..) // char, again, lacks maths operators, making this annoying
 }
 
@@ -152,12 +154,12 @@ macro_rules! impl_pair {
 macro_rules! impl_pair_op {
     ($name:ident, $op:path) => {
         pub fn $name(&self) -> JArray {
-            impl_pair!(self, |x: &ArrayD<_>, y: &ArrayD<_>| $op(x, y).into_jarray())
+            impl_pair!(self, |x, y| ($op(x, y) as ArrayD<_>).into_jarray())
         }
     };
 }
 
-impl ArrayPair {
+impl ArrayPair<'_, '_> {
     impl_pair_op!(plus, ::std::ops::Add::add);
     impl_pair_op!(minus, ::std::ops::Sub::sub);
     impl_pair_op!(star, ::std::ops::Mul::mul);
@@ -165,7 +167,10 @@ impl ArrayPair {
     impl_pair_op!(lessthan, elementwise_lt);
 }
 
-fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(x: &ArrayD<T>, y: &ArrayD<T>) -> ArrayD<i64> {
+fn elementwise_lt<T: Clone + HasEmpty + PartialOrd>(
+    x: &CowArrayD<T>,
+    y: &CowArrayD<T>,
+) -> ArrayD<i64> {
     // TODO - not quite right when x and y shapes are different, fix generically:
     // https://code.jsoftware.com/wiki/Vocabulary/Agreement
     let empty_shape = x.shape();
@@ -279,13 +284,16 @@ pub trait IntoJArray {
 macro_rules! impl_into_jarray {
     ($t:ty, $j:path) => {
         impl IntoJArray for $t {
+            /// free for ArrayD<>, clones for unowned CowArrayD<>
             fn into_jarray(self) -> JArray {
-                $j(self)
+                $j(self.into_owned())
             }
         }
     };
 }
 
+// these also cover the CowArrayD<> conversions because both are just aliases
+// for ArrayBase<T> and the compiler lets us get away without lifetimes for some reason.
 impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
 impl_into_jarray!(ArrayD<char>, JArray::CharArray);
 impl_into_jarray!(ArrayD<i64>, JArray::IntArray);

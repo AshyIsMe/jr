@@ -93,24 +93,26 @@ impl VerbImpl {
     }
 }
 
-fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair> {
+fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
     //promote_homogenous:
     //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
     use ArrayPair::*;
     Ok(match (x, y) {
-        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?, y.cast()?),
-        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?, y.clone()),
-        (IntArray(x), BoolArray(y)) => IntPair(x.clone(), y.cast()?),
-        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?, y.clone()),
-        (FloatArray(x), BoolArray(y)) => FloatPair(x.clone(), y.cast()?),
+        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?.into(), y.cast()?.into()),
+        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?.into(), y.into()),
+        (IntArray(x), BoolArray(y)) => IntPair(x.into(), y.cast()?.into()),
+        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?.into(), y.into()),
+        (FloatArray(x), BoolArray(y)) => FloatPair(x.into(), y.cast()?.into()),
 
-        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64), y.clone()),
-        (FloatArray(x), IntArray(y)) => FloatPair(x.clone(), y.map(|i| *i as f64)),
+        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64).into(), y.into()),
+        (FloatArray(x), IntArray(y)) => FloatPair(x.into(), y.map(|i| *i as f64).into()),
 
-        (CharArray(x), CharArray(y)) => IntPair(x.map(|&i| i as i64), y.map(|&i| i as i64)),
-        (IntArray(x), IntArray(y)) => IntPair(x.clone(), y.clone()),
-        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.clone(), y.clone()),
-        (FloatArray(x), FloatArray(y)) => FloatPair(x.clone(), y.clone()),
+        (CharArray(x), CharArray(y)) => {
+            IntPair(x.map(|&i| i as i64).into(), y.map(|&i| i as i64).into())
+        }
+        (IntArray(x), IntArray(y)) => IntPair(x.into(), y.into()),
+        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.into(), y.into()),
+        (FloatArray(x), FloatArray(y)) => FloatPair(x.into(), y.into()),
         _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
     })
 }
