@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 use anyhow::{anyhow, Context, Result};
 use jr::Word;
-use log::debug;
+use log::{debug, warn};
 
 fn main() -> io::Result<()> {
     env_logger::init();
@@ -19,7 +19,9 @@ fn main() -> io::Result<()> {
         // repl
         stdout.write_all(b"   ")?; //prompt
         stdout.flush()?;
-        stdin.read_line(&mut buffer)?;
+        if 0 == stdin.read_line(&mut buffer)? {
+            break;
+        }
 
         match buffer.trim() {
             "exit" => break,
@@ -28,6 +30,7 @@ fn main() -> io::Result<()> {
                     //Ok(output) => println!("{:?}", output),
                     Ok(output) => println!("{}", output),
                     Err(e) => {
+                        warn!("{:?}", e);
                         let mut stack: VecDeque<_> = e.chain().rev().collect();
 
                         println!(

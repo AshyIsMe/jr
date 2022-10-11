@@ -24,6 +24,7 @@ pub enum VerbImpl {
     Dollar,
     StarCo,
     IDot,
+    Plot,
     LT,
     GT,
     Semi,
@@ -59,6 +60,7 @@ impl VerbImpl {
             VerbImpl::Dollar => v_dollar(x, y),
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::IDot => v_idot(x, y),
+            VerbImpl::Plot => v_plot(x, y),
             VerbImpl::LT => v_lt(x, y),
             VerbImpl::GT => v_gt(x, y),
             VerbImpl::Semi => v_semi(x, y),
@@ -115,7 +117,7 @@ fn prohomo(x: &JArray, y: &JArray) -> Result<ArrayPair> {
     })
 }
 
-trait ArrayUtil<A> {
+pub trait ArrayUtil<A> {
     fn cast<T: From<A>>(&self) -> Result<ArrayD<T>>;
 }
 
@@ -291,6 +293,22 @@ pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word> {
             },
             _ => Err(JError::DomainError.into()),
         },
+    }
+}
+
+pub fn v_plot(x: Option<&Word>, y: &Word) -> Result<Word> {
+    match (x, y) {
+        #[allow(unused_variables)]
+        (None, Word::Noun(y)) => {
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "ui")] {
+                    crate::plot::plot(y)
+                } else {
+                    Err(JError::NonceError.into())
+                }
+            }
+        }
+        _ => Err(JError::NonceError.into()),
     }
 }
 
