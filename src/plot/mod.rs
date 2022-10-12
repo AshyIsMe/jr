@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use femtovg::{renderer::OpenGl, Align, Baseline, Canvas, Color, Paint, Path};
 use glutin::{
     event::{Event, WindowEvent},
@@ -8,10 +8,35 @@ use glutin::{
 };
 use itertools::Itertools;
 use ordered_float::OrderedFloat;
+use winit::dpi::LogicalSize;
 use winit::platform::run_return::EventLoopExtRunReturn as _;
 use winit::platform::unix::{WindowBuilderExtUnix, XWindowType};
 
 use crate::{JArray, JError, Word};
+
+#[derive(Copy, Clone, Debug)]
+struct Rect {
+    // left, right (in x)
+    l: f32,
+    r: f32,
+    // top, bottom (in y)
+    t: f32,
+    b: f32,
+}
+
+impl Rect {
+    /// translate a value between 0 and 1, with 0 being left and 1 being right, into a window coordinate
+    fn tx(&self, x: f32) -> f32 {
+        let usable_width = self.r - self.l;
+        x * usable_width + self.l
+    }
+
+    /// translate a value between 0 and 1, with 0 being BOTTOM and 1 being TOP, into a window coordinate
+    fn ty(&self, y: f32) -> f32 {
+        let usable_height = self.t - self.b;
+        y * usable_height + self.b
+    }
+}
 
 pub fn plot(arr: &JArray) -> Result<Word> {
     let arr = arr.approx().ok_or_else(|| JError::DomainError)?;
@@ -29,68 +54,63 @@ pub fn plot(arr: &JArray) -> Result<Word> {
     pop_window(|canvas| {
         let (width, height) = (canvas.width(), canvas.height());
         let mut paint = Paint::color(Color::hex("ccc"));
-        let lineu = |canvas: &mut Canvas<OpenGl>, (sx, sy): (f32, f32), (ex, ey): (f32, f32)| {
-            let mut path = Path::new();
-            path.move_to(sx, sy);
-            path.line_to(ex, ey);
-            canvas.stroke_path(&mut path, Paint::color(Color::hex("ccc")));
+        paint.set_font_size(18.);
+
+        // The area upon which we're drawing, which the axises abut, in window coordinates,
+        // i.e. 0,0 is the *top* left, and y is upside down
+        let grid = Rect {
+            l: 100.,
+            r: width - 30.,
+
+            t: 20.,
+            b: height - 40.,
         };
 
-        paint.set_text_baseline(Baseline::Top);
-        paint.set_text_align(Align::Right);
-        paint.set_font_size(24.);
-
-        let zero_zero = (100f32, height as f32 - 30.);
-        let one_one = (width as f32 - 30., 30f32);
-
         // y axis
-        lineu(
-            canvas,
-            (zero_zero.0, one_one.1),
-            (zero_zero.0, zero_zero.1 + 5.),
-        );
+        black_line(canvas, (grid.l, grid.t), (grid.l, grid.b + 5.));
         // x axis
-        lineu(
-            canvas,
-            (zero_zero.0 - 5., zero_zero.1),
-            (one_one.0, zero_zero.1),
-        );
+        black_line(canvas, (grid.l - 5., grid.b), (grid.r, grid.b));
 
-        let mut path = Path::new();
+        // plot a line
         let max_x = (plot.len() - 1) as f32;
-        let mut points = plot.iter().enumerate();
-
-        let usable_width = one_one.0 - zero_zero.0;
-        let usable_height = one_one.1 - zero_zero.1;
-
-        let tx = |x: f32| x * (usable_width as f32) + zero_zero.0 as f32;
-        let ty = |y: f32| y * (usable_height as f32) + zero_zero.1 as f32;
-
-        let (x, &y) = points.next().expect("non-empty");
-        path.move_to(tx(x as f32 / max_x), ty(y));
-        for (x, &y) in points {
-            path.line_to(tx(x as f32 / max_x), ty(y));
+        let mut path = Path::new();
+        for (x, y) in plot.iter().enumerate() {
+            let tx = grid.tx(x as f32 / max_x);
+            let ty = grid.ty(*y);
+            if path.is_empty() {
+                path.move_to(tx, ty);
+            } else {
+                path.line_to(tx, ty);
+            }
         }
         canvas.stroke_path(&mut path, Paint::color(Color::hex("1111ee")));
 
-        paint.set_font_size(18.);
+        // label the x axis
+        paint.set_text_align(Align::Center);
+        paint.set_text_baseline(Baseline::Top);
         for x in 0..plot.len() {
-            let tx = tx(x as f32 / max_x);
-            lineu(canvas, (tx, zero_zero.1 + 3.), (tx, zero_zero.1 - 3.));
-            canvas.fill_text(tx + 5., zero_zero.1 + 5., format!("{x}"), paint)?;
+            let tx = grid.tx(x as f32 / max_x);
+            // tick
+            black_line(canvas, (tx, grid.b + 3.), (tx, grid.b - 3.));
+            canvas.fill_text(tx, grid.b + 5., format!("{x}"), paint)?;
         }
 
-        canvas.fill_text(
-            zero_zero.0 - 15.,
-            zero_zero.1 - 15.,
-            format!("{min}"),
-            paint,
-        )?;
-        canvas.fill_text(zero_zero.0 - 15., one_one.1, format!("{max}"), paint)?;
+        // label the y axis
+        paint.set_text_align(Align::Right);
+        paint.set_text_baseline(Baseline::Middle);
+        canvas.fill_text(grid.l - 8., grid.b, format!("{min}"), paint)?;
+        canvas.fill_text(grid.l - 8., grid.t, format!("{max}"), paint)?;
         Ok(())
     })?;
 
     Word::noun([69i64])
+}
+
+fn black_line(canvas: &mut Canvas<OpenGl>, (sx, sy): (f32, f32), (ex, ey): (f32, f32)) {
+    let mut path = Path::new();
+    path.move_to(sx, sy);
+    path.line_to(ex, ey);
+    canvas.stroke_path(&mut path, Paint::color(Color::hex("ccc")));
 }
 
 fn pop_window(mut paint_on: impl FnMut(&mut Canvas<OpenGl>) -> Result<()>) -> Result<()> {
@@ -98,6 +118,7 @@ fn pop_window(mut paint_on: impl FnMut(&mut Canvas<OpenGl>) -> Result<()>) -> Re
     let mut el = EventLoop::new();
     let wb = WindowBuilder::new()
         .with_inner_size(window_size)
+        .with_min_inner_size(LogicalSize::new(150, 100))
         .with_resizable(true)
         .with_x11_window_type(vec![XWindowType::Dialog])
         .with_title("rj plot.");
