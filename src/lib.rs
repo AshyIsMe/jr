@@ -21,12 +21,20 @@ macro_rules! not_impl {
     };
 }
 
+macro_rules! simple {
+    ($s:expr, $monad:expr, $dyad: expr) => {
+        ($s, VerbImpl::Simple(SimpleImpl::new($s, $monad, $dyad)))
+    };
+}
+
 fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
+    use verbs::*;
     HashMap::from([
         not_impl!("="),
         //not_impl!("=."), IsLocal
         //not_impl!("=:"), IsGlobal
-        ("<", VerbImpl::LT),
+        // ("<", VerbImpl::Simple(SimpleImpl::new("<", verbs::v_box, verbs::v_lt))),
+        simple!("<", v_box, v_lt),
         not_impl!("<."),
         not_impl!("<:"),
         (">", VerbImpl::GT),

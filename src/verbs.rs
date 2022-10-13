@@ -35,7 +35,6 @@ pub enum VerbImpl {
     StarCo,
     IDot,
     Plot,
-    LT,
     GT,
     Semi,
     NotImplemented(String),
@@ -75,7 +74,6 @@ impl VerbImpl {
             VerbImpl::StarCo => v_starco(x, y),
             VerbImpl::IDot => v_idot(x, y),
             VerbImpl::Plot => v_plot(x, y),
-            VerbImpl::LT => v_lt(x, y),
             VerbImpl::GT => v_gt(x, y),
             VerbImpl::Semi => v_semi(x, y),
             VerbImpl::NotImplemented(hint) => {
@@ -105,6 +103,28 @@ impl VerbImpl {
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
+        }
+    }
+}
+
+impl SimpleImpl {
+    pub fn monad(name: &'static str, f: fn(&Word) -> Result<Word>) -> Self {
+        Self {
+            name,
+            monad: f,
+            dyad: None,
+        }
+    }
+
+    pub fn new(
+        name: &'static str,
+        monad: fn(&Word) -> Result<Word>,
+        dyad: fn(&Word, &Word) -> Result<Word>,
+    ) -> Self {
+        Self {
+            name,
+            monad,
+            dyad: Some(dyad),
         }
     }
 }
@@ -352,16 +372,17 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> 
     )
 }
 
-pub fn v_lt(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => match y {
-            Noun(y) => Word::noun([Noun(y.clone())]),
-            _ => return Err(JError::DomainError.into()),
-        },
-        Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
-            _ => panic!("invalid types v_lt({:?}, {:?})", x, y),
-        },
+pub fn v_box(y: &Word) -> Result<Word> {
+    match y {
+        Noun(y) => Word::noun([Noun(y.clone())]),
+        _ => return Err(JError::DomainError.into()),
+    }
+}
+
+pub fn v_lt(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
+        _ => panic!("invalid types v_lt({:?}, {:?})", x, y),
     }
 }
 
