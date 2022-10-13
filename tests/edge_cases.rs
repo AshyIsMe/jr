@@ -49,6 +49,7 @@ fn test_scan_name() -> Result<()> {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_scan_name_verb_name() -> Result<()> {
     let words = jr::scan("foo + bar\n")?;
     assert_eq!(
@@ -83,6 +84,7 @@ fn test_scan_string_verb_string() -> Result<()> {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_scan_name_verb_name_not_spaced() -> Result<()> {
     let words = jr::scan("foo+bar\n")?;
     assert_eq!(

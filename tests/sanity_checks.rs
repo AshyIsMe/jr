@@ -44,6 +44,7 @@ fn test_basic_times() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_parse_basics() {
     let words = vec![
         Noun(IntArray(
@@ -112,6 +113,7 @@ fn test_reshape_helper() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_power_conjunction_bool_arg() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
@@ -131,6 +133,7 @@ fn test_power_conjunction_bool_arg() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_power_conjunction_noun_arg() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
@@ -225,6 +228,7 @@ fn test_collect_char_nouns() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_fork() {
     //let words = jr::scan("(+/ % #) 1 2 3 4 5").unwrap(); //TODO use this when parens are implemented
     let sum = Verb(
@@ -255,6 +259,7 @@ fn test_fork() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_fork_noun() {
     //let words = jr::scan("(15 % #) 1 2 3 4 5").unwrap(); //TODO use this when parens are implemented
     let words = vec![
@@ -277,6 +282,7 @@ fn test_fork_noun() {
 }
 
 #[test]
+#[cfg(todo)]
 fn test_hook() {
     //let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap(); //TODO use this when parens are implemented
     let words = vec![

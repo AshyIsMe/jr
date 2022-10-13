@@ -25,18 +25,7 @@ pub struct SimpleImpl {
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
     Simple(SimpleImpl),
-
-    Plus,
-    Minus,
-    Star,
-    Number,
-    Percent,
-    Dollar,
-    StarCo,
-    IDot,
     Plot,
-    GT,
-    Semi,
     NotImplemented(String),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
@@ -62,20 +51,14 @@ impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
             VerbImpl::Simple(imp) => match x {
-                None => (imp.monad)(y),
-                Some(x) => imp.dyad.ok_or_else(|| JError::DomainError)?(x, y),
+                None => (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name)),
+                Some(x) => {
+                    imp.dyad
+                        .ok_or(JError::DomainError)
+                        .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
+                }
             },
-            VerbImpl::Plus => v_plus(x, y),
-            VerbImpl::Minus => v_minus(x, y),
-            VerbImpl::Star => v_star(x, y),
-            VerbImpl::Number => v_number(x, y),
-            VerbImpl::Percent => v_percent(x, y),
-            VerbImpl::Dollar => v_dollar(x, y),
-            VerbImpl::StarCo => v_starco(x, y),
-            VerbImpl::IDot => v_idot(x, y),
             VerbImpl::Plot => v_plot(x, y),
-            VerbImpl::GT => v_gt(x, y),
-            VerbImpl::Semi => v_semi(x, y),
             VerbImpl::NotImplemented(hint) => {
                 v_not_implemented(x, y).with_context(|| anyhow!("verb {:?} not supported", hint))
             }
@@ -179,91 +162,6 @@ pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
-pub fn v_plus(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => Err(JError::custom("monadic + not implemented yet")),
-        Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.plus())),
-            _ => Err(JError::custom("plus not supported for these types yet")),
-        },
-    }
-}
-
-pub fn v_minus(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => Err(JError::custom("monadic - not implemented yet")),
-        Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.minus())),
-            _ => Err(JError::custom("minus not supported for these types yet")),
-        },
-    }
-}
-
-pub fn v_star(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => Err(JError::custom("monadic * not implemented yet")),
-        Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.star())),
-            _ => Err(JError::DomainError.into()),
-        },
-    }
-}
-
-pub fn v_percent(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => Err(JError::custom("monadic % not implemented yet")),
-        Some(x) => match (x, y) {
-            (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.slash())),
-            _ => Err(JError::DomainError.into()),
-        },
-    }
-}
-
-pub fn v_number(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => {
-            // Tally
-            match y {
-                Word::Noun(ja) => {
-                    Word::noun([i64::try_from(ja.len()).map_err(|_| JError::LimitError)?])
-                }
-                _ => Err(JError::DomainError.into()),
-            }
-        }
-        Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
-    }
-}
-
-pub fn v_dollar(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => {
-            // Shape-of
-            match y {
-                Word::Noun(ja) => Word::noun(ja.shape()),
-                _ => Err(JError::DomainError.into()),
-            }
-        }
-        Some(x) => {
-            // Reshape
-            match x {
-                Word::Noun(IntArray(x)) => {
-                    if x.product() < 0 {
-                        Err(JError::DomainError.into())
-                    } else {
-                        match y {
-                            Word::Noun(ja) => {
-                                impl_array!(ja, |y| reshape(x, y).map(|x| x.into_noun()))
-                            }
-                            _ => Err(JError::DomainError.into()),
-                        }
-                    }
-                }
-                _ => Err(JError::DomainError.into()),
-            }
-        }
-    }
-}
-
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
     T: Debug + Clone,
@@ -285,62 +183,6 @@ where
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
         Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
-    }
-}
-
-pub fn v_starco(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => {
-            // Square
-            match y {
-                Word::Noun(BoolArray(a)) => Ok(Word::Noun(BoolArray(a.clone() * a.clone()))),
-                Word::Noun(IntArray(a)) => Ok(Word::Noun(IntArray(a.clone() * a.clone()))),
-                Word::Noun(ExtIntArray(a)) => Ok(Word::Noun(ExtIntArray(a.clone() * a.clone()))),
-                Word::Noun(FloatArray(a)) => Ok(Word::Noun(FloatArray(a.clone() * a.clone()))),
-                _ => Err(JError::DomainError.into()),
-            }
-        }
-        Some(_x) => Err(JError::custom("dyadic # not implemented yet")), // Copy
-    }
-}
-
-pub fn v_idot(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => match y {
-            // monadic i.
-            Word::Noun(IntArray(a)) => {
-                let p = a.product();
-                if p < 0 {
-                    todo!("monadic i. negative args");
-                } else {
-                    let ints = Array::from_vec((0..p).collect());
-                    Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
-                }
-            }
-            Word::Noun(ExtIntArray(_)) => {
-                todo!("monadic i. ExtIntArray")
-            }
-            _ => Err(JError::DomainError.into()),
-        },
-        Some(x) => match (x, y) {
-            // TODO fix for n-dimensional arguments. currently broken
-            // dyadic i.
-            (Word::Noun(x), Word::Noun(y)) => match (x, y) {
-                // TODO remove code duplication: impl_array_pair!? impl_array_binary!?
-                (BoolArray(x), BoolArray(y)) => v_idot_positions(x, y),
-                (CharArray(x), CharArray(y)) => v_idot_positions(x, y),
-                (IntArray(x), IntArray(y)) => v_idot_positions(x, y),
-                (ExtIntArray(x), ExtIntArray(y)) => v_idot_positions(x, y),
-                (FloatArray(x), FloatArray(y)) => v_idot_positions(x, y),
-                _ => {
-                    // mismatched array types
-                    let xl = x.len_of(Axis(0)) as i64;
-                    let yl = y.len_of(Axis(0));
-                    Ok(Word::Noun(IntArray(Array::from_elem(IxDyn(&[yl]), xl))))
-                }
-            },
-            _ => Err(JError::DomainError.into()),
-        },
     }
 }
 
@@ -372,53 +214,672 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> 
     )
 }
 
+// (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "/// $a (monad)\npub fn v_$b(y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n/// $a (dyad)\npub fn v_$c(x: &Word, y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n\n"'
+
+/// = (monad)
+pub fn v_self_classify(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// = (dyad)
+pub fn v_equal(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// < (monad)
 pub fn v_box(y: &Word) -> Result<Word> {
     match y {
         Noun(y) => Word::noun([Noun(y.clone())]),
         _ => return Err(JError::DomainError.into()),
     }
 }
-
-pub fn v_lt(x: &Word, y: &Word) -> Result<Word> {
+/// < (dyad)
+pub fn v_less_than(x: &Word, y: &Word) -> Result<Word> {
     match (x, y) {
         (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.lessthan())),
         _ => panic!("invalid types v_lt({:?}, {:?})", x, y),
     }
 }
 
-pub fn v_gt(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match x {
-        None => match y {
-            Noun(BoxArray(y)) => match y.len() {
-                1 => Ok(y[0].clone()),
-                _ => todo!("unbox BoxArray"),
-            },
-            Noun(y) => Ok(Noun(y.clone())),
-            _ => return Err(JError::DomainError.into()),
+/// <. (monad)
+pub fn v_floor(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// <. (dyad)
+pub fn v_lesser_of_min(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// <: (monad)
+pub fn v_decrement(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// <: (dyad)
+pub fn v_less_or_equal(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// > (monad)
+pub fn v_open(y: &Word) -> Result<Word> {
+    match y {
+        Noun(BoxArray(y)) => match y.len() {
+            1 => Ok(y[0].clone()),
+            _ => todo!("unbox BoxArray"),
         },
-        Some(x) => match (x, y) {
-            //(Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.greaterthan())),
-            _ => Err(JError::custom("dyadic > not implemented yet")),
-            //_ => panic!("invalid types v_gt({:?}, {:?})", x, y),
-        },
+        Noun(y) => Ok(Noun(y.clone())),
+        _ => return Err(JError::DomainError.into()),
+    }
+}
+/// > (dyad)
+pub fn v_larger_than(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// >. (monad)
+pub fn v_ceiling(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// >. (dyad)
+pub fn v_larger_of_max(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// >: (monad)
+pub fn v_increment(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// >: (dyad)
+pub fn v_larger_or_equal(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// + (monad)
+pub fn v_conjugate(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// + (dyad)
+pub fn v_plus(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.plus())),
+        _ => Err(JError::custom("plus not supported for these types yet")),
     }
 }
 
-pub fn v_semi(x: Option<&Word>, y: &Word) -> Result<Word> {
+/// +. (monad)
+pub fn v_real_imaginary(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// +. (dyad)
+pub fn v_gcd_or(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// +: (monad)
+pub fn v_double(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// +: (dyad)
+pub fn v_not_or(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// * (monad)
+pub fn v_signum(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// * (dyad)
+pub fn v_times(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.star())),
+        _ => Err(JError::DomainError.into()),
+    }
+}
+
+/// *. (monad)
+pub fn v_lengthangle(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// *. (dyad)
+pub fn v_lcm_and(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// *: (monad)
+pub fn v_square(y: &Word) -> Result<Word> {
+    match y {
+        Word::Noun(BoolArray(a)) => Ok(Word::Noun(BoolArray(a.clone() * a.clone()))),
+        Word::Noun(IntArray(a)) => Ok(Word::Noun(IntArray(a.clone() * a.clone()))),
+        Word::Noun(ExtIntArray(a)) => Ok(Word::Noun(ExtIntArray(a.clone() * a.clone()))),
+        Word::Noun(FloatArray(a)) => Ok(Word::Noun(FloatArray(a.clone() * a.clone()))),
+        _ => Err(JError::DomainError.into()),
+    }
+}
+/// *: (dyad)
+pub fn v_not_and(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// - (monad)
+pub fn v_negate(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// - (dyad)
+pub fn v_minus(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.minus())),
+        _ => Err(JError::custom("minus not supported for these types yet")),
+    }
+}
+
+/// -. (monad)
+pub fn v_not(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// -. (dyad)
+pub fn v_less(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// -: (monad)
+pub fn v_halve(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// -: (dyad)
+pub fn v_match(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// % (monad)
+pub fn v_reciprocal(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// % (dyad)
+pub fn v_divide(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        (Word::Noun(x), Word::Noun(y)) => Ok(Word::Noun(prohomo(x, y)?.slash())),
+        _ => Err(JError::DomainError.into()),
+    }
+}
+
+/// %. (monad)
+pub fn v_matrix_inverse(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// %. (dyad)
+pub fn v_matrix_divide(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// %: (monad)
+pub fn v_square_root(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// %: (dyad)
+pub fn v_root(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ^ (monad)
+pub fn v_exponential(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ^ (dyad)
+pub fn v_power(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ^. (monad)
+pub fn v_natural_log(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ^. (dyad)
+pub fn v_logarithm(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// $ (monad)
+pub fn v_shape_of(y: &Word) -> Result<Word> {
+    match y {
+        Word::Noun(ja) => Word::noun(ja.shape()),
+        _ => Err(JError::DomainError.into()),
+    }
+}
+/// $ (dyad)
+pub fn v_shape(x: &Word, y: &Word) -> Result<Word> {
     match x {
-        // raze
-        None => Err(JError::custom("monadic ; not implemented yet")),
-        Some(x) => match (x, y) {
-            // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
-            // always box x, only box y if not already boxed
-            (Noun(x), Noun(BoxArray(y))) => match Word::noun([Noun(x.clone())]).unwrap() {
-                Noun(BoxArray(x)) => {
-                    Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
+        Word::Noun(IntArray(x)) => {
+            if x.product() < 0 {
+                Err(JError::DomainError.into())
+            } else {
+                match y {
+                    Word::Noun(ja) => {
+                        impl_array!(ja, |y| reshape(x, y).map(|x| x.into_noun()))
+                    }
+                    _ => Err(JError::DomainError.into()),
                 }
-                _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
-            },
-            (Noun(x), Noun(y)) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+            }
+        }
+        _ => Err(JError::DomainError.into()),
+    }
+}
+
+/// ~ (monad)
+pub fn v_reflex(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ~ (dyad)
+pub fn v_passive_evoke(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ~: (monad)
+pub fn v_nub_sieve(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ~: (dyad)
+pub fn v_not_equal(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// | (monad)
+pub fn v_magnitude(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// | (dyad)
+pub fn v_residue(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// |. (monad)
+pub fn v_reverse(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// |. (dyad)
+pub fn v_rotate_shift(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// . (monad)
+pub fn v_determinant(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// . (dyad)
+pub fn v_dot_product(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// , (monad)
+pub fn v_ravel(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// , (dyad)
+pub fn v_append(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ,. (monad)
+pub fn v_ravel_items(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ,. (dyad)
+pub fn v_stitch(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ,: (monad)
+pub fn v_itemize(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ,: (dyad)
+pub fn v_laminate(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ; (monad)
+pub fn v_raze(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ; (dyad)
+pub fn v_link(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
+        // always box x, only box y if not already boxed
+        (Noun(x), Noun(BoxArray(y))) => match Word::noun([Noun(x.clone())]).unwrap() {
+            Noun(BoxArray(x)) => {
+                Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
+            }
             _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
         },
+        (Noun(x), Noun(y)) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+        _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
     }
+}
+
+/// ;: (monad)
+pub fn v_words(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ;: (dyad)
+pub fn v_sequential_machine(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// # (monad)
+pub fn v_tally(y: &Word) -> Result<Word> {
+    match y {
+        Word::Noun(ja) => Word::noun([i64::try_from(ja.len()).map_err(|_| JError::LimitError)?]),
+        _ => Err(JError::DomainError.into()),
+    }
+}
+/// # (dyad)
+pub fn v_copy(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// #. (monad)
+pub fn v_base_(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// #. (dyad)
+pub fn v_base(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// #: (monad)
+pub fn v_antibase_(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// #: (dyad)
+pub fn v_antibase(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ! (monad)
+pub fn v_factorial(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ! (dyad)
+pub fn v_out_of(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// / (monad)
+pub fn v_insert(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// / (dyad)
+pub fn v_table(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// /. (monad)
+pub fn v_oblique(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// /. (dyad)
+pub fn v_key(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// /: (monad)
+pub fn v_grade_up(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// /: (dyad) and \: (dyad)
+pub fn v_sort(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// \ (monad)
+pub fn v_prefix(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// \ (dyad)
+pub fn v_infix(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// \. (monad)
+pub fn v_suffix(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// \. (dyad)
+pub fn v_outfix(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// \: (monad)
+pub fn v_grade_down(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// \[ (monad) and ] (monad) apparently
+pub fn v_same(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// [ (dyad)
+pub fn v_left(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ] (dyad)
+pub fn v_right(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// { (monad)
+pub fn v_catalogue(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// { (dyad)
+pub fn v_from(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// {. (monad)
+pub fn v_head(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// {. (dyad)
+pub fn v_take(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// {: (monad)
+pub fn v_tail(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// {: (dyad)
+pub fn v_map_fetch(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// } (monad)
+pub fn v_item_amend(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// } (dyad)
+pub fn v_amend_m_u(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// }. (monad)
+pub fn v_behead(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// }. (dyad)
+pub fn v_drop(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ". (monad)
+pub fn v_do(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ". (dyad)
+pub fn v_numbers(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ": (monad)
+pub fn v_default_format(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ": (dyad)
+pub fn v_format(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ? (monad)
+pub fn v_roll(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// ? (dyad)
+pub fn v_deal(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// ?. (dyad)
+pub fn v_deal_fixed_seed(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// A. (monad)
+pub fn v_anagram_index(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// A. (dyad)
+pub fn v_anagram(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// C. (monad)
+pub fn v_cycledirect(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// C. (dyad)
+pub fn v_permute(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// e. (monad)
+pub fn v_raze_in(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// e. (dyad)
+pub fn v_member_in(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// i. (monad)
+pub fn v_integers(y: &Word) -> Result<Word> {
+    match y {
+        // monadic i.
+        Word::Noun(IntArray(a)) => {
+            let p = a.product();
+            if p < 0 {
+                todo!("monadic i. negative args");
+            } else {
+                let ints = Array::from_vec((0..p).collect());
+                Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
+            }
+        }
+        Word::Noun(ExtIntArray(_)) => {
+            todo!("monadic i. ExtIntArray")
+        }
+        _ => Err(JError::DomainError.into()),
+    }
+}
+/// i. (dyad)
+pub fn v_index_of(x: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        // TODO fix for n-dimensional arguments. currently broken
+        // dyadic i.
+        (Word::Noun(x), Word::Noun(y)) => match (x, y) {
+            // TODO remove code duplication: impl_array_pair!? impl_array_binary!?
+            (BoolArray(x), BoolArray(y)) => v_idot_positions(x, y),
+            (CharArray(x), CharArray(y)) => v_idot_positions(x, y),
+            (IntArray(x), IntArray(y)) => v_idot_positions(x, y),
+            (ExtIntArray(x), ExtIntArray(y)) => v_idot_positions(x, y),
+            (FloatArray(x), FloatArray(y)) => v_idot_positions(x, y),
+            _ => {
+                // mismatched array types
+                let xl = x.len_of(Axis(0)) as i64;
+                let yl = y.len_of(Axis(0));
+                Ok(Word::Noun(IntArray(Array::from_elem(IxDyn(&[yl]), xl))))
+            }
+        },
+        _ => Err(JError::DomainError.into()),
+    }
+}
+
+/// i: (monad)
+pub fn v_steps(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// i: (dyad)
+pub fn v_index_of_last(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// I. (monad)
+pub fn v_indices(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// I. (dyad)
+pub fn v_interval_index(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// j. (monad)
+pub fn v_imaginary(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// j. (dyad)
+pub fn v_complex(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// o. (monad)
+pub fn v_pi_times(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// o. (dyad)
+pub fn v_circle_function(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// p. (monad)
+pub fn v_roots(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// p. (dyad)
+pub fn v_polynomial(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// p.. (monad)
+pub fn v_poly_deriv(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// p.. (dyad)
+pub fn v_poly_integral(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// q: (monad)
+pub fn v_prime_factors(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// q: (dyad)
+pub fn v_prime_exponents(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+/// r. (monad)
+pub fn v_angle(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// r. (dyad)
+pub fn v_polar(_x: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
 }
