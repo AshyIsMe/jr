@@ -10,6 +10,7 @@ use itertools::Itertools;
 use ordered_float::OrderedFloat;
 use winit::dpi::LogicalSize;
 use winit::platform::run_return::EventLoopExtRunReturn as _;
+#[cfg(feature = "glutin-x11")]
 use winit::platform::unix::{WindowBuilderExtUnix, XWindowType};
 
 use crate::{JArray, JError, Word};
@@ -116,12 +117,17 @@ fn black_line(canvas: &mut Canvas<OpenGl>, (sx, sy): (f32, f32), (ex, ey): (f32,
 fn pop_window(mut paint_on: impl FnMut(&mut Canvas<OpenGl>) -> Result<()>) -> Result<()> {
     let window_size = glutin::dpi::PhysicalSize::new(1000, 600);
     let mut el = EventLoop::new();
-    let wb = WindowBuilder::new()
+    #[allow(unused_mut)]
+    let mut wb = WindowBuilder::new()
         .with_inner_size(window_size)
         .with_min_inner_size(LogicalSize::new(150, 100))
         .with_resizable(true)
-        .with_x11_window_type(vec![XWindowType::Dialog])
         .with_title("rj plot.");
+
+    #[cfg(feature = "glutin-x11")]
+    {
+        wb = wb.with_x11_window_type(vec![XWindowType::Dialog]);
+    }
 
     let windowed_context = ContextBuilder::new().build_windowed(wb, &el).unwrap();
     let windowed_context = unsafe { windowed_context.make_current().unwrap() };
