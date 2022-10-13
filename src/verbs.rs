@@ -26,7 +26,6 @@ pub struct SimpleImpl {
 pub enum VerbImpl {
     Simple(SimpleImpl),
     Plot,
-    NotImplemented(String),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -59,9 +58,6 @@ impl VerbImpl {
                 }
             },
             VerbImpl::Plot => v_plot(x, y),
-            VerbImpl::NotImplemented(hint) => {
-                v_not_implemented(x, y).with_context(|| anyhow!("verb {:?} not supported", hint))
-            }
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
                 (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
@@ -158,7 +154,11 @@ impl<A: Copy> ArrayUtil<A> for ArrayD<A> {
     }
 }
 
-pub fn v_not_implemented(_x: Option<&Word>, _y: &Word) -> Result<Word> {
+pub fn v_not_implemented_monad(_y: &Word) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+
+pub fn v_not_implemented_dyad(_x: &Word, _y: &Word) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 

@@ -17,7 +17,11 @@ pub use crate::verbs::*;
 
 macro_rules! not_impl {
     ($s:expr) => {
-        VerbImpl::NotImplemented($s.to_string())
+        VerbImpl::Simple(SimpleImpl::new(
+            $s,
+            v_not_implemented_monad,
+            v_not_implemented_dyad,
+        ))
     };
 }
 
