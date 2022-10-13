@@ -120,6 +120,20 @@ pub enum JArray {
     //EmptyArray, // How do we do this properly?
 }
 
+impl JArray {
+    pub fn approx(&self) -> Option<ArrayD<f32>> {
+        use JArray::*;
+        Some(match self {
+            BoolArray(a) => a.map(|&v| v as f32),
+            CharArray(a) => a.map(|&v| v as u32 as f32),
+            IntArray(a) => a.map(|&v| v as f32),
+            ExtIntArray(a) => a.map(|&v| v as f32),
+            FloatArray(a) => a.map(|&v| v as f32),
+            _ => return None,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum ArrayPair {
     BoolPair(ArrayD<u8>, ArrayD<u8>),

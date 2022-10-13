@@ -4,6 +4,9 @@ pub mod modifiers;
 pub mod scan;
 pub mod verbs;
 
+#[cfg(feature = "ui")]
+mod plot;
+
 use std::collections::HashMap;
 
 pub use crate::arrays::*;
@@ -125,6 +128,7 @@ fn primitive_verbs() -> HashMap<&'static str, VerbImpl> {
         not_impl!("NB."),
         not_impl!("{{"),
         not_impl!("}}"),
+        ("plot.", VerbImpl::Plot),
         not_impl!("assert."),
         not_impl!("break."),
         not_impl!("continue."),

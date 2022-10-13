@@ -112,11 +112,13 @@ name = "jr"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cfg-if",
  "env_logger",
  "itertools",
  "log",
  "ndarray",
  "num-traits",
+ "ordered-float",
  "thiserror",
 ]
 
@@ -215,6 +217,15 @@ name = "once_cell"
 version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2f7254b99e31cad77da24b08ebf628882739a608578bb1bcdfc1f9c21260d7c0"
+
+[[package]]
+name = "ordered-float"
+version = "3.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "129d36517b53c461acc6e1580aeb919c8ae6708a4b1eae61c4463a615d4f0411"
+dependencies = [
+ "num-traits",
+]
 
 [[package]]
 name = "proc-macro2"
