@@ -7,7 +7,7 @@ use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::JError;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
+use jr::{check_agreement, collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
@@ -515,4 +515,14 @@ fn test_agreement_2() -> Result<()> {
         .expect("caused by jerror");
     assert!(matches!(root, JError::LengthError));
     Ok(())
+}
+
+#[test]
+fn test_check_agreement() {
+    let x = Word::noun([1i64, 2]).unwrap();
+    let y = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 3]), vec![1, 2, 3, 5, 6, 7]).unwrap(),
+    ));
+
+    assert!(check_agreement(x, y, [1, 1]).unwrap());
 }

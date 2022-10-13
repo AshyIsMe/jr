@@ -204,6 +204,33 @@ fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
     })
 }
 
+pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
+    // https://code.jsoftware.com/wiki/Vocabulary/Agreement
+    // Calculate the frame of each cell
+
+    match (x.clone(), y.clone()) {
+        (Noun(x), Noun(y)) => {
+            let x_shape = x.shape(); // (_1 * ({.ranks)) }. $ x
+            let y_shape = y.shape(); // (_1 * ({:ranks)) }. $ y
+
+            let x_frame: Vec<i64> = if (x_shape.len() - ranks[0]) > 0 {
+                x_shape[0..x_shape.len() - ranks[0]]
+                    .iter()
+                    .map(|i| *i as i64)
+                    .collect()
+            } else {
+                x_shape.iter().map(|i| *i as i64).collect()
+            };
+
+            // AA TODO - still in the middle of this thought...
+
+            // x_frame and y_frame must start identically (for length of shortest)
+            todo!("check agreement - not even close to done or working yet.")
+        }
+        _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
+    }
+}
+
 pub trait ArrayUtil<A> {
     fn cast<T: From<A>>(&self) -> Result<ArrayD<T>>;
 }
