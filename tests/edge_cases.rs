@@ -1,6 +1,6 @@
 use anyhow::Result;
 use jr::JArray::*;
-use jr::{VerbImpl, Word};
+use jr::Word;
 use ndarray::prelude::*;
 
 #[test]
@@ -49,14 +49,13 @@ fn test_scan_name() -> Result<()> {
 }
 
 #[test]
-#[cfg(todo)]
 fn test_scan_name_verb_name() -> Result<()> {
     let words = jr::scan("foo + bar\n")?;
     assert_eq!(
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), VerbImpl::Plus),
+            Word::static_verb("+"),
             Word::Name(String::from("bar")),
         ]
     );
@@ -76,7 +75,7 @@ fn test_scan_string_verb_string() -> Result<()> {
         words,
         [
             jr::char_array("abc")?,
-            Word::Verb(String::from(","), VerbImpl::NotImplemented(",".to_string())),
+            Word::static_verb(","),
             jr::char_array("def")?,
         ]
     );
@@ -84,14 +83,13 @@ fn test_scan_string_verb_string() -> Result<()> {
 }
 
 #[test]
-#[cfg(todo)]
 fn test_scan_name_verb_name_not_spaced() -> Result<()> {
     let words = jr::scan("foo+bar\n")?;
     assert_eq!(
         words,
         [
             Word::Name(String::from("foo")),
-            Word::Verb(String::from("+"), VerbImpl::Plus),
+            Word::static_verb("+"),
             Word::Name(String::from("bar")),
         ]
     );
@@ -105,10 +103,7 @@ fn test_scan_primitives() -> Result<()> {
         words,
         [
             jr::char_array("a.")?,
-            Word::Verb(
-                String::from("I."),
-                VerbImpl::NotImplemented("I.".to_string())
-            ),
+            Word::static_verb("I."),
             jr::char_array("A")?,
         ]
     );
@@ -122,10 +117,7 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
         words,
         [
             jr::char_array("a.")?,
-            Word::Verb(
-                String::from("I."),
-                VerbImpl::NotImplemented("I.".to_string())
-            ),
+            Word::static_verb("I."),
             jr::char_array("A")?,
         ]
     );
