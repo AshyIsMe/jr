@@ -1,6 +1,7 @@
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis};
 use std::fmt::Debug;
+use std::iter::zip;
 use std::ops::Deref;
 
 use crate::impl_array;
@@ -128,14 +129,20 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
             let x_shape = x.shape(); // (_1 * ({.ranks)) }. $ x
             let y_shape = y.shape(); // (_1 * ({:ranks)) }. $ y
 
-            let x_frame: Vec<i64> = if (x_shape.len() - ranks[0]) > 0 {
-                x_shape[0..x_shape.len() - ranks[0]]
-                    .iter()
-                    .map(|i| *i as i64)
-                    .collect()
+            let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
+                x_shape[0..x_shape.len() - ranks[0]].iter().collect()
             } else {
-                x_shape.iter().map(|i| *i as i64).collect()
+                Vec::new() // empty frame
             };
+            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[0]) > 0 {
+                y_shape[0..y_shape.len() - ranks[0]].iter().collect()
+            } else {
+                Vec::new() // empty frame
+            };
+
+            let common_frame = zip(x_frame, y_frame)
+                .map(|t| if t.0 == t.1 { 1 } else { 0 })
+                .collect::<Vec<usize>>();
 
             // AA TODO - still in the middle of this thought...
 
