@@ -1,5 +1,6 @@
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis};
+use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
@@ -14,8 +15,17 @@ use log::debug;
 use JArray::*;
 use Word::*;
 
+#[derive(Clone)]
+pub struct SimpleImpl {
+    name: &'static str,
+    monad: fn(&Word) -> Result<Word>,
+    dyad: Option<fn(&Word, &Word) -> Result<Word>>,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
+    Simple(SimpleImpl),
+
     Plus,
     Minus,
     Star,
@@ -52,6 +62,10 @@ pub enum VerbImpl {
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
+            VerbImpl::Simple(imp) => match x {
+                None => (imp.monad)(y),
+                Some(x) => imp.dyad.ok_or_else(|| JError::DomainError)?(x, y),
+            },
             VerbImpl::Plus => v_plus(x, y),
             VerbImpl::Minus => v_minus(x, y),
             VerbImpl::Star => v_star(x, y),
@@ -92,6 +106,18 @@ impl VerbImpl {
                 _ => panic!("invalid Hook {:?}", self),
             },
         }
+    }
+}
+
+impl fmt::Debug for SimpleImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleImpl({})", self.name)
+    }
+}
+
+impl PartialEq for SimpleImpl {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }
 
