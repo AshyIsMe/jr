@@ -25,7 +25,6 @@ pub struct SimpleImpl {
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
     Simple(SimpleImpl),
-    Plot,
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -57,7 +56,6 @@ impl VerbImpl {
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
                 }
             },
-            VerbImpl::Plot => v_plot(x, y),
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
                 (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
@@ -186,10 +184,10 @@ where
     }
 }
 
-pub fn v_plot(x: Option<&Word>, y: &Word) -> Result<Word> {
-    match (x, y) {
+pub fn v_plot(y: &Word) -> Result<Word> {
+    match y {
         #[allow(unused_variables)]
-        (None, Word::Noun(y)) => {
+        Word::Noun(y) => {
             cfg_if::cfg_if! {
                 if #[cfg(feature = "ui")] {
                     crate::plot::plot(y)

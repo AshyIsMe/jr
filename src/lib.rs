@@ -17,11 +17,7 @@ pub use crate::verbs::*;
 
 macro_rules! not_impl {
     ($s:expr) => {
-        VerbImpl::Simple(SimpleImpl::new(
-            $s,
-            v_not_implemented_monad,
-            v_not_implemented_dyad,
-        ))
+        simple!($s, v_not_implemented_monad, v_not_implemented_dyad)
     };
 }
 
@@ -149,7 +145,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "NB." => not_impl!("NB."),
         "{{" => not_impl!("{{"),
         "}}" => not_impl!("}}"),
-        "plot." => VerbImpl::Plot,
+        "plot." => VerbImpl::Simple(SimpleImpl::monad("plot.", v_plot)),
         "assert." => not_impl!("assert."),
         "break." => not_impl!("break."),
         "continue." => not_impl!("continue."),
