@@ -701,8 +701,15 @@ pub fn v_amend_m_u(_x: &Word, _y: &Word) -> Result<Word> {
 }
 
 /// }. (monad)
-pub fn v_behead(_y: &Word) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_behead(y: &Word) -> Result<Word> {
+    match y {
+        Word::Noun(arr) => impl_array!(arr, |arr: &ArrayD<_>| Ok(Array::from_iter(
+            arr.iter().cloned().skip(1)
+        )
+        .into_dyn()
+        .into_noun())),
+        _ => return Err(JError::DomainError.into()),
+    }
 }
 /// }. (dyad)
 pub fn v_drop(_x: &Word, _y: &Word) -> Result<Word> {

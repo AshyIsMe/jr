@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
+use anyhow::Result;
+use ndarray::prelude::*;
+
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
 use jr::{collect_nouns, resolve_names, ModifierImpl, VerbImpl, Word};
-use ndarray::prelude::*;
-use std::collections::HashMap;
 
 #[test]
 fn test_basic_addition() {
@@ -408,6 +411,15 @@ fn test_parens() {
         jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
         Word::noun([12i64]).unwrap()
     );
+}
+
+#[test]
+fn test_behead() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("}. 5 6 7")?, &mut HashMap::new())?,
+        Word::noun([6i64, 7])?
+    );
+    Ok(())
 }
 
 #[test]
