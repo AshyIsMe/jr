@@ -524,5 +524,14 @@ fn test_check_agreement() {
         Array::from_shape_vec(IxDyn(&[2, 3]), vec![1, 2, 3, 5, 6, 7]).unwrap(),
     ));
 
-    assert!(check_agreement(x, y, [1, 1]).unwrap());
+    let r1 = check_agreement(x.clone(), y.clone(), [0, 0]).unwrap();
+    assert!(r1);
+    let r2 = check_agreement(x.clone(), y.clone(), [0, 1]).unwrap();
+    assert!(r2);
+
+    let x = Word::noun([24i64, 60, 60]).unwrap();
+    let y = Word::noun([1800i64, 7200]).unwrap();
+
+    let r3 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
+    assert!(r3);
 }
