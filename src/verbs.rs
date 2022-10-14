@@ -1,5 +1,5 @@
 use ndarray::prelude::*;
-use ndarray::{concatenate, Axis};
+use ndarray::{concatenate, Axis, Slice};
 use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
@@ -670,11 +670,10 @@ pub fn v_amend_m_u(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// }. (monad)
 pub fn v_behead(y: &JArray) -> Result<Word> {
-    impl_array!(y, |arr: &ArrayD<_>| Ok(Array::from_iter(
-        arr.iter().cloned().skip(1)
-    )
-    .into_dyn()
-    .into_noun()))
+    impl_array!(y, |arr: &ArrayD<_>| Ok(arr
+        .slice_axis(Axis(0), Slice::from(1isize..))
+        .into_owned()
+        .into_noun()))
 }
 /// }. (dyad)
 pub fn v_drop(_x: &JArray, _y: &JArray) -> Result<Word> {

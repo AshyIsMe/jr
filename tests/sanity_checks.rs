@@ -6,7 +6,7 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
@@ -418,6 +418,22 @@ fn test_behead() -> Result<()> {
     assert_eq!(
         jr::eval(jr::scan("}. 5 6 7")?, &mut HashMap::new())?,
         Word::noun([6i64, 7])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}. 3 2 $ i. 10")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[2, 2]),
+            [2, 3, 4, 5].to_vec()
+        )?))
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}. 3 3 3 $ i. 30")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[2, 3, 3]),
+            (9..27).collect()
+        )?))
     );
     Ok(())
 }
