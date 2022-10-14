@@ -16,7 +16,7 @@ use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct SimpleImpl {
     name: &'static str,
     monad: fn(&JArray) -> Result<Word>,
@@ -97,7 +97,7 @@ impl SimpleImpl {
         }
     }
 
-    pub fn new(
+    pub const fn new(
         name: &'static str,
         monad: fn(&JArray) -> Result<Word>,
         dyad: fn(&JArray, &JArray) -> Result<Word>,
