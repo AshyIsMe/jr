@@ -140,16 +140,25 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
                 Vec::new() // empty frame
             };
 
-            let common_frame = zip(x_frame, y_frame)
-                .map(|t| if t.0 == t.1 { 1 } else { 0 })
-                .collect::<Vec<usize>>();
+            //println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
+            if x_frame.is_empty() || y_frame.is_empty() {
+                Ok(true)
+            } else {
+                let checks = zip(x_frame.clone(), y_frame)
+                    .map(|t| if t.0 == t.1 { 1 } else { 0 })
+                    .collect::<Vec<usize>>();
 
-            // AA TODO - still in the middle of this thought...
+                let common_frame = match checks.iter().enumerate().find(|(_, i)| **i == 0usize) {
+                    Some((_, i)) => &x_frame[0..*i],
+                    _ => &x_frame,
+                };
 
-            // x_frame and y_frame must start identically (for length of shortest)
-            todo!("check agreement - not even close to done or working yet.")
+                // AA TODO - split x and y into cells and return them instead of just checking agreement
+
+                Ok(!common_frame.is_empty())
+            }
         }
-        _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
+        _ => Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
     }
 }
 
