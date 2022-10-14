@@ -499,4 +499,13 @@ fn test_check_agreement() {
 
     let r3 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
     assert!(r3);
+
+    let x = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+    ));
+    let y = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 4]), vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap(),
+    ));
+    let r4 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
+    assert!(!r4);
 }
