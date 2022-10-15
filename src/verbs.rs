@@ -884,8 +884,7 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
                     .iter()
                     .flat_map(|x| [x.numer().clone(), x.denom().clone()])
                     .collect();
-                todo!("oh right, these are bigints now");
-                Ok(todo!("{}", ArrayD::from_shape_vec(shape, values)?))
+                Ok(ArrayD::from_shape_vec(shape, values)?.into_noun())
             }
             None => Err(JError::NonceError.into()),
         },

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use ndarray::prelude::*;
 use num::complex::Complex64;
+use num::BigRational;
 
 use crate::arrays::*;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
@@ -80,7 +81,11 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             .collect::<Result<Vec<_>>>()?;
         Ok((l, Word::noun(a)?))
     } else if sentence[0..=l].contains('r') {
-        Err(JError::custom("rational numbers not supported yet"))
+        let a = sentence[0..=l]
+            .split_whitespace()
+            .map(scan_rational)
+            .collect::<Result<Vec<_>>>()?;
+        Ok((l, Word::noun(a)?))
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
         let a = sentence[0..=l]
             .split_whitespace()
@@ -114,6 +119,13 @@ fn scan_complex(term: &str) -> Result<Complex64> {
     Ok(match term.split_once('j') {
         Some((real, imaj)) => Complex64::new(real.parse()?, imaj.parse()?),
         None => Complex64::new(term.parse()?, 0.),
+    })
+}
+
+fn scan_rational(term: &str) -> Result<BigRational> {
+    Ok(match term.split_once('r') {
+        Some((real, imaj)) => BigRational::new(real.parse()?, imaj.parse()?),
+        None => BigRational::new(term.parse()?, 1.into()),
     })
 }
 
