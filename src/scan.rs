@@ -1,5 +1,6 @@
 use anyhow::Result;
 use ndarray::prelude::*;
+use num::complex::Complex64;
 
 use crate::arrays::*;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
@@ -73,7 +74,11 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     }
 
     if sentence[0..=l].contains('j') {
-        Err(JError::custom("complex numbers not supported yet"))
+        let a = sentence[0..=l]
+            .split_whitespace()
+            .map(scan_complex)
+            .collect::<Result<Vec<_>>>()?;
+        Ok((l, Word::noun(a)?))
     } else if sentence[0..=l].contains('r') {
         Err(JError::custom("rational numbers not supported yet"))
     } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
@@ -103,6 +108,13 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             Err(_) => Err(JError::custom("parse int error")),
         }
     }
+}
+
+fn scan_complex(term: &str) -> Result<Complex64> {
+    Ok(match term.split_once('j') {
+        Some((real, imaj)) => Complex64::new(real.parse()?, imaj.parse()?),
+        None => Complex64::new(term.parse()?, 0.),
+    })
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {

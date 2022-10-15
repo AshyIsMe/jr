@@ -5,6 +5,7 @@ pub use crate::verbs::*;
 
 use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
+use num::complex::Complex64;
 use thiserror::Error;
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
@@ -117,7 +118,7 @@ pub enum JArray {
     ExtIntArray(ArrayD<i128>), // TODO: num::bigint::BigInt
     //RationalArray { ... }, // TODO: num::rational::Rational64
     FloatArray(ArrayD<f64>),
-    //ComplexArray { ... },  // TODO: num::complex::Complex64
+    ComplexArray(ArrayD<Complex64>),
     BoxArray(ArrayD<Word>),
     //EmptyArray, // How do we do this properly?
 }
@@ -131,6 +132,19 @@ impl JArray {
             IntArray(a) => a.map(|&v| v as f32),
             ExtIntArray(a) => a.map(|&v| v as f32),
             FloatArray(a) => a.map(|&v| v as f32),
+            _ => return None,
+        })
+    }
+
+    pub fn to_c64(&self) -> Option<CowArrayD<Complex64>> {
+        use JArray::*;
+        Some(match self {
+            BoolArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
+            CharArray(a) => a.map(|&v| Complex64::new(v as u32 as f64, 0.)).into(),
+            IntArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
+            ExtIntArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
+            FloatArray(a) => a.map(|&v| Complex64::new(v, 0.)).into(),
+            ComplexArray(a) => a.into(),
             _ => return None,
         })
     }
@@ -151,6 +165,7 @@ pub enum JArrays<'a> {
     IntArrays(Vec<&'a ArrayD<i64>>),
     ExtIntArrays(Vec<&'a ArrayD<i128>>),
     FloatArrays(Vec<&'a ArrayD<f64>>),
+    ComplexArrays(Vec<&'a ArrayD<Complex64>>),
     BoxArrays(Vec<&'a ArrayD<Word>>),
 }
 
@@ -202,6 +217,9 @@ impl<'a> JArrays<'a> {
             IntArray(_) => JArrays::IntArrays(crate::homo_array!(IntArray, arrs.iter())),
             ExtIntArray(_) => JArrays::ExtIntArrays(crate::homo_array!(ExtIntArray, arrs.iter())),
             FloatArray(_) => JArrays::FloatArrays(crate::homo_array!(FloatArray, arrs.iter())),
+            ComplexArray(_) => {
+                JArrays::ComplexArrays(crate::homo_array!(ComplexArray, arrs.iter()))
+            }
             BoxArray(_) => JArrays::BoxArrays(crate::homo_array!(BoxArray, arrs.iter())),
         })
     }
@@ -216,6 +234,7 @@ macro_rules! impl_array {
             JArray::IntArray(a) => $func(a),
             JArray::ExtIntArray(a) => $func(a),
             JArray::FloatArray(a) => $func(a),
+            JArray::ComplexArray(a) => $func(a),
             JArray::BoxArray(a) => $func(a),
         }
     };
@@ -230,6 +249,7 @@ macro_rules! reduce_arrays {
             JArrays::IntArrays(ref a) => JArray::IntArray($func(a)?),
             JArrays::ExtIntArrays(ref a) => JArray::ExtIntArray($func(a)?),
             JArrays::FloatArrays(ref a) => JArray::FloatArray($func(a)?),
+            JArrays::ComplexArrays(ref a) => JArray::ComplexArray($func(a)?),
             JArrays::BoxArrays(ref a) => JArray::BoxArray($func(a)?),
         }
     };
@@ -284,6 +304,7 @@ impl_empty!(u8, 0);
 impl_empty!(i64, 0);
 impl_empty!(i128, 0);
 impl_empty!(f64, 0.);
+impl_empty!(Complex64, Complex64::new(0., 0.));
 impl_empty!(Word, Noun(BoolArray(Array::from_elem(IxDyn(&[0]), 0))));
 
 pub trait IntoJArray {
@@ -314,6 +335,7 @@ impl_into_jarray!(ArrayD<char>, JArray::CharArray);
 impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
 impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
+impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
 
 // like IntoIterator<Item = T> + ExactSizeIterator
