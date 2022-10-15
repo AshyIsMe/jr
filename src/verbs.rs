@@ -12,7 +12,6 @@ use crate::{IntoJArray, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
 
-use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
@@ -47,45 +46,53 @@ pub enum VerbImpl {
 }
 
 impl VerbImpl {
-    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
+    pub fn exec(&self, x: Option<&JArray>, y: &JArray) -> Result<Word> {
         match self {
             VerbImpl::Simple(imp) => match (x, y) {
-                (None, Word::Noun(y)) => {
-                    (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
-                }
-                (Some(Word::Noun(x)), Word::Noun(y)) => {
+                (None, y) => (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name)),
+                (Some(x), y) => {
                     imp.dyad
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
                 }
-                _ => Err(DomainError.into()),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
-                (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
-                (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
+                (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
+                    a.exec(to_noun(x).as_ref(), u, &Nothing, &Noun(y.clone()))
+                }
+                (m @ Noun(_), Nothing, Adverb(_, a)) => {
+                    a.exec(to_noun(x).as_ref(), m, &Nothing, &Noun(y.clone()))
+                }
                 (l, r, Conjunction(_, c))
                     if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
                 {
-                    c.exec(x, l, r, y)
+                    c.exec(to_noun(x).as_ref(), l, r, &Word::Noun(y.clone()))
                 }
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
-                (Verb(_, f), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
+                (Verb(_, f), Verb(_, g), Verb(_, h)) => g.exec(
+                    Some(&f.exec(x, y)?.try_into_noun()?),
+                    &h.exec(x, y)?.try_into_noun()?,
+                ),
+                (Noun(m), Verb(_, g), Verb(_, h)) => {
+                    g.exec(Some(m), &h.exec(x, y)?.try_into_noun()?)
                 }
-                (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(&y), &v.exec(None, y)?),
-                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?),
+                    None => u.exec(Some(&y), &v.exec(None, y)?.try_into_noun()?),
+                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?.try_into_noun()?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
         }
     }
+}
+
+fn to_noun(v: Option<&JArray>) -> Option<Word> {
+    v.map(|v| Word::Noun(v.clone()))
 }
 
 impl SimpleImpl {

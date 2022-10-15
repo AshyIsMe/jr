@@ -45,8 +45,9 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                     .to_cells()?
                     .into_iter()
                     .map(Ok)
-                    .reduce(|x, y| u.exec(Some(&x?), &y?))
-                    .ok_or(JError::DomainError)?,
+                    .reduce(|x, y| u.exec(Some(&x?), &y?)?.try_into_noun())
+                    .ok_or(JError::DomainError)?
+                    .map(Word::Noun),
                 _ => Err(JError::custom("noun expected")),
             },
             _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
@@ -76,7 +77,11 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     .map(|i| -> Result<_> {
                         let mut t = y.clone();
                         for _ in 0..*i {
-                            t = u.exec(x, &t)?;
+                            let x = match x {
+                                Some(x) => Some(x.try_to_noun()?),
+                                None => None,
+                            };
+                            t = u.exec(x, &t.try_into_noun()?)?;
                         }
                         Ok(t)
                     })

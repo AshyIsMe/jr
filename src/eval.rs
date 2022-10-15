@@ -31,7 +31,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("0 monad");
-                Ok(vec![fragment.0, v.exec(None, &Noun(y))?, any])
+                Ok(vec![fragment.0, v.exec(None, &y)?, any])
             }
             (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y))
                 if matches!(
@@ -40,11 +40,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 ) =>
             {
                 debug!("1 monad");
-                Ok(vec![
-                    fragment.0,
-                    Verb(us, u.clone()),
-                    v.exec(None, &Noun(y))?,
-                ])
+                Ok(vec![fragment.0, Verb(us, u.clone()), v.exec(None, &y)?])
             }
             (ref w, Noun(x), Verb(_, ref v), Noun(y))
                 if matches!(
@@ -55,8 +51,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 debug!("2 dyad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(Some(&Noun(x)), &Noun(y))
-                        .context("evaluating 2 dyad")?,
+                    v.exec(Some(&x), &y).context("evaluating 2 dyad")?,
                 ])
             }
             // (V|N) A anything - 3 Adverb
