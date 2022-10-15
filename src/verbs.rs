@@ -46,15 +46,16 @@ pub enum VerbImpl {
 }
 
 impl VerbImpl {
-    pub fn exec(&self, x: Option<&JArray>, y: &JArray) -> Result<Word> {
+    pub fn exec(&self, x: Option<JArray>, y: JArray) -> Result<Word> {
         match self {
             VerbImpl::Simple(imp) => match (x, y) {
-                (None, y) => (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name)),
-                (Some(x), y) => {
-                    imp.dyad
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
-                }
+                (None, y) => (imp.monad)(&y).with_context(|| anyhow!("monadic {:?}", imp.name)),
+                (Some(x), y) => imp
+                    .dyad
+                    .ok_or(JError::DomainError)
+                    .with_context(|| anyhow!("dyadic {:?}", imp.name))?(
+                    &x, &y
+                ),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
@@ -71,19 +72,20 @@ impl VerbImpl {
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
-                (Verb(_, f), Verb(_, g), Verb(_, h)) => g.exec(
-                    Some(&f.exec(x, y)?.try_into_noun()?),
-                    &h.exec(x, y)?.try_into_noun()?,
-                ),
+                (Verb(_, f), Verb(_, g), Verb(_, h)) => {
+                    let fx = f.exec(x.clone(), y.clone())?.try_into_noun()?;
+                    let hy = h.exec(x, y)?.try_into_noun()?;
+                    g.exec(Some(fx), hy)
+                }
                 (Noun(m), Verb(_, g), Verb(_, h)) => {
-                    g.exec(Some(m), &h.exec(x, y)?.try_into_noun()?)
+                    g.exec(Some(m.clone()), h.exec(x, y)?.try_into_noun()?)
                 }
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(&y), &v.exec(None, y)?.try_into_noun()?),
-                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?.try_into_noun()?),
+                    None => u.exec(Some(y.clone()), v.exec(None, y)?.try_into_noun()?),
+                    Some(x) => u.exec(Some(x), v.exec(None, y)?.try_into_noun()?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
@@ -91,7 +93,7 @@ impl VerbImpl {
     }
 }
 
-fn to_noun(v: Option<&JArray>) -> Option<Word> {
+fn to_noun(v: Option<JArray>) -> Option<Word> {
     v.map(|v| Word::Noun(v.clone()))
 }
 
