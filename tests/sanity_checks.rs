@@ -498,7 +498,6 @@ fn test_check_agreement() {
 
     let x = Word::noun([24i64, 60, 60]).unwrap();
     let y = Word::noun([1800i64, 7200]).unwrap();
-
     let r3 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
     assert!(r3);
 
