@@ -1,5 +1,6 @@
 mod ranks;
 
+use core::cmp::min;
 use std::fmt;
 use std::fmt::Debug;
 use std::iter::zip;
@@ -207,41 +208,57 @@ fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
 
 pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
     // https://code.jsoftware.com/wiki/Vocabulary/Agreement
-    // Calculate the frame of each cell
+    // [x] Make it work.
+    // [ ] Make it correct. (not even close to correct yet)
+    // [ ] Make it fast<C-w>clean.
 
     match (x.clone(), y.clone()) {
         (Noun(x), Noun(y)) => {
-            let x_shape = x.shape(); // (_1 * ({.ranks)) }. $ x
-            let y_shape = y.shape(); // (_1 * ({:ranks)) }. $ y
+            let x_shape = x.shape();
+            let y_shape = y.shape();
 
+            // (_1 * ({.ranks)) }. $ x
             let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
                 x_shape[0..x_shape.len() - ranks[0]].iter().collect()
             } else {
                 Vec::new() // empty frame
             };
+            // (_1 * ({:ranks)) }. $ y
             let y_frame: Vec<&usize> = if (y_shape.len() - ranks[0]) > 0 {
                 y_shape[0..y_shape.len() - ranks[0]].iter().collect()
             } else {
                 Vec::new() // empty frame
             };
 
-            //println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
-            if x_frame.is_empty() || y_frame.is_empty() {
-                Ok(true)
+            println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
+
+            // The frames of x and y must start identically,
+            // and must match identically for the entire length of the shorter frame.
+            let checks = zip(x_frame.clone(), y_frame.clone())
+                .map(|t| if t.0 == t.1 { 1 } else { 0 })
+                .collect::<Vec<usize>>();
+
+            let shortest_frame_len = min(x_frame.len(), y_frame.len());
+            let common_frame_len = match checks.iter().enumerate().find(|(_, i)| **i == 0usize) {
+                Some((_, i)) => *i,
+                _ => shortest_frame_len,
+            };
+            println!(
+                "shortest_frame_len: {:?}, common_frame_len: {:?}",
+                shortest_frame_len, common_frame_len
+            );
+
+            let common_frame = &x_frame[0..common_frame_len]; // grab from either x_frame or y_frame
+            let surplus_frame = if x_frame.len() > y_frame.len() {
+                &x_frame[common_frame_len..]
             } else {
-                let checks = zip(x_frame.clone(), y_frame)
-                    .map(|t| if t.0 == t.1 { 1 } else { 0 })
-                    .collect::<Vec<usize>>();
+                &y_frame[common_frame_len..]
+            };
+            // AA TODO - calculate macrocells of x and y
 
-                let common_frame = match checks.iter().enumerate().find(|(_, i)| **i == 0usize) {
-                    Some((_, i)) => &x_frame[0..*i],
-                    _ => &x_frame,
-                };
+            // AA TODO - split x and y into macrocells and return them instead of just checking agreement
 
-                // AA TODO - split x and y into cells and return them instead of just checking agreement
-
-                Ok(!common_frame.is_empty())
-            }
+            Ok(common_frame_len == shortest_frame_len)
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
     }
