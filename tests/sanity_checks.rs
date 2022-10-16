@@ -506,6 +506,6 @@ fn test_check_agreement() {
     let y = Noun(IntArray(
         Array::from_shape_vec(IxDyn(&[2, 4]), vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap(),
     ));
-    let r4 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
-    assert!(!r4);
+    let r4 = check_agreement(x.clone(), y.clone(), [1, 1]).unwrap();
+    assert!(!r4); // should be false (length error)
 }
