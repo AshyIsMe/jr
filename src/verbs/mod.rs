@@ -224,8 +224,8 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
                 Vec::new() // empty frame
             };
             // (_1 * ({:ranks)) }. $ y
-            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[0]) > 0 {
-                y_shape[0..y_shape.len() - ranks[0]].iter().collect()
+            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[1]) > 0 {
+                y_shape[0..y_shape.len() - ranks[1]].iter().collect()
             } else {
                 Vec::new() // empty frame
             };
@@ -254,6 +254,10 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
             } else {
                 &y_frame[common_frame_len..]
             };
+            println!(
+                "common_frame: {:?}, surplus_frame: {:?}\n",
+                common_frame, surplus_frame
+            );
             // AA TODO - calculate macrocells of x and y
 
             // AA TODO - split x and y into macrocells and return them instead of just checking agreement
