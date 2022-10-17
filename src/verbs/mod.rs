@@ -4,7 +4,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::impl_array;
+use crate::{arrays, impl_array};
 use crate::Word;
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
@@ -320,7 +320,25 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.plus()))
+    let x = x.approx().unwrap().to_owned();
+    let y = y.approx().unwrap().to_owned();
+
+    let x_shape = x.shape();
+    let y_shape = y.shape();
+
+    // NO RANK! WOOOOOOOOOOOOOO
+
+    let x_frame = x_shape;
+    let y_frame = y_shape;
+
+    let common_dims = super::cells::common_dims(x_frame, y_frame);
+
+    let common_frame = &x_shape[..common_dims];
+    let surplus_x = &x_shape[common_dims..];
+    let surplus_y = &y_shape[common_dims..];
+
+    todo!()
+    // Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
 /// +. (monad)
