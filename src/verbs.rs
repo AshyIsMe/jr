@@ -858,3 +858,38 @@ pub fn v_angle(_y: &JArray) -> Result<Word> {
 pub fn v_polar(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
+
+/// x: (monad)
+pub fn v_extend_precision(_y: &JArray) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// x: (dyad)
+pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
+    if x.len() != 1 || x.shape() != [1] {
+        return Err(JError::RankError.into());
+    }
+    let mode = match x.to_i64() {
+        Some(x) => x.into_iter().next().expect("len == 1"),
+        None => return Err(JError::DomainError.into()),
+    };
+
+    match mode {
+        2 => match y.to_rat() {
+            Some(y) => {
+                // same as +. for complex
+
+                let mut shape = y.shape().to_vec();
+                shape.push(2);
+                let values = y
+                    .iter()
+                    .flat_map(|x| [x.numer().clone(), x.denom().clone()])
+                    .collect();
+                Ok(ArrayD::from_shape_vec(shape, values)?.into_noun())
+            }
+            None => Err(JError::NonceError.into()),
+        },
+        1 => Err(JError::NonceError.into()),
+        x if x < 0 => Err(JError::NonceError.into()),
+        _ => Err(JError::DomainError.into()),
+    }
+}

@@ -6,6 +6,8 @@ pub use crate::verbs::*;
 use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
+use num::{BigInt, BigRational, Zero};
+use num_traits::ToPrimitive;
 use thiserror::Error;
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
@@ -115,8 +117,8 @@ pub enum JArray {
     BoolArray(ArrayD<u8>),
     CharArray(ArrayD<char>),
     IntArray(ArrayD<i64>),
-    ExtIntArray(ArrayD<i128>), // TODO: num::bigint::BigInt
-    //RationalArray { ... }, // TODO: num::rational::Rational64
+    ExtIntArray(ArrayD<BigInt>),
+    RationalArray(ArrayD<BigRational>),
     FloatArray(ArrayD<f64>),
     ComplexArray(ArrayD<Complex64>),
     BoxArray(ArrayD<Word>),
@@ -130,8 +132,30 @@ impl JArray {
             BoolArray(a) => a.map(|&v| v as f32),
             CharArray(a) => a.map(|&v| v as u32 as f32),
             IntArray(a) => a.map(|&v| v as f32),
-            ExtIntArray(a) => a.map(|&v| v as f32),
+            ExtIntArray(a) => a.map(|v| v.to_f32().unwrap_or(f32::NAN)),
+            RationalArray(a) => a.map(|v| v.to_f32().unwrap_or(f32::NAN)),
             FloatArray(a) => a.map(|&v| v as f32),
+            _ => return None,
+        })
+    }
+
+    pub fn to_i64(&self) -> Option<CowArrayD<i64>> {
+        use JArray::*;
+        Some(match self {
+            BoolArray(a) => a.map(|&v| i64::from(v)).into(),
+            CharArray(a) => a.map(|&v| i64::from(v as u32)).into(),
+            IntArray(a) => a.into(),
+            // TODO: attempt coercion of other types? .map(try_from).collect::<Result<ArrayD<>>>?
+            _ => return None,
+        })
+    }
+
+    pub fn to_rat(&self) -> Option<CowArrayD<BigRational>> {
+        use JArray::*;
+        Some(match self {
+            IntArray(a) => a.map(|&v| BigRational::new(v.into(), 1.into())).into(),
+            RationalArray(a) => a.into(),
+            // TODO: entirely missing other implementations
             _ => return None,
         })
     }
@@ -139,13 +163,20 @@ impl JArray {
     pub fn to_c64(&self) -> Option<CowArrayD<Complex64>> {
         use JArray::*;
         Some(match self {
-            BoolArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
-            CharArray(a) => a.map(|&v| Complex64::new(v as u32 as f64, 0.)).into(),
+            BoolArray(a) => a.map(|&v| Complex64::new(f64::from(v), 0.)).into(),
+            CharArray(a) => a.map(|&v| Complex64::new(f64::from(v as u32), 0.)).into(),
             IntArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
-            ExtIntArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
+            ExtIntArray(a) => a
+                .map(|v| Complex64::new(v.to_f64().unwrap_or(f64::NAN), 0.))
+                .into(),
+            // I sure expect absolutely no issues with NaNs creeping in here
+            RationalArray(a) => a
+                .map(|v| Complex64::new(v.to_f64().unwrap_or(f64::NAN), 0.))
+                .into(),
             FloatArray(a) => a.map(|&v| Complex64::new(v, 0.)).into(),
             ComplexArray(a) => a.into(),
-            _ => return None,
+            // ??
+            BoxArray(_) => return None,
         })
     }
 }
@@ -154,7 +185,7 @@ impl JArray {
 pub enum ArrayPair<'l, 'r> {
     BoolPair(CowArrayD<'l, u8>, CowArrayD<'r, u8>),
     IntPair(CowArrayD<'l, i64>, CowArrayD<'r, i64>),
-    ExtIntPair(CowArrayD<'l, i128>, CowArrayD<'r, i128>),
+    ExtIntPair(CowArrayD<'l, BigInt>, CowArrayD<'r, BigInt>),
     FloatPair(CowArrayD<'l, f64>, CowArrayD<'r, f64>),
     // CharArray(..) // char, again, lacks maths operators, making this annoying
 }
@@ -163,7 +194,8 @@ pub enum JArrays<'a> {
     BoolArrays(Vec<&'a ArrayD<u8>>),
     CharArrays(Vec<&'a ArrayD<char>>),
     IntArrays(Vec<&'a ArrayD<i64>>),
-    ExtIntArrays(Vec<&'a ArrayD<i128>>),
+    ExtIntArrays(Vec<&'a ArrayD<BigInt>>),
+    RationalArrays(Vec<&'a ArrayD<BigRational>>),
     FloatArrays(Vec<&'a ArrayD<f64>>),
     ComplexArrays(Vec<&'a ArrayD<Complex64>>),
     BoxArrays(Vec<&'a ArrayD<Word>>),
@@ -216,6 +248,9 @@ impl<'a> JArrays<'a> {
             CharArray(_) => JArrays::CharArrays(crate::homo_array!(CharArray, arrs.iter())),
             IntArray(_) => JArrays::IntArrays(crate::homo_array!(IntArray, arrs.iter())),
             ExtIntArray(_) => JArrays::ExtIntArrays(crate::homo_array!(ExtIntArray, arrs.iter())),
+            RationalArray(_) => {
+                JArrays::RationalArrays(crate::homo_array!(RationalArray, arrs.iter()))
+            }
             FloatArray(_) => JArrays::FloatArrays(crate::homo_array!(FloatArray, arrs.iter())),
             ComplexArray(_) => {
                 JArrays::ComplexArrays(crate::homo_array!(ComplexArray, arrs.iter()))
@@ -233,6 +268,7 @@ macro_rules! impl_array {
             JArray::CharArray(a) => $func(a),
             JArray::IntArray(a) => $func(a),
             JArray::ExtIntArray(a) => $func(a),
+            JArray::RationalArray(a) => $func(a),
             JArray::FloatArray(a) => $func(a),
             JArray::ComplexArray(a) => $func(a),
             JArray::BoxArray(a) => $func(a),
@@ -248,6 +284,7 @@ macro_rules! reduce_arrays {
             JArrays::CharArrays(ref a) => JArray::CharArray($func(a)?),
             JArrays::IntArrays(ref a) => JArray::IntArray($func(a)?),
             JArrays::ExtIntArrays(ref a) => JArray::ExtIntArray($func(a)?),
+            JArrays::RationalArrays(ref a) => JArray::RationalArray($func(a)?),
             JArrays::FloatArrays(ref a) => JArray::FloatArray($func(a)?),
             JArrays::ComplexArrays(ref a) => JArray::ComplexArray($func(a)?),
             JArrays::BoxArrays(ref a) => JArray::BoxArray($func(a)?),
@@ -302,9 +339,10 @@ macro_rules! impl_empty {
 impl_empty!(char, ' ');
 impl_empty!(u8, 0);
 impl_empty!(i64, 0);
-impl_empty!(i128, 0);
+impl_empty!(BigInt, BigInt::zero());
+impl_empty!(BigRational, BigRational::zero());
 impl_empty!(f64, 0.);
-impl_empty!(Complex64, Complex64::new(0., 0.));
+impl_empty!(Complex64, Complex64::zero());
 impl_empty!(Word, Noun(BoolArray(Array::from_elem(IxDyn(&[0]), 0))));
 
 pub trait IntoJArray {
@@ -333,7 +371,8 @@ macro_rules! impl_into_jarray {
 impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
 impl_into_jarray!(ArrayD<char>, JArray::CharArray);
 impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
-impl_into_jarray!(ArrayD<i128>, JArray::ExtIntArray);
+impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
+impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);

@@ -191,10 +191,10 @@ fn test_collect_int_nouns() {
 fn test_collect_extint_nouns() {
     let a = vec![
         Noun(ExtIntArray(
-            Array::from_shape_vec(IxDyn(&[2]), vec![0, 1]).unwrap(),
+            Array::from_shape_vec(IxDyn(&[2]), vec![0.into(), 1.into()]).unwrap(),
         )),
         Noun(ExtIntArray(
-            Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
+            Array::from_shape_vec(IxDyn(&[2]), vec![2.into(), 3.into()]).unwrap(),
         )),
     ];
     let result = collect_nouns(a).unwrap();
@@ -202,7 +202,8 @@ fn test_collect_extint_nouns() {
     assert_eq!(
         result,
         Noun(ExtIntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec![0, 1, 2, 3]).unwrap(),
+            Array::from_shape_vec(IxDyn(&[2, 2]), vec![0.into(), 1.into(), 2.into(), 3.into()])
+                .unwrap(),
         )),
     );
 }
@@ -434,6 +435,18 @@ fn test_parens() {
         jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
         Word::noun([12i64]).unwrap()
     );
+}
+
+#[test]
+fn test_num_dom() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("2 x: 5r1 4r2 1")?, &mut HashMap::new())?,
+        Word::Noun(JArray::ExtIntArray(ArrayD::from_shape_vec(
+            IxDyn(&[3, 2]),
+            vec![5.into(), 1.into(), 2.into(), 1.into(), 1.into(), 1.into()]
+        )?)),
+    );
+    Ok(())
 }
 
 #[test]

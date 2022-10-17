@@ -68,7 +68,6 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                 // TODO is there a better way to do this without needing to cast?
                 JArray::BoolArray(a) => a.map(|i| *i as i64),
                 JArray::IntArray(a) => a.map(|i| *i as i64),
-                JArray::ExtIntArray(a) => a.map(|i| *i as i64),
                 _ => return Err(JError::DomainError.into()),
             };
             Ok(collect_nouns(
