@@ -292,8 +292,17 @@ pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// +. (monad)
-pub fn v_real_imaginary(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_real_imaginary(y: &JArray) -> Result<Word> {
+    match y.to_c64() {
+        Some(y) => {
+            // y.insert_axis() ...
+            let mut shape = y.shape().to_vec();
+            shape.push(2);
+            let values = y.iter().flat_map(|x| [x.re, x.im]).collect();
+            Ok(ArrayD::from_shape_vec(shape, values)?.into_noun())
+        }
+        None => Err(JError::DomainError.into()),
+    }
 }
 /// +. (dyad)
 pub fn v_gcd_or(_x: &JArray, _y: &JArray) -> Result<Word> {

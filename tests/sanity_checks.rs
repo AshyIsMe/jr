@@ -401,6 +401,29 @@ fn test_resolve_names() {
 }
 
 #[test]
+fn test_real_imaginary() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("+. 5j1 6 7")?, &mut HashMap::new())?,
+        Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
+            IxDyn(&[3, 2]),
+            vec![5., 1., 6., 0., 7., 0.]
+        )?)),
+    );
+
+    assert_eq!(
+        jr::eval(
+            jr::scan("+. 2 3 $ 5j1 6 7j2 8j4 9 10j6")?,
+            &mut HashMap::new()
+        )?,
+        Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
+            IxDyn(&[2, 3, 2]),
+            vec![5., 1., 6., 0., 7., 2., 8., 4., 9., 0., 10., 6.]
+        )?)),
+    );
+    Ok(())
+}
+
+#[test]
 fn test_parens() {
     let mut names = HashMap::new();
     assert_eq!(
