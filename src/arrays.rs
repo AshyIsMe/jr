@@ -261,6 +261,7 @@ impl JArray {
     }
 }
 
+use crate::primitive_verbs;
 use JArray::*;
 use Word::*;
 
@@ -389,6 +390,14 @@ impl Word {
         ArrayD<T>: IntoJArray,
     {
         Ok(Word::Noun(v.into_array()?.into_jarray()))
+    }
+
+    /// primarily intended for asserts, hence the "static", and the PANIC on invalid input
+    pub fn static_verb(v: &'static str) -> Word {
+        Word::Verb(
+            v.to_string(),
+            primitive_verbs(v).expect("static verbs should be valid"),
+        )
     }
 }
 
