@@ -253,11 +253,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
 fn str_to_primitive(sentence: &str) -> Result<Word> {
     if primitive_nouns().contains(&sentence) {
         Ok(char_array(sentence)?) // TODO - actually lookup the noun
-    } else if primitive_verbs().contains_key(&sentence) {
-        let refd = match primitive_verbs().get(&sentence) {
-            Some(v) => v.clone(),
-            None => VerbImpl::NotImplemented(sentence.to_string()),
-        };
+    } else if let Some(refd) = primitive_verbs(&sentence) {
         Ok(Word::Verb(sentence.to_string(), refd))
     } else if primitive_adverbs().contains_key(&sentence) {
         Ok(Word::Adverb(

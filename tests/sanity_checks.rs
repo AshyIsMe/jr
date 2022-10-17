@@ -1,12 +1,13 @@
 use anyhow::Result;
+use std::collections::HashMap;
+
+use ndarray::prelude::*;
+
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::JError;
 use jr::Word::*;
-use jr::{check_agreement, collect_nouns, resolve_names, ModifierImpl, VerbImpl, Word};
-use log::{debug, info};
-use ndarray::prelude::*;
-use std::collections::HashMap;
+use jr::{check_agreement, collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
@@ -52,7 +53,7 @@ fn test_parse_basics() {
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap(),
         )),
-        Verb(String::from("+"), VerbImpl::Plus),
+        Word::static_verb("+"),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[3]), vec![1, 2, 3]).unwrap(),
         )),
@@ -118,7 +119,7 @@ fn test_reshape_helper() {
 fn test_power_conjunction_bool_arg() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
-        Verb(String::from("*:"), VerbImpl::StarCo),
+        Word::static_verb("*:"),
         Conjunction(String::from("^:"), ModifierImpl::HatCo),
         Noun(BoolArray(
             Array::from_shape_vec(IxDyn(&[2]), vec![0, 1]).unwrap(),
@@ -137,7 +138,7 @@ fn test_power_conjunction_bool_arg() {
 fn test_power_conjunction_noun_arg() {
     //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
     let words = vec![
-        Verb(String::from("*:"), VerbImpl::StarCo),
+        Word::static_verb("*:"),
         Conjunction(String::from("^:"), ModifierImpl::HatCo),
         Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
         Noun(IntArray(Array::from_elem(IxDyn(&[]), 4))),
@@ -149,7 +150,7 @@ fn test_power_conjunction_noun_arg() {
     );
 
     let words = vec![
-        Verb(String::from("*:"), VerbImpl::StarCo),
+        Word::static_verb("*:"),
         Conjunction(String::from("^:"), ModifierImpl::HatCo),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
@@ -233,7 +234,7 @@ fn test_fork() {
     let sum = Verb(
         String::from("+/"),
         VerbImpl::DerivedVerb {
-            l: Box::new(Verb(String::from("+"), VerbImpl::Plus)),
+            l: Box::new(Word::static_verb("+")),
             r: Box::new(Nothing),
             m: Box::new(Adverb(String::from("/"), ModifierImpl::Slash)),
         },
@@ -243,8 +244,8 @@ fn test_fork() {
             String::from("+/%#"),
             VerbImpl::Fork {
                 f: Box::new(sum),
-                g: Box::new(Verb(String::from("%"), VerbImpl::Percent)),
-                h: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+                g: Box::new(Word::static_verb("%")),
+                h: Box::new(Word::static_verb("#")),
             },
         ),
         Noun(IntArray(
@@ -265,8 +266,8 @@ fn test_fork_noun() {
             String::from("+/%#"),
             VerbImpl::Fork {
                 f: Box::new(Word::noun(vec![15i64]).unwrap()),
-                g: Box::new(Verb(String::from("%"), VerbImpl::Percent)),
-                h: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+                g: Box::new(Word::static_verb("%")),
+                h: Box::new(Word::static_verb("#")),
             },
         ),
         Noun(IntArray(
@@ -286,8 +287,8 @@ fn test_hook() {
         Verb(
             String::from("i.#"),
             VerbImpl::Hook {
-                l: Box::new(Verb(String::from("i."), VerbImpl::IDot)),
-                r: Box::new(Verb(String::from("#"), VerbImpl::Number)),
+                l: Box::new(Word::static_verb("i.")),
+                r: Box::new(Word::static_verb("#")),
             },
         ),
         Noun(IntArray(
@@ -317,49 +318,42 @@ fn test_idot() {
 }
 
 // TODO fix dyadic i.
-//#[test]
-//fn test_idot_negative_args() {
-//assert_eq!(
-//jr::eval(jr::scan("i. _4").unwrap()).unwrap(),
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[4]), vec![3, 2, 1, 0]).unwrap(),
-//})
-//);
-//assert_eq!(
-//jr::eval(jr::scan("i. _2 _3").unwrap()).unwrap(),
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[2, 3]), vec![5, 4, 3, 2, 1, 0]).unwrap(),
-//})
-//);
-//}
+#[test]
+#[ignore]
+fn test_idot_negative_args() {
+    assert_eq!(
+        jr::eval(jr::scan("i. _4").unwrap(), &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[4]), vec![3, 2, 1, 0]).unwrap(),
+        ))
+    );
+    assert_eq!(
+        jr::eval(jr::scan("i. _2 _3").unwrap(), &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![5, 4, 3, 2, 1, 0]).unwrap(),
+        ))
+    );
+}
 
 // TODO fix dyadic i.
-//#[test]
-//fn test_idot_dyadic() {
-//assert_eq!(
-//jr::eval(jr::scan("0 1 2 3 i. 4").unwrap()).unwrap(),
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[1]), vec![4]).unwrap(),
-//})
-//);
+#[test]
+#[ignore]
+fn test_idot_dyadic() {
+    assert_eq!(
+        jr::eval(jr::scan("0 1 2 3 i. 4").unwrap(), &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[1]), vec![4]).unwrap(),
+        ))
+    );
 
-////let words = jr::scan("(i.2 3) i. 3 4 5").unwrap(); //TODO use this when parens are implemented
-//let words = vec![
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
-//}),
-//Verb(String::from("i."), VerbImpl::IDot),
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap(),
-//}),
-//];
-//assert_eq!(
-//jr::eval(words).unwrap(),
-//Noun(IntArray {
-//a: Array::from_shape_vec(IxDyn(&[1]), vec![1]).unwrap(),
-//})
-//);
-//}
+    let words = jr::scan("(i.2 3) i. 3 4 5").unwrap(); //TODO use this when parens are implemented
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[1]), vec![1]).unwrap(),
+        ))
+    );
+}
 
 #[test]
 fn test_assignment() {
@@ -418,6 +412,31 @@ fn test_parens() {
         jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
         Word::noun([12i64]).unwrap()
     );
+}
+
+#[test]
+fn test_behead() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("}. 5 6 7")?, &mut HashMap::new())?,
+        Word::noun([6i64, 7])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}. 3 2 $ i. 10")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[2, 2]),
+            [2, 3, 4, 5].to_vec()
+        )?))
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}. 3 3 3 $ i. 30")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[2, 3, 3]),
+            (9..27).collect()
+        )?))
+    );
+    Ok(())
 }
 
 #[test]
