@@ -1,4 +1,5 @@
 use anyhow::Result;
+use core::cmp::{max, min};
 use ndarray::prelude::*;
 
 use crate::arrays::*;
@@ -96,10 +97,22 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             .map(|s| s.parse::<i64>())
             .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
         match a {
-            Ok(a) => Ok((
-                l,
-                Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-            )),
+            Ok(a) => {
+                if *a.iter().min().unwrap() == 0 && *a.iter().max().unwrap() == 1 {
+                    Ok((
+                        l,
+                        Noun(BoolArray(ArrayD::from_shape_vec(
+                            IxDyn(&[a.len()]),
+                            a.iter().map(|i| *i as u8).collect(),
+                        )?)),
+                    ))
+                } else {
+                    Ok((
+                        l,
+                        Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
+                    ))
+                }
+            }
             Err(_) => Err(JError::custom("parse int error")),
         }
     }
