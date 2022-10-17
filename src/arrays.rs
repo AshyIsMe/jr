@@ -3,7 +3,7 @@ use std::fmt;
 pub use crate::modifiers::*;
 pub use crate::verbs::*;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use thiserror::Error;
@@ -414,6 +414,20 @@ impl Word {
         Ok(Word::Noun(v.into_array()?.into_jarray()))
     }
 
+    pub fn try_to_noun(&self) -> Result<&JArray> {
+        match self {
+            Word::Noun(ja) => Ok(ja),
+            _ => bail!("Not A Noun: {:?}", self),
+        }
+    }
+
+    pub fn try_into_noun(self) -> Result<JArray> {
+        match self {
+            Word::Noun(ja) => Ok(ja),
+            _ => bail!("Not A Noun: {:?}", self),
+        }
+    }
+
     /// primarily intended for asserts, hence the "static", and the PANIC on invalid input
     pub fn static_verb(v: &'static str) -> Word {
         Word::Verb(
@@ -429,14 +443,14 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
 }
 
 impl Word {
-    pub fn to_cells(&self) -> Result<Vec<Word>> {
+    pub fn to_cells(&self) -> Result<Vec<JArray>> {
         let ja = match self {
             Noun(ja) => ja,
             _ => return Err(JError::DomainError.into()),
         };
         Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
             .outer_iter()
-            .map(|a| Noun(a.into_owned().into_jarray()))
+            .map(|a| a.into_owned().into_jarray())
             .collect()))
     }
 }
