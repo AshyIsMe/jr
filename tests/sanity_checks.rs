@@ -14,7 +14,7 @@ fn test_basic_addition() {
     let words = jr::scan("2 + 2").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun([4i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 4)))
     );
 
     let words = jr::scan("1 2 3 + 4 5 6").unwrap();
@@ -26,7 +26,7 @@ fn test_basic_addition() {
     let words = jr::scan("1 + 3.14").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun([1f64 + 3.14]).unwrap()
+        Noun(FloatArray(Array::from_elem(IxDyn(&[]), 1f64 + 3.14)))
     );
 }
 
@@ -35,7 +35,7 @@ fn test_basic_times() {
     let words = jr::scan("2 * 2").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(IntArray(Array::from_elem(IxDyn(&[1]), 4)))
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 4)))
     );
 
     let words = jr::scan("1 2 3 * 4 5 6").unwrap();
@@ -88,7 +88,7 @@ fn test_reshape() {
     let words = jr::scan("4 $ 1").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(IntArray(Array::from_elem(IxDyn(&[4]), 1)))
+        Noun(BoolArray(Array::from_elem(IxDyn(&[4]), 1)))
     );
 
     let words = jr::scan("1 2 3 $ 1 2").unwrap();
@@ -117,15 +117,9 @@ fn test_reshape_helper() {
 
 #[test]
 fn test_power_conjunction_bool_arg() {
-    //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
-    let words = vec![
-        Word::static_verb("*:"),
-        Conjunction(String::from("^:"), ModifierImpl::HatCo),
-        Noun(BoolArray(
-            Array::from_shape_vec(IxDyn(&[2]), vec![0, 1]).unwrap(),
-        )),
-        Noun(IntArray(Array::from_elem(IxDyn(&[]), 4))),
-    ];
+    let words = jr::scan("(*:^:0 1) 4").unwrap();
+    println!("words: {:?}", words);
+
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray(
@@ -136,29 +130,15 @@ fn test_power_conjunction_bool_arg() {
 
 #[test]
 fn test_power_conjunction_noun_arg() {
-    //let words = jr::scan("(*:^:2) 4").unwrap(); //TODO use this when parens are implemented
-    let words = vec![
-        Word::static_verb("*:"),
-        Conjunction(String::from("^:"), ModifierImpl::HatCo),
-        Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
-        Noun(IntArray(Array::from_elem(IxDyn(&[]), 4))),
-    ];
-    // TODO Should the result be an atom 256 here? rather than an array of shape 1?
+    let words = jr::scan("(*:^:2) 4").unwrap();
+    println!("words: {:?}", words);
+    //TODO Result should be an atom 256 here, rather than an array of shape 1.
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Noun(IntArray(Array::from_elem(IxDyn(&[1]), 256)))
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 256)))
     );
 
-    let words = vec![
-        Word::static_verb("*:"),
-        Conjunction(String::from("^:"), ModifierImpl::HatCo),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
-        )),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2]), vec![2, 3]).unwrap(),
-        )),
-    ];
+    let words = jr::scan("(*:^:2 3) 2 3").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray(
@@ -360,11 +340,11 @@ fn test_assignment() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("a =: 42").unwrap(), &mut names).unwrap(),
-        Word::noun([42i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))
     );
     assert_eq!(
         jr::eval(jr::scan("a").unwrap(), &mut names).unwrap(),
-        Word::noun([42i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))
     );
 }
 
@@ -406,11 +386,11 @@ fn test_parens() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("(2 * 2) + 4").unwrap(), &mut names).unwrap(),
-        Word::noun([8i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 8)))
     );
     assert_eq!(
         jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
-        Word::noun([12i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 12)))
     );
 }
 
@@ -444,7 +424,7 @@ fn test_box() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun([Word::noun([42i64]).unwrap()]).unwrap()
+        Word::noun([Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))]).unwrap()
     );
 }
 
@@ -453,7 +433,7 @@ fn test_unbox() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("> < 42").unwrap(), &mut names).unwrap(),
-        Word::noun([42i64]).unwrap()
+        Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))
     );
 }
 
@@ -463,18 +443,18 @@ fn test_link() {
     assert_eq!(
         jr::eval(jr::scan("1 ; 2 ; 3").unwrap(), &mut names).unwrap(),
         Word::noun([
-            Word::noun([1i64]).unwrap(),
-            Word::noun([2i64]).unwrap(),
-            Word::noun([3i64]).unwrap()
+            Noun(BoolArray(Array::from_elem(IxDyn(&[]), 1))),
+            Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
+            Noun(IntArray(Array::from_elem(IxDyn(&[]), 3))),
         ])
         .unwrap()
     );
     assert_eq!(
         jr::eval(jr::scan("1 ; 2 ; <3").unwrap(), &mut names).unwrap(),
         Word::noun([
-            Word::noun([1i64]).unwrap(),
-            Word::noun([2i64]).unwrap(),
-            Word::noun([3i64]).unwrap()
+            Noun(BoolArray(Array::from_elem(IxDyn(&[]), 1))),
+            Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
+            Noun(IntArray(Array::from_elem(IxDyn(&[]), 3))),
         ])
         .unwrap()
     );
@@ -528,37 +508,4 @@ fn test_check_agreement() {
     ));
     let r4 = check_agreement(x.clone(), y.clone(), [1, 1]).unwrap();
     assert!(!r4); // should be false (length error)
-}
-
-#[test]
-fn test_ndarray_experiment() {
-    //let a = Array::from_iter(0..60).into_shape((3, 4, 5)).unwrap();
-    let a = Array::from_shape_vec(IxDyn(&[3, 4, 5]), (0..60).collect()).unwrap();
-
-    //println!("a.shape(): {:?}\na:\n{}", a.shape(), a);
-    println!("a.shape(): {:?}", a.shape());
-    println!("a:\n{}\n", a);
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(0))");
-    for c in a.axis_iter(Axis(0)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(1))");
-    for c in a.axis_iter(Axis(1)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(2))");
-    for c in a.axis_iter(Axis(2)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    assert!(false);
 }

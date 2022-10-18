@@ -35,6 +35,32 @@ fn test_scan_num() -> Result<()> {
 }
 
 #[test]
+fn test_scan_atoms() -> Result<()> {
+    let words = jr::scan("1\n")?;
+    assert_eq!(
+        words,
+        [Word::Noun(BoolArray(ArrayD::from_elem(IxDyn(&[]), 1)))]
+    );
+    let words = jr::scan("42\n")?;
+    assert_eq!(
+        words,
+        [Word::Noun(IntArray(ArrayD::from_elem(IxDyn(&[]), 42)))]
+    );
+    let words = jr::scan("3.14\n")?;
+    assert_eq!(
+        words,
+        [Word::Noun(FloatArray(ArrayD::from_elem(IxDyn(&[]), 3.14)))]
+    );
+    let words = jr::scan("'a'\n")?;
+    assert_eq!(
+        words,
+        [Word::Noun(CharArray(ArrayD::from_elem(IxDyn(&[]), 'a')))]
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_scan_string() -> Result<()> {
     let words = jr::scan("'abc'")?;
     assert_eq!(words, [jr::char_array("abc")?]);
@@ -104,7 +130,7 @@ fn test_scan_primitives() -> Result<()> {
         [
             jr::char_array("a.")?,
             Word::static_verb("I."),
-            jr::char_array("A")?,
+            Word::Noun(CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
         ]
     );
     Ok(())
@@ -118,7 +144,7 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
         [
             jr::char_array("a.")?,
             Word::static_verb("I."),
-            jr::char_array("A")?,
+            Word::Noun(CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
         ]
     );
     Ok(())

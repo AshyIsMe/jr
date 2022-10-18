@@ -84,10 +84,16 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             .map(|s| s.parse::<f64>())
             .collect::<Result<Vec<f64>, std::num::ParseFloatError>>();
         match a {
-            Ok(a) => Ok((
-                l,
-                Noun(FloatArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-            )),
+            Ok(a) => {
+                if a.len() == 1 {
+                    Ok((l, Noun(FloatArray(ArrayD::from_elem(IxDyn(&[]), a[0])))))
+                } else {
+                    Ok((
+                        l,
+                        Noun(FloatArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
+                    ))
+                }
+            }
             Err(_) => Err(JError::custom("parse float error")),
         }
     } else {
@@ -98,7 +104,17 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
         match a {
             Ok(a) => {
-                if *a.iter().min().unwrap() == 0 && *a.iter().max().unwrap() == 1 {
+                if a.len() == 1 {
+                    // atom
+                    if a[0] == 0 || a[0] == 1 {
+                        Ok((
+                            l,
+                            Noun(BoolArray(ArrayD::from_elem(IxDyn(&[]), a[0] as u8))),
+                        ))
+                    } else {
+                        Ok((l, Noun(IntArray(ArrayD::from_elem(IxDyn(&[]), a[0])))))
+                    }
+                } else if *a.iter().min().unwrap() == 0 && *a.iter().max().unwrap() == 1 {
                     Ok((
                         l,
                         Noun(BoolArray(ArrayD::from_shape_vec(
@@ -107,15 +123,10 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
                         )?)),
                     ))
                 } else {
-                    if a.len() == 1 {
-                        //Ok((l, Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[]), a)?))))
-                        Ok((l, Noun(IntArray(Array::from_elem(IxDyn(&[]), a[0])))))
-                    } else {
-                        Ok((
-                            l,
-                            Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-                        ))
-                    }
+                    Ok((
+                        l,
+                        Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
+                    ))
                 }
             }
             Err(_) => Err(JError::custom("parse int error")),
@@ -169,7 +180,17 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
         .skip(1)
         .collect::<String>()
         .replace("''", "'");
-    Ok((l, char_array(&s)?))
+    if s.len() == 1 {
+        Ok((
+            l,
+            Noun(CharArray(ArrayD::from_elem(
+                IxDyn(&[]),
+                s.chars().nth(0).unwrap(),
+            ))),
+        ))
+    } else {
+        Ok((l, char_array(&s)?))
+    }
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
