@@ -4,8 +4,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arrays, impl_array};
 use crate::Word;
+use crate::{arrays, impl_array};
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 
@@ -332,12 +332,19 @@ pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
     let y_frame = y_shape;
 
     let common_dims = super::cells::common_dims(x_frame, y_frame);
-
     let common_frame = &x_shape[..common_dims];
+
+    if common_frame.is_empty() && (!x_frame.is_empty() || !y_frame.is_empty()) {
+        return Err(JError::LengthError).with_context(|| {
+            anyhow!("common frame cannot be empty for {x_frame:?} and {y_frame:?}")
+        });
+    }
+
     let surplus_x = &x_shape[common_dims..];
     let surplus_y = &y_shape[common_dims..];
 
-    todo!()
+    todo!("{:?}", x.axis_iter(Axis(common_dims - 1)))
+
     // Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
