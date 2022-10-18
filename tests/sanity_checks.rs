@@ -545,36 +545,3 @@ fn test_check_agreement() {
     let r4 = check_agreement(x.clone(), y.clone(), [1, 1]).unwrap();
     assert!(!r4); // should be false (length error)
 }
-
-#[test]
-fn test_ndarray_experiment() {
-    //let a = Array::from_iter(0..60).into_shape((3, 4, 5)).unwrap();
-    let a = Array::from_shape_vec(IxDyn(&[3, 4, 5]), (0..60).collect()).unwrap();
-
-    //println!("a.shape(): {:?}\na:\n{}", a.shape(), a);
-    println!("a.shape(): {:?}", a.shape());
-    println!("a:\n{}\n", a);
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(0))");
-    for c in a.axis_iter(Axis(0)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(1))");
-    for c in a.axis_iter(Axis(1)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    println!("--------------------");
-    println!("a.axis_iter(Axis(2))");
-    for c in a.axis_iter(Axis(2)) {
-        println!("cell.shape(): {:?}", c.shape());
-        println!("cell:\n{}\n", c)
-    }
-
-    assert!(false);
-}
