@@ -107,10 +107,15 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
                         )?)),
                     ))
                 } else {
-                    Ok((
-                        l,
-                        Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-                    ))
+                    if a.len() == 1 {
+                        //Ok((l, Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[]), a)?))))
+                        Ok((l, Noun(IntArray(Array::from_elem(IxDyn(&[]), a[0])))))
+                    } else {
+                        Ok((
+                            l,
+                            Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
+                        ))
+                    }
                 }
             }
             Err(_) => Err(JError::custom("parse int error")),
