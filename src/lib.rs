@@ -187,7 +187,7 @@ fn primitive_nouns() -> &'static [&'static str] {
 fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
     // https://code.jsoftware.com/wiki/NuVoc
     HashMap::from([
-        ("^:", ModifierImpl::NotImplemented),
+        ("^:", ModifierImpl::HatCo),
         (".", ModifierImpl::NotImplemented),
         (":", ModifierImpl::NotImplemented),
         (":.", ModifierImpl::NotImplemented),
