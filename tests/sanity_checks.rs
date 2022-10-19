@@ -509,3 +509,12 @@ fn test_check_agreement() {
     let r4 = check_agreement(x.clone(), y.clone(), [1, 1]).unwrap();
     assert!(!r4); // should be false (length error)
 }
+
+#[test]
+fn test_jarray_to_cells() {
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), vec![1, 2, 3, 5, 6, 7]).unwrap());
+    // for i in a.to_cells(1).unwrap() {
+    //     println!("{}", i);
+    // }
+    assert!(a.to_cells(1).unwrap().len() == 2);
+}
