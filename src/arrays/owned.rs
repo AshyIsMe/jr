@@ -80,6 +80,25 @@ impl JArray {
 
         self.to_shape(new_shape)
     }
+
+    pub fn to_cells<'s>(&'s self, rank: usize) -> Result<Vec<JArray>> {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| {
+            if rank > a.shape().len() {
+                Ok(vec![self.clone()])
+            } else {
+                let p = &a.shape()[..a.shape().len() - rank]
+                    .iter()
+                    .product::<usize>();
+                let s = vec![vec![*p], a.shape()[a.shape().len() - rank..].to_vec()].concat();
+                Ok(a.clone()
+                    .into_shape(s)
+                    .unwrap()
+                    .outer_iter()
+                    .map(|i| i.to_owned().into_jarray())
+                    .collect())
+            }
+        })
+    }
 }
 
 impl JArray {

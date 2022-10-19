@@ -259,6 +259,12 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
                 common_frame, surplus_frame
             );
             // AA TODO - calculate macrocells of x and y
+            let x_macrocells = x.to_cells(surplus_frame.len());
+            let y_macrocells = y.to_cells(surplus_frame.len());
+            println!(
+                "x_macrocells: {:?}\ny_macrocells: {:?}\n",
+                x_macrocells, y_macrocells
+            );
 
             // AA TODO - split x and y into macrocells and return them instead of just checking agreement
 
