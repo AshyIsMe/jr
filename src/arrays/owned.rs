@@ -9,7 +9,7 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
-use crate::Word;
+use crate::{spew_arrays, JArraysOwned, Word};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum JArray {
@@ -79,6 +79,15 @@ impl JArray {
         let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
 
         self.to_shape(new_shape)
+    }
+
+    pub fn to_cells(&self, nega_rank: usize) -> Result<JArraysOwned> {
+        let shoop = self.choppo(nega_rank)?;
+
+        // TODO: this copy is awful
+        Ok(spew_arrays!(shoop, |a: CowArrayD<_>| -> Result<_> {
+            Ok(a.outer_iter().map(|i| i.to_owned()).collect())
+        }))
     }
 }
 

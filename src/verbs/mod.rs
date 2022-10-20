@@ -4,12 +4,12 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::Word;
 use crate::{arrays, impl_array};
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
+use crate::{JArraysOwned, Word};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
@@ -350,16 +350,25 @@ pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
     }
 
     let len = x_cells.len().max(y_cells.len());
-    let results = x_cells
-        .into_iter()
-        .cycle()
-        .zip(y_cells.into_iter().cycle())
-        .take(len)
-        .map(|(x, y)| Ok(prohomo(&x, &y)?.plus()))
-        .collect::<Result<Vec<_>>>()?;
-
-    todo!()
-    // Ok(Word::Noun(prohomo(x, y)?.plus()))
+    Ok(match (x_cells, y_cells) {
+        (JArraysOwned::IntArrays(x_cells), JArraysOwned::IntArrays(y_cells)) => {
+            let results = x_cells
+                .into_iter()
+                .cycle()
+                .zip(y_cells.into_iter().cycle())
+                .take(len)
+                .map(|(x, y)| {
+                    ensure!(x.shape().is_empty());
+                    ensure!(y.shape().is_empty());
+                    let x = x.into_iter().next().unwrap();
+                    let y = y.into_iter().next().unwrap();
+                    Ok(x + y)
+                })
+                .collect::<Result<Vec<i64>>>()?;
+            Array::from_shape_vec(x_shape, results)?.into_noun()
+        }
+        _ => bail!("yet another impl! macro"),
+    })
 }
 
 /// +. (monad)
