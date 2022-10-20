@@ -48,7 +48,6 @@ fn array_iter_2_3_2() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_agreement() {
     let words = jr::scan("10 20 + i.2 3").unwrap();
     assert_eq!(
@@ -58,7 +57,6 @@ fn test_agreement() {
 }
 
 #[test]
-#[ignore]
 fn test_agreement_2() -> Result<()> {
     let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut HashMap::new()).unwrap_err();
     let root = dbg!(err.root_cause())
