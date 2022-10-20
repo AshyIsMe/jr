@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::prelude::*;
 
+use jr::args_to_macrocells;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::JError;
@@ -552,5 +553,16 @@ fn test_jarray_to_cells() {
     // for i in a.to_cells(1).unwrap() {
     //     println!("{}", i);
     // }
+    assert!(a.to_cells(0).unwrap().len() == 6);
     assert!(a.to_cells(1).unwrap().len() == 2);
+    assert!(a.to_cells(2).unwrap().len() == 1);
+}
+
+#[test]
+fn test_args_to_macrocells() {
+    let x = Word::noun([24i64, 60, 60]).unwrap();
+    let y = Word::noun([1800i64, 7200]).unwrap();
+
+    let r1 = args_to_macrocells(x, y, [1, 0]).unwrap();
+    assert!(r1.len() == 2);
 }
