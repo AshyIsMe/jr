@@ -3,6 +3,7 @@ use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 use std::fmt;
 use std::fmt::Debug;
+use std::iter::repeat;
 use std::iter::zip;
 use std::ops::Deref;
 
@@ -151,7 +152,7 @@ fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
 pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
     // https://code.jsoftware.com/wiki/Vocabulary/Agreement
     // [x] Make it work.
-    // [ ] Make it correct. (not even close to correct yet)
+    // [ ] Make it correct. (slightly closer to correct)
     // [ ] Make it fast<C-w>clean.
 
     match (x.clone(), y.clone()) {
@@ -190,27 +191,74 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
                 shortest_frame_len, common_frame_len
             );
 
-            let common_frame = &x_frame[0..common_frame_len]; // grab from either x_frame or y_frame
-            let surplus_frame = if x_frame.len() > y_frame.len() {
-                &x_frame[common_frame_len..]
-            } else {
-                &y_frame[common_frame_len..]
-            };
-            println!(
-                "common_frame: {:?}, surplus_frame: {:?}\n",
-                common_frame, surplus_frame
-            );
-            // AA TODO - calculate macrocells of x and y
-            let x_macrocells = x.to_cells(surplus_frame.len());
-            let y_macrocells = y.to_cells(surplus_frame.len());
-            println!(
-                "x_macrocells: {:?}\ny_macrocells: {:?}\n",
-                x_macrocells, y_macrocells
-            );
-
-            // AA TODO - split x and y into macrocells and return them instead of just checking agreement
-
+            //AA TODO - this is only the first macrocell check
+            // https://code.jsoftware.com/wiki/Vocabulary/Agreement#Agreement:_Macrocells_Of_x_and_y_Are_Matched
+            // "The frames of x and y must start identically, and must match identically for the entire length
+            // of the shorter frame. If they don't, the result is a length error which is signaled before the verb is executed on any cells."
             Ok(common_frame_len == shortest_frame_len)
+            // AA TODO - check cell matching within macrocells
+            // https://code.jsoftware.com/wiki/Vocabulary/Agreement#Cells_Are_Matched_Within_Macrocells
+        }
+        _ => Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
+    }
+}
+
+// AA TODO: The idea is that this returns a Vec<(x,y)> of macrocells that can be
+// mapped over in VerbImpl.exec() as per the doco here:
+// https://code.jsoftware.com/wiki/Vocabulary/Agreement#The_Verb_Is_Executed_And_The_Result_Collected
+pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JArray, JArray)>> {
+    match (x.clone(), y.clone()) {
+        (Noun(x), Noun(y)) => {
+            let x_shape = x.shape();
+            let y_shape = y.shape();
+
+            // (_1 * ({.ranks)) }. $ x
+            let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
+                x_shape[0..x_shape.len() - ranks[0]].iter().collect()
+            } else {
+                Vec::new() // empty frame
+            };
+            // (_1 * ({:ranks)) }. $ y
+            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[1]) > 0 {
+                y_shape[0..y_shape.len() - ranks[1]].iter().collect()
+            } else {
+                Vec::new() // empty frame
+            };
+
+            // The frames of x and y must start identically,
+            // and must match identically for the entire length of the shorter frame.
+            let checks = zip(x_frame.clone(), y_frame.clone())
+                .map(|t| if t.0 == t.1 { 1 } else { 0 })
+                .collect::<Vec<usize>>();
+
+            let shortest_frame_len = min(x_frame.len(), y_frame.len());
+            let common_frame_len = match checks.iter().enumerate().find(|(_, i)| **i == 0usize) {
+                Some((_, i)) => *i,
+                _ => shortest_frame_len,
+            };
+
+            let common_frame = &x_frame[0..common_frame_len]; // grab from either x_frame or y_frame
+            let x_surplus_frame = &x_frame[common_frame_len..];
+            let y_surplus_frame = &y_frame[common_frame_len..];
+
+            if common_frame_len != shortest_frame_len {
+                bail!(JError::LengthError)
+            } else {
+                // calculate macrocells of x and y
+                let x_macrocells = x.to_cells(ranks[0]).unwrap();
+                let y_macrocells = y.to_cells(ranks[1]).unwrap();
+
+                match (x_macrocells.len(), y_macrocells.len()) {
+                    (0, 0) => bail!(JError::Legacy("empty macrocells?".to_string())),
+                    (1, _) => Ok(
+                        zip(repeat(x_macrocells[0].clone()), y_macrocells.into_iter()).collect(),
+                    ),
+                    (_, 1) => Ok(
+                        zip(x_macrocells.into_iter(), repeat(y_macrocells[0].clone())).collect(),
+                    ),
+                    _ => bail!(JError::LengthError),
+                }
+            }
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
     }

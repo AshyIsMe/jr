@@ -246,6 +246,10 @@ macro_rules! homo_array {
 }
 
 impl JArray {
+    pub fn is_empty(&self) -> bool {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.is_empty())
+    }
+
     pub fn len(&self) -> usize {
         impl_array!(self, |a: &ArrayBase<_, _>| a.len())
     }
