@@ -320,9 +320,6 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    let x = x.approx().unwrap().to_owned();
-    let y = y.approx().unwrap().to_owned();
-
     let x_shape = x.shape();
     let y_shape = y.shape();
 
@@ -340,11 +337,28 @@ pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
         });
     }
 
-    let surplus_x = &x_shape[common_dims..];
-    let surplus_y = &y_shape[common_dims..];
+    let x_cells = x.to_cells(0)?;
+    let y_cells = y.to_cells(0)?;
 
-    todo!("{:?}", x.axis_iter(Axis(common_dims - 1)))
+    match (x_cells.len(), y_cells.len()) {
+        (0, 0) => unreachable!("to_cells bug"),
+        (1, _) | (_, 1) => (),
+        (x, y) => {
+            return Err(JError::LengthError)
+                .with_context(|| anyhow!("mismachrotched cells: {x:?} {y:?}"))
+        }
+    }
 
+    let len = x_cells.len().max(y_cells.len());
+    let results = x_cells
+        .into_iter()
+        .cycle()
+        .zip(y_cells.into_iter().cycle())
+        .take(len)
+        .map(|(x, y)| Ok(prohomo(&x, &y)?.plus()))
+        .collect::<Result<Vec<_>>>()?;
+
+    todo!()
     // Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
