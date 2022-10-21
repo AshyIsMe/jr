@@ -1,6 +1,7 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use ndarray::{arr0, array, ArrayD};
 
+use crate::JArraysOwned::IntArrays;
 use crate::{arrays, IntoJArray, JArray, JArraysOwned, JError};
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
@@ -44,10 +45,40 @@ pub fn generate_cells(
     let y_surplus = &y_shape[common_dims..];
     println!("{x_surplus:?} {y_surplus:?}");
 
-    let x_cells = x.to_cells(x_surplus.len())?;
-    let y_cells = y.to_cells(y_surplus.len())?;
+    // I don't know what this is doing, either (i.e. FUCK YOUUUUUUUUUUU)
+    let (x_cells, y_cells) = match (x_surplus.len(), y_surplus.len()) {
+        (1, 1) => (1, 0),
+        (0, y) => (0, y),
+        (_, _) => bail!("can't match {x_surplus:?} {y_surplus:?}"),
+    };
+
+    let x_cells = x.to_cells(x_cells)?;
+    let y_cells = y.to_cells(y_cells)?;
 
     Ok((x_cells, y_cells))
+}
+
+pub fn match_cells(
+    (x, y): (JArraysOwned, JArraysOwned),
+) -> Result<Vec<(ArrayD<i64>, ArrayD<i64>)>> {
+    use JArraysOwned::*;
+    let lens = x.len().max(y.len());
+    Ok(match (x, y) {
+        (IntArrays(x), IntArrays(y)) => enpairinate(x, y),
+        (x, y) => bail!("yet another impl macro? {x:?} {y:?}"),
+    })
+}
+
+fn enpairinate<X: Clone, Y: Clone>(
+    x: Vec<ArrayD<X>>,
+    y: Vec<ArrayD<Y>>,
+) -> Vec<(ArrayD<X>, ArrayD<Y>)> {
+    let lens = x.len().max(y.len());
+    x.into_iter()
+        .cycle()
+        .zip(y.into_iter().cycle())
+        .take(lens)
+        .collect()
 }
 
 #[cfg(test)]
@@ -133,7 +164,7 @@ mod tests {
             (1, 0),
         )?;
         assert_eq!(x, IntArrays(vec![array![24, 60, 61].into_dyn()]));
-        assert_eq!(y, IntArrays(vec![array![1800i64, 7200].into_dyn()]));
+    assert_eq!(y, IntArrays(vec![arr0d(1800i64), arr0d(7200)]));
         Ok(())
     }
 }

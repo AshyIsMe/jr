@@ -11,10 +11,12 @@ use crate::{IntoJArray, JArray};
 use crate::{JArraysOwned, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
+use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
+use crate::cells::{generate_cells, match_cells, result_shape};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -321,60 +323,18 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    let x_shape = x.shape();
-    let y_shape = y.shape();
-
-    let result_shape = if x_shape.len() > y_shape.len() {
-        x_shape
-    } else {
-        y_shape
-    };
-
-    // NO RANK! WOOOOOOOOOOOOOO
-
-    let x_frame = x_shape;
-    let y_frame = y_shape;
-
-    let common_dims = super::cells::common_dims(x_frame, y_frame);
-    let common_frame = &x_shape[..common_dims];
-
-    if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
-        return Err(JError::LengthError).with_context(|| {
-            anyhow!("common frame cannot be empty for {x_frame:?} and {y_frame:?}")
-        });
-    }
-
-    let x_cells = x.to_cells(0)?;
-    let y_cells = y.to_cells(0)?;
-
-    use JArraysOwned::*;
-    #[cfg(never)]
-    Ok(match (x_cells, y_cells) {
-        (IntArrays(x), IntArrays(y)) => {
-            Array::from_shape_vec(result_shape, ploos(x, y)?)?.into_noun()
-        }
-        (x, y) => bail!("unable to perform addition on {x:?}, {y:?}"),
-    });
-
-    todo!()
-}
-
-#[cfg(never)]
-fn ploos(x: Vec<ArrayD<i64>>, y: Vec<ArrayD<i64>>) -> Result<ArrayD<i64>> {
-    let len = x.len().max(y.len());
-    x.into_iter()
-        .cycle()
-        .zip(y.into_iter().cycle())
-        .take(len)
-        .map(|(x, y)| {
-            dbg!(&x, &y);
-            // ensure!(x.shape().is_empty());
-            // ensure!(y.shape().is_empty());
-            // let x = x.into_iter().next().unwrap();
-            // let y = y.into_iter().next().unwrap();
-            Ok(x + y)
-        })
-        .collect()
+    let target_shape = result_shape(x, y);
+    let cells = generate_cells(x, y, (0, 0))?;
+    let boops = match_cells(cells)?;
+    // FUCK YOUUUUUUUUUUU
+    Ok(Array::from_shape_vec(
+        target_shape,
+        boops
+            .into_iter()
+            .flat_map(|(x, y)| (x + y).into_iter())
+            .collect(),
+    )?
+    .into_noun())
 }
 
 /// +. (monad)
