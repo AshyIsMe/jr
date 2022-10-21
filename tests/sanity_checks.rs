@@ -528,5 +528,10 @@ fn test_args_to_macrocells() {
     let y = Word::noun([1800i64, 7200]).unwrap();
 
     let r1 = args_to_macrocells(x, y, [1, 0]).unwrap();
+    for t in r1.clone().into_iter() {
+        println!("{}, {}", t.0, t.1);
+    }
+    //assert!(false);             // Force fail to see println! output
+
     assert!(r1.len() == 2);
 }
