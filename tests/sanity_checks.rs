@@ -543,7 +543,7 @@ fn test_check_agreement() {
     let y = Noun(IntArray(
         Array::from_shape_vec(IxDyn(&[2, 4]), vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap(),
     ));
-    let r4 = check_agreement(x.clone(), y.clone(), [1, 1]).unwrap();
+    let r4 = check_agreement(x.clone(), y.clone(), [0, 0]).unwrap();
     assert!(!r4); // should be false (length error)
 }
 
@@ -564,10 +564,21 @@ fn test_args_to_macrocells() {
     let y = Word::noun([1800i64, 7200]).unwrap();
 
     let r1 = args_to_macrocells(x, y, [1, 0]).unwrap();
-    for t in r1.clone().into_iter() {
-        println!("{}, {}", t.0, t.1);
-    }
+    // for t in r1.clone().into_iter() {
+    //     println!("{}, {}", t.0, t.1);
+    // }
     //assert!(false);             // Force fail to see println! output
-
     assert!(r1.len() == 2);
+
+    let x = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+    ));
+    let y = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 4]), vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap(),
+    ));
+    let r2 = args_to_macrocells(x, y, [0, 0]).unwrap_err();
+    let err = dbg!(r2.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(err, JError::LengthError));
 }
