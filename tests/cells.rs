@@ -47,9 +47,15 @@ fn test_gen_macrocells_plus_same() -> Result<()> {
         [0, 0],
     )?;
 
-    todo!();
-    // assert_eq!(x, IntArrays(vec![arr0d(10), arr0d(20), arr0d(30)]));
-    // assert_eq!(y, IntArrays(vec![arr0d(1), arr0d(2), arr0d(3)]));
+    assert_eq!(
+        r,
+        vec![
+            j(arr0d(10i64), arr0d(1i64)),
+            j(arr0d(20i64), arr0d(2i64)),
+            j(arr0d(30i64), arr0d(3i64)),
+        ]
+    );
+
     Ok(())
 }
 
@@ -130,6 +136,10 @@ fn test_agreement_basics_idot_2_3_ranks_0_1() -> Result<()> {
 #[test]
 fn test_agreement_basics_idot_2_3_ranks_1_0() -> Result<()> {
     let r = args_to_macrocells(idot(&[2, 3]), idot(&[2, 3]), [1, 0])?;
+    println!("r:");
+    for t in r.iter() {
+        println!("{}, {}", t.0, t.1);
+    }
     assert_eq!(
         r,
         vec![
