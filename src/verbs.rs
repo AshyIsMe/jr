@@ -1,5 +1,3 @@
-use ndarray::prelude::*;
-use ndarray::{concatenate, Axis, Slice};
 use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
@@ -11,16 +9,71 @@ use crate::{IntoJArray, JArray};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
+use ndarray::prelude::*;
+use ndarray::{concatenate, Axis, Slice};
 
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Rank(u8);
+
+impl Rank {
+    pub fn new(val: u8) -> Result<Self> {
+        if val >= 64 {
+            return Err(JError::LimitError).with_context(|| anyhow!("{val} is too many ranks"));
+        }
+        Ok(Rank(val))
+    }
+
+    pub const fn zero() -> Self {
+        Rank(0)
+    }
+
+    pub const fn one() -> Self {
+        Rank(1)
+    }
+
+    pub const fn zero_zero() -> (Self, Self) {
+        (Self::zero(), Self::zero())
+    }
+
+    pub const fn infinite() -> Self {
+        Rank(u8::MAX)
+    }
+
+    pub const fn infinite_infinite() -> (Self, Self) {
+        (Self::infinite(), Self::infinite())
+    }
+
+    pub fn usize(&self) -> usize {
+        usize::from(self.0)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Monad {
+    // TODO: NOT public
+    pub f: fn(&JArray) -> Result<Word>,
+    pub rank: Rank,
+}
+
+#[derive(Copy, Clone)]
+pub struct Dyad {
+    // TODO: NOT public
+    pub f: fn(&JArray, &JArray) -> Result<Word>,
+    pub rank: (Rank, Rank),
+}
+
 #[derive(Copy, Clone)]
 pub struct SimpleImpl {
-    name: &'static str,
-    monad: fn(&JArray) -> Result<Word>,
-    dyad: Option<fn(&JArray, &JArray) -> Result<Word>>,
+    // TODO: NOT public
+    pub name: &'static str,
+    // TODO: NOT public
+    pub monad: Monad,
+    // TODO: NOT public
+    pub dyad: Option<Dyad>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,13 +104,13 @@ impl VerbImpl {
         match self {
             VerbImpl::Simple(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
-                    (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
+                    (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
-                (Some(Word::Noun(x)), Word::Noun(y)) => {
-                    imp.dyad
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
-                }
+                (Some(Word::Noun(x)), Word::Noun(y)) => (imp
+                    .dyad
+                    .ok_or(JError::DomainError)
+                    .with_context(|| anyhow!("dyadic {:?}", imp.name))?
+                    .f)(x, y),
                 _ => Err(DomainError.into()),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
@@ -92,7 +145,10 @@ impl SimpleImpl {
     pub fn monad(name: &'static str, f: fn(&JArray) -> Result<Word>) -> Self {
         Self {
             name,
-            monad: f,
+            monad: Monad {
+                f,
+                rank: Rank::infinite(),
+            },
             dyad: None,
         }
     }
@@ -104,8 +160,14 @@ impl SimpleImpl {
     ) -> Self {
         Self {
             name,
-            monad,
-            dyad: Some(dyad),
+            monad: Monad {
+                f: monad,
+                rank: Rank::infinite(),
+            },
+            dyad: Some(Dyad {
+                f: dyad,
+                rank: Rank::infinite_infinite(),
+            }),
         }
     }
 }
