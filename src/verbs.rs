@@ -149,6 +149,7 @@ fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
     })
 }
 
+// AA TODO Delete this function - args_to_macrocells() returns Err(LengthError) anyway
 pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
     // https://code.jsoftware.com/wiki/Vocabulary/Agreement
     // [x] Make it work.
@@ -203,8 +204,8 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
     }
 }
 
-// AA TODO: The idea is that this returns a Vec<(x,y)> of macrocells that can be
-// mapped over in VerbImpl.exec() as per the doco here:
+// TODO: Rename this to eval_dyadic(x: Word, y: Word, f: VerbImpl) and add ranks to VerbImpl struct.
+// TODO: Then actually do the verb execution and collect the result as per:
 // https://code.jsoftware.com/wiki/Vocabulary/Agreement#The_Verb_Is_Executed_And_The_Result_Collected
 pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JArray, JArray)>> {
     match (x.clone(), y.clone()) {
@@ -263,22 +264,9 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
                 // while the macrocells of the operand with longer frame will be arrays of cells.
                 // If the frames are identical, the macrocells are simply the cells of the arguments. "
 
-                // AA TODO: macrocells below are not quite right:
                 // calculate macrocells of x and y
-                let x_macrocells = if x_frame.len() <= y_frame.len() || ranks[0] == 0 {
-                    //x.to_cells(x.shape().len() - 1).unwrap()
-                    x.to_cells(max(0, x.shape().len() as i64 - 1) as usize)
-                        .unwrap()
-                } else {
-                    x.to_cells(ranks[0]).unwrap()
-                };
-                let y_macrocells = if y_frame.len() <= x_frame.len() || ranks[1] == 0 {
-                    //y.to_cells(y.shape().len() - 1).unwrap()
-                    y.to_cells(max(0, y.shape().len() as i64 - 1) as usize)
-                        .unwrap()
-                } else {
-                    y.to_cells(ranks[1]).unwrap()
-                };
+                let x_macrocells = x.to_cells(ranks[0]).unwrap();
+                let y_macrocells = y.to_cells(ranks[1]).unwrap();
 
                 //let y_macrocells = y.to_cells(ranks[1]).unwrap();
                 println!("x_macrocells:");
@@ -289,76 +277,21 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
                 for c in y_macrocells.iter() {
                     println!("{}", c);
                 }
-
-                if ranks[0] < ranks[1] {
-                    // repeat y macrocells
-                    let mut v: Vec<(JArray, JArray)> = Vec::new();
-                    for (i, xc) in x_macrocells.iter().enumerate() {
-                        for (j, xi) in xc
-                            .to_cells(max(0, xc.shape().len() as i64 - 1) as usize)
-                            .unwrap()
-                            .iter()
-                            .enumerate()
-                        {
-                            //each xi with y_macrocells[i]
-                            v.push((xi.clone(), y_macrocells[i].clone()))
-                        }
-                    }
-                    Ok(v)
-                } else if ranks[0] > ranks[1] {
+                if x_surplus_frame.len() < y_surplus_frame.len() {
                     // repeat x macrocells
-                    let mut v: Vec<(JArray, JArray)> = Vec::new();
-                    for (i, yc) in y_macrocells.iter().enumerate() {
-                        for (j, yi) in yc
-                            .to_cells(max(0, yc.shape().len() as i64 - 1) as usize)
-                            .unwrap()
-                            .iter()
-                            .enumerate()
-                        {
-                            //each xi with y_macrocells[i]
-                            v.push((x_macrocells[i].clone(), yi.clone()))
-                        }
-                    }
-                    Ok(v)
+                    let x_cells = x_macrocells
+                        .iter()
+                        .flat_map(|item| repeat(item.clone()).take(*y_surplus_frame[0]));
+                    Ok(zip(x_cells.into_iter(), y_macrocells.into_iter()).collect())
+                } else if x_surplus_frame.len() > y_surplus_frame.len() {
+                    // repeat y macrocells
+                    let y_cells = y_macrocells
+                        .iter()
+                        .flat_map(|item| repeat(item.clone()).take(*x_surplus_frame[0]));
+                    Ok(zip(x_macrocells.into_iter(), y_cells.into_iter()).collect())
                 } else {
                     // match macrocells evenly
-                    if x_surplus_frame.len() < y_surplus_frame.len() {
-                        // repeat x macrocells
-                        let mut v: Vec<(JArray, JArray)> = Vec::new();
-                        let mut x_iter = x_macrocells.iter().cycle();
-                        for (i, yc) in y_macrocells.iter().enumerate() {
-                            for (j, yi) in yc
-                                .to_cells(max(0, yc.shape().len() as i64 - 1) as usize)
-                                .unwrap()
-                                .iter()
-                                .enumerate()
-                            {
-                                //each xi with y_macrocells[i]
-                                //v.push((x_macrocells[i].clone(), yi.clone()))
-                                v.push((x_iter.next().unwrap().clone(), yi.clone()))
-                            }
-                        }
-                        Ok(v)
-                    } else if x_surplus_frame.len() > y_surplus_frame.len() {
-                        // repeat y macrocells
-                        let mut v: Vec<(JArray, JArray)> = Vec::new();
-                        let mut y_iter = y_macrocells.iter().cycle();
-                        for (i, xc) in x_macrocells.iter().enumerate() {
-                            for (j, xi) in xc
-                                .to_cells(max(0, xc.shape().len() as i64 - 1) as usize)
-                                .unwrap()
-                                .iter()
-                                .enumerate()
-                            {
-                                //each xi with y_macrocells[i]
-                                //v.push((xi.clone(), y_macrocells[i].clone()))
-                                v.push((xi.clone(), y_iter.next().unwrap().clone()));
-                            }
-                        }
-                        Ok(v)
-                    } else {
-                        Ok(zip(x_macrocells.into_iter(), y_macrocells.into_iter()).collect())
-                    }
+                    Ok(zip(x_macrocells.into_iter(), y_macrocells.into_iter()).collect())
                 }
             }
         }
