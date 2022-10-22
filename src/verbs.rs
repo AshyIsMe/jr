@@ -1,4 +1,4 @@
-use core::cmp::min;
+use core::cmp::{max, min};
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 use std::fmt;
@@ -209,6 +209,9 @@ pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
 pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JArray, JArray)>> {
     match (x.clone(), y.clone()) {
         (Noun(x), Noun(y)) => {
+            println!("x:\n{}\ny:\n{}", x, y);
+            println!("ranks: [{}, {}]\n", ranks[0], ranks[1]);
+
             let x_shape = x.shape();
             let y_shape = y.shape();
 
@@ -224,6 +227,7 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
             } else {
                 Vec::new() // empty frame
             };
+            println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
 
             // The frames of x and y must start identically,
             // and must match identically for the entire length of the shorter frame.
@@ -237,26 +241,124 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
                 _ => shortest_frame_len,
             };
 
+            println!(
+                "shortest_frame_len: {:?}, common_frame_len: {:?}",
+                shortest_frame_len, common_frame_len
+            );
+
             let common_frame = &x_frame[0..common_frame_len]; // grab from either x_frame or y_frame
             let x_surplus_frame = &x_frame[common_frame_len..];
             let y_surplus_frame = &y_frame[common_frame_len..];
+            println!("common_frame: {:?}", common_frame);
+            println!(
+                "x_surplus_frame: {:?}, y_surplus_frame: {:?}",
+                x_surplus_frame, y_surplus_frame
+            );
 
             if common_frame_len != shortest_frame_len {
+                println!("bailing common_frame_len != shortest_frame_len");
                 bail!(JError::LengthError)
             } else {
-                // calculate macrocells of x and y
-                let x_macrocells = x.to_cells(ranks[0]).unwrap();
-                let y_macrocells = y.to_cells(ranks[1]).unwrap();
+                // "The macrocells for the argument with the shorter frame will be cells of that argument,
+                // while the macrocells of the operand with longer frame will be arrays of cells.
+                // If the frames are identical, the macrocells are simply the cells of the arguments. "
 
-                match (x_macrocells.len(), y_macrocells.len()) {
-                    (0, 0) => bail!(JError::Legacy("empty macrocells?".to_string())),
-                    (1, _) => Ok(
-                        zip(repeat(x_macrocells[0].clone()), y_macrocells.into_iter()).collect(),
-                    ),
-                    (_, 1) => Ok(
-                        zip(x_macrocells.into_iter(), repeat(y_macrocells[0].clone())).collect(),
-                    ),
-                    _ => bail!(JError::LengthError),
+                // AA TODO: macrocells below are not quite right:
+                // calculate macrocells of x and y
+                let x_macrocells = if x_frame.len() <= y_frame.len() || ranks[0] == 0 {
+                    //x.to_cells(x.shape().len() - 1).unwrap()
+                    x.to_cells(max(0, x.shape().len() as i64 - 1) as usize)
+                        .unwrap()
+                } else {
+                    x.to_cells(ranks[0]).unwrap()
+                };
+                let y_macrocells = if y_frame.len() <= x_frame.len() || ranks[1] == 0 {
+                    //y.to_cells(y.shape().len() - 1).unwrap()
+                    y.to_cells(max(0, y.shape().len() as i64 - 1) as usize)
+                        .unwrap()
+                } else {
+                    y.to_cells(ranks[1]).unwrap()
+                };
+
+                //let y_macrocells = y.to_cells(ranks[1]).unwrap();
+                println!("x_macrocells:");
+                for c in x_macrocells.iter() {
+                    println!("{}", c);
+                }
+                println!("y_macrocells:");
+                for c in y_macrocells.iter() {
+                    println!("{}", c);
+                }
+
+                if ranks[0] < ranks[1] {
+                    // repeat y macrocells
+                    let mut v: Vec<(JArray, JArray)> = Vec::new();
+                    for (i, xc) in x_macrocells.iter().enumerate() {
+                        for (j, xi) in xc
+                            .to_cells(max(0, xc.shape().len() as i64 - 1) as usize)
+                            .unwrap()
+                            .iter()
+                            .enumerate()
+                        {
+                            //each xi with y_macrocells[i]
+                            v.push((xi.clone(), y_macrocells[i].clone()))
+                        }
+                    }
+                    Ok(v)
+                } else if ranks[0] > ranks[1] {
+                    // repeat x macrocells
+                    let mut v: Vec<(JArray, JArray)> = Vec::new();
+                    for (i, yc) in y_macrocells.iter().enumerate() {
+                        for (j, yi) in yc
+                            .to_cells(max(0, yc.shape().len() as i64 - 1) as usize)
+                            .unwrap()
+                            .iter()
+                            .enumerate()
+                        {
+                            //each xi with y_macrocells[i]
+                            v.push((x_macrocells[i].clone(), yi.clone()))
+                        }
+                    }
+                    Ok(v)
+                } else {
+                    // match macrocells evenly
+                    if x_surplus_frame.len() < y_surplus_frame.len() {
+                        // repeat x macrocells
+                        let mut v: Vec<(JArray, JArray)> = Vec::new();
+                        let mut x_iter = x_macrocells.iter().cycle();
+                        for (i, yc) in y_macrocells.iter().enumerate() {
+                            for (j, yi) in yc
+                                .to_cells(max(0, yc.shape().len() as i64 - 1) as usize)
+                                .unwrap()
+                                .iter()
+                                .enumerate()
+                            {
+                                //each xi with y_macrocells[i]
+                                //v.push((x_macrocells[i].clone(), yi.clone()))
+                                v.push((x_iter.next().unwrap().clone(), yi.clone()))
+                            }
+                        }
+                        Ok(v)
+                    } else if x_surplus_frame.len() > y_surplus_frame.len() {
+                        // repeat y macrocells
+                        let mut v: Vec<(JArray, JArray)> = Vec::new();
+                        let mut y_iter = y_macrocells.iter().cycle();
+                        for (i, xc) in x_macrocells.iter().enumerate() {
+                            for (j, xi) in xc
+                                .to_cells(max(0, xc.shape().len() as i64 - 1) as usize)
+                                .unwrap()
+                                .iter()
+                                .enumerate()
+                            {
+                                //each xi with y_macrocells[i]
+                                //v.push((xi.clone(), y_macrocells[i].clone()))
+                                v.push((xi.clone(), y_iter.next().unwrap().clone()));
+                            }
+                        }
+                        Ok(v)
+                    } else {
+                        Ok(zip(x_macrocells.into_iter(), y_macrocells.into_iter()).collect())
+                    }
                 }
             }
         }
