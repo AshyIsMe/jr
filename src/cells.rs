@@ -24,13 +24,18 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
 pub fn generate_cells(
     x: &JArray,
     y: &JArray,
-    (x_rank, y_rank): (usize, usize),
+    (x_arg_rank, y_arg_rank): (usize, usize),
 ) -> Result<(JArraysOwned, JArraysOwned)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
 
-    let x_frame = &x_shape[..x_shape.len() - x_rank];
-    let y_frame = &y_shape[..x_shape.len() - y_rank];
+    let x_rank = x_shape.len();
+    let y_rank = y_shape.len();
+
+    let min_rank = x_rank.min(y_rank);
+
+    let x_frame = &x_shape[..x_rank - x_arg_rank];
+    let y_frame = &y_shape[..y_rank - y_arg_rank];
 
     let common_dims = common_dims(x_frame, y_frame);
     let common_frame = &x_shape[..common_dims];
@@ -41,19 +46,11 @@ pub fn generate_cells(
         });
     }
 
-    let x_surplus = &x_shape[common_dims..];
-    let y_surplus = &y_shape[common_dims..];
-    println!("{x_surplus:?} {y_surplus:?}");
+    let x_surplus_rank = x_rank - min_rank;
+    let y_surplus_rank = y_rank - min_rank;
 
-    // I don't know what this is doing, either (i.e. FUCK YOUUUUUUUUUUU)
-    let (x_cells, y_cells) = match (x_surplus.len(), y_surplus.len()) {
-        (1, 1) => (1, 0),
-        (0, y) => (0, y),
-        (_, _) => bail!("can't match {x_surplus:?} {y_surplus:?}"),
-    };
-
-    let x_cells = x.to_cells(x_cells)?;
-    let y_cells = y.to_cells(y_cells)?;
+    let x_cells = x.to_cells(x_surplus_rank + x_arg_rank)?;
+    let y_cells = y.to_cells(y_surplus_rank + y_arg_rank)?;
 
     Ok((x_cells, y_cells))
 }
