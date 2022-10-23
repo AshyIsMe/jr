@@ -17,7 +17,11 @@ pub use crate::verbs::*;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
-    let simple = |op, monad, dyad| VerbImpl::Simple(SimpleImpl::new(op, monad, dyad));
+    let simple_rank = |op, monad, monad_rank, dyad, dyad_rank| {
+        VerbImpl::Simple(SimpleImpl::new(op, monad, monad_rank, dyad, dyad_rank))
+    };
+    let simple =
+        |op, monad, dyad| simple_rank(op, monad, Rank::infinite(), dyad, Rank::infinite_infinite());
     let not_impl = |op| simple(op, v_not_implemented_monad, v_not_implemented_dyad);
 
     Some(match sentence {
@@ -29,7 +33,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ">" => simple(">", v_open, v_larger_than),
         ">." => simple(">.", v_ceiling, v_larger_of_max),
         ">:" => simple(">:", v_increment, v_larger_or_equal),
-        "+" => simple("+", v_conjugate, v_plus),
+        "+" => simple_rank("+", v_conjugate, Rank::zero(), v_plus, Rank::zero_zero()),
         "+." => simple("+.", v_real_imaginary, v_gcd_or),
         "+:" => simple("+:", v_double, v_not_or),
         "*" => simple("*", v_signum, v_times),

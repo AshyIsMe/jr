@@ -156,17 +156,19 @@ impl SimpleImpl {
     pub const fn new(
         name: &'static str,
         monad: fn(&JArray) -> Result<Word>,
+        monad_rank: Rank,
         dyad: fn(&JArray, &JArray) -> Result<Word>,
+        dyad_rank: (Rank, Rank),
     ) -> Self {
         Self {
             name,
             monad: Monad {
                 f: monad,
-                rank: Rank::infinite(),
+                rank: monad_rank,
             },
             dyad: Some(Dyad {
                 f: dyad,
-                rank: Rank::infinite_infinite(),
+                rank: dyad_rank,
             }),
         }
     }
