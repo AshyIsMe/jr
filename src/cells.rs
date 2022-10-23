@@ -1,11 +1,9 @@
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
-use itertools::Itertools;
 
-use crate::{
-    reduce_arrays, JArray, JArrayCow, JArrays, JError, Rank, Word,
-};
+use crate::{reduce_arrays, JArray, JArrayCow, JArrays, JError, Rank, Word};
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
     let x_shape = x.shape();

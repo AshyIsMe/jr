@@ -4,8 +4,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
+use crate::impl_array;
 use crate::Word;
-use crate::{flatten, impl_array};
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 
@@ -14,6 +14,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
+use crate::cells::flatten;
 use crate::cells::{generate_cells, result_shape};
 use crate::JError::DomainError;
 use JArray::*;
