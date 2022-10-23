@@ -1,7 +1,10 @@
 use anyhow::{anyhow, bail, Context, Result};
-use ndarray::{arr0, array, ArrayD};
+use ndarray::prelude::*;
+use itertools::Itertools;
 
-use crate::{arrays, JArray, JArraysOwned, JError, Rank};
+use crate::{
+    reduce_arrays, JArray, JArrayCow, JArrays, JArraysOwned, JError, Rank, Word,
+};
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
     let x_shape = x.shape();
@@ -20,11 +23,11 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
         .unwrap_or_else(|| x.len().min(y.len()))
 }
 
-pub fn generate_cells(
-    x: &JArray,
-    y: &JArray,
+pub fn generate_cells<'x, 'y>(
+    x: &'x JArray,
+    y: &'y JArray,
     (x_arg_rank, y_arg_rank): (Rank, Rank),
-) -> Result<(JArraysOwned, JArraysOwned)> {
+) -> Result<(JArrayCow<'x>, JArrayCow<'y>)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
 
@@ -50,10 +53,32 @@ pub fn generate_cells(
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
 
-    let x_cells = x.to_cells(x_surplus_rank + x_arg_rank.usize())?;
-    let y_cells = y.to_cells(y_surplus_rank + y_arg_rank.usize())?;
+    let x_cells = x.choppo(x_surplus_rank + x_arg_rank.usize())?;
+    let y_cells = y.choppo(y_surplus_rank + y_arg_rank.usize())?;
 
     Ok((x_cells, y_cells))
+}
+
+pub fn flatten(shape: &[usize], vecs: Vec<Word>) -> Result<JArray> {
+    let arr = vecs
+        .iter()
+        .map(|w| match w {
+            Word::Noun(arr) => Ok(arr),
+            _ => Err(JError::DomainError).with_context(|| anyhow!("{w:?}")),
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let arrs = JArrays::from_homo(&arr)?;
+    Ok(reduce_arrays!(
+        arrs,
+        |v: &[ArrayViewD<'_, _>]| -> Result<ArrayD<_>> {
+            let vec = v
+                .into_iter()
+                .flat_map(|v| v.into_iter())
+                .cloned()
+                .collect_vec();
+            Ok(ArrayD::from_shape_vec(shape, vec)?)
+        }
+    ))
 }
 
 pub fn match_cells(
@@ -116,10 +141,11 @@ mod tests {
         let (x, y) = generate_cells(
             &arr0d(5i64).into_jarray(),
             &array![1i64, 2, 3].into_dyn().into_jarray(),
-            (0, 0),
+            Rank::zero_zero(),
         )?;
-        assert_eq!(x, IntArrays(vec![arr0d(5)]));
-        assert_eq!(y, IntArrays(vec![array![1, 2, 3].into_dyn()]));
+        todo!();
+        // assert_eq!(x.outer_iter().collect_vec(), vec![arr0d(5)]);
+        // assert_eq!(y, IntArrays(vec![array![1, 2, 3].into_dyn()]));
         Ok(())
     }
 
@@ -130,10 +156,11 @@ mod tests {
         let (x, y) = generate_cells(
             &array![10i64, 20, 30].into_dyn().into_jarray(),
             &array![1i64, 2, 3].into_dyn().into_jarray(),
-            (0, 0),
+            Rank::zero_zero(),
         )?;
-        assert_eq!(x, IntArrays(vec![arr0d(10), arr0d(20), arr0d(30)]));
-        assert_eq!(y, IntArrays(vec![arr0d(1), arr0d(2), arr0d(3)]));
+        todo!();
+        // assert_eq!(x, IntArrays(vec![arr0d(10), arr0d(20), arr0d(30)]));
+        // assert_eq!(y, IntArrays(vec![arr0d(1), arr0d(2), arr0d(3)]));
         Ok(())
     }
 
@@ -143,13 +170,14 @@ mod tests {
         let (x, y) = generate_cells(
             &array![100i64, 200].into_dyn().into_jarray(),
             &array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray(),
-            (0, 0),
+            Rank::zero_zero(),
         )?;
-        assert_eq!(x, IntArrays(vec![arr0d(100i64), arr0d(200)]));
-        assert_eq!(
-            y,
-            IntArrays(vec![array![0, 1, 2].into_dyn(), array![3, 4, 5].into_dyn()])
-        );
+        todo!();
+        // assert_eq!(x, IntArrays(vec![arr0d(100i64), arr0d(200)]));
+        // assert_eq!(
+        //     y,
+        //     IntArrays(vec![array![0, 1, 2].into_dyn(), array![3, 4, 5].into_dyn()])
+        // );
         Ok(())
     }
 
@@ -159,10 +187,11 @@ mod tests {
         let (x, y) = generate_cells(
             &array![24i64, 60, 61].into_dyn().into_jarray(),
             &array![1800i64, 7200].into_dyn().into_jarray(),
-            (1, 0),
+            (Rank::one(), Rank::zero()),
         )?;
-        assert_eq!(x, IntArrays(vec![array![24, 60, 61].into_dyn()]));
-    assert_eq!(y, IntArrays(vec![arr0d(1800i64), arr0d(7200)]));
+        todo!();
+        // assert_eq!(x, IntArrays(vec![array![24, 60, 61].into_dyn()]));
+        // assert_eq!(y, IntArrays(vec![arr0d(1800i64), arr0d(7200)]));
         Ok(())
     }
 }

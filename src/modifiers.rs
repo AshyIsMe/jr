@@ -90,7 +90,6 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
     // Collect a Vec<Word::Noun> into a single Word::Noun.
     // Must all be the same JArray type. ie. IntArray, etc
-
     let arr = n
         .iter()
         .map(|w| match w {
@@ -98,9 +97,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
             _ => Err(JError::DomainError).with_context(|| anyhow!("{w:?}")),
         })
         .collect::<Result<Vec<_>>>()?;
-
     let arrs = JArrays::from_homo(&arr)?;
-
     Ok(Word::Noun(reduce_arrays!(arrs, collect)))
 }
 

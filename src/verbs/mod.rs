@@ -2,10 +2,9 @@ mod ranks;
 
 use std::fmt;
 use std::fmt::Debug;
-use std::ops::Add;
 use std::ops::Deref;
 
-use crate::{arrays, impl_array};
+use crate::{arrays, flatten, impl_array, JArrays};
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
 use crate::{JArraysOwned, Word};
@@ -86,17 +85,17 @@ impl VerbImpl {
                         (dyad.f)(x, y)
                     } else {
                         let target_shape = result_shape(x, y);
-                        let cells = generate_cells(x, y, dyad.rank)?;
-                        let boops = match_cells(cells)?;
-                        // FUCK YOUUUUUUUUUUU
-                        Ok(Array::from_shape_vec(
-                            target_shape,
-                            boops
-                                .into_iter()
-                                .flat_map(|(x, y)| (x + y).into_iter())
-                                .collect(),
-                        )?
-                        .into_noun())
+                        let (x_cells, y_cells) = generate_cells(x, y, dyad.rank)?;
+                        let results = x_cells
+                            .outer_iter()
+                            .into_iter()
+                            .cycle()
+                            .zip(y_cells.outer_iter().into_iter().cycle())
+                            .take(x.len().max(y.len()))
+                            .map(|(x, y)| (dyad.f)(&x.into(), &y.into()))
+                            .collect::<Result<Vec<_>>>()?;
+
+                        Ok(Word::Noun(flatten(target_shape, results)?))
                     }
                 }
                 _ => Err(DomainError.into()),
@@ -340,6 +339,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
+    println!("{x:?} {y:?}");
     Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
