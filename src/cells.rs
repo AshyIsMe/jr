@@ -46,6 +46,8 @@ pub fn generate_cells(
         });
     }
 
+    // this eventually is just `min_rank - arg_rank`,
+    // as `to_cells`/`choppo` re-subtract it from the rank
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
 
