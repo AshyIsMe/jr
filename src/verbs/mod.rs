@@ -77,11 +77,28 @@ impl VerbImpl {
                 (None, Word::Noun(y)) => {
                     (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
-                (Some(Word::Noun(x)), Word::Noun(y)) => (imp
-                    .dyad
-                    .ok_or(JError::DomainError)
-                    .with_context(|| anyhow!("dyadic {:?}", imp.name))?
-                    .f)(x, y),
+                (Some(Word::Noun(x)), Word::Noun(y)) => {
+                    let dyad = imp
+                        .dyad
+                        .ok_or(JError::DomainError)
+                        .with_context(|| anyhow!("dyadic {:?}", imp.name))?;
+                    if Rank::infinite_infinite() == dyad.rank {
+                        (dyad.f)(x, y)
+                    } else {
+                        let target_shape = result_shape(x, y);
+                        let cells = generate_cells(x, y, dyad.rank)?;
+                        let boops = match_cells(cells)?;
+                        // FUCK YOUUUUUUUUUUU
+                        Ok(Array::from_shape_vec(
+                            target_shape,
+                            boops
+                                .into_iter()
+                                .flat_map(|(x, y)| (x + y).into_iter())
+                                .collect(),
+                        )?
+                        .into_noun())
+                    }
+                }
                 _ => Err(DomainError.into()),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
@@ -323,18 +340,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    let target_shape = result_shape(x, y);
-    let cells = generate_cells(x, y, (0, 0))?;
-    let boops = match_cells(cells)?;
-    // FUCK YOUUUUUUUUUUU
-    Ok(Array::from_shape_vec(
-        target_shape,
-        boops
-            .into_iter()
-            .flat_map(|(x, y)| (x + y).into_iter())
-            .collect(),
-    )?
-    .into_noun())
+    Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
 /// +. (monad)

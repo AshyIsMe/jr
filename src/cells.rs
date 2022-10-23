@@ -1,8 +1,7 @@
 use anyhow::{anyhow, bail, Context, Result};
 use ndarray::{arr0, array, ArrayD};
 
-use crate::JArraysOwned::IntArrays;
-use crate::{arrays, IntoJArray, JArray, JArraysOwned, JError};
+use crate::{arrays, JArray, JArraysOwned, JError, Rank};
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
     let x_shape = x.shape();
@@ -24,7 +23,7 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
 pub fn generate_cells(
     x: &JArray,
     y: &JArray,
-    (x_arg_rank, y_arg_rank): (usize, usize),
+    (x_arg_rank, y_arg_rank): (Rank, Rank),
 ) -> Result<(JArraysOwned, JArraysOwned)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
@@ -34,8 +33,8 @@ pub fn generate_cells(
 
     let min_rank = x_rank.min(y_rank);
 
-    let x_frame = &x_shape[..x_rank - x_arg_rank];
-    let y_frame = &y_shape[..y_rank - y_arg_rank];
+    let x_frame = &x_shape[..x_rank - x_arg_rank.usize()];
+    let y_frame = &y_shape[..y_rank - y_arg_rank.usize()];
 
     let common_dims = common_dims(x_frame, y_frame);
     let common_frame = &x_shape[..common_dims];
@@ -51,8 +50,8 @@ pub fn generate_cells(
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
 
-    let x_cells = x.to_cells(x_surplus_rank + x_arg_rank)?;
-    let y_cells = y.to_cells(y_surplus_rank + y_arg_rank)?;
+    let x_cells = x.to_cells(x_surplus_rank + x_arg_rank.usize())?;
+    let y_cells = y.to_cells(y_surplus_rank + y_arg_rank.usize())?;
 
     Ok((x_cells, y_cells))
 }
