@@ -44,7 +44,10 @@ impl<'v> JArrayCow<'v> {
 
     // TODO: Iterator
     pub fn outer_iter(&'v self) -> Vec<Self> {
-        impl_array!(self, |x: &'v ArrayBase<_, _>| x.outer_iter().map(|x| Self::from(x)).collect())
+        impl_array!(self, |x: &'v ArrayBase<_, _>| x
+            .outer_iter()
+            .map(|x| Self::from(x))
+            .collect())
     }
 }
 
