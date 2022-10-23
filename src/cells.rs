@@ -85,29 +85,6 @@ pub fn flatten(shape: &[usize], vecs: Vec<Word>) -> Result<JArray> {
     ))
 }
 
-pub fn match_cells(
-    (x, y): (JArraysOwned, JArraysOwned),
-) -> Result<Vec<(ArrayD<i64>, ArrayD<i64>)>> {
-    use JArraysOwned::*;
-    let lens = x.len().max(y.len());
-    Ok(match (x, y) {
-        (IntArrays(x), IntArrays(y)) => enpairinate(x, y),
-        (x, y) => bail!("yet another impl macro? {x:?} {y:?}"),
-    })
-}
-
-fn enpairinate<X: Clone, Y: Clone>(
-    x: Vec<ArrayD<X>>,
-    y: Vec<ArrayD<Y>>,
-) -> Vec<(ArrayD<X>, ArrayD<Y>)> {
-    let lens = x.len().max(y.len());
-    x.into_iter()
-        .cycle()
-        .zip(y.into_iter().cycle())
-        .take(lens)
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
@@ -140,7 +117,7 @@ mod tests {
     }
 
     #[test]
-#[ignore]
+    #[ignore]
     fn test_gen_macrocells_plus_one() -> Result<()> {
         use JArraysOwned::*;
         let (x, y) = generate_cells(
@@ -155,7 +132,7 @@ mod tests {
     }
 
     #[test]
-#[ignore]
+    #[ignore]
     fn test_gen_macrocells_plus_same() -> Result<()> {
         // I think I'd rather the arrays came out whole in this case?
         use JArraysOwned::*;
@@ -171,7 +148,7 @@ mod tests {
     }
 
     #[test]
-#[ignore]
+    #[ignore]
     fn test_gen_macrocells_plus_i() -> Result<()> {
         use JArraysOwned::*;
         let (x, y) = generate_cells(
@@ -189,7 +166,7 @@ mod tests {
     }
 
     #[test]
-#[ignore]
+    #[ignore]
     fn test_gen_macrocells_hash() -> Result<()> {
         use JArraysOwned::*;
         let (x, y) = generate_cells(

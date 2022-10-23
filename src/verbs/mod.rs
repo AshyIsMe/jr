@@ -4,18 +4,17 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arrays, flatten, impl_array, JArrays};
+use crate::Word;
+use crate::{flatten, impl_array};
 use crate::{ArrayPair, JError};
 use crate::{IntoJArray, JArray};
-use crate::{JArraysOwned, Word};
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
-use itertools::Itertools;
+use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::cells::{generate_cells, match_cells, result_shape};
+use crate::cells::{generate_cells, result_shape};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
