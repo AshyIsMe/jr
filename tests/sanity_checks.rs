@@ -8,7 +8,7 @@ use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::JError;
 use jr::Word::*;
-use jr::{check_agreement, collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {

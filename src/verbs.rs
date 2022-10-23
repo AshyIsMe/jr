@@ -149,64 +149,31 @@ fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
     })
 }
 
-// AA TODO Delete this function - args_to_macrocells() returns Err(LengthError) anyway
-pub fn check_agreement(x: Word, y: Word, ranks: [usize; 2]) -> Result<bool> {
-    // https://code.jsoftware.com/wiki/Vocabulary/Agreement
-    // [x] Make it work.
-    // [ ] Make it correct. (slightly closer to correct)
-    // [ ] Make it fast<C-w>clean.
-
-    match (x.clone(), y.clone()) {
-        (Noun(x), Noun(y)) => {
-            let x_shape = x.shape();
-            let y_shape = y.shape();
-
-            // (_1 * ({.ranks)) }. $ x
-            let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
-                x_shape[0..x_shape.len() - ranks[0]].iter().collect()
-            } else {
-                Vec::new() // empty frame
-            };
-            // (_1 * ({:ranks)) }. $ y
-            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[1]) > 0 {
-                y_shape[0..y_shape.len() - ranks[1]].iter().collect()
-            } else {
-                Vec::new() // empty frame
-            };
-
-            println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
-
-            // The frames of x and y must start identically,
-            // and must match identically for the entire length of the shorter frame.
-            let checks = zip(x_frame.clone(), y_frame.clone())
-                .map(|t| if t.0 == t.1 { 1 } else { 0 })
-                .collect::<Vec<usize>>();
-
-            let shortest_frame_len = min(x_frame.len(), y_frame.len());
-            let common_frame_len = match checks.iter().enumerate().find(|(_, i)| **i == 0usize) {
-                Some((_, i)) => *i,
-                _ => shortest_frame_len,
-            };
-            println!(
-                "shortest_frame_len: {:?}, common_frame_len: {:?}",
-                shortest_frame_len, common_frame_len
-            );
-
-            //AA TODO - this is only the first macrocell check
-            // https://code.jsoftware.com/wiki/Vocabulary/Agreement#Agreement:_Macrocells_Of_x_and_y_Are_Matched
-            // "The frames of x and y must start identically, and must match identically for the entire length
-            // of the shorter frame. If they don't, the result is a length error which is signaled before the verb is executed on any cells."
-            Ok(common_frame_len == shortest_frame_len)
-            // AA TODO - check cell matching within macrocells
-            // https://code.jsoftware.com/wiki/Vocabulary/Agreement#Cells_Are_Matched_Within_Macrocells
-        }
-        _ => Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
-    }
-}
-
 // TODO: Rename this to eval_dyadic(x: Word, y: Word, f: VerbImpl) and add ranks to VerbImpl struct.
 // TODO: Then actually do the verb execution and collect the result as per:
 // https://code.jsoftware.com/wiki/Vocabulary/Agreement#The_Verb_Is_Executed_And_The_Result_Collected
+pub fn exec_dyadic_verb(f: Word, x: Word, y: Word, ranks: [usize; 2]) -> Result<Word> {
+    match (f, x, y) {
+        (Verb(sv, v), Noun(x), Noun(y)) => match v {
+            VerbImpl::Simple(v) => match v.dyad {
+                Some(f) => {
+                    let cells = args_to_macrocells(Noun(x), Noun(y), ranks).unwrap();
+                    println!("cells:\n");
+                    for t in cells.iter() {
+                        println!("{}, {}", t.0, t.1);
+                    }
+                    let results: Vec<Word> = cells.iter().map(|(x, y)| f(x, y).unwrap()).collect();
+                    println!("results:\n{:?}", results);
+                    todo!("assemble results into single Noun")
+                }
+                _ => bail!(JError::ValueError),
+            },
+            _ => todo!("exec: x f y"),
+        },
+        _ => bail!(JError::DomainError),
+    }
+}
+
 pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JArray, JArray)>> {
     match (x.clone(), y.clone()) {
         (Noun(x), Noun(y)) => {
@@ -216,18 +183,23 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
             let x_shape = x.shape();
             let y_shape = y.shape();
 
-            // (_1 * ({.ranks)) }. $ x
-            let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
-                x_shape[0..x_shape.len() - ranks[0]].iter().collect()
-            } else {
-                Vec::new() // empty frame
-            };
-            // (_1 * ({:ranks)) }. $ y
-            let y_frame: Vec<&usize> = if (y_shape.len() - ranks[1]) > 0 {
-                y_shape[0..y_shape.len() - ranks[1]].iter().collect()
-            } else {
-                Vec::new() // empty frame
-            };
+            let x_rank = x_shape.len();
+            let y_rank = y_shape.len();
+
+            // // (_1 * ({.ranks)) }. $ x
+            // let x_frame: Vec<&usize> = if (x_shape.len() - ranks[0]) > 0 {
+            //     x_shape[0..x_shape.len() - ranks[0]].iter().collect()
+            // } else {
+            //     Vec::new() // empty frame
+            // };
+            // // (_1 * ({:ranks)) }. $ y
+            // let y_frame: Vec<&usize> = if (y_shape.len() - ranks[1]) > 0 {
+            //     y_shape[0..y_shape.len() - ranks[1]].iter().collect()
+            // } else {
+            //     Vec::new() // empty frame
+            // };
+            let x_frame = &x_shape[..x_rank - ranks[0]];
+            let y_frame = &y_shape[..y_rank - ranks[1]];
             println!("x_frame: {:?}, y_frame: {:?}", x_frame, y_frame);
 
             // The frames of x and y must start identically,
@@ -281,13 +253,13 @@ pub fn args_to_macrocells(x: Word, y: Word, ranks: [usize; 2]) -> Result<Vec<(JA
                     // repeat x macrocells
                     let x_cells = x_macrocells
                         .iter()
-                        .flat_map(|item| repeat(item.clone()).take(*y_surplus_frame[0]));
+                        .flat_map(|item| repeat(item.clone()).take(y_surplus_frame[0]));
                     Ok(zip(x_cells.into_iter(), y_macrocells.into_iter()).collect())
                 } else if x_surplus_frame.len() > y_surplus_frame.len() {
                     // repeat y macrocells
                     let y_cells = y_macrocells
                         .iter()
-                        .flat_map(|item| repeat(item.clone()).take(*x_surplus_frame[0]));
+                        .flat_map(|item| repeat(item.clone()).take(x_surplus_frame[0]));
                     Ok(zip(x_macrocells.into_iter(), y_cells.into_iter()).collect())
                 } else {
                     // match macrocells evenly

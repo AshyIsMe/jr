@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{args_to_macrocells, arrays, check_agreement, IntoJArray, JArray, JError, Word};
+use jr::{args_to_macrocells, arrays, exec_dyadic_verb, IntoJArray, JArray, JError, Word};
 
 fn arr0d<T>(x: T) -> ArrayD<T> {
     arr0(x).into_dyn()
@@ -19,6 +19,23 @@ pub fn idot(s: &[usize]) -> Word {
     Noun(IntArray(
         ArrayD::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap(),
     ))
+}
+
+#[test]
+fn test_exec_dyadic_verb_plus() -> Result<()> {
+    let r = exec_dyadic_verb(
+        jr::eval(jr::scan("+").unwrap(), &mut HashMap::new()).unwrap(),
+        array![100i64, 200].into_dyn().into_noun(),
+        idot(&[2, 3]),
+        [0, 0],
+    )?;
+    assert_eq!(
+        r,
+        Noun(IntArray(
+            ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![100, 101, 102, 203, 204, 205]).unwrap(),
+        ))
+    );
+    Ok(())
 }
 
 #[test]
@@ -175,33 +192,6 @@ fn test_agreement_plus_length_error() -> Result<()> {
         .expect("caused by jerror");
     assert!(matches!(root, JError::LengthError));
     Ok(())
-}
-
-#[test]
-fn test_check_agreement() {
-    let x = Word::noun([1i64, 2]).unwrap();
-    let y = Noun(IntArray(
-        ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![1, 2, 3, 5, 6, 7]).unwrap(),
-    ));
-
-    let r1 = check_agreement(x.clone(), y.clone(), [0, 0]).unwrap();
-    assert!(r1);
-    let r2 = check_agreement(x.clone(), y.clone(), [0, 1]).unwrap();
-    assert!(r2);
-
-    let x = Word::noun([24i64, 60, 60]).unwrap();
-    let y = Word::noun([1800i64, 7200]).unwrap();
-    let r3 = check_agreement(x.clone(), y.clone(), [1, 0]).unwrap();
-    assert!(r3);
-
-    let x = Noun(IntArray(
-        ArrayD::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
-    ));
-    let y = Noun(IntArray(
-        ArrayD::from_shape_vec(IxDyn(&[2, 4]), vec![0, 1, 2, 3, 4, 5, 6, 7]).unwrap(),
-    ));
-    let r4 = check_agreement(x.clone(), y.clone(), [0, 0]).unwrap();
-    assert!(!r4); // should be false (length error)
 }
 
 #[test]
