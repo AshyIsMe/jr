@@ -1,4 +1,5 @@
 use anyhow::{anyhow, bail, Context, Result};
+use log::debug;
 use ndarray::prelude::*;
 use itertools::Itertools;
 
@@ -56,8 +57,8 @@ pub fn generate_cells<'x, 'y>(
     let x_cells = x.choppo(x_surplus_rank + x_arg_rank.usize())?;
     let y_cells = y.choppo(y_surplus_rank + y_arg_rank.usize())?;
 
-    println!("x_cells: {x_cells:?}");
-    println!("y_cells: {y_cells:?}");
+    debug!("x_cells: {x_cells:?}");
+    debug!("y_cells: {y_cells:?}");
 
     Ok((x_cells, y_cells))
 }
