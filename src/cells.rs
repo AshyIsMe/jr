@@ -4,7 +4,7 @@ use ndarray::prelude::*;
 use itertools::Itertools;
 
 use crate::{
-    reduce_arrays, JArray, JArrayCow, JArrays, JArraysOwned, JError, Rank, Word,
+    reduce_arrays, JArray, JArrayCow, JArrays, JError, Rank, Word,
 };
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {

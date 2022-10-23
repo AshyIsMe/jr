@@ -103,22 +103,3 @@ impl_from_nd_view!(BigRational, JArrayCow::RationalArray);
 impl_from_nd_view!(f64, JArrayCow::FloatArray);
 impl_from_nd_view!(Complex64, JArrayCow::ComplexArray);
 impl_from_nd_view!(Word, JArrayCow::BoxArray);
-
-macro_rules! impl_from_nd {
-    ($t:ty, $j:path) => {
-        impl<'v> From<ArrayD<$t>> for JArrayCow<'v> {
-            fn from(value: ArrayD<$t>) -> JArrayCow<'v> {
-                $j(value.into())
-            }
-        }
-    };
-}
-
-impl_from_nd!(u8, JArrayCow::BoolArray);
-impl_from_nd!(char, JArrayCow::CharArray);
-impl_from_nd!(i64, JArrayCow::IntArray);
-impl_from_nd!(BigInt, JArrayCow::ExtIntArray);
-impl_from_nd!(BigRational, JArrayCow::RationalArray);
-impl_from_nd!(f64, JArrayCow::FloatArray);
-impl_from_nd!(Complex64, JArrayCow::ComplexArray);
-impl_from_nd!(Word, JArrayCow::BoxArray);
