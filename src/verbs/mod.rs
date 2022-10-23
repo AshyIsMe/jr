@@ -1,5 +1,5 @@
-use ndarray::prelude::*;
-use ndarray::{concatenate, Axis, Slice};
+mod ranks;
+
 use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
@@ -11,16 +11,37 @@ use crate::{IntoJArray, JArray};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
+use ndarray::prelude::*;
+use ndarray::{concatenate, Axis, Slice};
 
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
+pub use ranks::Rank;
+
+#[derive(Copy, Clone)]
+pub struct Monad {
+    // TODO: NOT public
+    pub f: fn(&JArray) -> Result<Word>,
+    pub rank: Rank,
+}
+
+#[derive(Copy, Clone)]
+pub struct Dyad {
+    // TODO: NOT public
+    pub f: fn(&JArray, &JArray) -> Result<Word>,
+    pub rank: (Rank, Rank),
+}
+
 #[derive(Copy, Clone)]
 pub struct SimpleImpl {
-    name: &'static str,
-    monad: fn(&JArray) -> Result<Word>,
-    dyad: Option<fn(&JArray, &JArray) -> Result<Word>>,
+    // TODO: NOT public
+    pub name: &'static str,
+    // TODO: NOT public
+    pub monad: Monad,
+    // TODO: NOT public
+    pub dyad: Option<Dyad>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,13 +72,13 @@ impl VerbImpl {
         match self {
             VerbImpl::Simple(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
-                    (imp.monad)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
+                    (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
-                (Some(Word::Noun(x)), Word::Noun(y)) => {
-                    imp.dyad
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("dyadic {:?}", imp.name))?(x, y)
-                }
+                (Some(Word::Noun(x)), Word::Noun(y)) => (imp
+                    .dyad
+                    .ok_or(JError::DomainError)
+                    .with_context(|| anyhow!("dyadic {:?}", imp.name))?
+                    .f)(x, y),
                 _ => Err(DomainError.into()),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
@@ -92,7 +113,10 @@ impl SimpleImpl {
     pub fn monad(name: &'static str, f: fn(&JArray) -> Result<Word>) -> Self {
         Self {
             name,
-            monad: f,
+            monad: Monad {
+                f,
+                rank: Rank::infinite(),
+            },
             dyad: None,
         }
     }
@@ -100,12 +124,20 @@ impl SimpleImpl {
     pub const fn new(
         name: &'static str,
         monad: fn(&JArray) -> Result<Word>,
+        monad_rank: Rank,
         dyad: fn(&JArray, &JArray) -> Result<Word>,
+        dyad_rank: (Rank, Rank),
     ) -> Self {
         Self {
             name,
-            monad,
-            dyad: Some(dyad),
+            monad: Monad {
+                f: monad,
+                rank: monad_rank,
+            },
+            dyad: Some(Dyad {
+                f: dyad,
+                rank: dyad_rank,
+            }),
         }
     }
 }
