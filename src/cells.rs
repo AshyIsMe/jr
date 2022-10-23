@@ -117,66 +117,71 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_gen_macrocells_plus_one() -> Result<()> {
-        use JArraysOwned::*;
-        let (x, y) = generate_cells(
-            &arr0d(5i64).into_jarray(),
-            &array![1i64, 2, 3].into_dyn().into_jarray(),
-            Rank::zero_zero(),
-        )?;
-        todo!();
-        // assert_eq!(x.outer_iter().collect_vec(), vec![arr0d(5)]);
-        // assert_eq!(y, IntArrays(vec![array![1, 2, 3].into_dyn()]));
+        let x = arr0d(5i64).into_jarray();
+        let y = array![1i64, 2, 3].into_dyn().into_jarray();
+        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        assert_eq!(x_cells.outer_iter(), vec![arr0d(5i64).into()]);
+        assert_eq!(
+            y_cells.outer_iter(),
+            vec![array![1i64, 2, 3].into_dyn().into()]
+        );
         Ok(())
     }
 
     #[test]
-    #[ignore]
     fn test_gen_macrocells_plus_same() -> Result<()> {
         // I think I'd rather the arrays came out whole in this case?
-        use JArraysOwned::*;
-        let (x, y) = generate_cells(
-            &array![10i64, 20, 30].into_dyn().into_jarray(),
-            &array![1i64, 2, 3].into_dyn().into_jarray(),
-            Rank::zero_zero(),
-        )?;
-        todo!();
-        // assert_eq!(x, IntArrays(vec![arr0d(10), arr0d(20), arr0d(30)]));
-        // assert_eq!(y, IntArrays(vec![arr0d(1), arr0d(2), arr0d(3)]));
+        let x = array![10i64, 20, 30].into_dyn().into_jarray();
+        let y = array![1i64, 2, 3].into_dyn().into_jarray();
+        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        assert_eq!(
+            x_cells.outer_iter(),
+            vec![
+                arr0d(10i64).into(),
+                arr0d(20i64).into(),
+                arr0d(30i64).into()
+            ]
+        );
+        assert_eq!(
+            y_cells.outer_iter(),
+            vec![arr0d(1i64).into(), arr0d(2i64).into(), arr0d(3i64).into()]
+        );
         Ok(())
     }
 
     #[test]
-    #[ignore]
     fn test_gen_macrocells_plus_i() -> Result<()> {
-        use JArraysOwned::*;
-        let (x, y) = generate_cells(
-            &array![100i64, 200].into_dyn().into_jarray(),
-            &array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray(),
-            Rank::zero_zero(),
-        )?;
-        todo!();
-        // assert_eq!(x, IntArrays(vec![arr0d(100i64), arr0d(200)]));
-        // assert_eq!(
-        //     y,
-        //     IntArrays(vec![array![0, 1, 2].into_dyn(), array![3, 4, 5].into_dyn()])
-        // );
+        let x = array![100i64, 200].into_dyn().into_jarray();
+        let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray();
+        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        assert_eq!(
+            x_cells.outer_iter(),
+            vec![arr0d(100i64).into(), arr0d(200i64).into(),]
+        );
+        assert_eq!(
+            y_cells.outer_iter(),
+            vec![
+                array![0i64, 1, 2].into_dyn().into(),
+                array![3i64, 4, 5].into_dyn().into()
+            ]
+        );
         Ok(())
     }
 
     #[test]
-    #[ignore]
     fn test_gen_macrocells_hash() -> Result<()> {
-        use JArraysOwned::*;
-        let (x, y) = generate_cells(
-            &array![24i64, 60, 61].into_dyn().into_jarray(),
-            &array![1800i64, 7200].into_dyn().into_jarray(),
-            (Rank::one(), Rank::zero()),
-        )?;
-        todo!();
-        // assert_eq!(x, IntArrays(vec![array![24, 60, 61].into_dyn()]));
-        // assert_eq!(y, IntArrays(vec![arr0d(1800i64), arr0d(7200)]));
+        let x = array![24i64, 60, 61].into_dyn().into_jarray();
+        let y = array![1800i64, 7200].into_dyn().into_jarray();
+        let (x_cells, y_cells) = generate_cells(&x, &y, (Rank::one(), Rank::zero()))?;
+        assert_eq!(
+            x_cells.outer_iter(),
+            vec![array![24i64, 60, 61].into_dyn().into(),]
+        );
+        assert_eq!(
+            y_cells.outer_iter(),
+            vec![arr0d(1800i64).into(), arr0d(7200i64).into(),]
+        );
         Ok(())
     }
 }
