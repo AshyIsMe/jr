@@ -91,11 +91,14 @@ impl VerbImpl {
                             .into_iter()
                             .cycle()
                             .zip(y_cells.outer_iter().into_iter().cycle())
-                            .take(x.len().max(y.len()))
+                            .take(x_cells.shape()[0].max(y_cells.shape()[0]))
                             .map(|(x, y)| (dyad.f)(&x.into(), &y.into()))
                             .collect::<Result<Vec<_>>>()?;
 
-                        Ok(Word::Noun(flatten(target_shape, results)?))
+                        Ok(Word::Noun(
+                            flatten(target_shape, dbg!(results))
+                                .with_context(|| anyhow!("reshaping to {target_shape:?}"))?,
+                        ))
                     }
                 }
                 _ => Err(DomainError.into()),
@@ -339,7 +342,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    println!("{x:?} {y:?}");
+    println!("executing plus on {x:?} + {y:?}");
     Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
