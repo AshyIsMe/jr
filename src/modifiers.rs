@@ -104,7 +104,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
     Ok(Word::Noun(reduce_arrays!(arrs, collect)))
 }
 
-fn collect<T: Clone + HasEmpty>(arr: &[&ArrayD<T>]) -> Result<ArrayD<T>> {
+fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
     let cell_shape = arr
         .iter()
         .map(|arr| arr.shape())
