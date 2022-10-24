@@ -1,14 +1,22 @@
+mod arrayable;
+mod cow;
+mod owned;
+
 use std::fmt;
 
+use crate::impl_array;
 pub use crate::modifiers::*;
 pub use crate::verbs::*;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::Result;
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational, Zero};
-use num_traits::ToPrimitive;
 use thiserror::Error;
+
+pub use arrayable::Arrayable;
+pub use cow::{CowArrayD, JArrayCow};
+pub use owned::{IntoJArray, JArray};
 
 // TODO: https://code.jsoftware.com/wiki/Vocabulary/ErrorMessages
 #[derive(Debug, Error)]
@@ -91,8 +99,6 @@ impl JError {
     }
 }
 
-type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
-
 // All terminology should match J terminology:
 // Glossary: https://code.jsoftware.com/wiki/Vocabulary/Glossary
 // A Word is a part of speech.
@@ -110,75 +116,6 @@ pub enum Word {
     Verb(String, VerbImpl),
     Adverb(String, ModifierImpl),
     Conjunction(String, ModifierImpl),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum JArray {
-    BoolArray(ArrayD<u8>),
-    CharArray(ArrayD<char>),
-    IntArray(ArrayD<i64>),
-    ExtIntArray(ArrayD<BigInt>),
-    RationalArray(ArrayD<BigRational>),
-    FloatArray(ArrayD<f64>),
-    ComplexArray(ArrayD<Complex64>),
-    BoxArray(ArrayD<Word>),
-    //EmptyArray, // How do we do this properly?
-}
-
-impl JArray {
-    pub fn approx(&self) -> Option<ArrayD<f32>> {
-        use JArray::*;
-        Some(match self {
-            BoolArray(a) => a.map(|&v| v as f32),
-            CharArray(a) => a.map(|&v| v as u32 as f32),
-            IntArray(a) => a.map(|&v| v as f32),
-            ExtIntArray(a) => a.map(|v| v.to_f32().unwrap_or(f32::NAN)),
-            RationalArray(a) => a.map(|v| v.to_f32().unwrap_or(f32::NAN)),
-            FloatArray(a) => a.map(|&v| v as f32),
-            _ => return None,
-        })
-    }
-
-    pub fn to_i64(&self) -> Option<CowArrayD<i64>> {
-        use JArray::*;
-        Some(match self {
-            BoolArray(a) => a.map(|&v| i64::from(v)).into(),
-            CharArray(a) => a.map(|&v| i64::from(v as u32)).into(),
-            IntArray(a) => a.into(),
-            // TODO: attempt coercion of other types? .map(try_from).collect::<Result<ArrayD<>>>?
-            _ => return None,
-        })
-    }
-
-    pub fn to_rat(&self) -> Option<CowArrayD<BigRational>> {
-        use JArray::*;
-        Some(match self {
-            IntArray(a) => a.map(|&v| BigRational::new(v.into(), 1.into())).into(),
-            RationalArray(a) => a.into(),
-            // TODO: entirely missing other implementations
-            _ => return None,
-        })
-    }
-
-    pub fn to_c64(&self) -> Option<CowArrayD<Complex64>> {
-        use JArray::*;
-        Some(match self {
-            BoolArray(a) => a.map(|&v| Complex64::new(f64::from(v), 0.)).into(),
-            CharArray(a) => a.map(|&v| Complex64::new(f64::from(v as u32), 0.)).into(),
-            IntArray(a) => a.map(|&v| Complex64::new(v as f64, 0.)).into(),
-            ExtIntArray(a) => a
-                .map(|v| Complex64::new(v.to_f64().unwrap_or(f64::NAN), 0.))
-                .into(),
-            // I sure expect absolutely no issues with NaNs creeping in here
-            RationalArray(a) => a
-                .map(|v| Complex64::new(v.to_f64().unwrap_or(f64::NAN), 0.))
-                .into(),
-            FloatArray(a) => a.map(|&v| Complex64::new(v, 0.)).into(),
-            ComplexArray(a) => a.into(),
-            // ??
-            BoxArray(_) => return None,
-        })
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -261,22 +198,6 @@ impl<'a> JArrays<'a> {
 }
 
 #[macro_export]
-macro_rules! impl_array {
-    ($arr:ident, $func:expr) => {
-        match $arr {
-            JArray::BoolArray(a) => $func(a),
-            JArray::CharArray(a) => $func(a),
-            JArray::IntArray(a) => $func(a),
-            JArray::ExtIntArray(a) => $func(a),
-            JArray::RationalArray(a) => $func(a),
-            JArray::FloatArray(a) => $func(a),
-            JArray::ComplexArray(a) => $func(a),
-            JArray::BoxArray(a) => $func(a),
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! reduce_arrays {
     ($arr:expr, $func:expr) => {
         match $arr {
@@ -302,20 +223,6 @@ macro_rules! homo_array {
             })
             .collect::<Result<Vec<_>>>()?
     };
-}
-
-impl JArray {
-    pub fn len(&self) -> usize {
-        impl_array!(self, |a: &ArrayBase<_, _>| a.len())
-    }
-
-    pub fn len_of(&self, axis: Axis) -> usize {
-        impl_array!(self, |a: &ArrayBase<_, _>| a.len_of(axis))
-    }
-
-    pub fn shape<'s>(&'s self) -> &[usize] {
-        impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
-    }
 }
 
 use crate::primitive_verbs;
@@ -344,106 +251,6 @@ impl_empty!(BigRational, BigRational::zero());
 impl_empty!(f64, 0.);
 impl_empty!(Complex64, Complex64::zero());
 impl_empty!(Word, Noun(BoolArray(Array::from_elem(IxDyn(&[0]), 0))));
-
-pub trait IntoJArray {
-    fn into_jarray(self) -> JArray;
-    fn into_noun(self) -> Word
-    where
-        Self: Sized,
-    {
-        Word::Noun(self.into_jarray())
-    }
-}
-
-macro_rules! impl_into_jarray {
-    ($t:ty, $j:path) => {
-        impl IntoJArray for $t {
-            /// free for ArrayD<>, clones for unowned CowArrayD<>
-            fn into_jarray(self) -> JArray {
-                $j(self.into_owned())
-            }
-        }
-    };
-}
-
-// these also cover the CowArrayD<> conversions because both are just aliases
-// for ArrayBase<T> and the compiler lets us get away without lifetimes for some reason.
-impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
-impl_into_jarray!(ArrayD<char>, JArray::CharArray);
-impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
-impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
-impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
-impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
-impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
-impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
-
-// like IntoIterator<Item = T> + ExactSizeIterator
-pub trait Arrayable<T> {
-    fn len(&self) -> usize;
-    fn into_vec(self) -> Result<Vec<T>>;
-
-    fn into_array(self) -> Result<ArrayD<T>>
-    where
-        Self: Sized,
-    {
-        let len = self.len();
-        let vec = self.into_vec()?;
-        Array::from_shape_vec(IxDyn(&[len]), vec)
-            .map_err(JError::ShapeError)
-            .context("into_array")
-    }
-}
-
-impl<T> Arrayable<T> for Vec<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn into_vec(self) -> Result<Vec<T>> {
-        Ok(self)
-    }
-}
-
-// This is designed for use with shape(), sorry if it caught something else.
-impl Arrayable<i64> for &[usize] {
-    fn len(&self) -> usize {
-        <[usize]>::len(self)
-    }
-
-    fn into_vec(self) -> Result<Vec<i64>> {
-        self.iter()
-            .map(|&v| {
-                i64::try_from(v)
-                    .map_err(|_| JError::LimitError)
-                    .with_context(|| anyhow!("{} doesn't fit in an i64", v))
-            })
-            .collect()
-    }
-}
-
-impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
-    fn len(&self) -> usize {
-        N
-    }
-
-    fn into_vec(self) -> Result<Vec<T>> {
-        Ok(self.to_vec())
-    }
-}
-
-impl<T> Arrayable<T> for ArrayD<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-
-    fn into_vec(self) -> Result<Vec<T>> {
-        Ok(self.into_raw_vec())
-    }
-
-    fn into_array(self) -> Result<ArrayD<T>> {
-        Ok(self)
-    }
-}
 
 impl Word {
     pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word>
