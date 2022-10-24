@@ -1,4 +1,6 @@
 pub mod arrays;
+mod empty;
+mod error;
 pub mod eval;
 pub mod modifiers;
 pub mod scan;
@@ -9,11 +11,16 @@ mod plot;
 
 use std::collections::HashMap;
 
-pub use crate::arrays::*;
-pub use crate::eval::*;
-pub use crate::modifiers::*;
-pub use crate::scan::*;
-pub use crate::verbs::*;
+pub use arrays::*;
+pub use empty::HasEmpty;
+pub use error::JError;
+pub use eval::*;
+pub use modifiers::*;
+pub use scan::*;
+pub use verbs::*;
+
+// TODO: helper function for tests, not really public
+pub use crate::scan::char_array;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;

@@ -4,6 +4,8 @@ use num::complex::Complex64;
 use num::BigRational;
 
 use crate::arrays::*;
+use crate::modifiers::ModifierImpl;
+use crate::JError;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
 
 use JArray::*;
@@ -176,6 +178,11 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
         .collect::<String>()
         .replace("''", "'");
     Ok((l, char_array(&s)?))
+}
+
+pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
+    let v: Vec<char> = x.as_ref().chars().collect();
+    Word::noun(v)
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {

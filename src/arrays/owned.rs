@@ -1,4 +1,4 @@
-use std::iter;
+use std::{fmt, iter};
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
@@ -135,6 +135,23 @@ impl JArray {
             // ??
             BoxArray(_) => return None,
         })
+    }
+}
+
+impl fmt::Display for JArray {
+    // TODO - match the real j output format style.
+    // ie. 1 2 3 4 not [1, 2, 3, 4]
+    // TODO - proper box array display:
+    //    < 1 2 3
+    //┌─────┐
+    //│1 2 3│
+    //└─────┘
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use JArray::*;
+        match self {
+            BoxArray(_) => impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "|{}|", a)),
+            _ => impl_array!(self, |a: &ArrayBase<_, _>| write!(f, "{}", a)),
+        }
     }
 }
 
