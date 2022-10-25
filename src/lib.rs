@@ -28,7 +28,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
     let inf = u32::MAX;
     let primitive = |op, monad, dyad, ranks: (u32, u32, u32)| {
-        VerbImpl::Simple(SimpleImpl::new(
+        VerbImpl::Primitive(PrimitiveImpl::new(
             op,
             monad,
             dyad,
@@ -122,7 +122,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
 
         //"=." => not_impl("=."), IsLocal
         //"=:" => not_impl("=:"), IsGlobal
-        // ("<", VerbImpl::Simple(SimpleImpl::new("<", verbs::v_box, verbs::v_lt))),
+        // ("<", VerbImpl::Primitive(PrimitiveImpl::new("<", verbs::v_box, verbs::v_lt))),
         "_:" => not_impl("_:"),
         "^!." => not_impl("^!."),
         "$." => not_impl("$."),
@@ -167,7 +167,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "NB." => not_impl("NB."),
         "{{" => not_impl("{{"),
         "}}" => not_impl("}}"),
-        "plot." => VerbImpl::Simple(SimpleImpl::monad("plot.", v_plot)),
+        "plot." => VerbImpl::Primitive(PrimitiveImpl::monad("plot.", v_plot)),
         "assert." => not_impl("assert."),
         "break." => not_impl("break."),
         "continue." => not_impl("continue."),

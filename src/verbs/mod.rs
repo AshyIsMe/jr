@@ -37,7 +37,7 @@ pub struct Dyad {
 }
 
 #[derive(Copy, Clone)]
-pub struct SimpleImpl {
+pub struct PrimitiveImpl {
     // TODO: NOT public
     pub name: &'static str,
     // TODO: NOT public
@@ -48,7 +48,7 @@ pub struct SimpleImpl {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
-    Simple(SimpleImpl),
+    Primitive(PrimitiveImpl),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -72,7 +72,7 @@ pub enum VerbImpl {
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
-            VerbImpl::Simple(imp) => match (x, y) {
+            VerbImpl::Primitive(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
                     (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
@@ -130,7 +130,7 @@ impl VerbImpl {
     }
 }
 
-impl SimpleImpl {
+impl PrimitiveImpl {
     pub fn monad(name: &'static str, f: fn(&JArray) -> Result<Word>) -> Self {
         Self {
             name,
@@ -162,13 +162,13 @@ impl SimpleImpl {
     }
 }
 
-impl fmt::Debug for SimpleImpl {
+impl fmt::Debug for PrimitiveImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleImpl({})", self.name)
+        write!(f, "PrimitiveImpl({})", self.name)
     }
 }
 
-impl PartialEq for SimpleImpl {
+impl PartialEq for PrimitiveImpl {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
@@ -669,15 +669,6 @@ pub fn v_map(_y: &JArray) -> Result<Word> {
 }
 /// {:: (dyad)
 pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// } (monad)
-pub fn v_item_amend(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// } (dyad)
-pub fn v_amend_m_u(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
