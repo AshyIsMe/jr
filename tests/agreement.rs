@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
-use jr::{IntoJArray, JError};
+use jr::{IntoJArray, JArray::*, JError, Word::*};
 
 #[test]
 fn array_iter_2_3() {
@@ -67,10 +67,34 @@ fn test_agreement_2() -> Result<()> {
 }
 
 #[test]
+fn test_agreement_3() -> Result<()> {
+    let err = jr::eval(jr::scan("(2 2 $ 2 3) * i.2 3")?, &mut HashMap::new()).unwrap_err();
+    let root = dbg!(err.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(root, JError::LengthError));
+    Ok(())
+}
+
+#[test]
 fn test_jarray_choppo() -> Result<()> {
     let a = array![[1i64, 2, 3], [5, 6, 7]].into_dyn().into_jarray();
     assert_eq!(a.choppo(0)?.shape()[0], 6);
     assert_eq!(a.choppo(1)?.shape()[0], 2);
     assert_eq!(a.choppo(2)?.shape()[0], 1);
+    Ok(())
+}
+
+#[test]
+fn test_agreement_reshape() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+
+    let correct_result = Noun(BoolArray(Array::from_elem(IxDyn(&[2, 3, 3]), 1)));
+
+    assert_eq!(r1, correct_result);
+    assert_eq!(r2, correct_result);
+    assert_eq!(r1, r2);
+
     Ok(())
 }
