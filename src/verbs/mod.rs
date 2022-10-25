@@ -145,19 +145,18 @@ impl SimpleImpl {
     pub const fn new(
         name: &'static str,
         monad: fn(&JArray) -> Result<Word>,
-        monad_rank: Rank,
         dyad: fn(&JArray, &JArray) -> Result<Word>,
-        dyad_rank: (Rank, Rank),
+        ranks: (Rank, Rank, Rank),
     ) -> Self {
         Self {
             name,
             monad: Monad {
                 f: monad,
-                rank: monad_rank,
+                rank: ranks.0,
             },
             dyad: Some(Dyad {
                 f: dyad,
-                rank: dyad_rank,
+                rank: (ranks.1, ranks.2),
             }),
         }
     }
@@ -495,15 +494,6 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
     }
 }
 
-/// ~ (monad)
-pub fn v_reflex(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// ~ (dyad)
-pub fn v_passive_evoke(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
 /// ~: (monad)
 pub fn v_nub_sieve(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
@@ -528,15 +518,6 @@ pub fn v_reverse(_y: &JArray) -> Result<Word> {
 }
 /// |. (dyad)
 pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// . (monad)
-pub fn v_determinant(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// . (dyad)
-pub fn v_dot_product(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
@@ -631,48 +612,12 @@ pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
-/// / (monad)
-pub fn v_insert(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// / (dyad)
-pub fn v_table(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// /. (monad)
-pub fn v_oblique(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// /. (dyad)
-pub fn v_key(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
 /// /: (monad)
 pub fn v_grade_up(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// /: (dyad) and \: (dyad)
 pub fn v_sort(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// \ (monad)
-pub fn v_prefix(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// \ (dyad)
-pub fn v_infix(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// \. (monad)
-pub fn v_suffix(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// \. (dyad)
-pub fn v_outfix(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
@@ -717,8 +662,13 @@ pub fn v_take(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_tail(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
-/// {: (dyad)
-pub fn v_map_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
+
+/// {:: (monad)
+pub fn v_map(_y: &JArray) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// {:: (dyad)
+pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
