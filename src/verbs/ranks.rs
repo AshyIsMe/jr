@@ -6,11 +6,14 @@ use crate::JError;
 pub struct Rank(u8);
 
 impl Rank {
-    pub fn new(val: u8) -> Result<Self> {
-        if val >= 64 {
+    pub fn new(val: u32) -> Result<Self> {
+        if val == u32::MAX {
+            Ok(Rank(u8::MAX))
+        } else if val >= 64 {
             return Err(JError::LimitError).with_context(|| anyhow!("{val} is too many ranks"));
+        } else {
+            Ok(Rank(val as u8))
         }
-        Ok(Rank(val))
     }
 
     pub const fn zero() -> Self {

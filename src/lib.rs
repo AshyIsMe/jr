@@ -25,81 +25,100 @@ pub use crate::scan::char_array;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
-    let simple_rank = |op, monad, monad_rank, dyad, dyad_rank| {
-        VerbImpl::Simple(SimpleImpl::new(op, monad, monad_rank, dyad, dyad_rank))
+    let inf = u32::MAX;
+    let primitive = |op, monad, dyad, ranks: (u32, u32, u32)| {
+        VerbImpl::Simple(SimpleImpl::new(
+            op,
+            monad,
+            dyad,
+            (
+                Rank::new(ranks.0).unwrap(),
+                Rank::new(ranks.1).unwrap(),
+                Rank::new(ranks.2).unwrap(),
+            ),
+        ))
     };
-    let simple =
-        |op, monad, dyad| simple_rank(op, monad, Rank::infinite(), dyad, Rank::infinite_infinite());
-    let not_impl = |op| simple(op, v_not_implemented_monad, v_not_implemented_dyad);
+    let not_impl = |op| {
+        primitive(
+            op,
+            v_not_implemented_monad,
+            v_not_implemented_dyad,
+            (inf, inf, inf),
+        )
+    };
 
     Some(match sentence {
         // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "simple(\"$a\", v_$b, v_$c);\n"'
-        "=" => simple("=", v_self_classify, v_equal),
-        "<" => simple("<", v_box, v_less_than),
-        "<." => simple("<.", v_floor, v_lesser_of_min),
-        "<:" => simple("<:", v_decrement, v_less_or_equal),
-        ">" => simple(">", v_open, v_larger_than),
-        ">." => simple(">.", v_ceiling, v_larger_of_max),
-        ">:" => simple(">:", v_increment, v_larger_or_equal),
-        "+" => simple_rank("+", v_conjugate, Rank::zero(), v_plus, Rank::zero_zero()),
-        "+." => simple("+.", v_real_imaginary, v_gcd_or),
-        "+:" => simple("+:", v_double, v_not_or),
-        "*" => simple("*", v_signum, v_times),
-        "*." => simple("*.", v_lengthangle, v_lcm_and),
-        "*:" => simple("*:", v_square, v_not_and),
-        "-" => simple("-", v_negate, v_minus),
-        "-." => simple("-.", v_not, v_less),
-        "-:" => simple("-:", v_halve, v_match),
-        "%" => simple("%", v_reciprocal, v_divide),
-        "%." => simple("%.", v_matrix_inverse, v_matrix_divide),
-        "%:" => simple("%:", v_square_root, v_root),
-        "^" => simple("^", v_exponential, v_power),
-        "^." => simple("^.", v_natural_log, v_logarithm),
-        "$" => simple("$", v_shape_of, v_shape),
-        "~" => simple("~", v_reflex, v_passive_evoke),
-        "~:" => simple("~:", v_nub_sieve, v_not_equal),
-        "|" => simple("|", v_magnitude, v_residue),
-        "|." => simple("|.", v_reverse, v_rotate_shift),
-        "." => simple(".", v_determinant, v_dot_product),
-        "," => simple(",", v_ravel, v_append),
-        ",." => simple(",.", v_ravel_items, v_stitch),
-        ",:" => simple(",:", v_itemize, v_laminate),
-        ";" => simple(";", v_raze, v_link),
-        ";:" => simple(";:", v_words, v_sequential_machine),
-        "#" => simple("#", v_tally, v_copy),
-        "#." => simple("#.", v_base_, v_base),
-        "#:" => simple("#:", v_antibase_, v_antibase),
-        "!" => simple("!", v_factorial, v_out_of),
-        // conflicts with the adverb implementation
-        // "/" => simple("/", v_insert, v_table),
-        "/." => simple("/.", v_oblique, v_key),
-        "/:" => simple("/:", v_grade_up, v_sort),
-        "\\" => simple("\\", v_prefix, v_infix),
-        "\\." => simple("\\.", v_suffix, v_outfix),
-        "\\:" => simple("\\:", v_grade_down, v_sort),
-        "[" => simple("[", v_same, v_left),
-        "]" => simple("]", v_same, v_right),
-        "{" => simple("{", v_catalogue, v_from),
-        "{." => simple("{.", v_head, v_take),
-        "{:" => simple("{:", v_tail, v_map_fetch),
-        "}" => simple("}", v_item_amend, v_amend_m_u),
-        "}." => simple("}.", v_behead, v_drop),
-        "\"." => simple("\".", v_do, v_numbers),
-        "\":" => simple("\":", v_default_format, v_format),
-        "?" => simple("?", v_roll, v_deal),
-        "?." => simple("?.", v_roll, v_deal_fixed_seed),
-        "A." => simple("A.", v_anagram_index, v_anagram),
-        "C." => simple("C.", v_cycledirect, v_permute),
-        "e." => simple("e.", v_raze_in, v_member_in),
-        "i." => simple("i.", v_integers, v_index_of),
-        "i:" => simple("i:", v_steps, v_index_of_last),
-        "I." => simple("I.", v_indices, v_interval_index),
-        "j." => simple("j.", v_imaginary, v_complex),
-        "o." => simple("o.", v_pi_times, v_circle_function),
-        "p." => simple("p.", v_roots, v_polynomial),
-        "p.." => simple("p..", v_poly_deriv, v_poly_integral),
-        "q:" => simple("q:", v_prime_factors, v_prime_exponents),
-        "r." => simple("r.", v_angle, v_polar),
+        "=" => primitive("=", v_self_classify, v_equal, (inf, 0, 0)),
+        "<" => primitive("<", v_box, v_less_than, (inf, 0, 0)),
+        "<." => primitive("<.", v_floor, v_lesser_of_min, (0, 0, 0)),
+        "<:" => primitive("<:", v_decrement, v_less_or_equal, (0, 0, 0)),
+        ">" => primitive(">", v_open, v_larger_than, (0, 0, 0)),
+        ">." => primitive(">.", v_ceiling, v_larger_of_max, (0, 0, 0)),
+        ">:" => primitive(">:", v_increment, v_larger_or_equal, (0, 0, 0)),
+
+        "+" => primitive("+", v_conjugate, v_plus, (0, 0, 0)),
+        "+." => primitive("+.", v_real_imaginary, v_gcd_or, (0, 0, 0)),
+        "+:" => primitive("+:", v_double, v_not_or, (0, 0, 0)),
+        "*" => primitive("*", v_signum, v_times, (0, 0, 0)),
+        "*." => primitive("*.", v_lengthangle, v_lcm_and, (0, 0, 0)),
+        "*:" => primitive("*:", v_square, v_not_and, (0, 0, 0)),
+        "-" => primitive("-", v_negate, v_minus, (0, 0, 0)),
+        "-." => primitive("-.", v_not, v_less, (0, inf, inf)),
+        "-:" => primitive("-:", v_halve, v_match, (inf, inf, 0)),
+        "%" => primitive("%", v_reciprocal, v_divide, (0, 0, 0)),
+        "%." => primitive("%.", v_matrix_inverse, v_matrix_divide, (2, inf, 2)),
+        "%:" => primitive("%:", v_square_root, v_root, (0, 0, 0)),
+
+        "^" => primitive("^", v_exponential, v_power, (0, 0, 0)),
+        "^." => primitive("^.", v_natural_log, v_logarithm, (0, 0, 0)),
+        "$" => primitive("$", v_shape_of, v_shape, (inf, 1, inf)),
+        "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
+        "|" => primitive("|", v_magnitude, v_residue, (0, 0, 0)),
+        "|." => primitive("|.", v_reverse, v_rotate_shift, (inf, inf, inf)),
+
+        "," => primitive(",", v_ravel, v_append, (inf, inf, inf)),
+        ",." => primitive(",.", v_ravel_items, v_stitch, (inf, inf, inf)),
+        ",:" => primitive(",:", v_itemize, v_laminate, (inf, inf, inf)),
+        ";" => primitive(";", v_raze, v_link, (inf, inf, inf)),
+        ";:" => primitive(";:", v_words, v_sequential_machine, (1, inf, inf)),
+
+        "#" => primitive("#", v_tally, v_copy, (inf, 1, inf)),
+        "#." => primitive("#.", v_base_, v_base, (1, 1, 1)),
+        "#:" => primitive("#:", v_antibase_, v_antibase, (inf, 1, 0)),
+        "!" => primitive("!", v_factorial, v_out_of, (0, 0, 0)),
+        "/:" => primitive("/:", v_grade_up, v_sort, (inf, inf, inf)),
+        "\\:" => primitive("\\:", v_grade_down, v_sort, (inf, inf, inf)),
+
+        "[" => primitive("[", v_same, v_left, (inf, inf, inf)),
+        "]" => primitive("]", v_same, v_right, (inf, inf, inf)),
+        "{" => primitive("{", v_catalogue, v_from, (1, 0, inf)),
+        "{." => primitive("{.", v_head, v_take, (inf, 1, inf)),
+        "{:" => primitive("{:", v_tail, v_not_implemented_dyad, (inf, inf, inf)),
+        "{::" => primitive("{:", v_map, v_fetch, (inf, 1, inf)),
+        "}." => primitive("}.", v_behead, v_drop, (inf, 1, inf)),
+
+        "\"." => primitive("\".", v_do, v_numbers, (1, inf, inf)),
+        "\":" => primitive("\":", v_default_format, v_format, (inf, 1, inf)),
+        "?" => primitive("?", v_roll, v_deal, (0, 0, 0)),
+        "?." => primitive("?.", v_roll, v_deal_fixed_seed, (inf, 0, 0)),
+
+        "A." => primitive("A.", v_anagram_index, v_anagram, (1, 0, inf)),
+        "C." => primitive("C.", v_cycledirect, v_permute, (1, 1, inf)),
+        "e." => primitive("e.", v_raze_in, v_member_in, (inf, inf, inf)),
+
+        "i." => primitive("i.", v_integers, v_index_of, (1, inf, inf)),
+        "i:" => primitive("i:", v_steps, v_index_of_last, (0, inf, inf)),
+        "I." => primitive("I.", v_indices, v_interval_index, (1, inf, inf)),
+        "j." => primitive("j.", v_imaginary, v_complex, (0, 0, 0)),
+        "o." => primitive("o.", v_pi_times, v_circle_function, (0, 0, 0)),
+        "p." => primitive("p.", v_roots, v_polynomial, (1, 1, 0)),
+        "p.." => primitive("p..", v_poly_deriv, v_poly_integral, (1, 0, 1)),
+
+        "q:" => primitive("q:", v_prime_factors, v_prime_exponents, (0, 0, 0)),
+        "r." => primitive("r.", v_angle, v_polar, (0, 0, 0)),
+        "x:" => primitive("x:", v_extend_precision, v_num_denom, (inf, inf, inf)),
+
         //"=." => not_impl("=."), IsLocal
         //"=:" => not_impl("=:"), IsGlobal
         // ("<", VerbImpl::Simple(SimpleImpl::new("<", verbs::v_box, verbs::v_lt))),
@@ -112,7 +131,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
         "[:" => not_impl("[:"),
-        "{::" => not_impl("{::"),
         "}:" => not_impl("}:"),
         "C.!.2" => not_impl("C.!.2"),
         "E." => not_impl("E."),
@@ -121,7 +139,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "s:" => not_impl("s:"),
         "T." => not_impl("T."),
         "u:" => not_impl("u:"),
-        "x:" => simple("x:", v_extend_precision, v_num_denom),
         "Z:" => not_impl("Z:"),
         "_9:" => not_impl("_9:"),
         "_8:" => not_impl("_8:"),
@@ -199,7 +216,7 @@ fn primitive_nouns() -> &'static [&'static str] {
 fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
     // https://code.jsoftware.com/wiki/NuVoc
     HashMap::from([
-        ("^:", ModifierImpl::NotImplemented),
+        ("^:", ModifierImpl::HatCo),
         (".", ModifierImpl::NotImplemented),
         (":", ModifierImpl::NotImplemented),
         (":.", ModifierImpl::NotImplemented),
