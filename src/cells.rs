@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
@@ -22,6 +22,23 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
         .unwrap_or_else(|| x.len().min(y.len()))
 }
 
+fn frame_of(shape: &[usize], rank: Rank) -> Result<&[usize]> {
+    Ok(match rank.usize() {
+        None => shape,
+        Some(rank) => {
+            ensure!(rank <= shape.len(), "rank {rank:?} higher than {shape:?}");
+            &shape[..shape.len() - rank]
+        }
+    })
+}
+
+fn cells_of(a: &JArray, arg_rank: Rank, surplus_rank: usize) -> Result<JArrayCow> {
+    Ok(match arg_rank.usize() {
+        None => JArrayCow::from(a),
+        Some(arg_rank) => a.choppo(surplus_rank + arg_rank)?,
+    })
+}
+
 pub fn generate_cells<'x, 'y>(
     x: &'x JArray,
     y: &'y JArray,
@@ -35,8 +52,8 @@ pub fn generate_cells<'x, 'y>(
 
     let min_rank = x_rank.min(y_rank);
 
-    let x_frame = &x_shape[..x_rank - x_arg_rank.usize()];
-    let y_frame = &y_shape[..y_rank - y_arg_rank.usize()];
+    let x_frame = frame_of(x_shape, x_arg_rank)?;
+    let y_frame = frame_of(y_shape, y_arg_rank)?;
 
     let common_dims = common_dims(x_frame, y_frame);
     let common_frame = &x_shape[..common_dims];
@@ -52,8 +69,8 @@ pub fn generate_cells<'x, 'y>(
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
 
-    let x_cells = x.choppo(x_surplus_rank + x_arg_rank.usize())?;
-    let y_cells = y.choppo(y_surplus_rank + y_arg_rank.usize())?;
+    let x_cells = cells_of(x, x_arg_rank, x_surplus_rank)?;
+    let y_cells = cells_of(y, y_arg_rank, y_surplus_rank)?;
 
     debug!("x_cells: {x_cells:?}");
     debug!("y_cells: {y_cells:?}");
@@ -61,7 +78,22 @@ pub fn generate_cells<'x, 'y>(
     Ok((x_cells, y_cells))
 }
 
-pub fn flatten(shape: &[usize], vecs: Vec<Word>) -> Result<JArray> {
+// TODO: garbage lifetime sharing here, don't pass the CoW objects by reference
+pub fn apply_cells<'v>(
+    (x_cells, y_cells): (&'v JArrayCow<'v>, &'v JArrayCow<'v>),
+    f: fn(&JArray, &JArray) -> Result<Word>,
+) -> Result<Vec<Word>> {
+    x_cells
+        .outer_iter()
+        .into_iter()
+        .cycle()
+        .zip(y_cells.outer_iter().into_iter().cycle())
+        .take(x_cells.shape()[0].max(y_cells.shape()[0]))
+        .map(|(x, y)| f(&x.into(), &y.into()))
+        .collect()
+}
+
+pub fn flatten(shape: &[usize], vecs: &[Word]) -> Result<JArray> {
     let arr = vecs
         .iter()
         .map(|w| match w {

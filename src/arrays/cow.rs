@@ -35,11 +35,11 @@ macro_rules! impl_array {
 
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
-        impl_array!(self, |x: &ArrayBase<_, _>| x.len())
+        impl_array!(self, ArrayBase::len)
     }
 
-    pub fn shape(&'v self) -> &[usize] {
-        impl_array!(self, |x: &'v ArrayBase<_, _>| x.shape())
+    pub fn shape(&self) -> &[usize] {
+        impl_array!(self, ArrayBase::shape)
     }
 
     // TODO: Iterator
@@ -62,6 +62,21 @@ impl<'v> From<JArrayCow<'v>> for JArray {
             JArrayCow::FloatArray(v) => JArray::FloatArray(v.into_owned()),
             JArrayCow::ComplexArray(v) => JArray::ComplexArray(v.into_owned()),
             JArrayCow::BoxArray(v) => JArray::BoxArray(v.into_owned()),
+        }
+    }
+}
+
+impl<'v> From<&'v JArray> for JArrayCow<'v> {
+    fn from(value: &'v JArray) -> Self {
+        match value {
+            JArray::BoolArray(v) => JArrayCow::BoolArray(v.into()),
+            JArray::CharArray(v) => JArrayCow::CharArray(v.into()),
+            JArray::IntArray(v) => JArrayCow::IntArray(v.into()),
+            JArray::ExtIntArray(v) => JArrayCow::ExtIntArray(v.into()),
+            JArray::RationalArray(v) => JArrayCow::RationalArray(v.into()),
+            JArray::FloatArray(v) => JArrayCow::FloatArray(v.into()),
+            JArray::ComplexArray(v) => JArrayCow::ComplexArray(v.into()),
+            JArray::BoxArray(v) => JArrayCow::BoxArray(v.into()),
         }
     }
 }

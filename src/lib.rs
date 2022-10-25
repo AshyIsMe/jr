@@ -13,6 +13,7 @@ mod plot;
 use std::collections::HashMap;
 
 pub use arrays::*;
+pub use cells::flatten;
 pub use empty::HasEmpty;
 pub use error::JError;
 pub use eval::*;
@@ -72,7 +73,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
 
         "^" => primitive("^", v_exponential, v_power, (0, 0, 0)),
         "^." => primitive("^.", v_natural_log, v_logarithm, (0, 0, 0)),
-        "$" => primitive("$", v_shape_of, v_shape, (inf, 1, inf)),
+        "$" => primitive("$", v_shape_of, v_shape, (inf, /* todo: 1 */ inf, inf)),
         "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
         "|" => primitive("|", v_magnitude, v_residue, (0, 0, 0)),
         "|." => primitive("|.", v_reverse, v_rotate_shift, (inf, inf, inf)),

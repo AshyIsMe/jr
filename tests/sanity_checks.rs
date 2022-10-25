@@ -50,7 +50,7 @@ fn test_basic_times() {
 fn test_parse_basics() {
     let words = vec![
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[1]), vec![2]).unwrap(),
+            Array::from_shape_vec(IxDyn(&[]), vec![2]).unwrap(),
         )),
         Word::static_verb("+"),
         Noun(IntArray(

@@ -14,6 +14,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
+use crate::cells::{apply_cells, flatten, generate_cells, result_shape};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -67,6 +68,30 @@ pub enum VerbImpl {
     },
 }
 
+fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
+    if Rank::infinite_infinite() == dyad.rank {
+        return (dyad.f)(x, y).context("infinite dyad shortcut");
+    }
+    let target_shape = result_shape(x, y);
+    let (x_cells, y_cells) = generate_cells(x, y, dyad.rank).context("generating cells")?;
+    let application_result =
+        apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
+
+    let flat = flatten(target_shape, &application_result).with_context(|| {
+        // this is expensive but should only be hit on application bugs, not user code issues
+        let pair_info = application_result
+            .iter()
+            .map(|w| match w {
+                Word::Noun(n) => Some(n.shape().to_vec()),
+                _ => None,
+            })
+            .collect::<Option<Vec<_>>>();
+
+        anyhow!("reshaping {:?} to {target_shape:?}", pair_info)
+    })?;
+    Ok(Word::Noun(flat))
+}
+
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
@@ -74,11 +99,13 @@ impl VerbImpl {
                 (None, Word::Noun(y)) => {
                     (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
-                (Some(Word::Noun(x)), Word::Noun(y)) => (imp
-                    .dyad
-                    .ok_or(JError::DomainError)
-                    .with_context(|| anyhow!("dyadic {:?}", imp.name))?
-                    .f)(x, y),
+                (Some(Word::Noun(x)), Word::Noun(y)) => {
+                    let dyad = imp
+                        .dyad
+                        .ok_or(JError::DomainError)
+                        .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
+                    exec_dyad(&dyad, x, y).with_context(|| anyhow!("dyadic {:?}", imp.name))
+                }
                 _ => Err(DomainError.into()),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
@@ -319,6 +346,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
+    debug!("executing plus on {x:?} + {y:?}");
     Ok(Word::Noun(prohomo(x, y)?.plus()))
 }
 
