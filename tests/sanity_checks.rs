@@ -261,6 +261,15 @@ fn test_fork_noun() {
 }
 
 #[test]
+fn test_fork_average() {
+    let words = jr::scan("(+/ % #) 1 2 3").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Word::noun([2i64]).unwrap()
+    );
+}
+
+#[test]
 fn test_hook() {
     //let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap(); //TODO use this when parens are implemented
     let words = vec![
