@@ -66,6 +66,21 @@ impl<'v> From<JArrayCow<'v>> for JArray {
     }
 }
 
+impl<'v> From<&'v JArray> for JArrayCow<'v> {
+    fn from(value: &'v JArray) -> Self {
+        match value {
+            JArray::BoolArray(v) => JArrayCow::BoolArray(v.into()),
+            JArray::CharArray(v) => JArrayCow::CharArray(v.into()),
+            JArray::IntArray(v) => JArrayCow::IntArray(v.into()),
+            JArray::ExtIntArray(v) => JArrayCow::ExtIntArray(v.into()),
+            JArray::RationalArray(v) => JArrayCow::RationalArray(v.into()),
+            JArray::FloatArray(v) => JArrayCow::FloatArray(v.into()),
+            JArray::ComplexArray(v) => JArrayCow::ComplexArray(v.into()),
+            JArray::BoxArray(v) => JArrayCow::BoxArray(v.into()),
+        }
+    }
+}
+
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {
         impl<'v> From<ArrayD<$t>> for JArrayCow<'v> {

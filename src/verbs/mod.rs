@@ -76,8 +76,19 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     let (x_cells, y_cells) = generate_cells(x, y, dyad.rank).context("generating cells")?;
     let application_result =
         apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
-    let flat = flatten(target_shape, application_result)
-        .with_context(|| anyhow!("reshaping to {target_shape:?}"))?;
+
+    let flat = flatten(target_shape, &application_result).with_context(|| {
+        // this is expensive but should only be hit on application bugs, not user code issues
+        let pair_info = application_result
+            .iter()
+            .map(|w| match w {
+                Word::Noun(n) => Some(n.shape().to_vec()),
+                _ => None,
+            })
+            .collect::<Option<Vec<_>>>();
+
+        anyhow!("reshaping {:?} to {target_shape:?}", pair_info)
+    })?;
     Ok(Word::Noun(flat))
 }
 
@@ -93,7 +104,7 @@ impl VerbImpl {
                         .dyad
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
-                    exec_dyad(&dyad, x, y).with_context(|| anyhow!("monadic {:?}", imp.name))
+                    exec_dyad(&dyad, x, y).with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
                 _ => Err(DomainError.into()),
             },

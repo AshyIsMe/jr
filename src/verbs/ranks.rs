@@ -36,7 +36,14 @@ impl Rank {
         (Self::infinite(), Self::infinite())
     }
 
-    pub fn usize(&self) -> usize {
-        usize::from(self.0)
+    pub const fn is_infinite(&self) -> bool {
+        self.0 == u8::MAX
+    }
+
+    pub fn usize(&self) -> Option<usize> {
+        if self.is_infinite() {
+            return None;
+        }
+        Some(usize::from(self.0))
     }
 }
