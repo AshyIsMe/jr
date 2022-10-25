@@ -61,6 +61,21 @@ pub fn generate_cells<'x, 'y>(
     Ok((x_cells, y_cells))
 }
 
+// TODO: garbage lifetime sharing here, don't pass the CoW objects by reference
+pub fn apply_cells<'v>(
+    (x_cells, y_cells): (&'v JArrayCow<'v>, &'v JArrayCow<'v>),
+    f: fn(&JArray, &JArray) -> Result<Word>,
+) -> Result<Vec<Word>> {
+    x_cells
+        .outer_iter()
+        .into_iter()
+        .cycle()
+        .zip(y_cells.outer_iter().into_iter().cycle())
+        .take(x_cells.shape()[0].max(y_cells.shape()[0]))
+        .map(|(x, y)| f(&x.into(), &y.into()))
+        .collect()
+}
+
 pub fn flatten(shape: &[usize], vecs: Vec<Word>) -> Result<JArray> {
     let arr = vecs
         .iter()

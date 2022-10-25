@@ -13,6 +13,7 @@ mod plot;
 use std::collections::HashMap;
 
 pub use arrays::*;
+pub use cells::flatten;
 pub use empty::HasEmpty;
 pub use error::JError;
 pub use eval::*;

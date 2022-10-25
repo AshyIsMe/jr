@@ -35,11 +35,11 @@ macro_rules! impl_array {
 
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
-        impl_array!(self, |x: &ArrayBase<_, _>| x.len())
+        impl_array!(self, ArrayBase::len)
     }
 
-    pub fn shape(&'v self) -> &[usize] {
-        impl_array!(self, |x: &'v ArrayBase<_, _>| x.shape())
+    pub fn shape(&self) -> &[usize] {
+        impl_array!(self, ArrayBase::shape)
     }
 
     // TODO: Iterator
