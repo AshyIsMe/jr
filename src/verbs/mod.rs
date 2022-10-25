@@ -35,7 +35,7 @@ pub struct Dyad {
 }
 
 #[derive(Copy, Clone)]
-pub struct SimpleImpl {
+pub struct PrimitiveImpl {
     // TODO: NOT public
     pub name: &'static str,
     // TODO: NOT public
@@ -46,7 +46,7 @@ pub struct SimpleImpl {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
-    Simple(SimpleImpl),
+    Primitive(PrimitiveImpl),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -70,7 +70,7 @@ pub enum VerbImpl {
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
         match self {
-            VerbImpl::Simple(imp) => match (x, y) {
+            VerbImpl::Primitive(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
                     (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
@@ -109,7 +109,7 @@ impl VerbImpl {
     }
 }
 
-impl SimpleImpl {
+impl PrimitiveImpl {
     pub fn monad(name: &'static str, f: fn(&JArray) -> Result<Word>) -> Self {
         Self {
             name,
@@ -124,31 +124,30 @@ impl SimpleImpl {
     pub const fn new(
         name: &'static str,
         monad: fn(&JArray) -> Result<Word>,
-        monad_rank: Rank,
         dyad: fn(&JArray, &JArray) -> Result<Word>,
-        dyad_rank: (Rank, Rank),
+        ranks: (Rank, Rank, Rank),
     ) -> Self {
         Self {
             name,
             monad: Monad {
                 f: monad,
-                rank: monad_rank,
+                rank: ranks.0,
             },
             dyad: Some(Dyad {
                 f: dyad,
-                rank: dyad_rank,
+                rank: (ranks.1, ranks.2),
             }),
         }
     }
 }
 
-impl fmt::Debug for SimpleImpl {
+impl fmt::Debug for PrimitiveImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleImpl({})", self.name)
+        write!(f, "PrimitiveImpl({})", self.name)
     }
 }
 
-impl PartialEq for SimpleImpl {
+impl PartialEq for PrimitiveImpl {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
@@ -473,15 +472,6 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
     }
 }
 
-/// ~ (monad)
-pub fn v_reflex(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// ~ (dyad)
-pub fn v_passive_evoke(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
 /// ~: (monad)
 pub fn v_nub_sieve(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
@@ -506,15 +496,6 @@ pub fn v_reverse(_y: &JArray) -> Result<Word> {
 }
 /// |. (dyad)
 pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// . (monad)
-pub fn v_determinant(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// . (dyad)
-pub fn v_dot_product(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
@@ -609,48 +590,12 @@ pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
-/// / (monad)
-pub fn v_insert(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// / (dyad)
-pub fn v_table(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// /. (monad)
-pub fn v_oblique(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// /. (dyad)
-pub fn v_key(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
 /// /: (monad)
 pub fn v_grade_up(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// /: (dyad) and \: (dyad)
 pub fn v_sort(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// \ (monad)
-pub fn v_prefix(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// \ (dyad)
-pub fn v_infix(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-
-/// \. (monad)
-pub fn v_suffix(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
-/// \. (dyad)
-pub fn v_outfix(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
@@ -695,17 +640,13 @@ pub fn v_take(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_tail(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
-/// {: (dyad)
-pub fn v_map_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
-}
 
-/// } (monad)
-pub fn v_item_amend(_y: &JArray) -> Result<Word> {
+/// {:: (monad)
+pub fn v_map(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
-/// } (dyad)
-pub fn v_amend_m_u(_x: &JArray, _y: &JArray) -> Result<Word> {
+/// {:: (dyad)
+pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
