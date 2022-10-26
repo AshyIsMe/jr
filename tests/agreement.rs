@@ -98,3 +98,15 @@ fn test_agreement_reshape() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_agreement_reshape_2() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r3 = jr::eval(jr::scan("2 2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+
+    assert_eq!(r1, r2);
+    assert_eq!(r1, r3);
+
+    Ok(())
+}
