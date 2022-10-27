@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
-use jr::{IntoJArray, JError};
+use jr::{IntoJArray, JError, Word};
 
 #[test]
 fn array_iter_2_3() {
@@ -44,6 +44,31 @@ fn array_iter_2_3_2() -> Result<()> {
         arr.index_axis(Axis(0), 0)
     );
 
+    Ok(())
+}
+
+fn eval(sentence: &str) -> Result<Word> {
+    jr::eval(jr::scan(sentence)?, &mut HashMap::new())
+}
+
+#[test]
+fn test_reshape_1d_bool_in() -> Result<()> {
+    assert_eq!(eval("1 $ 5")?, array![5i64].into_dyn().into_noun());
+    Ok(())
+}
+
+#[test]
+fn test_reshape_1d_bool_out() -> Result<()> {
+    assert_eq!(
+        eval("2 2 $ 1 0")?,
+        array![[1u8, 0], [1, 0]].into_dyn().into_noun()
+    );
+    Ok(())
+}
+
+#[test]
+fn test_reshape_1d_2() -> Result<()> {
+    assert_eq!(eval("2 $ 5")?, array![5i64, 5].into_dyn().into_noun());
     Ok(())
 }
 

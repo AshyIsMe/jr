@@ -96,13 +96,15 @@ impl JArray {
         })
     }
 
+    /// Coerce towards an i64 array, if safe to do so (at the type level)
+    ///
+    /// No conversions are attempted, only promotions. Safe demotions are not attempted.
     pub fn to_i64(&self) -> Option<CowArrayD<i64>> {
         use JArray::*;
         Some(match self {
             BoolArray(a) => a.map(|&v| i64::from(v)).into(),
             CharArray(a) => a.map(|&v| i64::from(v as u32)).into(),
             IntArray(a) => a.into(),
-            // TODO: attempt coercion of other types? .map(try_from).collect::<Result<ArrayD<>>>?
             _ => return None,
         })
     }

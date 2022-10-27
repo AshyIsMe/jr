@@ -6,7 +6,7 @@ use std::ops::Deref;
 
 use crate::impl_array;
 use crate::Word;
-use crate::{ArrayPair, JError};
+use crate::{ArrayPair, CowArrayD, JError};
 use crate::{IntoJArray, JArray};
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -222,12 +222,12 @@ pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
-pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
+pub fn reshape<T>(x: &CowArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
     T: Debug + Clone,
 {
     if x.iter().product::<i64>() < 0 {
-        Err(JError::DomainError.into())
+        Err(JError::DomainError).context("can't reshape to a negative shape")
     } else {
         // get shape of y cells
         // get new shape: concat x with sy
@@ -488,15 +488,15 @@ pub fn v_shape_of(y: &JArray) -> Result<Word> {
 }
 /// $ (dyad)
 pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
-    match x {
-        IntArray(x) => {
-            if x.product() < 0 {
-                Err(JError::DomainError.into())
-            } else {
-                impl_array!(y, |y| reshape(x, y).map(|x| x.into_noun()))
-            }
-        }
-        _ => Err(JError::DomainError.into()),
+    let x = x
+        .to_i64()
+        .ok_or(JError::DomainError)
+        .with_context(|| anyhow!("invalid type for shapes: {x:?}"))?;
+
+    if x.product() < 0 {
+        Err(JError::DomainError.into())
+    } else {
+        impl_array!(y, |y| reshape(&x, y).map(|x| x.into_noun()))
     }
 }
 
@@ -759,7 +759,7 @@ pub fn v_integers(y: &JArray) -> Result<Word> {
                 bail!("todo: monadic i. negative args");
             } else {
                 let ints = Array::from_vec((0..p).collect());
-                Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
+                Ok(Noun(IntArray(reshape(&a.into(), &ints.into_dyn())?)))
             }
         }
         ExtIntArray(_) => {
