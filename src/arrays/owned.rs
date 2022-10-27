@@ -70,6 +70,10 @@ impl JArray {
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
         let shape = self.shape();
 
+        if shape.is_empty() && nega_rank == 1 {
+            return self.to_shape(IxDyn(&[1]));
+        }
+
         if nega_rank > shape.len() {
             bail!("cannot choppo ({nega_rank}) given a shape of {shape:?}");
         }

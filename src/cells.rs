@@ -1,4 +1,6 @@
-use anyhow::{anyhow, ensure, Context, Result};
+use std::iter;
+
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
@@ -22,12 +24,17 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
         .unwrap_or_else(|| x.len().min(y.len()))
 }
 
-fn frame_of(shape: &[usize], rank: Rank) -> Result<&[usize]> {
+fn frame_of(shape: &[usize], rank: Rank) -> Result<Vec<usize>> {
     Ok(match rank.usize() {
-        None => shape,
+        None => shape.to_vec(),
         Some(rank) => {
+            // promote the empty shape to a shape of [1] (convert atoms into single-item lists)
+            // for the purpose of the agreement calculation on 1-rank functions?
+            if rank == 1 && shape.is_empty() {
+                return Ok(vec![1]);
+            }
             ensure!(rank <= shape.len(), "rank {rank:?} higher than {shape:?}");
-            &shape[..shape.len() - rank]
+            shape[..shape.len() - rank].to_vec()
         }
     })
 }
@@ -61,7 +68,7 @@ pub fn generate_cells<'x, 'y>(
     let x_frame = frame_of(x_shape, x_arg_rank)?;
     let y_frame = frame_of(y_shape, y_arg_rank)?;
 
-    let common_dims = common_dims(x_frame, y_frame);
+    let common_dims = common_dims(&x_frame, &y_frame);
     let common_frame = &x_shape[..common_dims];
 
     if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
@@ -89,14 +96,31 @@ pub fn apply_cells<'v>(
     (x_cells, y_cells): (&'v JArrayCow<'v>, &'v JArrayCow<'v>),
     f: fn(&JArray, &JArray) -> Result<Word>,
 ) -> Result<Vec<Word>> {
-    x_cells
-        .outer_iter()
-        .into_iter()
-        .cycle()
-        .zip(y_cells.outer_iter().into_iter().cycle())
-        .take(x_cells.shape()[0].max(y_cells.shape()[0]))
-        .map(|(x, y)| f(&x.into(), &y.into()))
-        .collect()
+    // outer_iter crashes (probably a bug) for atoms
+    let x_atom = x_cells.shape().is_empty();
+    let y_atom = y_cells.shape().is_empty();
+    match (x_atom, y_atom) {
+        (true, true) => bail!("TODO: not handling atom dyad atom"),
+        (true, false) => iter::repeat(x_cells)
+            .cloned()
+            .zip(y_cells.outer_iter())
+            .map(|(x, y)| f(&x.into(), &y.into()))
+            .collect(),
+        (false, true) => x_cells
+            .outer_iter()
+            .into_iter()
+            .zip(iter::repeat(y_cells).cloned())
+            .map(|(x, y)| f(&x.into(), &y.into()))
+            .collect(),
+        (false, false) => x_cells
+            .outer_iter()
+            .into_iter()
+            .cycle()
+            .zip(y_cells.outer_iter().into_iter().cycle())
+            .take(x_cells.shape()[0].max(y_cells.shape()[0]))
+            .map(|(x, y)| f(&x.into(), &y.into()))
+            .collect(),
+    }
 }
 
 pub fn flatten(shape: &[usize], vecs: &[Word]) -> Result<JArray> {
