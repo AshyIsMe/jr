@@ -15,6 +15,7 @@ pub enum ArrayPair<'l, 'r> {
     // CharArray(..) // char, again, lacks maths operators, making this annoying
 }
 
+#[derive(Debug)]
 pub enum JArrays<'v> {
     BoolArrays(Vec<ArrayViewD<'v, u8>>),
     CharArrays(Vec<ArrayViewD<'v, char>>),

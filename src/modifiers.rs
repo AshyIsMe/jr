@@ -64,12 +64,7 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
-            let n = match ja {
-                // TODO is there a better way to do this without needing to cast?
-                JArray::BoolArray(a) => a.map(|i| *i as i64),
-                JArray::IntArray(a) => a.map(|i| *i as i64),
-                _ => return Err(JError::DomainError.into()),
-            };
+            let n = ja.to_i64().ok_or(JError::DomainError)?;
             Ok(collect_nouns(
                 n.iter()
                     .map(|i| -> Result<_> {
@@ -105,6 +100,10 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
 }
 
 fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
+    // TODO: this special cases the atom/scalar case, as the reshape algorithm mangles it
+    if arr.len() == 1 && arr[0].shape() == [] {
+        return Ok(arr[0].to_owned());
+    }
     let cell_shape = arr
         .iter()
         .map(|arr| arr.shape())
