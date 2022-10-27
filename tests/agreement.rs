@@ -112,19 +112,23 @@ fn test_agreement_reshape_2() -> Result<()> {
 }
 
 #[test]
+fn test_reshape_atoms() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
+    // Should be an array of length 1 containing 1
+    assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[1]), 1))));
+    Ok(())
+}
+
+#[test]
 fn test_reshape_truncate() -> Result<()> {
     let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut HashMap::new()).unwrap();
-
     assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[]), 1))));
-
     Ok(())
 }
 
 #[test]
 fn test_reshape_cycle() -> Result<()> {
     let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
-
     assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
-
     Ok(())
 }
