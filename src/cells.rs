@@ -135,12 +135,17 @@ pub fn flatten(shape: &[usize], vecs: &[Word]) -> Result<JArray> {
     Ok(reduce_arrays!(
         arrs,
         |v: &[ArrayViewD<'_, _>]| -> Result<ArrayD<_>> {
+            let shape = iter::once(v.len())
+                .chain(v[0].shape().iter().copied())
+                .collect_vec();
             let vec = v
                 .into_iter()
                 .flat_map(|v| v.into_iter())
                 .cloned()
                 .collect_vec();
-            Ok(ArrayD::from_shape_vec(shape, vec)?)
+            let len = vec.len();
+            Ok(ArrayD::from_shape_vec(shape.clone(), vec)
+                .with_context(|| anyhow!("building result from {shape:?} over {len}"))?)
         }
     ))
 }
@@ -148,14 +153,10 @@ pub fn flatten(shape: &[usize], vecs: &[Word]) -> Result<JArray> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use ndarray::{arr0, array, ArrayD};
+    use ndarray::array;
 
     use super::*;
-    use crate::IntoJArray;
-
-    fn arr0d<T>(x: T) -> ArrayD<T> {
-        arr0(x).into_dyn()
-    }
+    use crate::{arr0d, IntoJArray};
 
     #[test]
     fn test_common_dims() {

@@ -6,7 +6,7 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
+use jr::{arr0d, collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
@@ -112,6 +112,14 @@ fn test_reshape_helper() {
     let y = Array::from_elem(IxDyn(&[1]), 1);
     let r = reshape(&Array::from_elem(IxDyn(&[1]), 4).into(), &y).unwrap();
     assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
+}
+
+#[test]
+fn test_reshape_helper_atom() {
+    assert_eq!(
+        array![1i64].into_dyn(),
+        reshape(&arr0d(1i64).into(), &arr0d(1i64).into()).unwrap(),
+    );
 }
 
 #[test]

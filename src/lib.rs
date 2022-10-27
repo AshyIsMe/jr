@@ -252,3 +252,7 @@ fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
         ("t.", ModifierImpl::NotImplemented),
     ])
 }
+
+pub fn arr0d<T>(x: T) -> ndarray::ArrayD<T> {
+    ndarray::arr0(x).into_dyn()
+}

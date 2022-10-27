@@ -493,6 +493,9 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
         .ok_or(JError::DomainError)
         .with_context(|| anyhow!("invalid type for shapes: {x:?}"))?;
 
+    println!("v_shape: x: {x:?}");
+    println!("v_shape: y: {y:?}");
+
     if x.product() < 0 {
         Err(JError::DomainError.into())
     } else {
