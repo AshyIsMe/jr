@@ -32,10 +32,16 @@ fn frame_of(shape: &[usize], rank: Rank) -> Result<&[usize]> {
     })
 }
 
+// TODO: rework references / cow
 fn cells_of(a: &JArray, arg_rank: Rank, surplus_rank: usize) -> Result<JArrayCow> {
     Ok(match arg_rank.usize() {
         None => JArrayCow::from(a),
-        Some(arg_rank) => a.choppo(surplus_rank + arg_rank)?,
+        Some(arg_rank) => a.choppo(surplus_rank + arg_rank).with_context(|| {
+            anyhow!(
+                "cells_of(shape {:?}, arg rank {arg_rank}, surplus {surplus_rank})",
+                a.shape(),
+            )
+        })?,
     })
 }
 

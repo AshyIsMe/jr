@@ -40,6 +40,10 @@ impl Rank {
         self.0 == u8::MAX
     }
 
+    pub const fn is_one(&self) -> bool {
+        self.0 == 1
+    }
+
     pub fn usize(&self) -> Option<usize> {
         if self.is_infinite() {
             return None;

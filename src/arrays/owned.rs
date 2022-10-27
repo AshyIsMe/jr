@@ -71,7 +71,7 @@ impl JArray {
         let shape = self.shape();
 
         if nega_rank > shape.len() {
-            bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
+            bail!("cannot choppo ({nega_rank}) given a shape of {shape:?}");
         }
 
         let (common, surplus) = shape.split_at(shape.len() - nega_rank);
