@@ -562,6 +562,18 @@ fn test_link() {
 }
 
 #[test]
+fn test_TEMP_outer_iter() {
+    let a = Array::from_elem(IxDyn(&[]), 42);
+    println!("a.len(): {}", a.len());
+    println!("a.shape(): {:?}", a.shape());
+    println!("a.shape().len(): {:?}", a.shape().len());
+    for i in a.iter() {
+        println!("{}", i);
+    }
+    assert!(false);
+}
+
+#[test]
 fn test_jarray_rank_iter() {
     let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap());
     let v = a.rank_iter(0);

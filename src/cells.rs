@@ -36,6 +36,14 @@ pub fn generate_cells(
 
     let common_dims = common_dims(&x_frame, &y_frame);
     let common_frame = &x_shape[..common_dims];
+    let surplus_frame = if x_frame.len() > y_frame.len() {
+        &x_shape[common_dims..]
+    } else {
+        &y_shape[common_dims..]
+    };
+
+    debug!("common_frame: {:?}", common_frame);
+    debug!("surplus_frame: {:?}", surplus_frame);
 
     let x_surplus = &x_frame[common_dims..];
     let y_surplus = &y_frame[common_dims..];
