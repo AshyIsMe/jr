@@ -1,4 +1,6 @@
+use anyhow::{bail, Result};
 use ndarray::prelude::*;
+use ndarray::IntoDimension;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
@@ -40,6 +42,20 @@ impl<'v> JArrayCow<'v> {
 
     pub fn shape(&self) -> &[usize] {
         impl_array!(self, ArrayBase::shape)
+    }
+
+    pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow> {
+        use JArray::*;
+        Ok(match self {
+            JArrayCow::BoolArray(a) => JArrayCow::BoolArray(a.to_shape(shape)?),
+            JArrayCow::CharArray(a) => JArrayCow::CharArray(a.to_shape(shape)?),
+            JArrayCow::IntArray(a) => JArrayCow::IntArray(a.to_shape(shape)?),
+            JArrayCow::ExtIntArray(a) => JArrayCow::ExtIntArray(a.to_shape(shape)?),
+            JArrayCow::RationalArray(a) => JArrayCow::RationalArray(a.to_shape(shape)?),
+            JArrayCow::FloatArray(a) => JArrayCow::FloatArray(a.to_shape(shape)?),
+            JArrayCow::ComplexArray(a) => JArrayCow::ComplexArray(a.to_shape(shape)?),
+            JArrayCow::BoxArray(a) => JArrayCow::BoxArray(a.to_shape(shape)?),
+        })
     }
 
     // TODO: Iterator

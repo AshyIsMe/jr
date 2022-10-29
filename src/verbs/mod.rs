@@ -79,10 +79,8 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     // let target_shape = result_shape(x, y);
 
     let (x_cells, y_cells) = generate_cells(x, y, dyad.rank).context("generating cells")?;
-    debug!("x_cells: {:?}", x_cells);
-    debug!("y_cells: {:?}", y_cells);
     let application_result =
-        apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
+        apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
     debug!("application_result: {:?}", application_result);
 
     // The filled results for each macrocell are organized into an array, using the surplus frame.

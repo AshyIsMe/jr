@@ -70,15 +70,12 @@ impl JArray {
 
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
         let shape = self.shape();
+        debug!("shape: {:?}", shape);
 
-        if nega_rank > shape.len() {
+        if nega_rank >= shape.len() {
             // bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
-            // self.to_shape(shape)
-            // AA TODO 1 whole item of this array in this case i think?
-            // This isn't quite right, we end up with an errant leading 1 on the resulting shape
-            let new_shape: Vec<usize> = vec![vec![1usize], (*shape).to_vec()].concat();
-            debug!("new_shape: {:?}, self: {}", new_shape, self);
-            self.to_shape(new_shape)
+            // rank larger than shape is just the whole shape as is
+            self.to_shape(shape)
         } else {
             let (common, surplus) = shape.split_at(shape.len() - nega_rank);
             let p = common.iter().product::<usize>();
