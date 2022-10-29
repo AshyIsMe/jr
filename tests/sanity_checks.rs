@@ -503,3 +503,15 @@ fn test_link() {
         .unwrap()
     );
 }
+
+#[test]
+fn test_TEMP_outer_iter() {
+    let a = Array::from_elem(IxDyn(&[]), 42);
+    println!("a.len(): {}", a.len());
+    println!("a.shape(): {:?}", a.shape());
+    println!("a.shape().len(): {:?}", a.shape().len());
+    for i in a.iter() {
+        println!("{}", i);
+    }
+    assert!(false);
+}

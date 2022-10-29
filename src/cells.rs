@@ -46,6 +46,8 @@ pub fn generate_cells<'x, 'y>(
 ) -> Result<(JArrayCow<'x>, JArrayCow<'y>)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
+    debug!("x_shape: {:?}", x_shape);
+    debug!("y_shape: {:?}", y_shape);
 
     let x_rank = x_shape.len();
     let y_rank = y_shape.len();
@@ -54,9 +56,19 @@ pub fn generate_cells<'x, 'y>(
 
     let x_frame = frame_of(x_shape, x_arg_rank)?;
     let y_frame = frame_of(y_shape, y_arg_rank)?;
+    debug!("x_frame: {:?}", x_frame);
+    debug!("y_frame: {:?}", y_frame);
 
     let common_dims = common_dims(x_frame, y_frame);
     let common_frame = &x_shape[..common_dims];
+    let surplus_frame = if x_frame.len() > y_frame.len() {
+        &x_shape[common_dims..]
+    } else {
+        &y_shape[common_dims..]
+    };
+
+    debug!("common_frame: {:?}", common_frame);
+    debug!("surplus_frame: {:?}", surplus_frame);
 
     if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
         return Err(JError::LengthError).with_context(|| {
@@ -68,14 +80,25 @@ pub fn generate_cells<'x, 'y>(
     // as `to_cells`/`choppo` re-subtract it from the rank
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
+    debug!("x_surplus_rank: {:?}", x_surplus_rank);
+    debug!("y_surplus_rank: {:?}", y_surplus_rank);
 
     let x_cells = cells_of(x, x_arg_rank, x_surplus_rank)?;
     let y_cells = cells_of(y, y_arg_rank, y_surplus_rank)?;
-
-    debug!("x_cells: {x_cells:?}");
-    debug!("y_cells: {y_cells:?}");
+    debug!("x_cells: {:?}", x_cells);
+    debug!("y_cells: {:?}", y_cells);
 
     Ok((x_cells, y_cells))
+}
+
+pub fn first_or_def<T>(arr: &[T], default: T) -> T
+where
+    T: Clone,
+{
+    match arr.len() > 0 {
+        true => arr[0].clone(),
+        false => default,
+    }
 }
 
 // TODO: garbage lifetime sharing here, don't pass the CoW objects by reference
@@ -83,12 +106,43 @@ pub fn apply_cells<'v>(
     (x_cells, y_cells): (&'v JArrayCow<'v>, &'v JArrayCow<'v>),
     f: fn(&JArray, &JArray) -> Result<Word>,
 ) -> Result<Vec<Word>> {
-    x_cells
-        .outer_iter()
+    debug!(
+        "x_cells.len(): {:?}, y_cells.len(): {:?}",
+        x_cells.len(),
+        y_cells.len()
+    );
+    debug!(
+        "x_cells.shape(): {:?}, y_cells.shape(): {:?}",
+        x_cells.shape(),
+        y_cells.shape()
+    );
+    let x_iter = if x_cells.shape().is_empty() {
+        x_cells.iter()
+    } else {
+        x_cells.outer_iter()
+    };
+    let y_iter = if y_cells.shape().is_empty() {
+        y_cells.iter()
+    } else {
+        y_cells.outer_iter()
+    };
+    let x_cells_count = if x_cells.shape().is_empty() {
+        1
+    } else {
+        x_cells.shape()[0]
+    };
+    let y_cells_count = if y_cells.shape().is_empty() {
+        1
+    } else {
+        y_cells.shape()[0]
+    };
+
+    x_iter
         .into_iter()
         .cycle()
-        .zip(y_cells.outer_iter().into_iter().cycle())
-        .take(x_cells.shape()[0].max(y_cells.shape()[0]))
+        .zip(y_iter.into_iter().cycle())
+        // .take(x_cells.len().max(y_cells.len()))
+        .take(x_cells_count.max(y_cells_count))
         .map(|(x, y)| f(&x.into(), &y.into()))
         .collect()
 }
@@ -150,7 +204,7 @@ mod tests {
     fn test_gen_macrocells_plus_one() -> Result<()> {
         let x = arr0d(5i64).into_jarray();
         let y = array![1i64, 2, 3].into_dyn().into_jarray();
-        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        let (x_cells, y_cells, target_shape) = generate_cells(&x, &y, Rank::zero_zero())?;
         assert_eq!(x_cells.outer_iter(), vec![arr0d(5i64).into()]);
         assert_eq!(
             y_cells.outer_iter(),
@@ -164,7 +218,7 @@ mod tests {
         // I think I'd rather the arrays came out whole in this case?
         let x = array![10i64, 20, 30].into_dyn().into_jarray();
         let y = array![1i64, 2, 3].into_dyn().into_jarray();
-        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        let (x_cells, y_cells, target_shape) = generate_cells(&x, &y, Rank::zero_zero())?;
         assert_eq!(
             x_cells.outer_iter(),
             vec![
@@ -184,7 +238,7 @@ mod tests {
     fn test_gen_macrocells_plus_i() -> Result<()> {
         let x = array![100i64, 200].into_dyn().into_jarray();
         let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray();
-        let (x_cells, y_cells) = generate_cells(&x, &y, Rank::zero_zero())?;
+        let (x_cells, y_cells, target_shape) = generate_cells(&x, &y, Rank::zero_zero())?;
         assert_eq!(
             x_cells.outer_iter(),
             vec![arr0d(100i64).into(), arr0d(200i64).into(),]
@@ -203,7 +257,7 @@ mod tests {
     fn test_gen_macrocells_hash() -> Result<()> {
         let x = array![24i64, 60, 61].into_dyn().into_jarray();
         let y = array![1800i64, 7200].into_dyn().into_jarray();
-        let (x_cells, y_cells) = generate_cells(&x, &y, (Rank::one(), Rank::zero()))?;
+        let (x_cells, y_cells, target_shape) = generate_cells(&x, &y, (Rank::one(), Rank::zero()))?;
         assert_eq!(
             x_cells.outer_iter(),
             vec![array![24i64, 60, 61].into_dyn().into(),]

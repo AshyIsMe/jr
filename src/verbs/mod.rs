@@ -69,15 +69,31 @@ pub enum VerbImpl {
 }
 
 fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
+    debug!("dyad.rank: {:?}", dyad.rank);
+
     if Rank::infinite_infinite() == dyad.rank {
         return (dyad.f)(x, y).context("infinite dyad shortcut");
     }
-    let target_shape = result_shape(x, y);
+
+    //TODO target_shape is suspect
+    // let target_shape = result_shape(x, y);
+
     let (x_cells, y_cells) = generate_cells(x, y, dyad.rank).context("generating cells")?;
+    debug!("x_cells: {:?}", x_cells);
+    debug!("y_cells: {:?}", y_cells);
     let application_result =
         apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
+    debug!("application_result: {:?}", application_result);
 
-    let flat = flatten(target_shape, &application_result).with_context(|| {
+    // The filled results for each macrocell are organized into an array, using the surplus frame.
+    // The filled results of the macrocells are organized into an array, using the common frame.
+    let target_shape = match &application_result[0] {
+        Word::Noun(a) => vec![vec![application_result.len()], Vec::from(a.shape())].concat(),
+        _ => panic!("invalid result Words"),
+    };
+    debug!("target_shape: {:?}", target_shape);
+
+    let flat = flatten(&target_shape, &application_result).with_context(|| {
         // this is expensive but should only be hit on application bugs, not user code issues
         let pair_info = application_result
             .iter()
@@ -493,6 +509,7 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
             if x.product() < 0 {
                 Err(JError::DomainError.into())
             } else {
+                debug!("x: {}, y: {}", x, y);
                 impl_array!(y, |y| reshape(x, y).map(|x| x.into_noun()))
             }
         }

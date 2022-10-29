@@ -49,6 +49,25 @@ impl<'v> JArrayCow<'v> {
             .map(|x| Self::from(x))
             .collect())
     }
+
+    // TODO: Iterator
+    pub fn iter(&'v self) -> Vec<Self> {
+        // AA TODO into_raw_vec() map, from
+        // impl_array!(self, |x: &'v ArrayBase<_, _>| x
+        //     .iter()
+        //     .map(|x| Self::from(x))
+        //     .collect())
+        match self {
+            JArrayCow::BoolArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
+            JArrayCow::CharArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
+            JArrayCow::IntArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
+            JArrayCow::ExtIntArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            JArrayCow::RationalArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            JArrayCow::FloatArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            JArrayCow::ComplexArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            JArrayCow::BoxArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+        }
+    }
 }
 
 impl<'v> From<JArrayCow<'v>> for JArray {
@@ -80,6 +99,24 @@ impl<'v> From<&'v JArray> for JArrayCow<'v> {
         }
     }
 }
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl<'v> From<$t> for JArrayCow<'v> {
+            fn from(value: $t) -> JArrayCow<'v> {
+                $j(CowArrayD::from(ArrayD::from_elem(IxDyn(&[]), value)))
+            }
+        }
+    };
+}
+impl_from_atom!(u8, JArrayCow::BoolArray);
+impl_from_atom!(char, JArrayCow::CharArray);
+impl_from_atom!(i64, JArrayCow::IntArray);
+impl_from_atom!(BigInt, JArrayCow::ExtIntArray);
+impl_from_atom!(BigRational, JArrayCow::RationalArray);
+impl_from_atom!(f64, JArrayCow::FloatArray);
+impl_from_atom!(Complex64, JArrayCow::ComplexArray);
+impl_from_atom!(Word, JArrayCow::BoxArray);
 
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {

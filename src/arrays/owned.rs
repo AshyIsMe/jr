@@ -2,6 +2,7 @@ use std::{fmt, iter};
 
 use anyhow::{bail, Result};
 use itertools::Itertools;
+use log::debug;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num::complex::Complex64;
@@ -71,14 +72,21 @@ impl JArray {
         let shape = self.shape();
 
         if nega_rank > shape.len() {
-            bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
+            // bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
+            // self.to_shape(shape)
+            // AA TODO 1 whole item of this array in this case i think?
+            // This isn't quite right, we end up with an errant leading 1 on the resulting shape
+            let new_shape: Vec<usize> = vec![vec![1usize], (*shape).to_vec()].concat();
+            debug!("new_shape: {:?}, self: {}", new_shape, self);
+            self.to_shape(new_shape)
+        } else {
+            let (common, surplus) = shape.split_at(shape.len() - nega_rank);
+            let p = common.iter().product::<usize>();
+            let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
+
+            debug!("new_shape: {:?}, self: {}", new_shape, self);
+            self.to_shape(new_shape)
         }
-
-        let (common, surplus) = shape.split_at(shape.len() - nega_rank);
-        let p = common.iter().product::<usize>();
-        let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
-
-        self.to_shape(new_shape)
     }
 }
 
