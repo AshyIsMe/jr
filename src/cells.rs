@@ -223,20 +223,6 @@ mod tests {
     }
 
     #[test]
-    fn test_gen_macrocells_plus_one() -> Result<()> {
-        let x = arr0d(5i64).into_jarray();
-        let y = array![1i64, 2, 3].into_dyn().into_jarray();
-        let (x_cells, y_cells, _common_frame, _surplus_frame) =
-            generate_cells(&x, &y, Rank::zero_zero())?;
-        assert_eq!(x_cells.outer_iter(), vec![arr0d(5i64).into()]);
-        assert_eq!(
-            y_cells.outer_iter(),
-            vec![array![1i64, 2, 3].into_dyn().into()]
-        );
-        Ok(())
-    }
-
-    #[test]
     fn test_gen_macrocells_plus_same() -> Result<()> {
         // I think I'd rather the arrays came out whole in this case?
         let x = array![10i64, 20, 30].into_dyn().into_jarray();
@@ -274,23 +260,6 @@ mod tests {
                 array![0i64, 1, 2].into_dyn().into(),
                 array![3i64, 4, 5].into_dyn().into()
             ]
-        );
-        Ok(())
-    }
-
-    #[test]
-    fn test_gen_macrocells_hash() -> Result<()> {
-        let x = array![24i64, 60, 61].into_dyn().into_jarray();
-        let y = array![1800i64, 7200].into_dyn().into_jarray();
-        let (x_cells, y_cells, _common_frame, _surplus_frame) =
-            generate_cells(&x, &y, (Rank::one(), Rank::zero()))?;
-        assert_eq!(
-            x_cells.outer_iter(),
-            vec![array![24i64, 60, 61].into_dyn().into(),]
-        );
-        assert_eq!(
-            y_cells.outer_iter(),
-            vec![arr0d(1800i64).into(), arr0d(7200i64).into(),]
         );
         Ok(())
     }
