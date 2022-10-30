@@ -112,6 +112,20 @@ fn test_agreement_reshape_2() -> Result<()> {
 }
 
 #[test]
+fn test_agreement_reshape_3() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
+    // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
+    let a = Array::from_shape_vec(
+        IxDyn(&[6, 3]),
+        vec![0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
+    )?;
+
+    assert_eq!(r1, Noun(IntArray(a)));
+
+    Ok(())
+}
+
+#[test]
 fn test_reshape_atoms() -> Result<()> {
     let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
     // Should be an array of length 1 containing 1
