@@ -10,6 +10,7 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
+use crate::JError;
 use crate::Word;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -67,6 +68,34 @@ impl JArray {
             BoxArray(a) => JArrayCow::BoxArray(a.to_shape(shape)?),
         })
     }
+
+    // pub fn to_cells<'s>(&'s self, rank: u8) -> Result<Vec<Self>> {
+    //     if rank == 0 {
+    //         Ok(impl_array!(self, |a: &'s ArrayBase<_, _>| {
+    //             a.iter().map(|i| Self::from(i)).collect::<Vec<JArray>>()
+    //         }))
+    //     } else if rank > 0 {
+    //         if rank > (self.shape().len() as u8) {
+    //             Ok(vec![self.clone()])
+    //         } else {
+    //             let shape = self.shape();
+    //             let (common, surplus) = shape.split_at(shape.len() - rank as usize);
+    //             let p = common.iter().product::<usize>();
+    //             let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
+    //             debug!("new_shape: {:?}, self: {}", new_shape, self);
+
+    //             Ok(impl_array!(self, |a: &ArrayBase<_, _>| {
+    //                 a.into_shape(new_shape)
+    //                     .unwrap()
+    //                     .outer_iter()
+    //                     .map(|i| i.into()) // AA TODO get this into to work
+    //                     .collect::<Vec<Self>>()
+    //             }))
+    //         }
+    //     } else {
+    //         todo!("negative rank")
+    //     }
+    // }
 
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
         let shape = self.shape();
@@ -191,3 +220,39 @@ impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value)))
+            }
+        }
+    };
+}
+impl_from_atom!(u8, JArray::BoolArray);
+impl_from_atom!(char, JArray::CharArray);
+impl_from_atom!(i64, JArray::IntArray);
+impl_from_atom!(BigInt, JArray::ExtIntArray);
+impl_from_atom!(BigRational, JArray::RationalArray);
+impl_from_atom!(f64, JArray::FloatArray);
+impl_from_atom!(Complex64, JArray::ComplexArray);
+impl_from_atom!(Word, JArray::BoxArray);
+
+macro_rules! impl_from_atom_ref {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value.clone())))
+            }
+        }
+    };
+}
+impl_from_atom_ref!(&u8, JArray::BoolArray);
+impl_from_atom_ref!(&char, JArray::CharArray);
+impl_from_atom_ref!(&i64, JArray::IntArray);
+impl_from_atom_ref!(&BigInt, JArray::ExtIntArray);
+impl_from_atom_ref!(&BigRational, JArray::RationalArray);
+impl_from_atom_ref!(&f64, JArray::FloatArray);
+impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
+impl_from_atom_ref!(&Word, JArray::BoxArray);

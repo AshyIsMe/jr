@@ -1,4 +1,4 @@
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
@@ -74,10 +74,13 @@ pub fn generate_cells<'x, 'y>(
     debug!("common_frame: {:?}", common_frame);
     debug!("surplus_frame: {:?}", surplus_frame);
 
-    if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
-        return Err(JError::LengthError).with_context(|| {
-            anyhow!("common frame cannot be empty for {x_frame:?} and {y_frame:?}")
-        });
+    // if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
+    //     return Err(JError::LengthError).with_context(|| {
+    //         anyhow!("common frame cannot be empty for {x_frame:?} and {y_frame:?}")
+    //     });
+    // }
+    if common_frame.len() < x_frame.len().min(y_frame.len()) {
+        bail!(JError::LengthError)
     }
 
     // this eventually is just `min_rank - arg_rank`,
@@ -102,16 +105,6 @@ pub fn generate_cells<'x, 'y>(
     debug!("y_cells: {:?}", y_cells);
 
     Ok((x_cells, y_cells, common_frame.into(), surplus_frame.into()))
-}
-
-pub fn first_or_def<T>(arr: &[T], default: T) -> T
-where
-    T: Clone,
-{
-    match arr.len() > 0 {
-        true => arr[0].clone(),
-        false => default,
-    }
 }
 
 // TODO: garbage lifetime sharing here, don't pass the CoW objects by reference

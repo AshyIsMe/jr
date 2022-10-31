@@ -78,8 +78,15 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     //TODO target_shape is suspect
     // let target_shape = result_shape(x, y);
 
-    let (x_cells, y_cells, common_frame, surplus_frame) =
+    // let x_cells_v = x.to_cells(dyad.rank.0.raw_u8())?;
+    // let y_cells_v = y.to_cells(dyad.rank.1.raw_u8())?;
+    // debug!("x_cells_v: {:?}", x_cells_v);
+    // debug!("y_cells_v: {:?}", y_cells_v);
+    // //AA TODO change apply_cells() to work on (x: Vec<JArray>, y: Vec<JArray>)
+
+    let (x_cells, y_cells, _common_frame, _surplus_frame) =
         generate_cells(x, y, dyad.rank).context("generating cells")?;
+
     let application_result =
         apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
     debug!("application_result: {:?}", application_result);
