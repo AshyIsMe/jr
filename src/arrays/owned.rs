@@ -69,6 +69,32 @@ impl JArray {
         })
     }
 
+    // AA TODO: rank_iter() Iterator
+    pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
+        // Similar to ndarray::axis_chunks_iter but j style ranks.
+        // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
+        if rank as usize > self.shape().len() {
+            vec![*self]
+        } else if rank == 0 {
+            impl_array!(self, |x: &ArrayBase<_, _>| x
+                .into_raw_vec()
+                .iter()
+                .map(JArray::from)
+                .collect::<Vec<JArray>>())
+        } else if rank == 1 {
+            // AA DEBUG testing rank 1
+            let r = (self.shape().len() as i16 - rank as i16) as usize;
+            impl_array!(self, |x: &ArrayBase<_, _>| x
+                .axis_chunks_iter(Axis(r), 1)
+                .map(|x| Self::from(x.into_owned()))
+                .collect())
+        // } else if rank < 0 {
+        //     todo!("negative rank")
+        } else {
+            todo!("axis_chunks_iter properly")
+        }
+    }
+
     // pub fn to_cells<'s>(&'s self, rank: u8) -> Result<Vec<Self>> {
     //     if rank == 0 {
     //         Ok(impl_array!(self, |a: &'s ArrayBase<_, _>| {
