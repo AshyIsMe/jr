@@ -574,6 +574,15 @@ fn test_TEMP_outer_iter() {
 }
 
 #[test]
+fn test_TEMP_exact_chunks() {
+    let a = Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap();
+    for i in a.exact_chunks(IxDyn(&[1, 1, 3])).into_iter() {
+        println!("{}", i.into_shape(3).unwrap());
+    }
+    assert!(false);
+}
+
+#[test]
 fn test_jarray_rank_iter() {
     let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap());
     let v = a.rank_iter(0);
