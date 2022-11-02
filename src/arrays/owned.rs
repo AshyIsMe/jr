@@ -69,7 +69,7 @@ impl JArray {
         })
     }
 
-    // AA TODO: rank_iter() Iterator
+    // AA TODO: Real iterator instead of Vec
     pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
         // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
@@ -80,49 +80,26 @@ impl JArray {
                 .iter()
                 .map(JArray::from)
                 .collect::<Vec<JArray>>())
-        } else if rank == 1 {
-            // AA DEBUG testing rank 1
-            let r = (self.shape().len() as i16 - rank as i16) as usize;
-            // let x = self.to_i64().unwrap().into_owned();
+            // } else if rank < 0 {
+            //     todo!("negative rank")
+            //     Negative rank is a real thing in j, it's just the same but from the left instead of the right.
+        } else {
+            let shape = self.shape();
+
+            let (leading, surplus) = shape.split_at(shape.len() - rank as usize);
+            let iter_shape: Vec<usize> = vec![
+                iter::repeat(1usize).take(leading.len()).collect(),
+                surplus.to_vec(),
+            ]
+            .concat();
 
             impl_array!(self, |x: &ArrayBase<_, _>| x
-                .axis_chunks_iter(Axis(r), 1)
-                .map(|x| x.into_owned().into_jarray())
+                .exact_chunks(IxDyn(&iter_shape))
+                .into_iter()
+                .map(|x| x.into_shape(surplus).unwrap().into_owned().into_jarray())
                 .collect())
-        // } else if rank < 0 {
-        //     todo!("negative rank")
-        } else {
-            todo!("axis_chunks_iter properly")
         }
     }
-
-    // pub fn to_cells<'s>(&'s self, rank: u8) -> Result<Vec<Self>> {
-    //     if rank == 0 {
-    //         Ok(impl_array!(self, |a: &'s ArrayBase<_, _>| {
-    //             a.iter().map(|i| Self::from(i)).collect::<Vec<JArray>>()
-    //         }))
-    //     } else if rank > 0 {
-    //         if rank > (self.shape().len() as u8) {
-    //             Ok(vec![self.clone()])
-    //         } else {
-    //             let shape = self.shape();
-    //             let (common, surplus) = shape.split_at(shape.len() - rank as usize);
-    //             let p = common.iter().product::<usize>();
-    //             let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
-    //             debug!("new_shape: {:?}, self: {}", new_shape, self);
-
-    //             Ok(impl_array!(self, |a: &ArrayBase<_, _>| {
-    //                 a.into_shape(new_shape)
-    //                     .unwrap()
-    //                     .outer_iter()
-    //                     .map(|i| i.into()) // AA TODO get this into to work
-    //                     .collect::<Vec<Self>>()
-    //             }))
-    //         }
-    //     } else {
-    //         todo!("negative rank")
-    //     }
-    // }
 
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
         let shape = self.shape();
