@@ -77,6 +77,16 @@ fn test_agreement_3() -> Result<()> {
 }
 
 #[test]
+fn test_agreement_4() -> Result<()> {
+    let words = jr::scan("$ (i.2 2) + i.2 2 2")?;
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        array![2i64, 2, 2].into_dyn().into_noun()
+    );
+    Ok(())
+}
+
+#[test]
 fn test_jarray_choppo() -> Result<()> {
     let a = array![[1i64, 2, 3], [5, 6, 7]].into_dyn().into_jarray();
     assert_eq!(a.choppo(0)?.shape()[0], 6);

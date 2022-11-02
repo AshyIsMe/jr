@@ -107,6 +107,68 @@ pub fn generate_cells<'x, 'y>(
     Ok((x_cells, y_cells, common_frame.into(), surplus_frame.into()))
 }
 
+pub fn generate_cells_vec<'x, 'y>(
+    x: &'x JArray,
+    y: &'y JArray,
+    (x_arg_rank, y_arg_rank): (Rank, Rank),
+) -> Result<(Vec<JArray>, Vec<JArray>, Vec<usize>, Vec<usize>)> {
+    let x_shape = x.shape();
+    let y_shape = y.shape();
+    debug!("x_shape: {:?}", x_shape);
+    debug!("y_shape: {:?}", y_shape);
+
+    let x_rank = x_shape.len();
+    let y_rank = y_shape.len();
+
+    let min_rank = x_rank.min(y_rank);
+
+    let x_frame = frame_of(x_shape, x_arg_rank)?;
+    let y_frame = frame_of(y_shape, y_arg_rank)?;
+    debug!("x_frame: {:?}", x_frame);
+    debug!("y_frame: {:?}", y_frame);
+
+    let common_dims = common_dims(x_frame, y_frame);
+    let common_frame = &x_shape[..common_dims];
+    let surplus_frame = if x_frame.len() > y_frame.len() {
+        &x_shape[common_dims..]
+    } else {
+        &y_shape[common_dims..]
+    };
+
+    debug!("common_frame: {:?}", common_frame);
+    debug!("surplus_frame: {:?}", surplus_frame);
+
+    if common_frame.len() < x_frame.len().min(y_frame.len()) {
+        bail!(JError::LengthError)
+    }
+
+    // this eventually is just `min_rank - arg_rank`,
+    // as `to_cells`/`choppo` re-subtract it from the rank
+    let x_surplus_rank = x_rank - min_rank;
+    let y_surplus_rank = y_rank - min_rank;
+    debug!("x_surplus_rank: {:?}", x_surplus_rank);
+    debug!("y_surplus_rank: {:?}", y_surplus_rank);
+
+    // // Handle infinite ranks properly, entire argument
+    // let x_cells = if x_arg_rank == Rank::infinite() {
+    //     x.into()
+    // } else {
+    //     cells_of(x, x_arg_rank, x_surplus_rank)?
+    // };
+    // let y_cells = if y_arg_rank == Rank::infinite() {
+    //     y.into()
+    // } else {
+    //     cells_of(y, y_arg_rank, y_surplus_rank)?
+    // };
+
+    let x_cells = x.rank_iter(x_arg_rank.raw_u8() + x_surplus_rank as u8);
+    let y_cells = y.rank_iter(y_arg_rank.raw_u8() + y_surplus_rank as u8);
+    debug!("x_cells: {:?}", x_cells);
+    debug!("y_cells: {:?}", y_cells);
+
+    Ok((x_cells, y_cells, common_frame.into(), surplus_frame.into()))
+}
+
 // TODO: garbage lifetime sharing here, don't pass the CoW objects by reference
 pub fn apply_cells<'v>(
     (x_cells, y_cells): (&'v JArrayCow<'v>, &'v JArrayCow<'v>),
@@ -159,6 +221,37 @@ pub fn apply_cells<'v>(
         // .take(x_cells.len().max(y_cells.len()))
         .take(x_cells_count.max(y_cells_count))
         .map(|(x, y)| (dyad.f)(&x.into(), &y.into()))
+        .collect()
+}
+
+pub fn apply_cells_vec(
+    x_cells: Vec<JArray>,
+    y_cells: Vec<JArray>,
+    dyad: &Dyad,
+) -> Result<Vec<Word>> {
+    debug!(
+        "x_cells.len(): {:?}, y_cells.len(): {:?}",
+        x_cells.len(),
+        y_cells.len()
+    );
+    // Handle infinite rank again here, replicate entire argument if so
+    let x_iter = if dyad.rank.0 == Rank::infinite() {
+        x_cells.iter().cycle().take(y_cells.len())
+    } else {
+        x_cells.iter().cycle().take(x_cells.len())
+    };
+    let y_iter = if dyad.rank.1 == Rank::infinite() {
+        y_cells.iter().cycle().take(x_cells.len())
+    } else {
+        y_cells.iter().cycle().take(y_cells.len())
+    };
+
+    x_iter
+        .into_iter()
+        .cycle()
+        .zip(y_iter.into_iter().cycle())
+        .take(x_cells.len().max(y_cells.len()))
+        .map(|(x, y)| (dyad.f)(x, y))
         .collect()
 }
 

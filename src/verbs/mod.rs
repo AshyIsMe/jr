@@ -14,7 +14,9 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::cells::{apply_cells, flatten, generate_cells, result_shape};
+use crate::cells::{
+    apply_cells, apply_cells_vec, flatten, generate_cells, generate_cells_vec, result_shape,
+};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -78,36 +80,36 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     //TODO target_shape is suspect
     // let target_shape = result_shape(x, y);
 
-    // let x_cells_v = x.to_cells(dyad.rank.0.raw_u8())?;
-    // let y_cells_v = y.to_cells(dyad.rank.1.raw_u8())?;
-    // debug!("x_cells_v: {:?}", x_cells_v);
-    // debug!("y_cells_v: {:?}", y_cells_v);
-    // //AA TODO change apply_cells() to work on (x: Vec<JArray>, y: Vec<JArray>)
+    // let (x_cells, y_cells, _common_frame, _surplus_frame) =
+    //     generate_cells(x, y, dyad.rank).context("generating cells")?;
 
     let (x_cells, y_cells, _common_frame, _surplus_frame) =
-        generate_cells(x, y, dyad.rank).context("generating cells")?;
+        generate_cells_vec(x, y, dyad.rank).context("generating cells")?;
 
+    // let application_result = apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
     let application_result =
-        apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
+        apply_cells_vec(x_cells, y_cells, dyad).context("applying function to cells")?;
     debug!("application_result: {:?}", application_result);
 
     // The filled results for each macrocell are organized into an array, using the surplus frame.
     // The filled results of the macrocells are organized into an array, using the common frame.
-    let target_shape: Vec<usize> = match &application_result[0] {
-        Word::Noun(a) => {
-            if dyad.rank.0 == Rank::infinite() || dyad.rank.1 == Rank::infinite() {
-                // AA TODO fix this hack.  Handle errant leading [1, ...] in the target_shape
-                let ts = vec![vec![application_result.len()], Vec::from(a.shape())].concat();
-                match ts[0] {
-                    1 => ts[1..].to_vec(),
-                    _ => ts,
-                }
-            } else {
-                vec![vec![application_result.len()], Vec::from(a.shape())].concat()
-            }
-        }
-        _ => panic!("invalid result Words"),
-    };
+    // let target_shape: Vec<usize> = match &application_result[0] {
+    //     Word::Noun(a) => {
+    //         if dyad.rank.0 == Rank::infinite() || dyad.rank.1 == Rank::infinite() {
+    //             // AA TODO fix this hack.  Handle errant leading [1, ...] in the target_shape
+    //             let ts = vec![vec![application_result.len()], Vec::from(a.shape())].concat();
+    //             match ts[0] {
+    //                 1 => ts[1..].to_vec(),
+    //                 _ => ts,
+    //             }
+    //         } else {
+    //             vec![vec![application_result.len()], Vec::from(a.shape())].concat()
+    //         }
+    //     }
+    //     _ => panic!("invalid result Words"),
+    // };
+    // TODO Is this the correct target_shape finally?
+    let target_shape = vec![_common_frame, _surplus_frame].concat();
     debug!("target_shape: {:?}", target_shape);
 
     let flat = flatten(&target_shape, &application_result).with_context(|| {
