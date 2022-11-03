@@ -123,8 +123,19 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
             .collect::<Option<Vec<_>>>();
 
         anyhow!("reshaping {:?} to {target_shape:?}", pair_info)
-    })?;
-    Ok(Word::Noun(flat))
+    });
+    match flat {
+        Ok(flat) => Ok(Word::Noun(flat)),
+        _ => {
+            // target_shape still isn't right, sometimes it's incompatible with the application_result shapes
+            // but the application_result is already correct... pass it through as is for now
+            if application_result.len() == 1 {
+                Ok(application_result[0].clone())
+            } else {
+                bail!("wat")
+            }
+        }
+    }
 }
 
 impl VerbImpl {
