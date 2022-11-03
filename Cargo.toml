@@ -7,7 +7,7 @@ edition = "2021"
 default = ["tui"]
 ui = ["femtovg", "glutin", "winit"]
 glutin-x11 = ["glutin/x11", "winit/x11", "ui"]
-tui = ["rustyline", "directories"]
+tui = ["rustyline", "rustyline-derive", "directories", "colored"]
 
 [dependencies]
 anyhow = "1"
@@ -21,8 +21,10 @@ num-traits = "0.2"
 ordered-float = "3"
 thiserror = "1"
 
+colored = { version = "2", optional = true }
 directories = { version = "4", optional = true }
 rustyline = { version = "10", optional = true }
+rustyline-derive = { version = "0.7", optional = true }
 
 femtovg = { version = "0.3", default-features = false, features = ["glutin"], optional = true }
 glutin = { version = "0.28", optional = true }

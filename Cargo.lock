@@ -156,6 +156,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -631,6 +642,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "cfg-if 1.0.0",
+ "colored",
  "directories",
  "env_logger",
  "femtovg",
@@ -642,6 +654,7 @@ dependencies = [
  "num-traits",
  "ordered-float",
  "rustyline",
+ "rustyline-derive",
  "thiserror",
  "winit",
 ]
@@ -1249,6 +1262,17 @@ dependencies = [
  "unicode-width",
  "utf8parse",
  "winapi",
+]
+
+[[package]]
+name = "rustyline-derive"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "107c3d5d7f370ac09efa62a78375f94d94b8a33c61d8c278b96683fb4dbf2d8d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
