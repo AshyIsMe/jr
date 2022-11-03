@@ -11,8 +11,17 @@ use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitiv
 use JArray::*;
 use Word::*;
 
+type Pos = (usize, usize);
+
 pub fn scan(sentence: &str) -> Result<Vec<Word>> {
-    let mut words: Vec<Word> = Vec::new();
+    Ok(scan_with_locations(sentence)?
+        .into_iter()
+        .map(|(_, token)| token)
+        .collect())
+}
+
+pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
+    let mut words: Vec<(Pos, Word)> = Vec::new();
 
     let mut skip: usize = 0;
 
@@ -24,33 +33,33 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>> {
         }
         match c {
             '(' => {
-                words.push(Word::LP);
+                words.push(((i, i), Word::LP));
             }
             ')' => {
-                words.push(Word::RP);
+                words.push(((i, i), Word::RP));
             }
             c if c.is_whitespace() => (),
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
-                words.push(t);
+                words.push(((i, i + l), t));
                 skip = l;
                 continue;
             }
             '\'' => {
                 let (l, t) = scan_litstring(&sentence[i..])?;
-                words.push(t);
+                words.push(((i, i + l), t));
                 skip = l;
                 continue;
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
-                words.push(t);
+                words.push(((i, i + l), t));
                 skip = l;
                 continue;
             }
             _ => {
                 let (l, t) = scan_primitive(&sentence[i..])?;
-                words.push(t);
+                words.push(((i, i + l), t));
                 skip = l;
                 continue;
             }

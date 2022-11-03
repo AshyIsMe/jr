@@ -1,15 +1,18 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
-use colored::Colorize as _;
-use jr::Word;
+use colored::{Color, Colorize as _};
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
+use rustyline::highlight::Highlighter;
 use rustyline::hint::{Hint, Hinter};
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
+
+use jr::{scan_with_locations, Word};
 
 pub fn drive() -> Result<()> {
     let data_dir = match directories::ProjectDirs::from("github", "AshyIsMe", "jr") {
@@ -19,7 +22,8 @@ pub fn drive() -> Result<()> {
     fs::create_dir_all(&data_dir)?;
     let hist_file = data_dir.join("jhistory");
 
-    let h = DIYHinter {};
+    let h = DIYHinter::default();
+
     let mut rl = rustyline::Editor::<DIYHinter>::new()?;
     rl.set_helper(Some(h));
     if hist_file.exists() {
@@ -44,8 +48,45 @@ pub fn drive() -> Result<()> {
     Ok(())
 }
 
-#[derive(Completer, Helper, Validator, Highlighter)]
-struct DIYHinter {}
+#[derive(Completer, Helper, Validator, Highlighter, Default)]
+struct DIYHinter {
+    #[rustyline(Highlighter)]
+    highlighter: DiHigh,
+}
+
+#[derive(Default)]
+struct DiHigh;
+
+impl Highlighter for DiHigh {
+    fn highlight<'l>(&self, line: &'l str, _pos: usize) -> Cow<'l, str> {
+        let v = match scan_with_locations(line) {
+            Ok(v) => v,
+            // this is pretty much unreachable, scan never fails right now
+            Err(_) => return line.red().to_string().into(),
+        };
+
+        let mut buf = line.to_string();
+        for (pos, word) in v.into_iter().rev() {
+            let colour = match word {
+                Word::Verb(_, _) => Color::BrightGreen,
+                Word::Noun(_) => Color::BrightBlue,
+                Word::Adverb(_, _) => Color::BrightRed,
+                Word::Name(_) => Color::BrightWhite,
+                Word::Conjunction(_, _) => Color::BrightCyan,
+                _ => continue,
+            };
+
+            let range = pos.0..=pos.1;
+            buf.replace_range(range.clone(), &format!("{}", line[range].color(colour)));
+        }
+
+        buf.into()
+    }
+
+    fn highlight_char(&self, _line: &str, _pos: usize) -> bool {
+        true
+    }
+}
 
 struct CommandHint(String);
 
@@ -55,7 +96,7 @@ impl Hint for CommandHint {
     }
 
     fn completion(&self) -> Option<&str> {
-        Some(&self.0)
+        None
     }
 }
 
