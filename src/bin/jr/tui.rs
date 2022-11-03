@@ -5,10 +5,12 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use colored::{Color, Colorize as _};
+use rustyline::completion::Completer;
 use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::{Hint, Hinter};
+use rustyline::line_buffer::LineBuffer;
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
 
@@ -52,6 +54,9 @@ pub fn drive() -> Result<()> {
 struct DIYHinter {
     #[rustyline(Highlighter)]
     highlighter: DiHigh,
+
+    #[rustyline(Completer)]
+    completer: DiComplete,
 }
 
 #[derive(Default)]
@@ -114,7 +119,7 @@ impl Hinter for DIYHinter {
     type Hint = CommandHint;
 
     fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<CommandHint> {
-        if line.is_empty() || pos < line.len() {
+        if line.is_empty() {
             return None;
         }
 
@@ -128,7 +133,9 @@ impl Hinter for DIYHinter {
             Word::Verb(token, _) if helped.insert(token.clone()) => {
                 help(&token).into_iter().collect()
             }
-            Word::Name(name) if name.len() >= 3 => search_help(&name),
+            Word::Name(name) if name.len() >= 3 => {
+                search_help(&name).into_iter().map(|(_, c)| c).collect()
+            }
             _ => vec![],
         });
 
@@ -150,6 +157,36 @@ impl Hinter for DIYHinter {
             return None;
         }
         Some(CommandHint::new(format!("  {}", buf)))
+    }
+}
+
+#[derive(Default)]
+struct DiComplete;
+
+impl Completer for DiComplete {
+    type Candidate = &'static str;
+
+    fn complete(
+        &self,
+        line: &str,
+        pos: usize,
+        ctx: &Context<'_>,
+    ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
+        let v = match jr::scan_with_locations(line) {
+            Ok(v) => v,
+            Err(_) => return Ok((0, vec![])),
+        };
+        let (pos, word) = match v.into_iter().rev().find_map(|(p, w)| match w {
+            Word::Name(n) => Some((p, n)),
+            _ => None,
+        }) {
+            Some(word) => word,
+            None => return Ok((0, vec![])),
+        };
+        Ok((
+            pos.0,
+            search_help(&word).into_iter().map(|(c, _)| c).collect(),
+        ))
     }
 }
 
@@ -189,13 +226,13 @@ fn help(token: &str) -> Option<String> {
     None
 }
 
-fn search_help(name: &str) -> Vec<String> {
+fn search_help(name: &str) -> Vec<(&'static str, String)> {
     PRIMITIVES
         .iter()
         .filter_map(|p| {
-            let Primitive(n, m, d, rm, rdx, rdy) = p;
+            let Primitive(n, m, d, rm, rdx, rdy) = *p;
             if m.contains(name) || d.contains(name) {
-                Some(p.help_str())
+                Some((n, p.help_str()))
             } else {
                 None
             }
