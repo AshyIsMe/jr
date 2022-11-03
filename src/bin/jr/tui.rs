@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 
@@ -123,15 +123,16 @@ impl Hinter for DIYHinter {
             Err(_) => return None,
         };
 
+        let mut helped = HashSet::with_capacity(4);
         let mut it = v.into_iter().rev().filter_map(|w| match w {
-            Word::Verb(token, _) => help(&token),
+            Word::Verb(token, _) if helped.insert(token.clone()) => help(&token),
             _ => None,
         });
 
         let mut buf = String::with_capacity(64);
 
         while let Some(word) = it.next() {
-            if buf.len() > 100 {
+            if buf.len() > 70 {
                 break;
             }
             buf.push_str(&word);
