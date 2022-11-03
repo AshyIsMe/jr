@@ -86,6 +86,10 @@ impl Highlighter for DiHigh {
     fn highlight_char(&self, _line: &str, _pos: usize) -> bool {
         true
     }
+
+    fn highlight_hint<'h>(&self, hint: &'h str) -> Cow<'h, str> {
+        format!("{}", hint.bright_black()).into()
+    }
 }
 
 struct CommandHint(String);
@@ -141,7 +145,7 @@ impl Hinter for DIYHinter {
         if buf.is_empty() {
             return None;
         }
-        Some(CommandHint::new(format!("  {}", buf).bright_black()))
+        Some(CommandHint::new(format!("  {}", buf)))
     }
 }
 
