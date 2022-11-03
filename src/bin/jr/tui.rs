@@ -124,9 +124,12 @@ impl Hinter for DIYHinter {
         };
 
         let mut helped = HashSet::with_capacity(4);
-        let mut it = v.into_iter().rev().filter_map(|w| match w {
-            Word::Verb(token, _) if helped.insert(token.clone()) => help(&token),
-            _ => None,
+        let mut it = v.into_iter().rev().flat_map(|w| match w {
+            Word::Verb(token, _) if helped.insert(token.clone()) => {
+                help(&token).into_iter().collect()
+            }
+            Word::Name(name) if name.len() >= 3 => search_help(&name),
+            _ => vec![],
         });
 
         let mut buf = String::with_capacity(64);
@@ -150,78 +153,115 @@ impl Hinter for DIYHinter {
     }
 }
 
-fn help(token: &str) -> Option<String> {
-    let primitive = |n, m, d, rm, rdx, rdy| format!("{n:?}: '{m}' or '{d}' ({rm} {rdx} {rdy})");
-    Some(match token {
-        "=" => primitive("=", "self classify", "equal", "_", "0", "0"),
-        "<" => primitive("<", "box", "less than", "_", "0", "0"),
-        "<." => primitive("<.", "floor", "lesser of min", "0", "0", "0"),
-        "<:" => primitive("<:", "decrement", "less or equal", "0", "0", "0"),
-        ">" => primitive(">", "open", "larger than", "0", "0", "0"),
-        ">." => primitive(">.", "ceiling", "larger of max", "0", "0", "0"),
-        ">:" => primitive(">:", "increment", "larger or equal", "0", "0", "0"),
+struct Primitive(
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+    &'static str,
+);
 
-        "+" => primitive("+", "conjugate", "plus", "0", "0", "0"),
-        "+." => primitive("+.", "real imaginary", "gcd or", "0", "0", "0"),
-        "+:" => primitive("+:", "double", "not or", "0", "0", "0"),
-        "*" => primitive("*", "signum", "times", "0", "0", "0"),
-        "*." => primitive("*.", "lengthangle", "lcm and", "0", "0", "0"),
-        "*:" => primitive("*:", "square", "not and", "0", "0", "0"),
-        "-" => primitive("-", "negate", "minus", "0", "0", "0"),
-        "-." => primitive("-.", "not", "less", "0", "_", "_"),
-        "-:" => primitive("-:", "halve", "match", "_", "_", "0"),
-        "%" => primitive("%", "reciprocal", "divide", "0", "0", "0"),
-        "%." => primitive("%.", "matrix inverse", "matrix divide", "2", "_", "2"),
-        "%:" => primitive("%:", "square root", "root", "0", "0", "0"),
-
-        "^" => primitive("^", "exponential", "power", "0", "0", "0"),
-        "^." => primitive("^.", "natural log", "logarithm", "0", "0", "0"),
-        "$" => primitive("$", "shape of", "shape", "_", "1", "_"),
-        "~:" => primitive("~:", "nub sieve", "not equal", "_", "0", "0"),
-        "|" => primitive("|", "magnitude", "residue", "0", "0", "0"),
-        "|." => primitive("|.", "reverse", "rotate shift", "_", "_", "_"),
-
-        "," => primitive(",", "ravel", "append", "_", "_", "_"),
-        ",." => primitive(",.", "ravel items", "stitch", "_", "_", "_"),
-        ",:" => primitive(",:", "itemize", "laminate", "_", "_", "_"),
-        ";" => primitive(";", "raze", "link", "_", "_", "_"),
-        ";:" => primitive(";:", "words", "sequential machine", "1", "_", "_"),
-
-        "#" => primitive("#", "tally", "copy", "_", "1", "_"),
-        "#." => primitive("#.", "base ", "base", "1", "1", "1"),
-        "#:" => primitive("#:", "antibase ", "antibase", "_", "1", "0"),
-        "!" => primitive("!", "factorial", "out of", "0", "0", "0"),
-        "/:" => primitive("/:", "grade up", "sort", "_", "_", "_"),
-        "\\:" => primitive("\\:", "grade down", "sort", "_", "_", "_"),
-
-        "[" => primitive("[", "same", "left", "_", "_", "_"),
-        "]" => primitive("]", "same", "right", "_", "_", "_"),
-        "{" => primitive("{", "catalogue", "from", "1", "0", "_"),
-        "{." => primitive("{.", "head", "take", "_", "1", "_"),
-        "{:" => primitive("{:", "tail", "not implemented dyad", "_", "_", "_"),
-        "{::" => primitive("{:", "map", "fetch", "_", "1", "_"),
-        "}." => primitive("}.", "behead", "drop", "_", "1", "_"),
-
-        "\"." => primitive("\".", "do", "numbers", "1", "_", "_"),
-        "\":" => primitive("\":", "default format", "format", "_", "1", "_"),
-        "?" => primitive("?", "roll", "deal", "0", "0", "0"),
-        "?." => primitive("?.", "roll", "deal fixed seed", "_", "0", "0"),
-
-        "A." => primitive("A.", "anagram index", "anagram", "1", "0", "_"),
-        "C." => primitive("C.", "cycledirect", "permute", "1", "1", "_"),
-        "e." => primitive("e.", "raze in", "member in", "_", "_", "_"),
-
-        "i." => primitive("i.", "integers", "index of", "1", "_", "_"),
-        "i:" => primitive("i:", "steps", "index of last", "0", "_", "_"),
-        "I." => primitive("I.", "indices", "interval index", "1", "_", "_"),
-        "j." => primitive("j.", "imaginary", "complex", "0", "0", "0"),
-        "o." => primitive("o.", "pi times", "circle function", "0", "0", "0"),
-        "p." => primitive("p.", "roots", "polynomial", "1", "1", "0"),
-        "p.." => primitive("p..", "poly deriv", "poly integral", "1", "0", "1"),
-
-        "q:" => primitive("q:", "prime factors", "prime exponents", "0", "0", "0"),
-        "r." => primitive("r.", "angle", "polar", "0", "0", "0"),
-        "x:" => primitive("x:", "extend precision", "num denom", "_", "_", "_"),
-        _ => return None,
-    })
+const fn primitive(
+    n: &'static str,
+    m: &'static str,
+    d: &'static str,
+    rm: &'static str,
+    rdx: &'static str,
+    rdy: &'static str,
+) -> Primitive {
+    Primitive(n, m, d, rm, rdx, rdy)
 }
+
+impl Primitive {
+    fn help_str(&self) -> String {
+        let Primitive(n, m, d, rm, rdx, rdy) = self;
+        format!("{n:?}: '{m}' or '{d}' ({rm} {rdx} {rdy})")
+    }
+}
+
+fn help(token: &str) -> Option<String> {
+    for prim in PRIMITIVES {
+        if prim.0 == token {
+            return Some(prim.help_str());
+        }
+    }
+    None
+}
+
+fn search_help(name: &str) -> Vec<String> {
+    PRIMITIVES
+        .iter()
+        .filter_map(|p| {
+            let Primitive(n, m, d, rm, rdx, rdy) = p;
+            if m.contains(name) || d.contains(name) {
+                Some(p.help_str())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+const PRIMITIVES: [Primitive; 60] = [
+    primitive("=", "self classify", "equal", "_", "0", "0"),
+    primitive("<", "box", "less than", "_", "0", "0"),
+    primitive("<.", "floor", "lesser of min", "0", "0", "0"),
+    primitive("<:", "decrement", "less or equal", "0", "0", "0"),
+    primitive(">", "open", "larger than", "0", "0", "0"),
+    primitive(">.", "ceiling", "larger of max", "0", "0", "0"),
+    primitive(">:", "increment", "larger or equal", "0", "0", "0"),
+    primitive("+", "conjugate", "plus", "0", "0", "0"),
+    primitive("+.", "real imaginary", "gcd or", "0", "0", "0"),
+    primitive("+:", "double", "not or", "0", "0", "0"),
+    primitive("*", "signum", "times", "0", "0", "0"),
+    primitive("*.", "lengthangle", "lcm and", "0", "0", "0"),
+    primitive("*:", "square", "not and", "0", "0", "0"),
+    primitive("-", "negate", "minus", "0", "0", "0"),
+    primitive("-.", "not", "less", "0", "_", "_"),
+    primitive("-:", "halve", "match", "_", "_", "0"),
+    primitive("%", "reciprocal", "divide", "0", "0", "0"),
+    primitive("%.", "matrix inverse", "matrix divide", "2", "_", "2"),
+    primitive("%:", "square root", "root", "0", "0", "0"),
+    primitive("^", "exponential", "power", "0", "0", "0"),
+    primitive("^.", "natural log", "logarithm", "0", "0", "0"),
+    primitive("$", "shape of", "shape", "_", "1", "_"),
+    primitive("~:", "nub sieve", "not equal", "_", "0", "0"),
+    primitive("|", "magnitude", "residue", "0", "0", "0"),
+    primitive("|.", "reverse", "rotate shift", "_", "_", "_"),
+    primitive(",", "ravel", "append", "_", "_", "_"),
+    primitive(",.", "ravel items", "stitch", "_", "_", "_"),
+    primitive(",:", "itemize", "laminate", "_", "_", "_"),
+    primitive(";", "raze", "link", "_", "_", "_"),
+    primitive(";:", "words", "sequential machine", "1", "_", "_"),
+    primitive("#", "tally", "copy", "_", "1", "_"),
+    primitive("#.", "base ", "base", "1", "1", "1"),
+    primitive("#:", "antibase ", "antibase", "_", "1", "0"),
+    primitive("!", "factorial", "out of", "0", "0", "0"),
+    primitive("/:", "grade up", "sort", "_", "_", "_"),
+    primitive("\\:", "grade down", "sort", "_", "_", "_"),
+    primitive("[", "same", "left", "_", "_", "_"),
+    primitive("]", "same", "right", "_", "_", "_"),
+    primitive("{", "catalogue", "from", "1", "0", "_"),
+    primitive("{.", "head", "take", "_", "1", "_"),
+    primitive("{:", "tail", "not implemented dyad", "_", "_", "_"),
+    primitive("{:", "map", "fetch", "_", "1", "_"),
+    primitive("}.", "behead", "drop", "_", "1", "_"),
+    primitive("\".", "do", "numbers", "1", "_", "_"),
+    primitive("\":", "default format", "format", "_", "1", "_"),
+    primitive("?", "roll", "deal", "0", "0", "0"),
+    primitive("?.", "roll", "deal fixed seed", "_", "0", "0"),
+    primitive("A.", "anagram index", "anagram", "1", "0", "_"),
+    primitive("C.", "cycledirect", "permute", "1", "1", "_"),
+    primitive("e.", "raze in", "member in", "_", "_", "_"),
+    primitive("i.", "integers", "index of", "1", "_", "_"),
+    primitive("i:", "steps", "index of last", "0", "_", "_"),
+    primitive("I.", "indices", "interval index", "1", "_", "_"),
+    primitive("j.", "imaginary", "complex", "0", "0", "0"),
+    primitive("o.", "pi times", "circle function", "0", "0", "0"),
+    primitive("p.", "roots", "polynomial", "1", "1", "0"),
+    primitive("p..", "poly deriv", "poly integral", "1", "0", "1"),
+    primitive("q:", "prime factors", "prime exponents", "0", "0", "0"),
+    primitive("r.", "angle", "polar", "0", "0", "0"),
+    primitive("x:", "extend precision", "num denom", "_", "_", "_"),
+];
