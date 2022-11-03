@@ -116,6 +116,17 @@ fn test_reshape_helper() {
 }
 
 #[test]
+fn test_reshape_outer_iter() {
+    let words = jr::scan("2 1 $ 1 2").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 1]), vec![1, 2]).unwrap()
+        ))
+    );
+}
+
+#[test]
 fn test_power_conjunction_bool_arg() {
     let words = jr::scan("(*:^:0 1) 4").unwrap();
     println!("words: {:?}", words);
