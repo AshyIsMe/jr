@@ -10,7 +10,6 @@ use rustyline::config::Configurer;
 use rustyline::error::ReadlineError;
 use rustyline::highlight::Highlighter;
 use rustyline::hint::{Hint, Hinter};
-use rustyline::line_buffer::LineBuffer;
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
 
@@ -118,7 +117,7 @@ impl CommandHint {
 impl Hinter for DIYHinter {
     type Hint = CommandHint;
 
-    fn hint(&self, line: &str, pos: usize, _ctx: &Context<'_>) -> Option<CommandHint> {
+    fn hint(&self, line: &str, _pos: usize, _ctx: &Context<'_>) -> Option<CommandHint> {
         if line.is_empty() {
             return None;
         }
@@ -169,8 +168,8 @@ impl Completer for DiComplete {
     fn complete(
         &self,
         line: &str,
-        pos: usize,
-        ctx: &Context<'_>,
+        _pos: usize,
+        _ctx: &Context<'_>,
     ) -> rustyline::Result<(usize, Vec<Self::Candidate>)> {
         let v = match jr::scan_with_locations(line) {
             Ok(v) => v,
@@ -230,7 +229,7 @@ fn search_help(name: &str) -> Vec<(&'static str, String)> {
     PRIMITIVES
         .iter()
         .filter_map(|p| {
-            let Primitive(n, m, d, rm, rdx, rdy) = *p;
+            let Primitive(n, m, d, _rm, _rdx, _rdy) = *p;
             if m.contains(name) || d.contains(name) {
                 Some((n, p.help_str()))
             } else {
