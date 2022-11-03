@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-#default = ["ui"]
+default = ["tui"]
 ui = ["femtovg", "glutin", "winit"]
 glutin-x11 = ["glutin/x11", "winit/x11", "ui"]
-rustyline = ["dep:rustyline", "directories"]
+tui = ["rustyline", "directories"]
 
 [dependencies]
 anyhow = "1"
