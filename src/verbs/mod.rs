@@ -14,7 +14,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::cells::{apply_cells, flatten, generate_cells, result_shape};
+use crate::cells::{apply_cells, flatten, generate_cells};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -72,13 +72,17 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     if Rank::infinite_infinite() == dyad.rank {
         return (dyad.f)(x, y).context("infinite dyad shortcut");
     }
-    let target_shape = result_shape(x, y);
     let (x_cells, y_cells, common_frame, surplus_frame) =
         generate_cells(x, y, dyad.rank).context("generating cells")?;
     let application_result =
         apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
 
-    let flat = flatten(target_shape, &application_result).with_context(|| {
+    let target_shape = common_frame
+        .into_iter()
+        .chain(surplus_frame.into_iter())
+        .collect::<Vec<_>>();
+
+    let flat = flatten(&target_shape, &application_result).with_context(|| {
         // this is expensive but should only be hit on application bugs, not user code issues
         let pair_info = application_result
             .iter()

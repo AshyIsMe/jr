@@ -5,16 +5,6 @@ use ndarray::prelude::*;
 
 use crate::{reduce_arrays, Dyad, JArray, JArrayCow, JArrays, JError, Rank, Word};
 
-pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
-    let x_shape = x.shape();
-    let y_shape = y.shape();
-    if x_shape.len() > y_shape.len() {
-        x_shape
-    } else {
-        y_shape
-    }
-}
-
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
         .zip(y)
