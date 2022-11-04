@@ -103,21 +103,23 @@ pub fn apply_cells((x_cells, y_cells): (&[JArray], &[JArray]), dyad: &Dyad) -> R
         y_cells.len()
     );
     // Handle infinite rank again here, replicate entire argument if so
-    let x_iter = if dyad.rank.0 == Rank::infinite() {
-        x_cells.iter().cycle().take(y_cells.len())
+    let x_limit = if dyad.rank.0.is_infinite() {
+        y_cells.len()
     } else {
-        x_cells.iter().cycle().take(x_cells.len())
+        x_cells.len()
     };
-    let y_iter = if dyad.rank.1 == Rank::infinite() {
-        y_cells.iter().cycle().take(x_cells.len())
+    let y_limit = if dyad.rank.1.is_infinite() {
+        x_cells.len()
     } else {
-        y_cells.iter().cycle().take(y_cells.len())
+        y_cells.len()
     };
 
-    x_iter
-        .into_iter()
+    x_cells
+        .iter()
         .cycle()
-        .zip(y_iter.into_iter().cycle())
+        .take(x_limit)
+        .cycle()
+        .zip(y_cells.iter().cycle().take(y_limit).cycle())
         .take(x_cells.len().max(y_cells.len()))
         .map(|(x, y)| (dyad.f)(x, y))
         .collect()
