@@ -73,7 +73,8 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
         return (dyad.f)(x, y).context("infinite dyad shortcut");
     }
     let target_shape = result_shape(x, y);
-    let (x_cells, y_cells) = generate_cells(x, y, dyad.rank).context("generating cells")?;
+    let (x_cells, y_cells, common_frame, surplus_frame) =
+        generate_cells(x, y, dyad.rank).context("generating cells")?;
     let application_result =
         apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
 
