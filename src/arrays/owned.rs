@@ -107,8 +107,11 @@ impl JArray {
 
         if nega_rank >= shape.len() {
             // bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
-            // rank larger than shape is just the whole shape as is
-            self.to_shape(shape)
+            // Rank larger than shape is just the whole shape as is.
+            // Have to prepend 1 to the shape here to get ndarray::outer_iter() to do what we expect
+            // but that's not quite right and we have to remember to undo it later...
+            let new_shape = vec![vec![1], shape.into()].concat();
+            self.to_shape(new_shape)
         } else {
             let (common, surplus) = shape.split_at(shape.len() - nega_rank);
             let p = common.iter().product::<usize>();

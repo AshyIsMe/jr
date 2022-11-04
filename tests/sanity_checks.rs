@@ -127,6 +127,66 @@ fn test_reshape_outer_iter() {
 }
 
 #[test]
+fn test_reshape_2d_match_1d() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+
+    let correct_result = Noun(BoolArray(Array::from_elem(IxDyn(&[2, 3, 3]), 1)));
+
+    assert_eq!(r1, correct_result);
+    assert_eq!(r2, correct_result);
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
+fn test_reshape_no_change() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
+fn test_agreement_reshape_3() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
+    // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
+    let a = Array::from_shape_vec(
+        IxDyn(&[6, 3]),
+        vec![0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
+    )?;
+
+    assert_eq!(r1, Noun(IntArray(a)));
+
+    Ok(())
+}
+
+#[test]
+fn test_reshape_atoms() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
+    // Should be an array of length 1 containing 1
+    assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[1]), 1))));
+    Ok(())
+}
+
+#[test]
+fn test_reshape_truncate() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[]), 1))));
+    Ok(())
+}
+
+#[test]
+fn test_reshape_cycle() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    Ok(())
+}
+
+#[test]
 fn test_power_conjunction_bool_arg() {
     let words = jr::scan("(*:^:0 1) 4").unwrap();
     println!("words: {:?}", words);
@@ -514,27 +574,6 @@ fn test_link() {
         ])
         .unwrap()
     );
-}
-
-#[test]
-fn test_TEMP_outer_iter() {
-    let a = Array::from_elem(IxDyn(&[]), 42);
-    println!("a.len(): {}", a.len());
-    println!("a.shape(): {:?}", a.shape());
-    println!("a.shape().len(): {:?}", a.shape().len());
-    for i in a.iter() {
-        println!("{}", i);
-    }
-    assert!(false);
-}
-
-#[test]
-fn test_TEMP_exact_chunks() {
-    let a = Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap();
-    for i in a.exact_chunks(IxDyn(&[1, 1, 3])).into_iter() {
-        println!("{}", i.into_shape(3).unwrap());
-    }
-    assert!(false);
 }
 
 #[test]
