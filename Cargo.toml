@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-#default = ["ui"]
+default = ["tui"]
 ui = ["femtovg", "glutin", "winit"]
 glutin-x11 = ["glutin/x11", "winit/x11", "ui"]
+tui = ["rustyline", "rustyline-derive", "directories", "colored"]
 
 [dependencies]
 anyhow = "1"
@@ -14,11 +15,17 @@ cfg-if = "1"
 env_logger = "0.9.0"
 itertools = "0.10.3"
 log = "0.4.17"
+ndarray = "0.15.6"
 num = "0.4"
 num-traits = "0.2"
 ordered-float = "3"
 thiserror = "1"
-ndarray = "0.15.6"
+
+colored = { version = "2", optional = true }
+directories = { version = "4", optional = true }
+rustyline = { version = "10", optional = true }
+rustyline-derive = { version = "0.7", optional = true }
+
 femtovg = { version = "0.3", default-features = false, features = ["glutin"], optional = true }
 glutin = { version = "0.28", optional = true }
 winit = { version = "0.26", optional = true }
