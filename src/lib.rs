@@ -1,4 +1,5 @@
 pub mod arrays;
+use anyhow::Result;
 mod cells;
 mod empty;
 mod error;
@@ -24,21 +25,27 @@ pub use verbs::*;
 // TODO: helper function for tests, not really public
 pub use crate::scan::char_array;
 
+pub fn primitive(
+    op: &'static str,
+    monad: fn(&JArray) -> Result<Word>,
+    dyad: fn(&JArray, &JArray) -> Result<Word>,
+    ranks: (u32, u32, u32),
+) -> verbs::VerbImpl {
+    VerbImpl::Primitive(PrimitiveImpl::new(
+        op.clone(),
+        monad,
+        dyad,
+        (
+            Rank::new(ranks.0).unwrap(),
+            Rank::new(ranks.1).unwrap(),
+            Rank::new(ranks.2).unwrap(),
+        ),
+    ))
+}
+
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
     let inf = u32::MAX;
-    let primitive = |op, monad, dyad, ranks: (u32, u32, u32)| {
-        VerbImpl::Primitive(PrimitiveImpl::new(
-            op,
-            monad,
-            dyad,
-            (
-                Rank::new(ranks.0).unwrap(),
-                Rank::new(ranks.1).unwrap(),
-                Rank::new(ranks.2).unwrap(),
-            ),
-        ))
-    };
     let not_impl = |op| {
         primitive(
             op,

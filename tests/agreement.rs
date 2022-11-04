@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
+use jr::primitive;
+use jr::v_conjugate;
+use jr::v_plus;
 use jr::{IntoJArray, JArray::*, JError, Word, Word::*};
 
 #[test]
@@ -84,6 +87,29 @@ fn test_agreement_4() -> Result<()> {
         array![2i64, 2, 2].into_dyn().into_noun()
     );
     Ok(())
+}
+
+#[test]
+fn test_agreement_plus_rank1() {
+    // 1 2 3 +"1 i.2 3
+    let x = array![1i64, 2, 3].into_dyn().into_noun();
+    let y = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap(),
+    ));
+
+    // +"1
+    let f = Verb(
+        "+\"1".to_string(),
+        primitive("+", v_conjugate, v_plus, (0, 1, 1)),
+    );
+
+    let words = vec![x, f, y];
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8])
+            .unwrap()
+            .into_noun()
+    );
 }
 
 #[test]
