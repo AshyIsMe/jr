@@ -6,7 +6,7 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word, Rank};
+use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, Rank, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
