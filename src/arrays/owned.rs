@@ -186,3 +186,39 @@ impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value)))
+            }
+        }
+    };
+}
+impl_from_atom!(u8, JArray::BoolArray);
+impl_from_atom!(char, JArray::CharArray);
+impl_from_atom!(i64, JArray::IntArray);
+impl_from_atom!(BigInt, JArray::ExtIntArray);
+impl_from_atom!(BigRational, JArray::RationalArray);
+impl_from_atom!(f64, JArray::FloatArray);
+impl_from_atom!(Complex64, JArray::ComplexArray);
+impl_from_atom!(Word, JArray::BoxArray);
+
+macro_rules! impl_from_atom_ref {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value.clone())))
+            }
+        }
+    };
+}
+impl_from_atom_ref!(&u8, JArray::BoolArray);
+impl_from_atom_ref!(&char, JArray::CharArray);
+impl_from_atom_ref!(&i64, JArray::IntArray);
+impl_from_atom_ref!(&BigInt, JArray::ExtIntArray);
+impl_from_atom_ref!(&BigRational, JArray::RationalArray);
+impl_from_atom_ref!(&f64, JArray::FloatArray);
+impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
+impl_from_atom_ref!(&Word, JArray::BoxArray);
