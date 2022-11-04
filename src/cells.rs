@@ -210,7 +210,7 @@ mod tests {
         let (x_cells, y_cells, _, _) = generate_cells(&x, &y, Rank::zero_zero())?;
         assert_eq!(
             x_cells,
-            vec![arr0d(100i64).into_jarray(), arr0d(200i64).into_jarray(),]
+            vec![arr0d(100i64).into_jarray(), arr0d(200i64).into_jarray()]
         );
         assert_eq!(
             y_cells,
@@ -229,11 +229,11 @@ mod tests {
         let (x_cells, y_cells, _, _) = generate_cells(&x, &y, (Rank::one(), Rank::zero()))?;
         assert_eq!(
             x_cells,
-            vec![array![24i64, 60, 61].into_dyn().into_jarray(),]
+            vec![array![24i64, 60, 61].into_dyn().into_jarray()]
         );
         assert_eq!(
             y_cells,
-            vec![arr0d(1800i64).into_jarray(), arr0d(7200i64).into_jarray(),]
+            vec![arr0d(1800i64).into_jarray(), arr0d(7200i64).into_jarray()]
         );
         Ok(())
     }
