@@ -149,20 +149,19 @@ pub fn generate_cells_vec<'x, 'y>(
     debug!("x_surplus_rank: {:?}", x_surplus_rank);
     debug!("y_surplus_rank: {:?}", y_surplus_rank);
 
-    // // Handle infinite ranks properly, entire argument
-    // let x_cells = if x_arg_rank == Rank::infinite() {
-    //     x.into()
-    // } else {
-    //     cells_of(x, x_arg_rank, x_surplus_rank)?
-    // };
-    // let y_cells = if y_arg_rank == Rank::infinite() {
-    //     y.into()
-    // } else {
-    //     cells_of(y, y_arg_rank, y_surplus_rank)?
-    // };
-
-    let x_cells = x.rank_iter(x_arg_rank.raw_u8() + x_surplus_rank as u8);
-    let y_cells = y.rank_iter(y_arg_rank.raw_u8() + y_surplus_rank as u8);
+    // Handle infinite ranks properly, entire argument
+    let xr = if (x_arg_rank.raw_u8() as u32 + x_surplus_rank as u32) > 255 {
+        255u8
+    } else {
+        x_arg_rank.raw_u8() as u8 + x_surplus_rank as u8
+    };
+    let yr = if (y_arg_rank.raw_u8() as u32 + y_surplus_rank as u32) > 255 {
+        255u8
+    } else {
+        y_arg_rank.raw_u8() as u8 + y_surplus_rank as u8
+    };
+    let x_cells = x.rank_iter(xr);
+    let y_cells = y.rank_iter(yr);
     debug!("x_cells: {:?}", x_cells);
     debug!("y_cells: {:?}", y_cells);
 
