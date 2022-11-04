@@ -6,7 +6,7 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, VerbImpl, Word, Rank};
 
 #[test]
 fn test_basic_addition() {
@@ -492,5 +492,72 @@ fn test_link() {
             Noun(IntArray(Array::from_elem(IxDyn(&[]), 3))),
         ])
         .unwrap()
+    );
+}
+
+#[test]
+fn test_jarray_rank_iter() {
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap());
+    let v = a.rank_iter(0);
+    println!("v.len(): {}", v.len());
+    println!("{:?}", v);
+    assert_eq!(
+        v,
+        vec![
+            IntArray(Array::from_elem(IxDyn(&[]), 0)),
+            IntArray(Array::from_elem(IxDyn(&[]), 1)),
+            IntArray(Array::from_elem(IxDyn(&[]), 2)),
+            IntArray(Array::from_elem(IxDyn(&[]), 3)),
+            IntArray(Array::from_elem(IxDyn(&[]), 4)),
+            IntArray(Array::from_elem(IxDyn(&[]), 5)),
+        ]
+    );
+
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let v = a.rank_iter(1);
+    println!("v.len(): {}", v.len());
+    println!("{:?}", v);
+    assert_eq!(
+        v,
+        vec![
+            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![0, 1, 2]).unwrap()),
+            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()),
+            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![6, 7, 8]).unwrap()),
+            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![9, 10, 11]).unwrap())
+        ]
+    );
+
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let v = a.rank_iter(2);
+    println!("v.len(): {}", v.len());
+    println!("{:?}", v);
+    assert_eq!(
+        v,
+        vec![
+            IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
+            IntArray(6i64 + Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
+        ]
+    );
+
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let v = a.rank_iter(3);
+    println!("v.len(): {}", v.len());
+    println!("{:?}", v);
+    assert_eq!(
+        v,
+        vec![IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap()
+        )]
+    );
+
+    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let v = a.rank_iter(Rank::infinite().raw_u8());
+    println!("v.len(): {}", v.len());
+    println!("{:?}", v);
+    assert_eq!(
+        v,
+        vec![IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap()
+        )]
     );
 }
