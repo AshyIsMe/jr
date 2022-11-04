@@ -3,7 +3,7 @@ use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 
-use crate::{reduce_arrays, JArray, JArrayCow, JArrays, JError, Rank, Word};
+use crate::{reduce_arrays, Dyad, JArray, JArrayCow, JArrays, JError, Rank, Word};
 
 pub fn result_shape<'s>(x: &'s JArray, y: &'s JArray) -> &'s [usize] {
     let x_shape = x.shape();
@@ -96,17 +96,30 @@ pub fn generate_cells<'x, 'y>(
     ))
 }
 
-pub fn apply_cells(
-    (x_cells, y_cells): (&[JArray], &[JArray]),
-    f: fn(&JArray, &JArray) -> Result<Word>,
-) -> Result<Vec<Word>> {
-    let limit = x_cells.len().max(y_cells.len());
-    x_cells
+pub fn apply_cells((x_cells, y_cells): (&[JArray], &[JArray]), dyad: &Dyad) -> Result<Vec<Word>> {
+    debug!(
+        "x_cells.len(): {:?}, y_cells.len(): {:?}",
+        x_cells.len(),
+        y_cells.len()
+    );
+    // Handle infinite rank again here, replicate entire argument if so
+    let x_iter = if dyad.rank.0 == Rank::infinite() {
+        x_cells.iter().cycle().take(y_cells.len())
+    } else {
+        x_cells.iter().cycle().take(x_cells.len())
+    };
+    let y_iter = if dyad.rank.1 == Rank::infinite() {
+        y_cells.iter().cycle().take(x_cells.len())
+    } else {
+        y_cells.iter().cycle().take(y_cells.len())
+    };
+
+    x_iter
         .into_iter()
         .cycle()
-        .zip(y_cells.into_iter().cycle())
-        .take(limit)
-        .map(|(x, y)| f(x, y))
+        .zip(y_iter.into_iter().cycle())
+        .take(x_cells.len().max(y_cells.len()))
+        .map(|(x, y)| (dyad.f)(x, y))
         .collect()
 }
 

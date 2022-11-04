@@ -76,7 +76,7 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
     let (x_cells, y_cells, common_frame, surplus_frame) =
         generate_cells(x, y, dyad.rank).context("generating cells")?;
     let application_result =
-        apply_cells((&x_cells, &y_cells), dyad.f).context("applying function to cells")?;
+        apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
 
     let flat = flatten(target_shape, &application_result).with_context(|| {
         // this is expensive but should only be hit on application bugs, not user code issues
