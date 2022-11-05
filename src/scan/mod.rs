@@ -199,44 +199,15 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
 }
 
 fn identify_primitive(sentence: &str) -> usize {
-    // built in adverbs/verbs
-    let mut l: usize = 0;
-    let mut p: Option<char> = None;
-    //Primitives are 1 to 3 symbols:
-    //  - one symbol
-    //  - zero or more trailing . or : or both.
-    //  - OR {{ }} for definitions
-    for (i, c) in sentence.chars().enumerate() {
-        l = i;
-        match p {
-            None => p = Some(c),
-            Some(p) => {
-                match p {
-                    '{' => {
-                        if !"{.:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                    '}' => {
-                        if !"}.:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                    //if !"!\"#$%&*+,-./:;<=>?@[\\]^_`{|}~".contains(c) {
-                    _ => {
-                        if !".:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    let mut it = sentence.chars();
+    let initial = it.next().expect("non-empty input");
 
-    l
+    it.take_while(match initial {
+        '{' => |c: &char| "{.:".contains(*c),
+        '}' => |c: &char| "}.:".contains(*c),
+        _ => |c: &char| ".:".contains(*c),
+    })
+    .count()
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word> {
