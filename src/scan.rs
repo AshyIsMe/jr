@@ -120,6 +120,21 @@ fn scan_num_token(term: &str) -> Result<Num> {
     })
 }
 
+#[inline]
+fn arrayise<T>(it: impl IntoIterator<Item = Result<T>>) -> Result<JArray>
+where
+    T: Clone,
+    ArrayD<T>: IntoJArray,
+{
+    let vec = it.into_iter().collect::<Result<Vec<T>>>()?;
+    Ok(if vec.len() == 1 {
+        ArrayD::from_elem(IxDyn(&[]), vec.into_iter().next().expect("checked length"))
+    } else {
+        ArrayD::from_shape_vec(IxDyn(&[vec.len()]), vec).expect("simple shape")
+    }
+    .into_jarray())
+}
+
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     if sentence.is_empty() {
         return Err(JError::custom("Empty number literal"));
@@ -138,45 +153,33 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
 
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     let parts = if parts.iter().any(|n| matches!(n, Num::Complex(_))) {
-        parts
-            .into_iter()
-            .map(|v| match v {
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
                 Num::Complex(i) => i,
                 other => Complex64::new(other.approx_f64().expect("covered above"), 0.),
             })
-            .collect::<Vec<_>>()
-            .into_array()?
-            .into_jarray()
+        }))?
     } else if parts.iter().any(|n| matches!(n, Num::Float(_))) {
-        parts
-            .into_iter()
-            .map(|v| match v {
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
                 Num::Complex(_) => unreachable!("covered by above cases"),
                 Num::Float(i) => i,
                 other => other.approx_f64().expect("covered above"),
             })
-            .collect::<Vec<_>>()
-            .into_array()?
-            .into_jarray()
+        }))?
     } else if parts.iter().any(|n| matches!(n, Num::Rational(_))) {
-        parts
-            .into_iter()
-            .map(|v| {
-                Ok(match v {
-                    Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
-                    Num::Rational(i) => i,
-                    Num::ExtInt(i) => BigRational::new(i, 1.into()),
-                    Num::Int(i) => BigRational::new(i.into(), 1.into()),
-                    Num::Bool(i) => BigRational::new(i.into(), 1.into()),
-                })
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
+                Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
+                Num::Rational(i) => i,
+                Num::ExtInt(i) => BigRational::new(i, 1.into()),
+                Num::Int(i) => BigRational::new(i.into(), 1.into()),
+                Num::Bool(i) => BigRational::new(i.into(), 1.into()),
             })
-            .collect::<Result<Vec<_>>>()?
-            .into_array()?
-            .into_jarray()
+        }))?
     } else if parts.iter().any(|n| matches!(n, Num::ExtInt(_))) {
-        parts
-            .into_iter()
-            .map(|v| match v {
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) => {
                     unreachable!("covered by above cases")
                 }
@@ -184,26 +187,20 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
                 Num::Int(i) => i.into(),
                 Num::Bool(i) => i.into(),
             })
-            .collect::<Vec<_>>()
-            .into_array()?
-            .into_jarray()
+        }))?
     } else if parts.iter().any(|n| matches!(n, Num::Int(_))) {
-        parts
-            .into_iter()
-            .map(|v| match v {
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) | Num::ExtInt(_) => {
                     unreachable!("covered by above cases")
                 }
                 Num::Int(i) => i,
                 Num::Bool(i) => i.into(),
             })
-            .collect::<Vec<_>>()
-            .into_array()?
-            .into_jarray()
+        }))?
     } else {
-        parts
-            .into_iter()
-            .map(|v| match v {
+        arrayise(parts.into_iter().map(|v| {
+            Ok(match v {
                 Num::Complex(_)
                 | Num::Float(_)
                 | Num::Rational(_)
@@ -211,9 +208,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
                 | Num::Int(_) => unreachable!("covered by above cases"),
                 Num::Bool(i) => i,
             })
-            .collect::<Vec<_>>()
-            .into_array()?
-            .into_jarray()
+        }))?
     };
 
     Ok((l, Word::Noun(parts)))
@@ -494,14 +489,18 @@ mod tests {
             litnum_to_array("1e20").when_f64().expect("float array"),
         );
 
-        // assert_eq!(
-        //     arr0d(Complex64::new(1., 2.)),
-        //     litnum_to_array("1j2").when_complex().expect("complex array"),
-        // );
-        //
-        // assert_eq!(
-        //     arr0d(BigRational::new(1.into(), 2.into())),
-        //     litnum_to_array("1r2").when_rational().expect("rational array"),
-        // );
+        assert_eq!(
+            arr0d(Complex64::new(1., 2.)),
+            litnum_to_array("1j2")
+                .when_complex()
+                .expect("complex array"),
+        );
+
+        assert_eq!(
+            arr0d(BigRational::new(1.into(), 2.into())),
+            litnum_to_array("1r2")
+                .when_rational()
+                .expect("rational array"),
+        );
     }
 }
