@@ -883,11 +883,11 @@ pub fn v_extend_precision(_y: &JArray) -> Result<Word> {
 /// x: (dyad)
 pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
     if x.shape() != [] {
-        return Err(JError::RankError.into());
+        return Err(JError::RankError).context("num denum requires atomic x");
     }
     let mode = match x.to_i64() {
         Some(x) => x.into_iter().next().expect("len == 1"),
-        None => return Err(JError::DomainError.into()),
+        None => return Err(JError::DomainError).context("num denom requires int-like x"),
     };
 
     match mode {
@@ -903,10 +903,10 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
                     .collect();
                 Ok(ArrayD::from_shape_vec(shape, values)?.into_noun())
             }
-            None => Err(JError::NonceError.into()),
+            None => Err(JError::NonceError).context("expecting a rational input"),
         },
-        1 => Err(JError::NonceError.into()),
-        x if x < 0 => Err(JError::NonceError.into()),
-        _ => Err(JError::DomainError.into()),
+        1 => Err(JError::NonceError).context("mode one unimplemented"),
+        x if x < 0 => Err(JError::NonceError).context("negative modes unimplemented"),
+        _ => Err(JError::DomainError).context("other modes do not exist"),
     }
 }

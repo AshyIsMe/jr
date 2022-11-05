@@ -420,10 +420,10 @@ fn test_parens() {
 #[test]
 fn test_num_dom() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("2 x: 5r1 4r2 1")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 x: 6r2 4r3 1")?, &mut HashMap::new())?,
         Word::Noun(JArray::ExtIntArray(ArrayD::from_shape_vec(
             IxDyn(&[3, 2]),
-            vec![5.into(), 1.into(), 2.into(), 1.into(), 1.into(), 1.into()]
+            vec![3.into(), 1.into(), 4.into(), 3.into(), 1.into(), 1.into()]
         )?)),
     );
     Ok(())

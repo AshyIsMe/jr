@@ -1,8 +1,10 @@
-use anyhow::{anyhow, bail, Context, Result};
+use std::ops;
+
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
-use num_traits::ToPrimitive;
+use num_traits::{One, ToPrimitive};
 
 use crate::arrays::*;
 use crate::modifiers::ModifierImpl;
@@ -69,15 +71,24 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
     Ok(words)
 }
 
-fn parse_float(term: &str) -> Result<f64> {
+/// adapts an existing parse function, `f`, to handle leading `_` as negative
+fn sign_lift<T: ops::Neg<Output = T>>(term: &str, f: impl FnOnce(&str) -> Result<T>) -> Result<T> {
     if term.contains('-') {
-        bail!("floats must contain _, not -, in {term:?}");
+        unreachable!("numbers must contain _, not -");
     }
-    if term.starts_with('_') {
-        Ok(-term[1..].parse()?)
+    Ok(if term.starts_with('_') {
+        -f(&term[1..])?
     } else {
-        Ok(term.parse()?)
-    }
+        f(term)?
+    })
+}
+
+fn parse_float(term: &str) -> Result<f64> {
+    sign_lift(term, |v| Ok(v.parse()?))
+}
+
+fn parse_bigint(term: &str) -> Result<BigInt> {
+    sign_lift(term, |v| Ok(v.parse()?))
 }
 
 enum Num {
@@ -102,6 +113,50 @@ impl Num {
     }
 }
 
+fn float_is_zero(v: f64) -> bool {
+    v.abs() < f64::EPSILON
+}
+
+const MAX_SAFE_INTEGER: f64 = 9007199254740991.;
+
+fn float_is_int(v: f64) -> Option<i64> {
+    if float_is_zero(v) {
+        return Some(0);
+    }
+    if v.is_infinite() || v.is_nan() {
+        return None;
+    }
+    if v.abs() > MAX_SAFE_INTEGER {
+        return None;
+    }
+    if !float_is_zero(v - v.round()) {
+        return None;
+    }
+    Some(v as i64)
+}
+
+impl Num {
+    fn demote(self) -> Num {
+        match self {
+            Num::Complex(c) if float_is_zero(c.im) => Num::Float(c.re).demote(),
+            Num::Complex(c) => Num::Complex(c),
+            Num::Float(f) => {
+                if let Some(i) = float_is_int(f) {
+                    Num::Int(i).demote()
+                } else {
+                    Num::Float(f)
+                }
+            }
+            Num::Rational(r) if r.denom().is_one() => Num::ExtInt(r.numer().clone()),
+            Num::Rational(r) => Num::Rational(r),
+            Num::ExtInt(i) => Num::ExtInt(i),
+            Num::Int(i) if i == 0 || i == 1 => Num::Bool(i as u8),
+            Num::Int(i) => Num::Int(i),
+            Num::Bool(b) => Num::Bool(b),
+        }
+    }
+}
+
 fn scan_num_token(term: &str) -> Result<Num> {
     Ok(if term.contains('j') {
         Num::Complex(scan_complex(term)?)
@@ -110,14 +165,13 @@ fn scan_num_token(term: &str) -> Result<Num> {
     } else if term.contains('.') || term.contains('e') {
         Num::Float(parse_float(term)?)
     } else {
-        // TODO: not this, sigh
-        let term = term.replace('_', "-");
-        match term.parse::<i64>() {
-            Ok(x) if x == 0 || x == 1 => Num::Bool(x as u8),
+        // we can't just demote 'cos bigints never demote
+        match sign_lift(&term, |term| Ok(term.parse::<i64>()?)) {
             Ok(x) => Num::Int(x),
-            Err(_) => Num::ExtInt(term.parse()?),
+            Err(_) => Num::ExtInt(parse_bigint(&term)?),
         }
-    })
+    }
+    .demote())
 }
 
 #[inline]
@@ -215,17 +269,17 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
 }
 
 fn scan_complex(term: &str) -> Result<Complex64> {
-    Ok(match term.split_once('j') {
-        Some((real, imaj)) => Complex64::new(real.parse()?, imaj.parse()?),
-        None => Complex64::new(term.parse()?, 0.),
-    })
+    let (real, imaj) = term
+        .split_once('j')
+        .expect("scan_complex only sees delimited numbers");
+    Ok(Complex64::new(parse_float(real)?, parse_float(imaj)?))
 }
 
 fn scan_rational(term: &str) -> Result<BigRational> {
-    Ok(match term.split_once('r') {
-        Some((real, imaj)) => BigRational::new(real.parse()?, imaj.parse()?),
-        None => BigRational::new(term.parse()?, 1.into()),
-    })
+    let (numer, denom) = term
+        .split_once('r')
+        .expect("scan_rational only sees delimited numbers");
+    Ok(BigRational::new(numer.parse()?, denom.parse()?))
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
@@ -428,8 +482,14 @@ mod tests {
     use crate::{arr0d, JArray, Word};
 
     fn litnum_to_array(sentence: &str) -> JArray {
-        let (_, word) =
+        let (l, word) =
             super::scan_litnumarray(sentence).expect(&format!("scanning success on {sentence:?}"));
+        assert_eq!(
+            l,
+            sentence.len() - 1,
+            "totally consumed, not stopping near {:?}",
+            &sentence[l..]
+        );
         match word {
             Word::Noun(arr) => return arr,
             _ => panic!("scan_litnumarray always returns nouns, not {word:?}"),
@@ -444,8 +504,8 @@ mod tests {
         );
 
         assert_eq!(
-            array![1f64, 2., 3.].into_dyn(),
-            litnum_to_array("1.0 2 3").when_f64().expect("float array"),
+            array![1.1, 2., 3.].into_dyn(),
+            litnum_to_array("1.1 2 3").when_f64().expect("float array"),
         );
 
         assert_eq!(
@@ -560,6 +620,23 @@ mod tests {
             litnum_to_array("1r2")
                 .when_rational()
                 .expect("rational array"),
+        );
+    }
+
+    #[test]
+    fn scan_litnum_demo() {
+        assert_eq!(
+            array![BigInt::from(1), 4.into(), 1.into()].into_dyn(),
+            litnum_to_array("1 4 4r4")
+                .when_bigint()
+                .expect("bigint array"),
+        );
+
+        assert_eq!(
+            array![1, 1, 1, 0].into_dyn(),
+            litnum_to_array("1j0 1.0 1 0.0")
+                .when_u8()
+                .expect("bool array"),
         );
     }
 }
