@@ -191,6 +191,14 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
+    if sentence.is_empty() {
+        return Err(JError::custom("Empty primitive"));
+    }
+    let l = identify_primitive(sentence);
+    Ok((l, str_to_primitive(&sentence[..=l])?))
+}
+
+fn identify_primitive(sentence: &str) -> usize {
     // built in adverbs/verbs
     let mut l: usize = 0;
     let mut p: Option<char> = None;
@@ -198,9 +206,6 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
     //  - one symbol
     //  - zero or more trailing . or : or both.
     //  - OR {{ }} for definitions
-    if sentence.is_empty() {
-        return Err(JError::custom("Empty primitive"));
-    }
     for (i, c) in sentence.chars().enumerate() {
         l = i;
         match p {
@@ -230,7 +235,8 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
             }
         }
     }
-    Ok((l, str_to_primitive(&sentence[..=l])?))
+
+    l
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Word> {
@@ -260,5 +266,15 @@ fn str_to_primitive(sentence: &str) -> Result<Word> {
             "=." => Ok(Word::IsLocal),
             _ => Err(JError::custom("Invalid primitive")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scan::identify_primitive;
+
+    #[test]
+    fn identify_prim() {
+        assert_eq!(1, identify_primitive("{."));
     }
 }
