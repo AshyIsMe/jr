@@ -2,6 +2,7 @@ mod litnum;
 mod number;
 
 use anyhow::Result;
+use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::*;
@@ -138,56 +139,22 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
-    // user defined adverbs/verbs/nouns
-    let mut l: usize = usize::MAX;
-    let mut p: Option<Word> = None;
-    if sentence.is_empty() {
-        return Err(JError::custom("Empty name"));
-    }
-    for (i, c) in sentence.chars().enumerate() {
-        l = i;
-        // Name is a word that begins with a letter and contains letters, numerals, and
-        // underscores. (See Glossary).
-        match c {
-            'a'..='z' | 'A'..='Z' | '_' => {
-                match p {
-                    None => (),
-                    Some(_) => {
-                        // Primitive was found on previous char, backtrack and break
-                        l -= 1;
-                        break;
-                    }
-                }
-            }
-            '.' | ':' => {
-                match p {
-                    None => {
-                        if let Ok(w) = str_to_primitive(&sentence[0..=l]) {
-                            p = Some(w);
-                        }
-                    }
-                    Some(_) => {
-                        match str_to_primitive(&sentence[0..=l]) {
-                            Ok(w) => p = Some(w),
-                            Err(_) => {
-                                // Primitive was found on previous char, backtrack and break
-                                l -= 1;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {
-                l -= 1;
-                break;
-            }
+    let mut it = sentence.chars().peekable();
+    let base: String = it
+        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+        .collect();
+    let suffix = it.peek().filter(|c| matches!(c, '.' | ':')).copied();
+
+    if let Some(suffix) = suffix {
+        if let Ok(primitive) = str_to_primitive(&format!("{base}{suffix}")) {
+            return Ok((base.len() + 1, primitive));
         }
     }
-    match p {
-        Some(p) => Ok((l, p)),
-        None => Ok((l, Word::Name(sentence[0..=l].to_string()))),
-    }
+
+    Ok((
+        base.len() - 1,
+        str_to_primitive(&base).unwrap_or_else(|_| Word::Name(base)),
+    ))
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
