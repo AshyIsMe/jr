@@ -4,15 +4,19 @@ use jr::Word;
 use ndarray::prelude::*;
 
 #[test]
-#[ignore]
 fn test_scan_nunez() {
     let _ = jr::scan("й");
 }
 
 #[test]
-#[ignore]
 fn test_scan_prime_nunez() {
     let _ = jr::scan("'йй");
+}
+
+#[test]
+#[ignore]
+fn test_scan_prime_prime_nunez() {
+    let _ = jr::scan("'й'e");
 }
 
 #[test]

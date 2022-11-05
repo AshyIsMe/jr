@@ -195,7 +195,10 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
         return Err(JError::custom("Empty primitive"));
     }
     let l = identify_primitive(sentence);
-    Ok((l, str_to_primitive(&sentence[..=l])?))
+    Ok((
+        l,
+        str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?,
+    ))
 }
 
 fn identify_primitive(sentence: &str) -> usize {
