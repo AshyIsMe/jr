@@ -128,7 +128,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(n)) => {
             let n = n
-                .to_i64()
+                .approx()
                 .ok_or(JError::DomainError)
                 .context("rank expects integer arguments")?;
 
@@ -148,9 +148,9 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             };
 
             let ranks = (
-                Rank::new(ranks[0] as u32)?,
-                Rank::new(ranks[1] as u32)?,
-                Rank::new(ranks[2] as u32)?,
+                Rank::from_approx(ranks[0])?,
+                Rank::from_approx(ranks[1])?,
+                Rank::from_approx(ranks[2])?,
             );
 
             u.exec_ranked(x, y, Some(ranks))

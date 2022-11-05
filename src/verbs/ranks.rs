@@ -16,6 +16,25 @@ impl Rank {
         }
     }
 
+    pub fn from_approx(val: f32) -> Result<Self> {
+        if val.is_infinite() && val.is_sign_positive() {
+            return Ok(Rank::infinite());
+        }
+        if !val.is_finite() || val < 0. || val > 65. {
+            return Err(JError::LimitError)
+                .with_context(|| anyhow!("ranks must be infinite or 0-64, not {val:?}"));
+        }
+
+        let rounded = val.round();
+        if (val - rounded).abs() > f32::EPSILON {
+            return Err(JError::LimitError)
+                .with_context(|| anyhow!("ranks must look like integers, not {val:?}"));
+        }
+
+        // already checked this is >=0, << 100
+        Self::new(rounded as u8 as u32)
+    }
+
     pub const fn zero() -> Self {
         Rank(0)
     }
