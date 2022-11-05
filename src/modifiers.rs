@@ -1,8 +1,8 @@
 use std::iter;
 
-use crate::{reduce_arrays, HasEmpty, JArray, JArrays, JError, Word};
+use crate::{reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 
 // Implementations for Adverbs and Conjuntions
@@ -19,6 +19,7 @@ pub enum ModifierImpl {
 
     //conjunctions
     HatCo,
+    Quote,
 }
 
 impl ModifierImpl {
@@ -28,6 +29,7 @@ impl ModifierImpl {
             ModifierImpl::Slash => a_slash(x, u, y),
             ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
             ModifierImpl::HatCo => c_hatco(x, u, v, y),
+            ModifierImpl::Quote => c_quote(x, u, v, y),
             ModifierImpl::DerivedAdverb { l: _l, r: _r } => todo!("DerivedAdverb"),
         }
     }
@@ -120,4 +122,39 @@ fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
             .map_err(JError::ShapeError)?;
     }
     Ok(result)
+}
+
+pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    match (u, v) {
+        (Word::Verb(_, u), Word::Noun(n)) => {
+            let n = n
+                .to_i64()
+                .ok_or(JError::DomainError)
+                .context("rank expects integer arguments")?;
+
+            let ranks = match (n.shape().len(), n.len()) {
+                (0, 1) => {
+                    let only = n.iter().next().copied().expect("checked the length");
+                    [only, only, only]
+                }
+                (1, 1) => [n[0], n[0], n[0]],
+                (1, 2) => [n[1], n[0], n[1]],
+                (1, 3) => [n[0], n[1], n[2]],
+                _ => {
+                    return Err(JError::LengthError).with_context(|| {
+                        anyhow!("rank operator requires a list of 1-3 elements, not: {n:?}")
+                    })
+                }
+            };
+
+            let ranks = (
+                Rank::new(ranks[0] as u32)?,
+                Rank::new(ranks[1] as u32)?,
+                Rank::new(ranks[2] as u32)?,
+            );
+
+            u.exec_ranked(x, y, Some(ranks))
+        }
+        _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
+    }
 }

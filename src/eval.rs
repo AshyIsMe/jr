@@ -6,7 +6,7 @@ use itertools::Itertools;
 use log::{debug, trace};
 
 use crate::Word::{self, *};
-use crate::{ModifierImpl, VerbImpl};
+use crate::{JError, ModifierImpl, VerbImpl};
 
 pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word> {
     // Attempt to parse j properly as per the documentation here:
@@ -286,7 +286,8 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
     trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.pop_front() {
         Some(val) if new_stack.is_empty() => Ok(val),
-        _ => Err(anyhow!("if you're happy and you know it, syntax error",)),
+        _ => Err(JError::SyntaxError)
+            .with_context(|| anyhow!("expected an empty stack but found {new_stack:?}")),
     }
 }
 

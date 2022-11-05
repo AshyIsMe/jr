@@ -227,7 +227,7 @@ fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
         ("!:", ModifierImpl::NotImplemented),
         ("[.", ModifierImpl::NotImplemented),
         ("].", ModifierImpl::NotImplemented),
-        ("\"", ModifierImpl::NotImplemented),
+        ("\"", ModifierImpl::Quote),
         ("`", ModifierImpl::NotImplemented),
         ("`:", ModifierImpl::NotImplemented),
         ("@", ModifierImpl::NotImplemented),

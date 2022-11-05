@@ -28,11 +28,13 @@ pub struct Monad {
     pub rank: Rank,
 }
 
+pub type DyadF = fn(&JArray, &JArray) -> Result<Word>;
+pub type DyadRank = (Rank, Rank);
+
 #[derive(Copy, Clone)]
 pub struct Dyad {
-    // TODO: NOT public
-    pub f: fn(&JArray, &JArray) -> Result<Word>,
-    pub rank: (Rank, Rank),
+    pub f: DyadF,
+    pub rank: DyadRank,
 }
 
 #[derive(Copy, Clone)]
@@ -68,14 +70,14 @@ pub enum VerbImpl {
     },
 }
 
-fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
-    if Rank::infinite_infinite() == dyad.rank {
-        return (dyad.f)(x, y).context("infinite dyad shortcut");
+fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
+    if Rank::infinite_infinite() == rank {
+        return (f)(x, y).context("infinite dyad shortcut");
     }
     let (x_cells, y_cells, common_frame, surplus_frame) =
-        generate_cells(x, y, dyad.rank).context("generating cells")?;
+        generate_cells(x, y, rank).context("generating cells")?;
     let application_result =
-        apply_cells((&x_cells, &y_cells), dyad).context("applying function to cells")?;
+        apply_cells((&x_cells, &y_cells), f, rank).context("applying function to cells")?;
 
     let target_shape = common_frame
         .into_iter()
@@ -99,6 +101,14 @@ fn exec_dyad(dyad: &Dyad, x: &JArray, y: &JArray) -> Result<Word> {
 
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
+        self.exec_ranked(x, y, None)
+    }
+    pub fn exec_ranked(
+        &self,
+        x: Option<&Word>,
+        y: &Word,
+        rank: Option<(Rank, Rank, Rank)>,
+    ) -> Result<Word> {
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
@@ -109,7 +119,8 @@ impl VerbImpl {
                         .dyad
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
-                    exec_dyad(&dyad, x, y).with_context(|| anyhow!("dyadic {:?}", imp.name))
+                    exec_dyad(dyad.f, rank.map(|r| (r.1, r.2)).unwrap_or(dyad.rank), x, y)
+                        .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
                 _ => Err(DomainError.into()),
             },

@@ -3,7 +3,7 @@ use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 
-use crate::{reduce_arrays, Dyad, JArray, JArrayCow, JArrays, JError, Rank, Word};
+use crate::{reduce_arrays, DyadF, DyadRank, JArray, JArrayCow, JArrays, JError, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -86,19 +86,23 @@ pub fn generate_cells<'x, 'y>(
     ))
 }
 
-pub fn apply_cells((x_cells, y_cells): (&[JArray], &[JArray]), dyad: &Dyad) -> Result<Vec<Word>> {
+pub fn apply_cells(
+    (x_cells, y_cells): (&[JArray], &[JArray]),
+    f: DyadF,
+    rank: DyadRank,
+) -> Result<Vec<Word>> {
     debug!(
         "x_cells.len(): {:?}, y_cells.len(): {:?}",
         x_cells.len(),
         y_cells.len()
     );
     // Handle infinite rank again here, replicate entire argument if so
-    let x_limit = if dyad.rank.0.is_infinite() {
+    let x_limit = if rank.0.is_infinite() {
         y_cells.len()
     } else {
         x_cells.len()
     };
-    let y_limit = if dyad.rank.1.is_infinite() {
+    let y_limit = if rank.1.is_infinite() {
         x_cells.len()
     } else {
         y_cells.len()
@@ -111,7 +115,7 @@ pub fn apply_cells((x_cells, y_cells): (&[JArray], &[JArray]), dyad: &Dyad) -> R
         .cycle()
         .zip(y_cells.iter().cycle().take(y_limit).cycle())
         .take(x_cells.len().max(y_cells.len()))
-        .map(|(x, y)| (dyad.f)(x, y))
+        .map(|(x, y)| (f)(x, y))
         .collect()
 }
 
