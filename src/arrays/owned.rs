@@ -168,6 +168,47 @@ impl JArray {
             BoxArray(_) => return None,
         })
     }
+
+    pub fn when_u8(&self) -> Option<&ArrayD<u8>> {
+        match self {
+            JArray::BoolArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
+    pub fn when_i64(&self) -> Option<&ArrayD<i64>> {
+        match self {
+            JArray::IntArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
+    pub fn when_f64(&self) -> Option<&ArrayD<f64>> {
+        match self {
+            JArray::FloatArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
+    pub fn when_bigint(&self) -> Option<&ArrayD<BigInt>> {
+        match self {
+            JArray::ExtIntArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
+    pub fn when_complex(&self) -> Option<&ArrayD<Complex64>> {
+        match self {
+            JArray::ComplexArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+    pub fn when_rational(&self) -> Option<&ArrayD<BigRational>> {
+        match self {
+            JArray::RationalArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for JArray {

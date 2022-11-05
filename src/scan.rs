@@ -1,7 +1,8 @@
-use anyhow::Result;
+use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
-use num::BigRational;
+use num::{BigInt, BigRational};
+use num_traits::ToPrimitive;
 
 use crate::arrays::*;
 use crate::modifiers::ModifierImpl;
@@ -68,6 +69,57 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
     Ok(words)
 }
 
+fn parse_float(term: &str) -> Result<f64> {
+    if term.contains('-') {
+        bail!("floats must contain _, not -, in {term:?}");
+    }
+    if term.starts_with('_') {
+        Ok(-term[1..].parse()?)
+    } else {
+        Ok(term.parse()?)
+    }
+}
+
+enum Num {
+    Bool(u8),
+    Int(i64),
+    ExtInt(BigInt),
+    Rational(BigRational),
+    Float(f64),
+    Complex(Complex64),
+}
+
+impl Num {
+    fn approx_f64(&self) -> Option<f64> {
+        Some(match self {
+            Num::Bool(i) => *i as f64,
+            Num::Int(i) => *i as f64,
+            Num::ExtInt(i) => i.to_f64()?,
+            Num::Rational(i) => i.to_f64()?,
+            Num::Float(i) => *i,
+            Num::Complex(_) => return None,
+        })
+    }
+}
+
+fn scan_num_token(term: &str) -> Result<Num> {
+    Ok(if term.contains('j') {
+        Num::Complex(scan_complex(term)?)
+    } else if term.contains('r') {
+        Num::Rational(scan_rational(term)?)
+    } else if term.contains('.') || term.contains('e') {
+        Num::Float(parse_float(term)?)
+    } else {
+        // TODO: not this, sigh
+        let term = term.replace('_', "-");
+        match term.parse::<i64>() {
+            Ok(x) if x == 0 || x == 1 => Num::Bool(x as u8),
+            Ok(x) => Num::Int(x),
+            Err(_) => Num::ExtInt(term.parse()?),
+        }
+    })
+}
+
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     if sentence.is_empty() {
         return Err(JError::custom("Empty number literal"));
@@ -79,73 +131,92 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
 
     let l = sentence.len() - 1;
 
-    if sentence.contains('j') {
-        let a = sentence
-            .split_whitespace()
-            .map(scan_complex)
-            .collect::<Result<Vec<_>>>()?;
-        Ok((l, Word::noun(a)?))
-    } else if sentence.contains('r') {
-        let a = sentence
-            .split_whitespace()
-            .map(scan_rational)
-            .collect::<Result<Vec<_>>>()?;
-        Ok((l, Word::noun(a)?))
-    } else if sentence.contains('.') || sentence.contains('e') {
-        let a = sentence
-            .split_whitespace()
-            .map(|s| s.replace('_', "-"))
-            .map(|s| s.parse::<f64>())
-            .collect::<Result<Vec<f64>, std::num::ParseFloatError>>();
-        match a {
-            Ok(a) => {
-                if a.len() == 1 {
-                    Ok((l, Noun(FloatArray(ArrayD::from_elem(IxDyn(&[]), a[0])))))
-                } else {
-                    Ok((
-                        l,
-                        Noun(FloatArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-                    ))
+    let parts = sentence
+        .split_whitespace()
+        .map(|term| scan_num_token(term).with_context(|| anyhow!("parsing {term:?}")))
+        .collect::<Result<Vec<_>>>()?;
+
+    // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
+    let parts = if parts.iter().any(|n| matches!(n, Num::Complex(_))) {
+        parts
+            .into_iter()
+            .map(|v| match v {
+                Num::Complex(i) => i,
+                other => Complex64::new(other.approx_f64().expect("covered above"), 0.),
+            })
+            .collect::<Vec<_>>()
+            .into_array()?
+            .into_jarray()
+    } else if parts.iter().any(|n| matches!(n, Num::Float(_))) {
+        parts
+            .into_iter()
+            .map(|v| match v {
+                Num::Complex(_) => unreachable!("covered by above cases"),
+                Num::Float(i) => i,
+                other => other.approx_f64().expect("covered above"),
+            })
+            .collect::<Vec<_>>()
+            .into_array()?
+            .into_jarray()
+    } else if parts.iter().any(|n| matches!(n, Num::Rational(_))) {
+        parts
+            .into_iter()
+            .map(|v| {
+                Ok(match v {
+                    Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
+                    Num::Rational(i) => i,
+                    Num::ExtInt(i) => BigRational::new(i, 1.into()),
+                    Num::Int(i) => BigRational::new(i.into(), 1.into()),
+                    Num::Bool(i) => BigRational::new(i.into(), 1.into()),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_array()?
+            .into_jarray()
+    } else if parts.iter().any(|n| matches!(n, Num::ExtInt(_))) {
+        parts
+            .into_iter()
+            .map(|v| match v {
+                Num::Complex(_) | Num::Float(_) | Num::Rational(_) => {
+                    unreachable!("covered by above cases")
                 }
-            }
-            Err(_) => Err(JError::custom("parse float error")),
-        }
+                Num::ExtInt(i) => i,
+                Num::Int(i) => i.into(),
+                Num::Bool(i) => i.into(),
+            })
+            .collect::<Vec<_>>()
+            .into_array()?
+            .into_jarray()
+    } else if parts.iter().any(|n| matches!(n, Num::Int(_))) {
+        parts
+            .into_iter()
+            .map(|v| match v {
+                Num::Complex(_) | Num::Float(_) | Num::Rational(_) | Num::ExtInt(_) => {
+                    unreachable!("covered by above cases")
+                }
+                Num::Int(i) => i,
+                Num::Bool(i) => i.into(),
+            })
+            .collect::<Vec<_>>()
+            .into_array()?
+            .into_jarray()
     } else {
-        let a = sentence
-            .split_whitespace()
-            .map(|s| s.replace('_', "-"))
-            .map(|s| s.parse::<i64>())
-            .collect::<Result<Vec<i64>, std::num::ParseIntError>>();
-        match a {
-            Ok(a) => {
-                if a.len() == 1 {
-                    // atom
-                    if a[0] == 0 || a[0] == 1 {
-                        Ok((
-                            l,
-                            Noun(BoolArray(ArrayD::from_elem(IxDyn(&[]), a[0] as u8))),
-                        ))
-                    } else {
-                        Ok((l, Noun(IntArray(ArrayD::from_elem(IxDyn(&[]), a[0])))))
-                    }
-                } else if *a.iter().min().unwrap() == 0 && *a.iter().max().unwrap() == 1 {
-                    Ok((
-                        l,
-                        Noun(BoolArray(ArrayD::from_shape_vec(
-                            IxDyn(&[a.len()]),
-                            a.iter().map(|i| *i as u8).collect(),
-                        )?)),
-                    ))
-                } else {
-                    Ok((
-                        l,
-                        Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&[a.len()]), a)?)),
-                    ))
-                }
-            }
-            Err(_) => Err(JError::custom("parse int error")),
-        }
-    }
+        parts
+            .into_iter()
+            .map(|v| match v {
+                Num::Complex(_)
+                | Num::Float(_)
+                | Num::Rational(_)
+                | Num::ExtInt(_)
+                | Num::Int(_) => unreachable!("covered by above cases"),
+                Num::Bool(i) => i,
+            })
+            .collect::<Vec<_>>()
+            .into_array()?
+            .into_jarray()
+    };
+
+    Ok((l, Word::Noun(parts)))
 }
 
 fn scan_complex(term: &str) -> Result<Complex64> {
@@ -349,5 +420,88 @@ fn str_to_primitive(sentence: &str) -> Result<Word> {
             "=." => Ok(Word::IsLocal),
             _ => Err(JError::custom("Invalid primitive")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ndarray::array;
+    use num::complex::Complex64;
+    use num::rational::BigRational;
+
+    use crate::{arr0d, JArray, Word};
+
+    fn litnum_to_array(sentence: &str) -> JArray {
+        let (_, word) =
+            super::scan_litnumarray(sentence).expect(&format!("scanning success on {sentence:?}"));
+        match word {
+            Word::Noun(arr) => return arr,
+            _ => panic!("scan_litnumarray always returns nouns, not {word:?}"),
+        }
+    }
+
+    #[test]
+    fn scan_litnum_homo() {
+        assert_eq!(
+            array![1i64, 2, 3].into_dyn(),
+            litnum_to_array("1 2 3").when_i64().expect("int array"),
+        );
+
+        assert_eq!(
+            array![1f64, 2., 3.].into_dyn(),
+            litnum_to_array("1.0 2 3").when_f64().expect("float array"),
+        );
+
+        assert_eq!(
+            array![1u8, 0, 1].into_dyn(),
+            litnum_to_array("1 0 1").when_u8().expect("bool array"),
+        );
+
+        assert_eq!(
+            array![Complex64::new(1., 2.), Complex64::new(0., 1.)].into_dyn(),
+            litnum_to_array("1j2 0j1")
+                .when_complex()
+                .expect("complex array"),
+        );
+
+        assert_eq!(
+            array![
+                BigRational::new(1.into(), 2.into()),
+                BigRational::new(2.into(), 3.into())
+            ]
+            .into_dyn(),
+            litnum_to_array("1r2 2r3")
+                .when_rational()
+                .expect("rational array"),
+        );
+    }
+
+    #[test]
+    fn scan_litnum_atom() {
+        assert_eq!(
+            arr0d(1u8),
+            litnum_to_array("1").when_u8().expect("bool array"),
+        );
+
+        assert_eq!(
+            arr0d(12i64),
+            litnum_to_array("12").when_i64().expect("int array"),
+        );
+
+        // (3!:0) 1e20
+        assert_eq!(
+            arr0d(1e20f64),
+            litnum_to_array("1e20").when_f64().expect("float array"),
+        );
+
+        // assert_eq!(
+        //     arr0d(Complex64::new(1., 2.)),
+        //     litnum_to_array("1j2").when_complex().expect("complex array"),
+        // );
+        //
+        // assert_eq!(
+        //     arr0d(BigRational::new(1.into(), 2.into())),
+        //     litnum_to_array("1r2").when_rational().expect("rational array"),
+        // );
     }
 }

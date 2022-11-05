@@ -144,14 +144,10 @@ pub fn flatten(shape: &[usize], vecs: &[Word]) -> Result<JArray> {
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use ndarray::{arr0, array, ArrayD};
+    use ndarray::array;
 
     use super::*;
-    use crate::IntoJArray;
-
-    fn arr0d<T>(x: T) -> ArrayD<T> {
-        arr0(x).into_dyn()
-    }
+    use crate::{arr0d, IntoJArray};
 
     #[test]
     fn test_common_dims() {
