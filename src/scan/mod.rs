@@ -273,8 +273,34 @@ fn str_to_primitive(sentence: &str) -> Result<Word> {
 mod tests {
     use crate::scan::identify_primitive;
 
+    fn ident(sentence: &str) -> usize {
+        // oh god please
+        identify_primitive(sentence) + 1
+    }
+
     #[test]
     fn identify_prim() {
-        assert_eq!(1, identify_primitive("{."));
+        assert_eq!(1, ident("{ butts"));
+        assert_eq!(2, ident("{. butts"));
+        assert_eq!(3, ident("{.. butts"));
+        assert_eq!(3, ident("{.: butts"));
+        assert_eq!(3, ident("{:. butts"));
+
+        assert_eq!(1, ident("} butts"));
+        assert_eq!(2, ident("}. butts"));
+        assert_eq!(3, ident("}.. butts"));
+        assert_eq!(3, ident("}.: butts"));
+        assert_eq!(3, ident("}:. butts"));
+
+        assert_eq!(5, ident("{{{:. butts"));
+
+        assert_eq!(1, ident("a butts"));
+        assert_eq!(2, ident("a. butts"));
+        assert_eq!(3, ident("a.: butts"));
+        assert_eq!(2, ident(":: butts"));
+        assert_eq!(1, ident("{a"));
+        assert_eq!(1, ident("}a"));
+        assert_eq!(1, ident("a{{"));
+        assert_eq!(1, ident("a}}"));
     }
 }
