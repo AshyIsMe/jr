@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
-use jr::{IntoJArray, JError};
+use jr::{IntoJArray, JError, Word};
 
 #[test]
 fn array_iter_2_3() {
@@ -64,6 +64,56 @@ fn test_agreement_2() -> Result<()> {
         .expect("caused by jerror");
     assert!(matches!(root, JError::LengthError));
     Ok(())
+}
+
+#[test]
+#[ignore]
+fn test_agreement_3() -> Result<()> {
+    let err = jr::eval(jr::scan("(2 2 $ 2 3) * i.2 3")?, &mut HashMap::new()).unwrap_err();
+    let root = dbg!(err.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(root, JError::LengthError));
+    Ok(())
+}
+
+#[test]
+fn test_agreement_4() -> Result<()> {
+    let words = jr::scan("$ (i.2 2) + i.2 2 2")?;
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        array![2i64, 2, 2].into_dyn().into_noun()
+    );
+    Ok(())
+}
+
+#[test]
+fn test_agreement_plus_rank1() {
+    // 1 2 3 +"1 i.2 3
+    let x = array![1i64, 2, 3].into_dyn().into_noun();
+    let y =
+        Word::noun(Array::from_shape_vec(IxDyn(&[2, 3]), (0i64..6).collect()).unwrap()).unwrap();
+
+    use jr::verbs::*;
+
+    // +"1
+    let f = Word::Verb(
+        "+\"1".to_string(),
+        VerbImpl::Primitive(PrimitiveImpl::new(
+            "+",
+            v_conjugate,
+            v_plus,
+            (Rank::zero(), Rank::one(), Rank::one()),
+        )),
+    );
+
+    let words = vec![x, f, y];
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8])
+            .unwrap()
+            .into_noun()
+    );
 }
 
 #[test]

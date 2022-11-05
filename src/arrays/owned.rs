@@ -67,6 +67,38 @@ impl JArray {
         })
     }
 
+    // AA TODO: Real iterator instead of Vec
+    pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
+        // Similar to ndarray::axis_chunks_iter but j style ranks.
+        // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
+        if rank as usize > self.shape().len() {
+            vec![self.clone()]
+        } else if rank == 0 {
+            impl_array!(self, |x: &ArrayBase<_, _>| x
+                .iter()
+                .map(JArray::from)
+                .collect::<Vec<JArray>>())
+        // } else if rank < 0 {
+        //     todo!("negative rank")
+        //     Negative rank is a real thing in j, it's just the same but from the left instead of the right.
+        } else {
+            let shape = self.shape();
+
+            let (leading, surplus) = shape.split_at(shape.len() - rank as usize);
+            let iter_shape: Vec<usize> = vec![
+                iter::repeat(1usize).take(leading.len()).collect(),
+                surplus.to_vec(),
+            ]
+            .concat();
+
+            impl_array!(self, |x: &ArrayBase<_, _>| x
+                .exact_chunks(IxDyn(&iter_shape))
+                .into_iter()
+                .map(|x| x.into_shape(surplus).unwrap().into_owned().into_jarray())
+                .collect())
+        }
+    }
+
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
         let shape = self.shape();
 
@@ -186,3 +218,39 @@ impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value)))
+            }
+        }
+    };
+}
+impl_from_atom!(u8, JArray::BoolArray);
+impl_from_atom!(char, JArray::CharArray);
+impl_from_atom!(i64, JArray::IntArray);
+impl_from_atom!(BigInt, JArray::ExtIntArray);
+impl_from_atom!(BigRational, JArray::RationalArray);
+impl_from_atom!(f64, JArray::FloatArray);
+impl_from_atom!(Complex64, JArray::ComplexArray);
+impl_from_atom!(Word, JArray::BoxArray);
+
+macro_rules! impl_from_atom_ref {
+    ($t:ty, $j:path) => {
+        impl From<$t> for JArray {
+            fn from(value: $t) -> JArray {
+                $j(ArrayD::from(ArrayD::from_elem(IxDyn(&[]), value.clone())))
+            }
+        }
+    };
+}
+impl_from_atom_ref!(&u8, JArray::BoolArray);
+impl_from_atom_ref!(&char, JArray::CharArray);
+impl_from_atom_ref!(&i64, JArray::IntArray);
+impl_from_atom_ref!(&BigInt, JArray::ExtIntArray);
+impl_from_atom_ref!(&BigRational, JArray::RationalArray);
+impl_from_atom_ref!(&f64, JArray::FloatArray);
+impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
+impl_from_atom_ref!(&Word, JArray::BoxArray);

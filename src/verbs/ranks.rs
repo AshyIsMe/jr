@@ -46,4 +46,8 @@ impl Rank {
         }
         Some(usize::from(self.0))
     }
+
+    pub fn raw_u8(&self) -> u8 {
+        self.0
+    }
 }
