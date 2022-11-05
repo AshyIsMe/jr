@@ -69,36 +69,30 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 }
 
 fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
-    let mut l: usize = usize::MAX;
     if sentence.is_empty() {
         return Err(JError::custom("Empty number literal"));
     }
-    // TODO - Fix - First hacky pass at this. Floats, ExtInt, Rationals, Complex
-    for (i, c) in sentence.chars().enumerate() {
-        l = i;
-        match c {
-            '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t' => (), // still valid keep iterating
-            _ => {
-                l -= 1;
-                break;
-            }
-        }
-    }
+    let sentence = sentence
+        .chars()
+        .take_while(|&c| matches!(c, '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t'))
+        .collect::<String>();
 
-    if sentence[0..=l].contains('j') {
-        let a = sentence[0..=l]
+    let l = sentence.len() - 1;
+
+    if sentence.contains('j') {
+        let a = sentence
             .split_whitespace()
             .map(scan_complex)
             .collect::<Result<Vec<_>>>()?;
         Ok((l, Word::noun(a)?))
-    } else if sentence[0..=l].contains('r') {
-        let a = sentence[0..=l]
+    } else if sentence.contains('r') {
+        let a = sentence
             .split_whitespace()
             .map(scan_rational)
             .collect::<Result<Vec<_>>>()?;
         Ok((l, Word::noun(a)?))
-    } else if sentence[0..=l].contains('.') || sentence[0..=l].contains('e') {
-        let a = sentence[0..=l]
+    } else if sentence.contains('.') || sentence.contains('e') {
+        let a = sentence
             .split_whitespace()
             .map(|s| s.replace('_', "-"))
             .map(|s| s.parse::<f64>())
@@ -117,7 +111,7 @@ fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             Err(_) => Err(JError::custom("parse float error")),
         }
     } else {
-        let a = sentence[0..=l]
+        let a = sentence
             .split_whitespace()
             .map(|s| s.replace('_', "-"))
             .map(|s| s.parse::<i64>())
