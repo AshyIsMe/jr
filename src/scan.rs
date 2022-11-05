@@ -83,12 +83,32 @@ fn sign_lift<T: ops::Neg<Output = T>>(term: &str, f: impl FnOnce(&str) -> Result
     })
 }
 
+fn parse_infinity(term: &str) -> Option<f64> {
+    if term == "_" {
+        Some(f64::INFINITY)
+    } else if term == "__" {
+        Some(f64::NEG_INFINITY)
+    } else {
+        None
+    }
+}
+
 fn parse_float(term: &str) -> Result<f64> {
-    sign_lift(term, |v| Ok(v.parse()?))
+    // need to duplicate this here so it's picked up in the complex parsing (this is tested)
+    if let Some(inf) = parse_infinity(term) {
+        return Ok(inf);
+    }
+    sign_lift(term, |v| {
+        Ok(v.parse()
+            .with_context(|| anyhow!("parsing {v:?} as a float"))?)
+    })
 }
 
 fn parse_bigint(term: &str) -> Result<BigInt> {
-    sign_lift(term, |v| Ok(v.parse()?))
+    sign_lift(term, |v| {
+        Ok(v.parse()
+            .with_context(|| anyhow!("parsing {v:?} as a bigint"))?)
+    })
 }
 
 enum Num {
@@ -158,7 +178,9 @@ impl Num {
 }
 
 fn scan_num_token(term: &str) -> Result<Num> {
-    Ok(if term.contains('j') {
+    Ok(if let Some(inf) = parse_infinity(term) {
+        Num::Float(inf)
+    } else if term.contains('j') {
         Num::Complex(scan_complex(term)?)
     } else if term.contains('r') {
         Num::Rational(scan_rational(term)?)
@@ -272,14 +294,20 @@ fn scan_complex(term: &str) -> Result<Complex64> {
     let (real, imaj) = term
         .split_once('j')
         .expect("scan_complex only sees delimited numbers");
-    Ok(Complex64::new(parse_float(real)?, parse_float(imaj)?))
+    Ok(Complex64::new(
+        parse_float(real).context("real")?,
+        parse_float(imaj).context("imaginary")?,
+    ))
 }
 
 fn scan_rational(term: &str) -> Result<BigRational> {
     let (numer, denom) = term
         .split_once('r')
         .expect("scan_rational only sees delimited numbers");
-    Ok(BigRational::new(numer.parse()?, denom.parse()?))
+    Ok(BigRational::new(
+        parse_bigint(numer).context("numerator")?,
+        parse_bigint(denom).context("denominator")?,
+    ))
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
@@ -637,6 +665,28 @@ mod tests {
             litnum_to_array("1j0 1.0 1 0.0")
                 .when_u8()
                 .expect("bool array"),
+        );
+    }
+
+    #[test]
+    fn scan_litnum_negatory() {
+        assert_eq!(
+            arr0d(Complex64::new(f64::NEG_INFINITY, f64::NEG_INFINITY)),
+            litnum_to_array("__j__")
+                .when_complex()
+                .expect("complex array"),
+        );
+
+        assert_eq!(
+            arr0d(BigRational::new((-13i8).into(), (-7).into())),
+            litnum_to_array("_13r_7")
+                .when_rational()
+                .expect("rational array"),
+        );
+
+        assert_eq!(
+            array![1., f64::INFINITY, 1.].into_dyn(),
+            litnum_to_array("1 _ 1").when_f64().expect("float array"),
         );
     }
 }
