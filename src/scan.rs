@@ -423,6 +423,7 @@ mod tests {
     use ndarray::array;
     use num::complex::Complex64;
     use num::rational::BigRational;
+    use num::BigInt;
 
     use crate::{arr0d, JArray, Word};
 
@@ -468,6 +469,64 @@ mod tests {
             litnum_to_array("1r2 2r3")
                 .when_rational()
                 .expect("rational array"),
+        );
+    }
+
+    #[test]
+    fn scan_litnum_promo() {
+        assert_eq!(
+            array![
+                Complex64::new(1., 0.),
+                Complex64::new(2.5, 0.),
+                Complex64::new(3., 2.)
+            ]
+            .into_dyn(),
+            litnum_to_array("1 2.5 3j2")
+                .when_complex()
+                .expect("complex array"),
+        );
+
+        assert_eq!(
+            array![1., 2.5, 0.25].into_dyn(),
+            litnum_to_array("1 2.5 1r4")
+                .when_f64()
+                .expect("float array"),
+        );
+
+        assert_eq!(
+            array![
+                BigRational::new(1.into(), 1.into()),
+                BigRational::new(1.into(), 4.into()),
+                BigRational::new(16.into(), 1.into())
+            ]
+            .into_dyn(),
+            litnum_to_array("1 1r4 16")
+                .when_rational()
+                .expect("rational array"),
+        );
+
+        assert_eq!(
+            array![
+                BigInt::from(1),
+                4.into(),
+                "123123123123123123123123123123123"
+                    .parse()
+                    .expect("valid literal"),
+            ]
+            .into_dyn(),
+            litnum_to_array("1 4 123123123123123123123123123123123")
+                .when_bigint()
+                .expect("bigint array"),
+        );
+
+        assert_eq!(
+            array![1, 2, 1].into_dyn(),
+            litnum_to_array("1 2 1").when_i64().expect("int array"),
+        );
+
+        assert_eq!(
+            array![1u8, 0, 1].into_dyn(),
+            litnum_to_array("1 0 1").when_u8().expect("bool array"),
         );
     }
 
