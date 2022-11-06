@@ -1,7 +1,6 @@
 use std::{fmt, iter};
 
-use anyhow::{bail, Result};
-use itertools::Itertools;
+use anyhow::Result;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num::complex::Complex64;
@@ -97,20 +96,6 @@ impl JArray {
                 .map(|x| x.into_shape(surplus).unwrap().into_owned().into_jarray())
                 .collect())
         }
-    }
-
-    pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
-        let shape = self.shape();
-
-        if nega_rank > shape.len() {
-            bail!("cannot ({}) given a shape of {:?}", nega_rank, shape);
-        }
-
-        let (common, surplus) = shape.split_at(shape.len() - nega_rank);
-        let p = common.iter().product::<usize>();
-        let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
-
-        self.to_shape(new_shape)
     }
 }
 
