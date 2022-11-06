@@ -115,6 +115,48 @@ fn test_reshape_helper() {
 }
 
 #[test]
+fn test_reshape_outer_iter() {
+    let words = jr::scan("2 1 $ 1 2").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 1]), vec![1, 2]).unwrap()
+        ))
+    );
+}
+
+#[test]
+fn test_reshape_no_change() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
+fn test_agreement_reshape_3() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
+    // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
+    let a = Array::from_shape_vec(
+        IxDyn(&[6, 3]),
+        vec![0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
+    )?;
+
+    assert_eq!(r1, Noun(IntArray(a)));
+
+    Ok(())
+}
+
+#[test]
+fn test_reshape_cycle() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    Ok(())
+}
+
+#[test]
 fn test_power_conjunction_bool_arg() {
     let words = jr::scan("(*:^:0 1) 4").unwrap();
     println!("words: {:?}", words);
