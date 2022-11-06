@@ -71,8 +71,6 @@ pub enum VerbImpl {
 }
 
 fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
-    debug!("dyad.rank: {:?}", rank);
-
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
