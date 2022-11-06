@@ -1,7 +1,7 @@
 mod litnum;
 mod number;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
@@ -145,14 +145,14 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
     let suffix = it.peek().filter(|c| matches!(c, '.' | ':')).copied();
 
     if let Some(suffix) = suffix {
-        if let Ok(primitive) = str_to_primitive(&format!("{base}{suffix}")) {
+        if let Some(primitive) = str_to_primitive(&format!("{base}{suffix}"))? {
             return Ok((base.len() + 1, primitive));
         }
     }
 
     Ok((
         base.len() - 1,
-        str_to_primitive(&base).unwrap_or_else(|_| Word::Name(base)),
+        str_to_primitive(&base)?.unwrap_or_else(|| Word::Name(base)),
     ))
 }
 
@@ -161,9 +161,11 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
         return Err(JError::custom("Empty primitive"));
     }
     let l = identify_primitive(sentence);
+    let term = sentence.chars().take(l + 1).collect::<String>();
     Ok((
         l,
-        str_to_primitive(&sentence.chars().take(l + 1).collect::<String>())?,
+        str_to_primitive(&term)?
+            .ok_or_else(|| anyhow!("parsed as a primitive, but unrecognised: {term:?}"))?,
     ))
 }
 
@@ -179,22 +181,22 @@ fn identify_primitive(sentence: &str) -> usize {
     .count()
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Word> {
-    if primitive_nouns().contains(&sentence) {
-        Ok(char_array(sentence)?) // TODO - actually lookup the noun
+fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
+    Ok(Some(if primitive_nouns().contains(&sentence) {
+        char_array(sentence)? // TODO - actually lookup the noun
     } else if let Some(refd) = primitive_verbs(&sentence) {
-        Ok(Word::Verb(sentence.to_string(), refd))
+        Word::Verb(sentence.to_string(), refd)
     } else if let Some(refd) = primitive_adverbs(sentence) {
-        Ok(Word::Adverb(sentence.to_string(), refd.clone()))
+        Word::Adverb(sentence.to_string(), refd.clone())
     } else if let Some(refd) = primitive_conjunctions(sentence) {
-        Ok(Word::Conjunction(sentence.to_string(), refd.clone()))
+        Word::Conjunction(sentence.to_string(), refd.clone())
     } else {
         match sentence {
-            "=:" => Ok(Word::IsGlobal),
-            "=." => Ok(Word::IsLocal),
-            _ => Err(JError::custom("Invalid primitive")),
+            "=:" => Word::IsGlobal,
+            "=." => Word::IsLocal,
+            _ => return Ok(None),
         }
-    }
+    }))
 }
 
 #[cfg(test)]
