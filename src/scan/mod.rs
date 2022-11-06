@@ -146,7 +146,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
 
     if let Some(suffix) = suffix {
         if let Some(primitive) = str_to_primitive(&format!("{base}{suffix}"))? {
-            return Ok((base.len() + 1, primitive));
+            return Ok((base.len(), primitive));
         }
     }
 
@@ -202,6 +202,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 #[cfg(test)]
 mod tests {
     use crate::scan::identify_primitive;
+    use crate::{scan, Word};
 
     fn ident(sentence: &str) -> usize {
         // oh god please
@@ -232,5 +233,13 @@ mod tests {
         assert_eq!(1, ident("}a"));
         assert_eq!(1, ident("a{{"));
         assert_eq!(1, ident("a}}"));
+    }
+
+    #[test]
+    fn names() {
+        let result = dbg!(scan("i.2 3").unwrap());
+        assert_eq!(2, result.len());
+        assert!(matches!(result[0], Word::Verb(_, _)));
+        assert_eq!(result[1], Word::noun(vec![2i64, 3]).unwrap());
     }
 }
