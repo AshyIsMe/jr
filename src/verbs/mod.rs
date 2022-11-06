@@ -78,6 +78,7 @@ fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
         generate_cells(x, y, rank).context("generating cells")?;
     let application_result =
         apply_cells((&x_cells, &y_cells), f, rank).context("applying function to cells")?;
+    debug!("application_result: {:?}", application_result);
 
     let target_shape = common_frame
         .into_iter()
@@ -507,12 +508,13 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
     match x {
         IntArray(x) => {
             if x.product() < 0 {
-                Err(JError::DomainError.into())
+                Err(JError::DomainError).context("cannot reshape to negative shapes")
             } else {
+                debug!("v_shape: x: {x}, y: {y}");
                 impl_array!(y, |y| reshape(x, y).map(|x| x.into_noun()))
             }
         }
-        _ => Err(JError::DomainError.into()),
+        _ => Err(JError::DomainError).context("shapes must appear to be integers"),
     }
 }
 
