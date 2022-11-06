@@ -124,3 +124,24 @@ fn test_jarray_choppo() -> Result<()> {
     assert_eq!(a.choppo(2)?.shape()[0], 1);
     Ok(())
 }
+
+#[test]
+fn test_agreement_reshape_3() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
+    // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
+    let a = Array::from_shape_vec(
+        IxDyn(&[6, 3]),
+        vec![0i64, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
+    )?;
+
+    assert_eq!(r1, Word::noun(a).unwrap());
+
+    Ok(())
+}
+
+#[test]
+fn test_reshape_cycle() -> Result<()> {
+    let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    Ok(())
+}

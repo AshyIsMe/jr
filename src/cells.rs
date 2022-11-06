@@ -36,6 +36,8 @@ pub fn generate_cells<'x, 'y>(
 ) -> Result<(Vec<JArray>, Vec<JArray>, Vec<usize>, Vec<usize>)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
+    debug!("x_shape: {:?}", x_shape);
+    debug!("y_shape: {:?}", y_shape);
 
     let x_rank = x_shape.len();
     let y_rank = y_shape.len();
@@ -44,25 +46,33 @@ pub fn generate_cells<'x, 'y>(
 
     let x_frame = frame_of(x_shape, x_arg_rank)?;
     let y_frame = frame_of(y_shape, y_arg_rank)?;
+    debug!("x_frame: {:?}", x_frame);
+    debug!("y_frame: {:?}", y_frame);
 
     let common_dims = common_dims(x_frame, y_frame);
     let common_frame = &x_shape[..common_dims];
 
-    if common_frame.is_empty() && !x_frame.is_empty() && !y_frame.is_empty() {
-        return Err(JError::LengthError).with_context(|| {
-            anyhow!("common frame cannot be empty for {x_frame:?} and {y_frame:?}")
-        });
-    }
     let surplus_frame = if x_frame.len() > y_frame.len() {
         &x_shape[common_dims..]
     } else {
         &y_shape[common_dims..]
     };
 
+    debug!("common_frame: {:?}", common_frame);
+    debug!("surplus_frame: {:?}", surplus_frame);
+
+    if common_frame.len() < x_frame.len().min(y_frame.len()) {
+        return Err(JError::LengthError).with_context(|| {
+            anyhow!("common frame too short ({common_frame:?}) for {x_frame:?} and {y_frame:?}")
+        });
+    }
+
     // this eventually is just `min_rank - arg_rank`,
     // as `to_cells`/`choppo` re-subtract it from the rank
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
+    debug!("x_surplus_rank: {:?}", x_surplus_rank);
+    debug!("y_surplus_rank: {:?}", y_surplus_rank);
 
     let x_cells = cells_of(x, x_arg_rank, x_surplus_rank)?
         .outer_iter()
