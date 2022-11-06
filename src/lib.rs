@@ -10,8 +10,6 @@ pub mod verbs;
 #[cfg(feature = "ui")]
 mod plot;
 
-use std::collections::HashMap;
-
 pub use arrays::*;
 pub use cells::flatten;
 pub use empty::HasEmpty;
@@ -193,19 +191,20 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     })
 }
 
-fn primitive_adverbs() -> HashMap<&'static str, ModifierImpl> {
-    HashMap::from([
-        ("~", ModifierImpl::NotImplemented),
-        ("/", ModifierImpl::Slash),
-        ("/.", ModifierImpl::NotImplemented),
-        ("\\", ModifierImpl::NotImplemented),
-        ("\\.", ModifierImpl::NotImplemented),
-        ("]:", ModifierImpl::NotImplemented),
-        ("}", ModifierImpl::CurlyRt),
-        ("b.", ModifierImpl::NotImplemented),
-        ("f.", ModifierImpl::NotImplemented),
-        ("M.", ModifierImpl::NotImplemented),
-    ])
+fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
+    Some(match sentence {
+        "~" => ModifierImpl::NotImplemented,
+        "/" => ModifierImpl::Slash,
+        "/." => ModifierImpl::NotImplemented,
+        "\\" => ModifierImpl::NotImplemented,
+        "\\." => ModifierImpl::NotImplemented,
+        "]:" => ModifierImpl::NotImplemented,
+        "}" => ModifierImpl::CurlyRt,
+        "b." => ModifierImpl::NotImplemented,
+        "f." => ModifierImpl::NotImplemented,
+        "M." => ModifierImpl::NotImplemented,
+        _ => return None,
+    })
 }
 
 fn primitive_nouns() -> &'static [&'static str] {
@@ -214,43 +213,44 @@ fn primitive_nouns() -> &'static [&'static str] {
     &["_", "_.", "a.", "a:"]
 }
 
-fn primitive_conjunctions() -> HashMap<&'static str, ModifierImpl> {
+fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     // https://code.jsoftware.com/wiki/NuVoc
-    HashMap::from([
-        ("^:", ModifierImpl::HatCo),
-        (".", ModifierImpl::NotImplemented),
-        (":", ModifierImpl::NotImplemented),
-        (":.", ModifierImpl::NotImplemented),
-        ("::", ModifierImpl::NotImplemented),
-        (";.", ModifierImpl::NotImplemented),
-        ("!.", ModifierImpl::NotImplemented),
-        ("!:", ModifierImpl::NotImplemented),
-        ("[.", ModifierImpl::NotImplemented),
-        ("].", ModifierImpl::NotImplemented),
-        ("\"", ModifierImpl::Quote),
-        ("`", ModifierImpl::NotImplemented),
-        ("`:", ModifierImpl::NotImplemented),
-        ("@", ModifierImpl::NotImplemented),
-        ("@.", ModifierImpl::NotImplemented),
-        ("@:", ModifierImpl::NotImplemented),
-        ("&", ModifierImpl::NotImplemented),
-        ("&.", ModifierImpl::NotImplemented),
-        ("&:", ModifierImpl::NotImplemented),
-        ("&.:", ModifierImpl::NotImplemented),
-        ("d.", ModifierImpl::NotImplemented),
-        ("D.", ModifierImpl::NotImplemented),
-        ("D:", ModifierImpl::NotImplemented),
-        ("F.", ModifierImpl::NotImplemented),
-        ("F..", ModifierImpl::NotImplemented),
-        ("F.:", ModifierImpl::NotImplemented),
-        ("F:", ModifierImpl::NotImplemented),
-        ("F:.", ModifierImpl::NotImplemented),
-        ("F::", ModifierImpl::NotImplemented),
-        ("H.", ModifierImpl::NotImplemented),
-        ("L:", ModifierImpl::NotImplemented),
-        ("S:", ModifierImpl::NotImplemented),
-        ("t.", ModifierImpl::NotImplemented),
-    ])
+    Some(match sentence {
+        "^:" => ModifierImpl::HatCo,
+        "." => ModifierImpl::NotImplemented,
+        ":" => ModifierImpl::NotImplemented,
+        ":." => ModifierImpl::NotImplemented,
+        "::" => ModifierImpl::NotImplemented,
+        ";." => ModifierImpl::NotImplemented,
+        "!." => ModifierImpl::NotImplemented,
+        "!:" => ModifierImpl::NotImplemented,
+        "[." => ModifierImpl::NotImplemented,
+        "]." => ModifierImpl::NotImplemented,
+        "\"" => ModifierImpl::Quote,
+        "`" => ModifierImpl::NotImplemented,
+        "`:" => ModifierImpl::NotImplemented,
+        "@" => ModifierImpl::NotImplemented,
+        "@." => ModifierImpl::NotImplemented,
+        "@:" => ModifierImpl::NotImplemented,
+        "&" => ModifierImpl::NotImplemented,
+        "&." => ModifierImpl::NotImplemented,
+        "&:" => ModifierImpl::NotImplemented,
+        "&.:" => ModifierImpl::NotImplemented,
+        "d." => ModifierImpl::NotImplemented,
+        "D." => ModifierImpl::NotImplemented,
+        "D:" => ModifierImpl::NotImplemented,
+        "F." => ModifierImpl::NotImplemented,
+        "F.." => ModifierImpl::NotImplemented,
+        "F.:" => ModifierImpl::NotImplemented,
+        "F:" => ModifierImpl::NotImplemented,
+        "F:." => ModifierImpl::NotImplemented,
+        "F::" => ModifierImpl::NotImplemented,
+        "H." => ModifierImpl::NotImplemented,
+        "L:" => ModifierImpl::NotImplemented,
+        "S:" => ModifierImpl::NotImplemented,
+        "t." => ModifierImpl::NotImplemented,
+        _ => return None,
+    })
 }
 
 pub fn arr0d<T>(x: T) -> ndarray::ArrayD<T> {

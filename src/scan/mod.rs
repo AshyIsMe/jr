@@ -6,7 +6,6 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::*;
-use crate::modifiers::ModifierImpl;
 use crate::JError;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
 
@@ -185,22 +184,10 @@ fn str_to_primitive(sentence: &str) -> Result<Word> {
         Ok(char_array(sentence)?) // TODO - actually lookup the noun
     } else if let Some(refd) = primitive_verbs(&sentence) {
         Ok(Word::Verb(sentence.to_string(), refd))
-    } else if primitive_adverbs().contains_key(&sentence) {
-        Ok(Word::Adverb(
-            sentence.to_string(),
-            match primitive_adverbs().get(&sentence) {
-                Some(a) => a.clone(),
-                None => ModifierImpl::NotImplemented,
-            },
-        ))
-    } else if primitive_conjunctions().contains_key(&sentence) {
-        Ok(Word::Conjunction(
-            sentence.to_string(),
-            match primitive_conjunctions().get(&sentence) {
-                Some(a) => a.clone(),
-                None => ModifierImpl::NotImplemented,
-            },
-        ))
+    } else if let Some(refd) = primitive_adverbs(sentence) {
+        Ok(Word::Adverb(sentence.to_string(), refd.clone()))
+    } else if let Some(refd) = primitive_conjunctions(sentence) {
+        Ok(Word::Conjunction(sentence.to_string(), refd.clone()))
     } else {
         match sentence {
             "=:" => Ok(Word::IsGlobal),
