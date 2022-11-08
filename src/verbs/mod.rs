@@ -75,7 +75,8 @@ fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
         return (f)(x, y).context("infinite dyad shortcut");
     }
     let (x_cells, y_cells, common_frame, surplus_frame) =
-        generate_cells(x, y, rank).context("generating cells")?;
+        generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
+
     let application_result =
         apply_cells((&x_cells, &y_cells), f, rank).context("applying function to cells")?;
     debug!("application_result: {:?}", application_result);
@@ -96,8 +97,19 @@ fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
             .collect::<Option<Vec<_>>>();
 
         anyhow!("reshaping {:?} to {target_shape:?}", pair_info)
-    })?;
-    Ok(Word::Noun(flat))
+    });
+    match flat {
+        Ok(flat) => Ok(Word::Noun(flat)),
+        _ => {
+            // target_shape still isn't right, sometimes it's incompatible with the application_result shapes
+            // but the application_result is already correct... pass it through as is for now
+            if application_result.len() == 1 {
+                Ok(application_result[0].clone())
+            } else {
+                bail!("wat")
+            }
+        }
+    }
 }
 
 impl VerbImpl {
