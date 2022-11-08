@@ -505,13 +505,13 @@ pub fn v_shape_of(y: &JArray) -> Result<Word> {
 }
 /// $ (dyad)
 pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
-    match x {
-        IntArray(x) => {
+    match x.to_i64() {
+        Some(x) => {
             if x.product() < 0 {
                 Err(JError::DomainError).context("cannot reshape to negative shapes")
             } else {
                 debug!("v_shape: x: {x}, y: {y}");
-                impl_array!(y, |y| reshape(x, y).map(|x| x.into_noun()))
+                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into_noun()))
             }
         }
         _ => Err(JError::DomainError).context("shapes must appear to be integers"),

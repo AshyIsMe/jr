@@ -117,6 +117,32 @@ fn test_agreement_plus_rank1() {
 }
 
 #[test]
+fn test_agreement_reshape() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+
+    let correct_result = Word::noun(Array::from_elem(IxDyn(&[2, 3, 3]), 1u8)).unwrap();
+
+    assert_eq!(r1, correct_result);
+    assert_eq!(r2, correct_result);
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
+fn test_agreement_reshape_2() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r3 = jr::eval(jr::scan("2 2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+
+    assert_eq!(r1, r2);
+    assert_eq!(r1, r3);
+
+    Ok(())
+}
+
+#[test]
 fn test_agreement_reshape_3() -> Result<()> {
     let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
     // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
@@ -127,6 +153,21 @@ fn test_agreement_reshape_3() -> Result<()> {
 
     assert_eq!(r1, Word::noun(a).unwrap());
 
+    Ok(())
+}
+
+#[test]
+fn test_reshape_atoms() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
+    // Should be an array of length 1 containing 1
+    assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[1]), 1u8)).unwrap());
+    Ok(())
+}
+
+#[test]
+fn test_reshape_truncate() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[]), 1u8)).unwrap());
     Ok(())
 }
 

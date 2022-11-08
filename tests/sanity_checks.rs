@@ -6,7 +6,7 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, JArray, ModifierImpl, Rank, VerbImpl, Word};
+use jr::{collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word};
 
 #[test]
 fn test_basic_addition() {
@@ -126,6 +126,20 @@ fn test_reshape_outer_iter() {
 }
 
 #[test]
+fn test_reshape_2d_match_1d() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+
+    let correct_result = Noun(BoolArray(Array::from_elem(IxDyn(&[2, 3, 3]), 1)));
+
+    assert_eq!(r1, correct_result);
+    assert_eq!(r2, correct_result);
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
 fn test_reshape_no_change() -> Result<()> {
     let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
     let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
@@ -146,6 +160,21 @@ fn test_agreement_reshape_3() -> Result<()> {
 
     assert_eq!(r1, Noun(IntArray(a)));
 
+    Ok(())
+}
+
+#[test]
+fn test_reshape_atoms() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
+    // Should be an array of length 1 containing 1
+    assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[1]), 1))));
+    Ok(())
+}
+
+#[test]
+fn test_reshape_truncate() -> Result<()> {
+    let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(r1, Noun(IntArray(Array::from_elem(IxDyn(&[]), 1))));
     Ok(())
 }
 
@@ -299,6 +328,15 @@ fn test_fork_noun() {
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Word::noun(vec![3i64]).unwrap()
+    );
+}
+
+#[test]
+fn test_fork_average() {
+    let words = jr::scan("(+/ % #) 1 2 3").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Word::noun([2i64]).unwrap()
     );
 }
 
@@ -601,5 +639,90 @@ fn test_jarray_rank_iter() {
         vec![IntArray(
             Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap()
         )]
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rank_conjunction_1_1() {
+    // Sum each row independently
+    //    (+/"1) i.2 3
+    // 3 12
+    let words = jr::scan("+/\"1 i.2 3").unwrap();
+    println!("words: {:?}", words);
+
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2]), vec![3, 12]).unwrap(),
+        ))
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rank_conjunction_0_1() {
+    // Add each atom of x to each vector of y
+    //    1 2 (+"0 1) 1 2 3
+    // 2 3 4
+    // 3 4 5
+    let words = jr::scan("1 2 (+\"0 1) 1 2 3").unwrap();
+    println!("words: {:?}", words);
+
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
+        ))
+    );
+}
+
+#[test]
+fn test_agreement_plus_rank_0_1() {
+    // Add each atom of x to each vector of y (same as test_rank_conjunction_0_1() but without the rank conjunction)
+    //    1 2 (+"0 1) 1 2 3
+    let x = array![1i64, 2].into_dyn().into_noun();
+    let y = Noun(IntArray(
+        Array::from_shape_vec(IxDyn(&[3]), vec![1i64, 2, 3]).unwrap(),
+    ));
+
+    use jr::verbs::*;
+
+    // +"0 1
+    let f = Word::Verb(
+        "+\"0 1".to_string(),
+        VerbImpl::Primitive(PrimitiveImpl::new(
+            "+",
+            v_conjugate,
+            v_plus,
+            (Rank::zero(), Rank::zero(), Rank::one()),
+        )),
+    );
+
+    let words = vec![x, f, y];
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
+        ))
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rank_conjunction_1_0() {
+    // Add each vector of x to each atom of y
+    //    1 2 (+"1 0) 1 2 3
+    // 2 3
+    // 3 4
+    // 4 5
+    let words = jr::scan("1 2 (+\"1 0) 1 2 3").unwrap();
+    println!("words: {:?}", words);
+
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[3, 2]), vec![2, 3, 3, 4, 4, 5]).unwrap(),
+        ))
     );
 }
