@@ -70,12 +70,12 @@ pub fn generate_cells(
     debug!("x_surplus_rank: {:?}", x_surplus_rank);
     debug!("y_surplus_rank: {:?}", y_surplus_rank);
 
-    let x_cells = cells_of(x, x_arg_rank, x_surplus_rank)?
+    let x_cells = cells_of(&x, x_arg_rank, x_surplus_rank)?
         .outer_iter()
         .into_iter()
         .map(|c| JArray::from(c))
         .collect();
-    let y_cells = cells_of(y, y_arg_rank, y_surplus_rank)?
+    let y_cells = cells_of(&y, y_arg_rank, y_surplus_rank)?
         .outer_iter()
         .into_iter()
         .map(|c| JArray::from(c))
