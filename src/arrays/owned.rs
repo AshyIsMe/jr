@@ -11,7 +11,7 @@ use num_traits::ToPrimitive;
 use super::{CowArrayD, JArrayCow};
 use crate::Word;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum JArray {
     BoolArray(ArrayD<u8>),
     CharArray(ArrayD<char>),
@@ -21,6 +21,22 @@ pub enum JArray {
     FloatArray(ArrayD<f64>),
     ComplexArray(ArrayD<Complex64>),
     BoxArray(ArrayD<Word>),
+}
+
+impl fmt::Debug for JArray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use JArray::*;
+        match self {
+            BoolArray(a) => write!(f, "BoolArray({a})"),
+            CharArray(a) => write!(f, "CharArray({a})"),
+            IntArray(a) => write!(f, "IntArray({a})"),
+            ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
+            RationalArray(a) => write!(f, "RationalArray({a})"),
+            FloatArray(a) => write!(f, "FloatArray({a})"),
+            ComplexArray(a) => write!(f, "ComplexArray({a})"),
+            BoxArray(a) => write!(f, "BoxArray({a})"),
+        }
+    }
 }
 
 // TODO: not exported?
