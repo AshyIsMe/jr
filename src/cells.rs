@@ -61,11 +61,7 @@ pub fn generate_cells(
     debug!("common_frame: {:?}", common_frame);
     debug!("surplus_frame: {:?}", surplus_frame);
 
-    if common_frame.len() < x_frame.len().min(y_frame.len()) {
-        return Err(JError::LengthError).with_context(|| {
-            anyhow!("common frame too short ({common_frame:?}) for {x_frame:?} and {y_frame:?}")
-        });
-    }
+    // TODO: length error
 
     // this eventually is just `min_rank - arg_rank`,
     // as `to_cells`/`choppo` re-subtract it from the rank

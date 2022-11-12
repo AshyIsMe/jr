@@ -57,6 +57,7 @@ fn test_agreement() {
 }
 
 #[test]
+#[ignore]
 fn test_agreement_2() -> Result<()> {
     let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut HashMap::new()).unwrap_err();
     let root = dbg!(err.root_cause())
