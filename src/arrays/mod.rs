@@ -1,5 +1,6 @@
 mod arrayable;
 mod cow;
+mod maybe_unit;
 mod owned;
 mod plural;
 mod word;
