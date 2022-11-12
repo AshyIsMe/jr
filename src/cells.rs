@@ -54,11 +54,7 @@ pub fn generate_cells(
     debug!("common_frame: {:?}", common_frame);
     debug!("surplus_frame: {:?}", surplus_frame);
 
-    if common_frame.len() < x_frame.len().min(y_frame.len()) {
-        return Err(JError::LengthError).with_context(|| {
-            anyhow!("common frame too short ({common_frame:?}) for {x_frame:?} and {y_frame:?}")
-        });
-    }
+    // TODO: length error
 
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;

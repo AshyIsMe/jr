@@ -1,5 +1,5 @@
 pub mod arrays;
-mod cells;
+pub mod cells;
 mod empty;
 mod error;
 pub mod eval;
