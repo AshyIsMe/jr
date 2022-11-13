@@ -63,6 +63,15 @@ pub fn generate_cells(
 
     assert_eq!(x_macrocells.len(), y_macrocells.len());
 
+    debug!("x_macrocells (len: {}):", x_cells.len());
+    for (i, c) in x_macrocells.iter().enumerate() {
+        debug!("index {}\n{}", i, c);
+    }
+    debug!("y_macrocells (len: {}):", y_cells.len());
+    for (i, c) in y_macrocells.iter().enumerate() {
+        debug!("index {}\n{}", i, c);
+    }
+
     let macrocells = x_macrocells.into_iter().zip(y_macrocells).collect_vec();
 
     Ok((macrocells, common_frame.to_vec(), surplus_frame.to_vec()))
