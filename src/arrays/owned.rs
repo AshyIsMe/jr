@@ -83,6 +83,19 @@ impl JArray {
         })
     }
 
+    pub fn dims_iter(&self, dims: usize) -> Vec<JArray> {
+        assert!(
+            dims <= self.shape().len(),
+            "{dims} must be shorter than us: {}",
+            self.shape().len()
+        );
+        self.rank_iter(
+            (self.shape().len() - dims)
+                .try_into()
+                .expect("worst types; absolute worst"),
+        )
+    }
+
     // AA TODO: Real iterator instead of Vec
     pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
@@ -113,6 +126,10 @@ impl JArray {
                 .map(|x| x.into_shape(surplus).unwrap().into_owned().into_jarray())
                 .collect())
         }
+    }
+
+    pub fn whoppo(&self, rank: usize) -> Result<JArray> {
+        Ok(self.choppo(self.shape().len() - rank)?.into())
     }
 
     pub fn choppo(&self, nega_rank: usize) -> Result<JArrayCow> {
