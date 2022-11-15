@@ -27,13 +27,6 @@ pub fn generate_cells(
 ) -> Result<(Vec<JArray>, Vec<JArray>, Vec<usize>, Vec<usize>)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
-    debug!("x_shape: {:?}", x_shape);
-    debug!("y_shape: {:?}", y_shape);
-
-    let x_rank = x_shape.len();
-    let y_rank = y_shape.len();
-
-    let min_rank = x_rank.min(y_rank);
 
     let x_frame = frame_of(x_shape, x_arg_rank)?;
     let y_frame = frame_of(y_shape, y_arg_rank)?;
@@ -43,38 +36,27 @@ pub fn generate_cells(
     let common_dims = common_dims(&x_frame, &y_frame);
     let common_frame = &x_shape[..common_dims];
 
-    let surplus_frame = if x_frame.len() > y_frame.len() {
-        &x_shape[common_dims..]
-    } else {
-        &y_shape[common_dims..]
+    let x_surplus = &x_frame[common_dims..];
+    let y_surplus = &y_frame[common_dims..];
+
+    let surplus_frame = match (x_surplus.is_empty(), y_surplus.is_empty()) {
+        (false, false) => {
+            return Err(JError::LengthError)
+                .with_context(|| anyhow!("x:{x_frame:?} y:{y_frame:?}, common: {common_frame:?}"))
+        }
+        (true, false) => y_surplus,
+        // (true, true): it doesn't matter at all
+        (true, true) | (false, true) => x_surplus,
     };
 
-    debug!("common_frame: {:?}", common_frame);
-    debug!("surplus_frame: {:?}", surplus_frame);
+    let x_macrocells = x.dims_iter(common_dims);
+    let y_macrocells = y.dims_iter(common_dims);
 
-    // TODO: length error
-
-    let x_surplus_rank = x_rank - min_rank;
-    let y_surplus_rank = y_rank - min_rank;
-    debug!("x_surplus_rank: {:?}", x_surplus_rank);
-    debug!("y_surplus_rank: {:?}", y_surplus_rank);
-
-    let x_cells = match x_arg_rank.usize() {
-        Some(finite) => x.rank_iter((finite + x_surplus_rank).try_into()?),
-        None => vec![x.clone()],
-    };
-
-    let y_cells = match y_arg_rank.usize() {
-        Some(finite) => y.rank_iter((finite + y_surplus_rank).try_into()?),
-        None => vec![y.clone()],
-    };
-
-    debug!("x_cells: {x_cells:?}");
-    debug!("y_cells: {y_cells:?}");
+    assert_eq!(x_macrocells.len(), y_macrocells.len());
 
     Ok((
-        x_cells,
-        y_cells,
+        x_macrocells,
+        y_macrocells,
         common_frame.to_vec(),
         surplus_frame.to_vec(),
     ))
@@ -198,6 +180,27 @@ mod tests {
     }
 
     #[test]
+    fn test_gen_macrocells_plus_two_three() -> Result<()> {
+        let x = array![1i64, 2].into_dyn().into_jarray();
+        let y = array![[10i64, 20, 30], [70, 80, 90]]
+            .into_dyn()
+            .into_jarray();
+        let (x_cells, y_cells, _, _) = generate_cells(x, y, Rank::zero_zero())?;
+        assert_eq!(
+            x_cells,
+            vec![arr0d(1i64).into_jarray(), arr0d(2i64).into_jarray(),]
+        );
+        assert_eq!(
+            y_cells,
+            vec![
+                array![10i64, 20, 30].into_dyn().into_jarray(),
+                array![70i64, 80, 90].into_dyn().into_jarray(),
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
     fn test_gen_macrocells_plus_i() -> Result<()> {
         let x = array![100i64, 200].into_dyn().into_jarray();
         let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray();
@@ -217,6 +220,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_gen_macrocells_hash() -> Result<()> {
         let x = array![24i64, 60, 61].into_dyn().into_jarray();
         let y = array![1800i64, 7200].into_dyn().into_jarray();
