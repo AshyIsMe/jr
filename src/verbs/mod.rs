@@ -74,42 +74,15 @@ fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
-    let (x_cells, y_cells, common_frame, surplus_frame) =
+    let (cells, common_frame, surplus_frame) =
         generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
-    let application_result =
-        apply_cells((&x_cells, &y_cells), f, rank).context("applying function to cells")?;
+    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
     debug!("application_result: {:?}", application_result);
 
-    let target_shape = common_frame
-        .into_iter()
-        .chain(surplus_frame.into_iter())
-        .collect::<Vec<_>>();
+    let flat = flatten(&common_frame, &surplus_frame, &application_result)?;
 
-    let flat = flatten(&target_shape, &application_result).with_context(|| {
-        // this is expensive but should only be hit on application bugs, not user code issues
-        let pair_info = application_result
-            .iter()
-            .map(|w| match w {
-                Word::Noun(n) => Some(n.shape().to_vec()),
-                _ => None,
-            })
-            .collect::<Option<Vec<_>>>();
-
-        anyhow!("reshaping {:?} to {target_shape:?}", pair_info)
-    });
-    match flat {
-        Ok(flat) => Ok(Word::Noun(flat)),
-        _ => {
-            // target_shape still isn't right, sometimes it's incompatible with the application_result shapes
-            // but the application_result is already correct... pass it through as is for now
-            if application_result.len() == 1 {
-                Ok(application_result[0].clone())
-            } else {
-                bail!("wat")
-            }
-        }
-    }
+    Ok(Word::Noun(flat))
 }
 
 impl VerbImpl {
