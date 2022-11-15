@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 
@@ -16,10 +16,8 @@ pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
 fn frame_of(shape: &[usize], rank: Rank) -> Result<Vec<usize>> {
     Ok(match rank.usize() {
         None => vec![],
-        Some(rank) => {
-            ensure!(rank <= shape.len(), "rank {rank:?} higher than {shape:?}");
-            shape[..shape.len() - rank].to_vec()
-        }
+        Some(rank) if rank > shape.len() => vec![],
+        Some(rank) => shape[..shape.len() - rank].to_vec(),
     })
 }
 
