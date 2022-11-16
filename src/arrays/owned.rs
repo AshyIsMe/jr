@@ -1,6 +1,6 @@
 use std::{fmt, iter};
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
@@ -9,7 +9,7 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
-use crate::Word;
+use crate::{JError, Num, Word};
 
 #[derive(Clone, PartialEq)]
 pub enum JArray {
@@ -83,6 +83,20 @@ impl JArray {
         })
     }
 
+    /// rank_iter, but the other way up, and more picky about its arguments
+    pub fn dims_iter(&self, dims: usize) -> Vec<JArray> {
+        assert!(
+            dims <= self.shape().len(),
+            "{dims} must be shorter than us: {}",
+            self.shape().len()
+        );
+        self.rank_iter(
+            (self.shape().len() - dims)
+                .try_into()
+                .expect("worst types; absolute worst"),
+        )
+    }
+
     // AA TODO: Real iterator instead of Vec
     pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
@@ -127,6 +141,21 @@ impl JArray {
         let new_shape = iter::once(p).chain(surplus.iter().copied()).collect_vec();
 
         self.to_shape(new_shape)
+    }
+
+    pub fn into_nums(self) -> Result<Vec<Num>> {
+        use JArray::*;
+        Ok(match self {
+            BoolArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            IntArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            ExtIntArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            RationalArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            // Num isn't the real return type here, but it does exist, and have working promotions
+            CharArray(_) => return Err(JError::NonceError).context("iterating a char array"),
+            BoxArray(_) => return Err(JError::NonceError).context("iterating a box array"),
+        })
     }
 }
 
