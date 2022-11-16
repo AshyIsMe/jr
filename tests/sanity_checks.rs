@@ -1,22 +1,14 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Context, Result};
-use log::debug;
+use anyhow::Result;
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, eval, resolve_names, scan, JArray, Rank, Word};
-
-// AA TODO scan_eval and idot don't live here, was too lazy to get git to cherry pick nicely
-//use jr::test_impls::{idot, scan_eval};
-pub fn scan_eval(sentence: &str) -> Result<Word> {
-    let tokens = crate::scan(sentence)?;
-    debug!("tokens: {:?}", tokens);
-    crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
-}
+use jr::{arr0d, collect_nouns, resolve_names, JArray, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();

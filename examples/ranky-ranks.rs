@@ -1,10 +1,6 @@
-use std::collections::HashMap;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use anyhow::{bail, Result};
 
-use anyhow::{anyhow, bail, Context, Result};
-use log::debug;
-
+use jr::test_impls::{run_j, scan_eval};
 use jr::{generate_cells, JArray, Rank, Word};
 
 fn main() -> Result<()> {
@@ -33,33 +29,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_j(expr: &str) -> Result<String> {
-    let mut p = Command::new("jconsole.sh")
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .context("executing jconsole.sh from path")?;
-    p.stdin
-        .as_mut()
-        .expect("requested")
-        .write_all(expr.as_bytes())
-        .context("writing to j")?;
-    let out = p.wait_with_output().context("waiting for j to run")?;
-    let s = String::from_utf8(out.stdout).context("reading from j")?;
-    Ok(s.trim().to_string())
-}
-
 fn arr(sentence: &str) -> Result<JArray> {
     let word = scan_eval(sentence)?;
     Ok(match word {
         Word::Noun(arr) => arr,
         _ => bail!("unexpected non-noun: {word:?}"),
     })
-}
-
-fn scan_eval(sentence: &str) -> Result<Word> {
-    let tokens = jr::scan(sentence)?;
-    debug!("tokens: {:?}", tokens);
-    jr::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
 }

@@ -11,6 +11,8 @@ mod verbs;
 #[cfg(feature = "ui")]
 mod plot;
 
+pub mod test_impls;
+
 // laziness
 pub use arrays::{Elem, IntoJArray, JArray, Word};
 pub use cells::flatten;
