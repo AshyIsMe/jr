@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
-use jr::{IntoJArray, JError, Word};
+use jr::cells::{monad_apply, monad_cells};
+use jr::{IntoJArray, JError, Rank, Word};
 
 #[test]
 fn array_iter_2_3() {
@@ -194,6 +195,19 @@ fn framing_fill_miro() -> Result<()> {
     assert_eq!(
         r1,
         Word::noun(array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()).unwrap()
+    );
+    Ok(())
+}
+
+#[test]
+fn monadic_apply() -> Result<()> {
+    let y = array![2i64, 3].into_dyn().into_jarray();
+    let (cells, _) = monad_cells(&y, Rank::one())?;
+    assert_eq!(cells, vec![y.clone()],);
+
+    assert_eq!(
+        monad_apply(&[y.clone()], |y| Ok(y.clone()))?,
+        vec![y.clone()],
     );
     Ok(())
 }

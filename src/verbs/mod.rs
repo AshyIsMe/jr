@@ -15,7 +15,7 @@ use ndarray::{concatenate, Axis, Slice};
 use num::complex::Complex64;
 use num::BigRational;
 
-use crate::cells::{apply_cells, flatten, generate_cells};
+use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -71,6 +71,25 @@ pub enum VerbImpl {
     },
 }
 
+fn exec_monad(monad: Monad, y: &JArray) -> Result<Word> {
+    if Rank::infinite() == monad.rank {
+        return (monad.f)(y).context("infinite monad shortcut");
+    }
+
+    let (cells, common_frame) = monad_cells(y, monad.rank)?;
+
+    let results = monad_apply(&cells, |y| {
+        Ok(match (monad.f)(y)? {
+            Word::Noun(arr) => arr,
+            _ => bail!("butts"),
+        })
+    })?;
+
+    let results = flatten(&common_frame, &[], &[results])?;
+
+    Ok(Word::Noun(results))
+}
+
 fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
@@ -99,7 +118,7 @@ impl VerbImpl {
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
                 (None, Word::Noun(y)) => {
-                    (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
+                    exec_monad(imp.monad, y).with_context(|| anyhow!("monadic {:?}", imp.name))
                 }
                 (Some(Word::Noun(x)), Word::Noun(y)) => {
                     let dyad = imp
