@@ -58,8 +58,9 @@ pub fn generate_cells(
         (true, true) | (false, true) => x_surplus,
     };
 
-    let x_macrocells = x.dims_iter(common_dims);
-    let y_macrocells = y.dims_iter(common_dims);
+    let neg_common_frame_rank = -(common_frame.len() as i16);
+    let x_macrocells = x.rank_iter(neg_common_frame_rank);
+    let y_macrocells = y.dims_iter(neg_common_frame_rank);
 
     assert_eq!(x_macrocells.len(), y_macrocells.len());
 
