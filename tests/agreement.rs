@@ -118,15 +118,6 @@ fn test_agreement_plus_rank1() {
 }
 
 #[test]
-fn test_jarray_choppo() -> Result<()> {
-    let a = array![[1i64, 2, 3], [5, 6, 7]].into_dyn().into_jarray();
-    assert_eq!(a.choppo(0)?.shape()[0], 6);
-    assert_eq!(a.choppo(1)?.shape()[0], 2);
-    assert_eq!(a.choppo(2)?.shape()[0], 1);
-    Ok(())
-}
-
-#[test]
 fn test_agreement_reshape_3() -> Result<()> {
     let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
     // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5

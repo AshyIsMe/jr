@@ -1,9 +1,9 @@
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 
-use crate::{reduce_arrays, DyadF, DyadRank, JArray, JArrayCow, JArrays, JError, Rank, Word};
+use crate::{reduce_arrays, DyadF, DyadRank, JArray, JArrays, JError, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -17,13 +17,6 @@ fn frame_of(shape: &[usize], rank: Rank) -> Result<Vec<usize>> {
         None => vec![],
         Some(rank) if rank > shape.len() => vec![],
         Some(rank) => shape[..shape.len() - rank].to_vec(),
-    })
-}
-
-fn cells_of(a: &JArray, arg_rank: Rank, surplus_rank: usize) -> Result<JArrayCow> {
-    Ok(match arg_rank.usize() {
-        None => JArrayCow::from(a),
-        Some(arg_rank) => a.choppo(surplus_rank + arg_rank)?,
     })
 }
 
@@ -61,23 +54,20 @@ pub fn generate_cells(
 
     // TODO: length error
 
-    // this eventually is just `min_rank - arg_rank`,
-    // as `to_cells`/`choppo` re-subtract it from the rank
     let x_surplus_rank = x_rank - min_rank;
     let y_surplus_rank = y_rank - min_rank;
     debug!("x_surplus_rank: {:?}", x_surplus_rank);
     debug!("y_surplus_rank: {:?}", y_surplus_rank);
 
-    let x_cells = cells_of(&x, x_arg_rank, x_surplus_rank)?
-        .outer_iter()
-        .into_iter()
-        .map(|c| JArray::from(c))
-        .collect();
-    let y_cells = cells_of(&y, y_arg_rank, y_surplus_rank)?
-        .outer_iter()
-        .into_iter()
-        .map(|c| JArray::from(c))
-        .collect();
+    let x_cells = match x_arg_rank.usize() {
+        Some(finite) => x.rank_iter((finite + x_surplus_rank).try_into()?),
+        None => vec![x.clone()],
+    };
+
+    let y_cells = match y_arg_rank.usize() {
+        Some(finite) => y.rank_iter((finite + y_surplus_rank).try_into()?),
+        None => vec![y.clone()],
+    };
 
     debug!("x_cells: {x_cells:?}");
     debug!("y_cells: {y_cells:?}");
