@@ -129,9 +129,33 @@ pub fn flatten(
     let mut big_daddy: Vec<Num> = Vec::new();
     for macrocell in macrocell_results {
         for arr in macrocell {
-            assert_eq!(arr.shape(), target_inner_shape, "need length extension");
-            // TODO: clone
-            big_daddy.extend(arr.clone().into_nums()?);
+            if arr.shape() == target_inner_shape {
+                // TODO: don't clone
+
+                big_daddy.extend(arr.clone().into_nums()?);
+                continue;
+            }
+
+            match (arr.shape().len(), target_inner_shape.len()) {
+                (1, 1) => {
+                    let current = arr.shape()[0];
+                    let target = target_inner_shape[0];
+                    assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
+                    big_daddy.extend(arr.clone().into_nums()?);
+                    for _ in current..target {
+                        big_daddy.push(Num::Bool(0));
+                    }
+                }
+                _ => {
+                    return Err(JError::NonceError).with_context(|| {
+                        anyhow!(
+                            "can't framing fill {:?} out to {:?}",
+                            arr.shape(),
+                            target_inner_shape
+                        )
+                    });
+                }
+            }
         }
     }
 

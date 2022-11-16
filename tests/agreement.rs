@@ -145,3 +145,13 @@ fn test_idot_rank() -> Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn framing_fill_miro() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(3 1 $ 2 3 4) $ 0 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(
+        r1,
+        Word::noun(array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()).unwrap()
+    );
+    Ok(())
+}
