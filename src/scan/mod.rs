@@ -1,11 +1,11 @@
 mod litnum;
 mod number;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::*;
-use crate::modifiers::ModifierImpl;
 use crate::JError;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
 
@@ -138,127 +138,108 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
-    // user defined adverbs/verbs/nouns
-    let mut l: usize = usize::MAX;
-    let mut p: Option<Word> = None;
-    if sentence.is_empty() {
-        return Err(JError::custom("Empty name"));
-    }
-    for (i, c) in sentence.chars().enumerate() {
-        l = i;
-        // Name is a word that begins with a letter and contains letters, numerals, and
-        // underscores. (See Glossary).
-        match c {
-            'a'..='z' | 'A'..='Z' | '_' => {
-                match p {
-                    None => (),
-                    Some(_) => {
-                        // Primitive was found on previous char, backtrack and break
-                        l -= 1;
-                        break;
-                    }
-                }
-            }
-            '.' | ':' => {
-                match p {
-                    None => {
-                        if let Ok(w) = str_to_primitive(&sentence[0..=l]) {
-                            p = Some(w);
-                        }
-                    }
-                    Some(_) => {
-                        match str_to_primitive(&sentence[0..=l]) {
-                            Ok(w) => p = Some(w),
-                            Err(_) => {
-                                // Primitive was found on previous char, backtrack and break
-                                l -= 1;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-            _ => {
-                l -= 1;
-                break;
-            }
+    let mut it = sentence.chars().peekable();
+    let base: String = it
+        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+        .collect();
+    let suffix = it.peek().filter(|c| matches!(c, '.' | ':')).copied();
+
+    if let Some(suffix) = suffix {
+        if let Some(primitive) = str_to_primitive(&format!("{base}{suffix}"))? {
+            return Ok((base.len(), primitive));
         }
     }
-    match p {
-        Some(p) => Ok((l, p)),
-        None => Ok((l, Word::Name(sentence[0..=l].to_string()))),
-    }
+
+    Ok((
+        base.len() - 1,
+        str_to_primitive(&base)?.unwrap_or_else(|| Word::Name(base)),
+    ))
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
-    // built in adverbs/verbs
-    let mut l: usize = 0;
-    let mut p: Option<char> = None;
-    //Primitives are 1 to 3 symbols:
-    //  - one symbol
-    //  - zero or more trailing . or : or both.
-    //  - OR {{ }} for definitions
     if sentence.is_empty() {
         return Err(JError::custom("Empty primitive"));
     }
-    for (i, c) in sentence.chars().enumerate() {
-        l = i;
-        match p {
-            None => p = Some(c),
-            Some(p) => {
-                match p {
-                    '{' => {
-                        if !"{.:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                    '}' => {
-                        if !"}.:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                    //if !"!\"#$%&*+,-./:;<=>?@[\\]^_`{|}~".contains(c) {
-                    _ => {
-                        if !".:".contains(c) {
-                            l -= 1;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    Ok((l, str_to_primitive(&sentence[..=l])?))
+    let l = identify_primitive(sentence);
+    let term = sentence.chars().take(l + 1).collect::<String>();
+    Ok((
+        l,
+        str_to_primitive(&term)?
+            .ok_or_else(|| anyhow!("parsed as a primitive, but unrecognised: {term:?}"))?,
+    ))
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Word> {
-    if primitive_nouns().contains(&sentence) {
-        Ok(char_array(sentence)?) // TODO - actually lookup the noun
+fn identify_primitive(sentence: &str) -> usize {
+    let mut it = sentence.chars();
+    let initial = it.next().expect("non-empty input");
+
+    it.take_while(match initial {
+        '{' => |c: &char| "{.:".contains(*c),
+        '}' => |c: &char| "}.:".contains(*c),
+        _ => |c: &char| ".:".contains(*c),
+    })
+    .count()
+}
+
+fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
+    Ok(Some(if primitive_nouns().contains(&sentence) {
+        char_array(sentence)? // TODO - actually lookup the noun
     } else if let Some(refd) = primitive_verbs(&sentence) {
-        Ok(Word::Verb(sentence.to_string(), refd))
-    } else if primitive_adverbs().contains_key(&sentence) {
-        Ok(Word::Adverb(
-            sentence.to_string(),
-            match primitive_adverbs().get(&sentence) {
-                Some(a) => a.clone(),
-                None => ModifierImpl::NotImplemented,
-            },
-        ))
-    } else if primitive_conjunctions().contains_key(&sentence) {
-        Ok(Word::Conjunction(
-            sentence.to_string(),
-            match primitive_conjunctions().get(&sentence) {
-                Some(a) => a.clone(),
-                None => ModifierImpl::NotImplemented,
-            },
-        ))
+        Word::Verb(sentence.to_string(), refd)
+    } else if let Some(refd) = primitive_adverbs(sentence) {
+        Word::Adverb(sentence.to_string(), refd.clone())
+    } else if let Some(refd) = primitive_conjunctions(sentence) {
+        Word::Conjunction(sentence.to_string(), refd.clone())
     } else {
         match sentence {
-            "=:" => Ok(Word::IsGlobal),
-            "=." => Ok(Word::IsLocal),
-            _ => Err(JError::custom("Invalid primitive")),
+            "=:" => Word::IsGlobal,
+            "=." => Word::IsLocal,
+            _ => return Ok(None),
         }
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scan::identify_primitive;
+    use crate::{scan, Word};
+
+    fn ident(sentence: &str) -> usize {
+        // oh god please
+        identify_primitive(sentence) + 1
+    }
+
+    #[test]
+    fn identify_prim() {
+        assert_eq!(1, ident("{ butts"));
+        assert_eq!(2, ident("{. butts"));
+        assert_eq!(3, ident("{.. butts"));
+        assert_eq!(3, ident("{.: butts"));
+        assert_eq!(3, ident("{:. butts"));
+
+        assert_eq!(1, ident("} butts"));
+        assert_eq!(2, ident("}. butts"));
+        assert_eq!(3, ident("}.. butts"));
+        assert_eq!(3, ident("}.: butts"));
+        assert_eq!(3, ident("}:. butts"));
+
+        assert_eq!(5, ident("{{{:. butts"));
+
+        assert_eq!(1, ident("a butts"));
+        assert_eq!(2, ident("a. butts"));
+        assert_eq!(3, ident("a.: butts"));
+        assert_eq!(2, ident(":: butts"));
+        assert_eq!(1, ident("{a"));
+        assert_eq!(1, ident("}a"));
+        assert_eq!(1, ident("a{{"));
+        assert_eq!(1, ident("a}}"));
+    }
+
+    #[test]
+    fn names() {
+        let result = dbg!(scan("i.2 3").unwrap());
+        assert_eq!(2, result.len());
+        assert!(matches!(result[0], Word::Verb(_, _)));
+        assert_eq!(result[1], Word::noun(vec![2i64, 3]).unwrap());
     }
 }
