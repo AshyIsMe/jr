@@ -593,7 +593,7 @@ fn test_jarray_rank_iter() {
     );
 
     let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
-    let v = a.rank_iter(Rank::infinite().raw_u8());
+    let v = a.rank_iter(Rank::infinite().raw_u8().into());
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
     assert_eq!(

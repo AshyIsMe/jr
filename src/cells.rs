@@ -68,8 +68,8 @@ pub fn apply_cells(
     let mut cell_results = Vec::new();
 
     for (x, y) in cells {
-        let x_parts = x.rank_iter(x_arg_rank.raw_u8());
-        let y_parts = y.rank_iter(y_arg_rank.raw_u8());
+        let x_parts = x.rank_iter(x_arg_rank.raw_u8().into());
+        let y_parts = y.rank_iter(y_arg_rank.raw_u8().into());
         match (x_parts.len(), y_parts.len()) {
             (1, _) | (_, 1) => (),
             _ => bail!("apply_cells can't see multi-lengthonal drifting: {x_parts:?} {y_parts:?}"),
