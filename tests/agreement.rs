@@ -135,3 +135,13 @@ fn test_reshape_cycle() -> Result<()> {
     assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
     Ok(())
 }
+
+#[test]
+fn test_idot_rank() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.\"0 (2 2 2)")?, &mut HashMap::new()).unwrap();
+    assert_eq!(
+        r1,
+        Word::noun(array![[0i64, 1], [0, 1], [0, 1]].into_dyn()).unwrap()
+    );
+    Ok(())
+}
