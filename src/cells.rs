@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 
-use crate::{promote_to_array, Num, DyadF, DyadRank, JArray,  JError, Rank, Word};
+use crate::{promote_to_array, DyadF, DyadRank, JArray, JError, Num, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()

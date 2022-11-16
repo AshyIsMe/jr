@@ -126,6 +126,20 @@ fn test_reshape_outer_iter() {
 }
 
 #[test]
+fn test_reshape_2d_match_1d() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+
+    let correct_result = Noun(BoolArray(Array::from_elem(IxDyn(&[2, 3, 3]), 1)));
+
+    assert_eq!(r1, correct_result);
+    assert_eq!(r2, correct_result);
+    assert_eq!(r1, r2);
+
+    Ok(())
+}
+
+#[test]
 fn test_reshape_no_change() -> Result<()> {
     let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
     let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
@@ -299,6 +313,16 @@ fn test_fork_noun() {
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Word::noun(vec![3i64]).unwrap()
+    );
+}
+
+#[test]
+#[ignore]
+fn test_fork_average() {
+    let words = jr::scan("(+/ % #) 1 2 3").unwrap();
+    assert_eq!(
+        jr::eval(words, &mut HashMap::new()).unwrap(),
+        Word::noun([2i64]).unwrap()
     );
 }
 
