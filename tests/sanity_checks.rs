@@ -6,7 +6,9 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word};
+use jr::{
+    arr0d, collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word,
+};
 
 #[test]
 fn test_basic_addition() {
@@ -522,10 +524,11 @@ fn test_behead() -> Result<()> {
 
 #[test]
 fn test_box() {
+    // "$ < 42" == []
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun([Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))]).unwrap()
+        Word::noun(arr0d(Noun(IntArray(Array::from_elem(IxDyn(&[]), 42))))).unwrap()
     );
 }
 

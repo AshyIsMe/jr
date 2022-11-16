@@ -4,10 +4,9 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{impl_array, promote_to_array};
-use crate::{ArrayPair, JError};
-use crate::{IntoJArray, JArray};
-use crate::{Num, Word};
+use crate::{
+    arr0d, impl_array, promote_to_array, ArrayPair, IntoJArray, JArray, JError, Num, Word,
+};
 
 use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
@@ -284,9 +283,17 @@ pub fn v_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
+pub fn atom_aware_box(y: &JArray) -> JArray {
+    JArray::BoxArray(if y.shape().is_empty() {
+        arr0d(Word::Noun(y.clone()))
+    } else {
+        array![Noun(y.clone())].into_dyn()
+    })
+}
+
 /// < (monad)
 pub fn v_box(y: &JArray) -> Result<Word> {
-    Word::noun([Noun(y.clone())])
+    Ok(Word::Noun(atom_aware_box(y)))
 }
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<Word> {
@@ -315,7 +322,7 @@ pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_open(y: &JArray) -> Result<Word> {
     match y {
         BoxArray(y) => match y.len() {
-            1 => Ok(y[0].clone()),
+            1 => Ok(y.iter().next().expect("just checked").clone()),
             _ => bail!("todo: unbox BoxArray"),
         },
         y => Ok(Noun(y.clone())),
@@ -580,6 +587,16 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
+pub fn atom_to_singleton<T: Clone>(y: ArrayD<T>) -> ArrayD<T> {
+    if !y.shape().is_empty() {
+        y
+    } else {
+        y.to_shape(IxDyn(&[1]))
+            .expect("checked it was an atom")
+            .to_owned()
+    }
+}
+
 /// ; (monad)
 pub fn v_raze(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
@@ -589,13 +606,21 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<Word> {
     match (x, y) {
         // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
         // always box x, only box y if not already boxed
-        (x, BoxArray(y)) => match Word::noun([Noun(x.clone())]).unwrap() {
-            Noun(BoxArray(x)) => {
-                Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
-            }
-            _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
+        (x, BoxArray(y)) => match atom_aware_box(x) {
+            BoxArray(x) => Ok(Word::noun(
+                concatenate(
+                    Axis(0),
+                    &[
+                        atom_to_singleton(x).view(),
+                        atom_to_singleton(y.clone()).view(),
+                    ],
+                )
+                .context("concatenate")?,
+            )
+            .context("noun")?),
+            _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
         },
-        (x, y) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+        (x, y) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())])?),
     }
 }
 
