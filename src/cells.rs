@@ -1,4 +1,4 @@
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
