@@ -38,3 +38,7 @@ pub fn scan_eval(sentence: &str) -> Result<Word> {
     debug!("tokens: {:?}", tokens);
     crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
 }
+
+pub fn run_to_string(sentenece: &str) -> Result<String> {
+    Ok(format!("{}", scan_eval(sentenece)?))
+}

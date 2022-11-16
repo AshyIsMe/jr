@@ -1,7 +1,6 @@
-use std::panic;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{bail, Result};
 use jr::test_impls::{run_j, scan_eval};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
