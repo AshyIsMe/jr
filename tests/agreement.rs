@@ -57,7 +57,6 @@ fn test_agreement() {
 }
 
 #[test]
-#[ignore]
 fn test_agreement_2() -> Result<()> {
     let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut HashMap::new()).unwrap_err();
     let root = dbg!(err.root_cause())
@@ -68,7 +67,6 @@ fn test_agreement_2() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_agreement_3() -> Result<()> {
     let err = jr::eval(jr::scan("(2 2 $ 2 3) * i.2 3")?, &mut HashMap::new()).unwrap_err();
     let root = dbg!(err.root_cause())
@@ -135,5 +133,25 @@ fn test_agreement_reshape_3() -> Result<()> {
 fn test_reshape_cycle() -> Result<()> {
     let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
     assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    Ok(())
+}
+
+#[test]
+fn test_idot_rank() -> Result<()> {
+    let r1 = jr::eval(jr::scan("i.\"0 (2 2 2)")?, &mut HashMap::new()).unwrap();
+    assert_eq!(
+        r1,
+        Word::noun(array![[0i64, 1], [0, 1], [0, 1]].into_dyn()).unwrap()
+    );
+    Ok(())
+}
+
+#[test]
+fn framing_fill_miro() -> Result<()> {
+    let r1 = jr::eval(jr::scan("(3 1 $ 2 3 4) $ 0 1 2 3")?, &mut HashMap::new()).unwrap();
+    assert_eq!(
+        r1,
+        Word::noun(array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()).unwrap()
+    );
     Ok(())
 }

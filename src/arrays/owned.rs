@@ -1,6 +1,7 @@
 use std::{fmt, iter};
 
 use anyhow::{Context, Result};
+use log::debug;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
 use num::complex::Complex64;
@@ -97,33 +98,42 @@ impl JArray {
     }
 
     // AA TODO: Real iterator instead of Vec
-    pub fn rank_iter(&self, rank: u8) -> Vec<JArray> {
+    pub fn rank_iter(&self, rank: i16) -> Vec<JArray> {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
         // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
-        if rank as usize > self.shape().len() {
+        debug!("rank_iter rank: {}", rank);
+        if rank > self.shape().len() as i16 {
             vec![self.clone()]
         } else if rank == 0 {
             impl_array!(self, |x: &ArrayBase<_, _>| x
                 .iter()
                 .map(JArray::from)
                 .collect::<Vec<JArray>>())
-        // } else if rank < 0 {
-        //     todo!("negative rank")
-        //     Negative rank is a real thing in j, it's just the same but from the left instead of the right.
         } else {
             let shape = self.shape();
-
-            let (leading, surplus) = shape.split_at(shape.len() - rank as usize);
+            let (leading, surplus) = if rank >= 0 {
+                let (l, s) = shape.split_at(shape.len() - rank as usize);
+                (l.to_vec(), s.to_vec())
+            } else {
+                // Negative rank is a real thing in j, it's just the same but from the left instead of the right.
+                let (l, s) = shape.split_at(rank.abs() as usize);
+                (l.to_vec(), s.to_vec())
+            };
+            debug!("leading: {:?}, surplus: {:?}", leading, surplus);
             let iter_shape: Vec<usize> = vec![
                 iter::repeat(1usize).take(leading.len()).collect(),
-                surplus.to_vec(),
+                surplus.clone(),
             ]
             .concat();
 
             impl_array!(self, |x: &ArrayBase<_, _>| x
                 .exact_chunks(IxDyn(&iter_shape))
                 .into_iter()
-                .map(|x| x.into_shape(surplus).unwrap().into_owned().into_jarray())
+                .map(|x| x
+                    .into_shape(surplus.clone())
+                    .unwrap()
+                    .into_owned()
+                    .into_jarray())
                 .collect())
         }
     }
