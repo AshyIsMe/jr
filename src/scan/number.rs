@@ -2,6 +2,7 @@ use num::complex::Complex64;
 use num::{BigInt, BigRational};
 use num_traits::{One, ToPrimitive};
 
+#[derive(Debug, Clone)]
 pub enum Num {
     Bool(u8),
     Int(i64),

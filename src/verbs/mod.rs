@@ -8,7 +8,7 @@ use crate::{
     arr0d, impl_array, promote_to_array, ArrayPair, IntoJArray, JArray, JError, Num, Word,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
@@ -657,8 +657,24 @@ pub fn v_tally(y: &JArray) -> Result<Word> {
     Word::noun([i64::try_from(y.len()).map_err(|_| JError::LimitError)?])
 }
 /// # (dyad)
-pub fn v_copy(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
+    if x.shape().is_empty() && x.len() == 1 && y.shape().len() == 1 {
+        if let Some(i) = x.to_i64() {
+            let repetitions = i.iter().copied().next().expect("checked");
+            ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
+            let mut output = Vec::new();
+            for item in y.clone().into_nums()? {
+                for _ in 0..repetitions {
+                    output.push(item.clone());
+                }
+            }
+            Ok(Word::Noun(promote_to_array(output)?))
+        } else {
+            Err(JError::NonceError).context("single-int # list-of-nums only")
+        }
+    } else {
+        Err(JError::NonceError).context("non-atom # non-list")
+    }
 }
 
 /// #. (monad)
