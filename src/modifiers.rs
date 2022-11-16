@@ -1,6 +1,6 @@
 use std::iter;
 
-use crate::{flatten, reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
+use crate::{exec_monad, reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
 
 use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
@@ -155,21 +155,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 
             match (x, y) {
                 (None, Word::Noun(y)) => {
-                    let arg_rank = ranks.0;
-                    let mut cell_results = Vec::new();
-                    for macrocell in y.rank_iter(arg_rank.raw_u8().try_into().unwrap()) {
-                        cell_results.push(match u.exec(None, &Word::Noun(macrocell))? {
-                            Word::Noun(arr) => arr,
-                            other => bail!("unsupported non-word result: {other:?}"),
-                        });
-                    }
-                    // TODO: does our cell_results here need &[] outside or inside; is it surprlus or real?
-                    // TODO: basically, you can't have a common frame for monads right so we have to use the surplus?
-                    Ok(Word::Noun(flatten(
-                        &[],
-                        &[cell_results.len()],
-                        &[cell_results],
-                    )?))
+                    exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
                 }
                 (Some(Word::Noun(x)), Word::Noun(y)) => {
                     return Err(JError::NonceError)

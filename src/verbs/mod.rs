@@ -71,17 +71,17 @@ pub enum VerbImpl {
     },
 }
 
-fn exec_monad(monad: Monad, y: &JArray) -> Result<Word> {
-    if Rank::infinite() == monad.rank {
-        return (monad.f)(y).context("infinite monad shortcut");
+pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
+    if rank.is_infinite() {
+        return f(y).context("infinite monad shortcut");
     }
 
-    let (cells, common_frame) = monad_cells(y, monad.rank)?;
+    let (cells, common_frame) = monad_cells(y, rank)?;
 
     let results = monad_apply(&cells, |y| {
-        Ok(match (monad.f)(y)? {
+        Ok(match f(y)? {
             Word::Noun(arr) => arr,
-            _ => bail!("butts"),
+            other => bail!("not handling non-noun outputs {other:?}"),
         })
     })?;
 
@@ -117,9 +117,8 @@ impl VerbImpl {
     ) -> Result<Word> {
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
-                (None, Word::Noun(y)) => {
-                    exec_monad(imp.monad, y).with_context(|| anyhow!("monadic {:?}", imp.name))
-                }
+                (None, Word::Noun(y)) => exec_monad(imp.monad.f, imp.monad.rank, y)
+                    .with_context(|| anyhow!("monadic {:?}", imp.name)),
                 (Some(Word::Noun(x)), Word::Noun(y)) => {
                     let dyad = imp
                         .dyad
