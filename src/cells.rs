@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 
-use crate::{promote_to_array, DyadF, DyadRank, JArray, JError, Num, Rank, Word};
+use crate::{promote_to_array, DyadRank, JArray, JError, Num, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -74,7 +74,7 @@ pub fn monad_apply(
 
 pub fn apply_cells(
     cells: &[(JArray, JArray)],
-    f: DyadF,
+    f: impl Fn(&JArray, &JArray) -> Result<Word>,
     (x_arg_rank, y_arg_rank): DyadRank,
 ) -> Result<Vec<Vec<JArray>>> {
     let mut cell_results = Vec::new();

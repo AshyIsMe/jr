@@ -1,6 +1,6 @@
 use std::iter;
 
-use crate::{exec_monad, reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
+use crate::{exec_dyad, exec_monad, reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
 
 use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
@@ -156,11 +156,15 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             match (x, y) {
                 (None, Word::Noun(y)) => {
                     exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
+                        .context("monadic rank drifting")
                 }
-                (Some(Word::Noun(x)), Word::Noun(y)) => {
-                    return Err(JError::NonceError)
-                        .with_context(|| anyhow!("can't rank dyads, {x:?} {y:?}"))
-                }
+                (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
+                    |x, y| u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone())),
+                    (ranks.1, ranks.2),
+                    x,
+                    y,
+                )
+                .context("dyadic rank drifting"),
                 _ => {
                     return Err(JError::NonceError)
                         .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}"))

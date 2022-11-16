@@ -632,7 +632,6 @@ fn test_jarray_rank_iter() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_1_1() {
     // Sum each row independently
     //    (+/"1) i.2 3
@@ -649,7 +648,6 @@ fn test_rank_conjunction_1_1() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_0_1() {
     // Add each atom of x to each vector of y
     //    1 2 (+"0 1) 1 2 3
@@ -698,7 +696,6 @@ fn test_agreement_plus_rank_0_1() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_1_0() {
     // Add each vector of x to each atom of y
     //    1 2 (+"1 0) 1 2 3

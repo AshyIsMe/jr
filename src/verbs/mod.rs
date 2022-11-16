@@ -90,7 +90,12 @@ pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -
     Ok(Word::Noun(results))
 }
 
-fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
+pub fn exec_dyad(
+    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    rank: DyadRank,
+    x: &JArray,
+    y: &JArray,
+) -> Result<Word> {
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
