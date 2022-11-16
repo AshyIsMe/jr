@@ -24,7 +24,7 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     Ok((l, Word::Noun(promote_to_array(parts)?)))
 }
 
-fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
+pub fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     if parts.iter().any(|n| matches!(n, Num::Complex(_))) {
         arrayise(parts.into_iter().map(|v| {

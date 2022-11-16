@@ -65,3 +65,19 @@ fn float_is_int(v: f64) -> Option<i64> {
     }
     Some(v as i64)
 }
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl From<$t> for Num {
+            fn from(value: $t) -> Num {
+                $j(value)
+            }
+        }
+    };
+}
+impl_from_atom!(u8, Num::Bool);
+impl_from_atom!(i64, Num::Int);
+impl_from_atom!(BigInt, Num::ExtInt);
+impl_from_atom!(BigRational, Num::Rational);
+impl_from_atom!(f64, Num::Float);
+impl_from_atom!(Complex64, Num::Complex);
