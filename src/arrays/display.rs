@@ -14,8 +14,15 @@ where
     S: Data<Elem = A>,
 {
     fn to_display(&self) -> String {
-        let ops = FormatOptions::default_for_array(self.len(), false);
-        format!("{}", FmtArrayBaseOpts(self, ops))
+        let opts = FormatOptions::default_for_array(self.len(), false);
+        let mut s = String::new();
+        format_array(
+            self,
+            &mut s,
+            |item, s| s.push_str(&format!("{}", item)),
+            &opts,
+        );
+        s
     }
 }
 
@@ -93,46 +100,44 @@ impl FormatOptions {
 /// * `fmt_elem`: A function that formats an element in the list, given the
 ///   formatter and the index of the item in the list.
 fn format_with_overflow(
-    f: &mut fmt::Formatter<'_>,
+    f: &mut String,
     length: usize,
     limit: usize,
     separator: &str,
     ellipsis: &str,
-    fmt_elem: &mut dyn FnMut(&mut fmt::Formatter, usize) -> fmt::Result,
-) -> fmt::Result {
+    fmt_elem: &mut dyn FnMut(&mut String, usize),
+) {
     if length == 0 {
         // no-op
     } else if length <= limit {
-        fmt_elem(f, 0)?;
+        fmt_elem(f, 0);
         for i in 1..length {
-            f.write_str(separator)?;
-            fmt_elem(f, i)?
+            f.push_str(separator);
+            fmt_elem(f, i)
         }
     } else {
         let edge = limit / 2;
-        fmt_elem(f, 0)?;
+        fmt_elem(f, 0);
         for i in 1..edge {
-            f.write_str(separator)?;
-            fmt_elem(f, i)?;
+            f.push_str(separator);
+            fmt_elem(f, i);
         }
-        f.write_str(separator)?;
-        f.write_str(ellipsis)?;
+        f.push_str(separator);
+        f.push_str(ellipsis);
         for i in length - edge..length {
-            f.write_str(separator)?;
-            fmt_elem(f, i)?
+            f.push_str(separator);
+            fmt_elem(f, i)
         }
     }
-    Ok(())
 }
 
 fn format_array<A, S, D, F>(
     array: &ArrayBase<S, D>,
-    f: &mut fmt::Formatter<'_>,
+    f: &mut String,
     format: F,
     fmt_opt: &FormatOptions,
-) -> fmt::Result
-where
-    F: FnMut(&A, &mut fmt::Formatter<'_>) -> fmt::Result + Clone,
+) where
+    F: FnMut(&A, &mut String) + Clone,
     D: Dimension,
     S: Data<Elem = A>,
 {
@@ -143,24 +148,24 @@ where
 
 fn format_array_inner<A, F>(
     view: ArrayView<A, IxDyn>,
-    f: &mut fmt::Formatter<'_>,
+    f: &mut String,
     mut format: F,
     fmt_opt: &FormatOptions,
     depth: usize,
     full_ndim: usize,
-) -> fmt::Result
-where
-    F: FnMut(&A, &mut fmt::Formatter<'_>) -> fmt::Result + Clone,
+) where
+    F: FnMut(&A, &mut String) + Clone,
 {
     // If any of the axes has 0 length, we return the same empty array representation
     // e.g. [[]] for 2-d arrays
     if view.is_empty() {
-        write!(f, "{}{}", " ".repeat(view.ndim()), " ".repeat(view.ndim()))?;
-        return Ok(());
+        f.push_str(&" ".repeat(view.ndim()));
+        f.push_str(&" ".repeat(view.ndim()));
+        return;
     }
     match view.shape() {
         // If it's 0 dimensional, we just print out the scalar
-        &[] => format(&view[[]], f)?,
+        &[] => format(&view[[]], f),
         // We handle 1-D arrays as a special case
         &[len] => {
             let view = view.view().into_dimensionality::<Ix1>().unwrap();
@@ -171,7 +176,7 @@ where
                 " ",
                 ELLIPSIS,
                 &mut |f, index| format(&view[index], f),
-            )?;
+            );
         }
         // For n-dimensional arrays, we proceed recursively
         shape => {
@@ -188,37 +193,30 @@ where
                     depth + 1,
                     full_ndim,
                 )
-            })?;
+            });
         }
-    }
-    Ok(())
-}
-
-// this is just a hack to get hold of a fmt::Formatter, for the rest of the code
-struct FmtArrayBaseOpts<'s, S, A: fmt::Display, D>(&'s ArrayBase<S, D>, FormatOptions)
-where
-    S: Data<Elem = A>;
-
-impl<A: fmt::Display, S, D: Dimension> fmt::Display for FmtArrayBaseOpts<'_, S, A, D>
-where
-    S: Data<Elem = A>,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let fmt_opt = FormatOptions::default_for_array(self.0.len(), f.alternate());
-        format_array(&self.0, f, <_>::fmt, &fmt_opt)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::JDisplay;
     use crate::{arr0d, IntoJArray};
     use ndarray::prelude::*;
-    use super::JDisplay;
 
     #[test]
     fn short() {
         assert_eq!("1", arr0d(1u8).into_jarray().to_display());
-        assert_eq!("2 4 8", array![2i64, 4, 8].into_dyn().into_jarray().to_display());
-        assert_eq!("2 4\n6 8", array![[2i64, 4], [6, 8]].into_dyn().into_jarray().to_display());
+        assert_eq!(
+            "2 4 8",
+            array![2i64, 4, 8].into_dyn().into_jarray().to_display()
+        );
+        assert_eq!(
+            "2 4\n6 8",
+            array![[2i64, 4], [6, 8]]
+                .into_dyn()
+                .into_jarray()
+                .to_display()
+        );
     }
 }
