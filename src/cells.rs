@@ -3,8 +3,9 @@ use std::cmp::max;
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
+use num_traits::Zero;
 
-use crate::{promote_to_array, DyadRank, JArray, JError, Num, Rank, Word};
+use crate::{promote_to_array, DyadRank, Elem, JArray, JError, Num, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -142,17 +143,13 @@ pub fn flatten(
         .collect_vec();
 
     // flatten
-    let mut big_daddy: Vec<Num> = Vec::new();
+    let mut big_daddy: Vec<Elem> = Vec::new();
     for macrocell in macrocell_results {
         for arr in macrocell {
             if arr.shape() == target_inner_shape {
                 // TODO: don't clone
 
-                big_daddy.extend(
-                    arr.clone()
-                        .into_nums()
-                        .ok_or_else(|| anyhow!("lazyness around nums / elems"))?,
-                );
+                big_daddy.extend(arr.clone().into_elems());
                 continue;
             }
 
@@ -161,13 +158,9 @@ pub fn flatten(
                     let current = arr.shape()[0];
                     let target = target_inner_shape[0];
                     assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
-                    big_daddy.extend(
-                        arr.clone()
-                            .into_nums()
-                            .ok_or_else(|| anyhow!("lazyness around nums / elems"))?,
-                    );
+                    big_daddy.extend(arr.clone().into_elems());
                     for _ in current..target {
-                        big_daddy.push(Num::Bool(0));
+                        big_daddy.push(Elem::Num(Num::zero()));
                     }
                 }
                 _ => {

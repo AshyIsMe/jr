@@ -9,6 +9,7 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
+use crate::arrays::elem::Elem;
 use crate::{Num, Word};
 
 #[derive(Clone, PartialEq)]
@@ -143,6 +144,22 @@ impl JArray {
         }
     }
 
+    pub fn into_elems(self) -> Vec<Elem> {
+        use JArray::*;
+        // don't understand why the macro won't work here
+        // Ok(impl_array!(self, |a: ArrayD<_>| a.into_iter().map(|v| v.into()).collect()))
+        match self {
+            BoolArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            CharArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            IntArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            ExtIntArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            RationalArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
+            BoxArray(a) => a.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+
     pub fn into_nums(self) -> Option<Vec<Num>> {
         use JArray::*;
         Some(match self {
@@ -152,7 +169,6 @@ impl JArray {
             RationalArray(a) => a.into_iter().map(|v| v.into()).collect(),
             FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
             ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            // Num isn't the real return type here, but it does exist, and have working promotions
             CharArray(_) => return None,
             BoxArray(_) => return None,
         })

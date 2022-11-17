@@ -1,11 +1,13 @@
 mod arrayable;
 mod cow;
+mod elem;
 mod owned;
 mod plural;
 mod word;
 
 pub use arrayable::Arrayable;
 pub use cow::{CowArrayD, JArrayCow};
+pub use elem::Elem;
 pub use owned::{IntoJArray, JArray};
 pub use plural::JArrays;
 pub use word::Word;

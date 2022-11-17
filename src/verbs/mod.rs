@@ -6,7 +6,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
+use crate::{arr0d, impl_array, promote_to_array, Elem, IntoJArray, JArray, JError, Num, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
@@ -498,7 +498,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<Word> {
         Num::Rational(i) => Num::Rational(BigRational::one() / i),
         Num::Complex(i) => Num::Complex(Complex64::one() / i),
     };
-    Ok(Word::Noun(promote_to_array(vec![result])?))
+    Ok(Word::Noun(promote_to_array(vec![Elem::Num(result)])?))
 }
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<Word> {
@@ -675,11 +675,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
             let repetitions = i.iter().copied().next().expect("checked");
             ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
             let mut output = Vec::new();
-            for item in y
-                .clone()
-                .into_nums()
-                .ok_or_else(|| anyhow!("lazyness around nums / elems"))?
-            {
+            for item in y.clone().into_elems() {
                 for _ in 0..repetitions {
                     output.push(item.clone());
                 }
