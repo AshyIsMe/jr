@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
 
 use crate::Word;
@@ -41,4 +41,12 @@ pub fn scan_eval(sentence: &str) -> Result<Word> {
 
 pub fn run_to_string(sentenece: &str) -> Result<String> {
     Ok(format!("{}", scan_eval(sentenece)?))
+}
+
+pub fn to_arr(sentence: &str) -> Result<JArray> {
+    let word = scan_eval(sentence)?;
+    Ok(match word {
+        Word::Noun(arr) => arr,
+        _ => bail!("unexpected non-noun: {word:?}"),
+    })
 }

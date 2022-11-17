@@ -122,7 +122,7 @@ impl Num {
     }
 }
 
-fn float_is_zero(v: f64) -> bool {
+pub fn float_is_zero(v: f64) -> bool {
     v.abs() < f64::EPSILON
 }
 

@@ -1,15 +1,16 @@
-use std::fmt;
-
 use ndarray::prelude::*;
 use ndarray::Data;
+use num::complex::Complex64;
+use num::{BigInt, BigRational};
+use num_traits::One;
 
-use crate::{impl_array, JArray};
+use crate::{impl_array, JArray, Word};
 
 pub trait JDisplay {
     fn to_display(&self) -> String;
 }
 
-impl<A: fmt::Display, S, D: Dimension> JDisplay for ArrayBase<S, D>
+impl<A: JDisplay, S, D: Dimension> JDisplay for ArrayBase<S, D>
 where
     S: Data<Elem = A>,
 {
@@ -19,7 +20,7 @@ where
         format_array(
             self,
             &mut s,
-            |item, s| s.push_str(&format!("{}", item)),
+            |item, s| s.push_str(&item.to_display()),
             &opts,
         );
         s
@@ -32,6 +33,61 @@ impl JDisplay for JArray {
         match self {
             BoxArray(arr) => arr.to_display(),
             _ => impl_array!(self, |arr: &ArrayBase<_, _>| arr.to_display()),
+        }
+    }
+}
+
+impl JDisplay for u8 {
+    fn to_display(&self) -> String {
+        format!("{}", self)
+    }
+}
+impl JDisplay for char {
+    fn to_display(&self) -> String {
+        format!("{}", *self as i32)
+    }
+}
+impl JDisplay for i64 {
+    fn to_display(&self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl JDisplay for f64 {
+    fn to_display(&self) -> String {
+        format!("{}", self)
+    }
+}
+
+impl JDisplay for BigInt {
+    fn to_display(&self) -> String {
+        format!("{}", self)
+    }
+}
+impl JDisplay for BigRational {
+    fn to_display(&self) -> String {
+        if self.denom().is_one() {
+            self.numer().to_display()
+        } else {
+            format!("{}r{}", self.numer(), self.denom())
+        }
+    }
+}
+impl JDisplay for Complex64 {
+    fn to_display(&self) -> String {
+        if float_is_zero(self.im) {
+            self.re.to_display()
+        } else {
+            format!("{}j{}", self.re, self.im)
+        }
+    }
+}
+
+impl JDisplay for Word {
+    fn to_display(&self) -> String {
+        match self {
+            Word::Noun(arr) => arr.to_display(),
+            other => format!("{}", other),
         }
     }
 }
@@ -92,7 +148,6 @@ impl FormatOptions {
 ///
 /// # Parameters
 ///
-/// * `f`: The formatter.
 /// * `length`: The length of the list.
 /// * `limit`: The maximum number of items before overflow.
 /// * `separator`: Separator to write between items.
@@ -200,9 +255,16 @@ fn format_array_inner<A, F>(
 
 #[cfg(test)]
 mod tests {
-    use super::JDisplay;
-    use crate::{arr0d, IntoJArray};
     use ndarray::prelude::*;
+
+    use crate::test_impls::to_arr;
+    use crate::{arr0d, IntoJArray};
+
+    use super::JDisplay;
+
+    fn display_expr(expr: &str) -> String {
+        to_arr(expr).unwrap().to_display()
+    }
 
     #[test]
     fn short() {
@@ -218,5 +280,12 @@ mod tests {
                 .into_jarray()
                 .to_display()
         );
+
+        assert_eq!("5j3 1 2j1", display_expr("5j3 1 2j1"));
+    }
+
+    #[test]
+    fn alignment() {
+        assert_eq!("5j3   1\n  2 3j1", display_expr("2 2 $ 5j3 1 2 3j1"));
     }
 }

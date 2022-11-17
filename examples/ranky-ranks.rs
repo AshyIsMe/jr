@@ -1,6 +1,6 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 
-use jr::test_impls::{run_j, scan_eval};
+use jr::test_impls::{run_j, scan_eval, to_arr};
 use jr::{generate_cells, JArray, Rank, Word};
 
 fn main() -> Result<()> {
@@ -22,17 +22,9 @@ fn main() -> Result<()> {
         println!("r: {}", format!("{:?}", res).replace('\n', "\n   "));
 
         let (c, common, spare) =
-            generate_cells(arr(x)?, arr(y)?, (Rank::new(xr)?, Rank::new(yr)?))?;
+            generate_cells(to_arr(x)?, to_arr(y)?, (Rank::new(xr)?, Rank::new(yr)?))?;
         println!("g: {c:?} {common:?} {spare:?}");
         println!();
     }
     Ok(())
-}
-
-fn arr(sentence: &str) -> Result<JArray> {
-    let word = scan_eval(sentence)?;
-    Ok(match word {
-        Word::Noun(arr) => arr,
-        _ => bail!("unexpected non-noun: {word:?}"),
-    })
 }
