@@ -6,7 +6,9 @@ use ndarray::prelude::*;
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word};
+use jr::{
+    arr0d, collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word,
+};
 
 #[test]
 fn test_basic_addition() {
@@ -522,10 +524,11 @@ fn test_behead() -> Result<()> {
 
 #[test]
 fn test_box() {
+    // "$ < 42" == []
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun([Noun(IntArray(Array::from_elem(IxDyn(&[]), 42)))]).unwrap()
+        Word::noun(arr0d(Noun(IntArray(Array::from_elem(IxDyn(&[]), 42))))).unwrap()
     );
 }
 
@@ -629,7 +632,6 @@ fn test_jarray_rank_iter() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_1_1() {
     // Sum each row independently
     //    (+/"1) i.2 3
@@ -646,7 +648,6 @@ fn test_rank_conjunction_1_1() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_0_1() {
     // Add each atom of x to each vector of y
     //    1 2 (+"0 1) 1 2 3
@@ -695,7 +696,6 @@ fn test_agreement_plus_rank_0_1() {
 }
 
 #[test]
-#[ignore]
 fn test_rank_conjunction_1_0() {
     // Add each vector of x to each atom of y
     //    1 2 (+"1 0) 1 2 3

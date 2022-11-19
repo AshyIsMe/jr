@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 
-use crate::{promote_to_array, DyadF, DyadRank, JArray, JError, Num, Rank, Word};
+use crate::{promote_to_array, DyadRank, JArray, JError, Num, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -60,9 +60,21 @@ pub fn generate_cells(
     Ok((macrocells, common_frame.to_vec(), surplus_frame.to_vec()))
 }
 
+pub fn monad_cells(y: &JArray, arg_rank: Rank) -> Result<(Vec<JArray>, Vec<usize>)> {
+    let frame = frame_of(y.shape(), arg_rank)?;
+    Ok((y.rank_iter(arg_rank.raw_u8().into()), frame))
+}
+
+pub fn monad_apply(
+    macrocells: &[JArray],
+    f: impl Fn(&JArray) -> Result<JArray>,
+) -> Result<Vec<JArray>> {
+    macrocells.iter().map(f).collect()
+}
+
 pub fn apply_cells(
     cells: &[(JArray, JArray)],
-    f: DyadF,
+    f: impl Fn(&JArray, &JArray) -> Result<Word>,
     (x_arg_rank, y_arg_rank): DyadRank,
 ) -> Result<Vec<Vec<JArray>>> {
     let mut cell_results = Vec::new();
@@ -102,13 +114,17 @@ pub fn flatten(
     surplus_frame: &[usize],
     macrocell_results: &[Vec<JArray>],
 ) -> Result<JArray> {
-    assert_eq!(
-        common_frame.iter().product::<usize>(),
-        macrocell_results.len()
-    );
-    for macrocell in macrocell_results {
-        assert_eq!(surplus_frame.iter().product::<usize>(), macrocell.len());
-    }
+    // TODO: this is only true for dyads, the monads re-use this code ignoring the split
+    // TODO: I wonder if really this funciton should be talking a pre-flattened answer,
+    // TODO: we don't otherwise care
+    // TODO: I've left the code here as it helps me remember what these numbers mean
+    // assert_eq!(
+    //     common_frame.iter().product::<usize>(),
+    //     macrocell_results.len()
+    // );
+    // for macrocell in macrocell_results {
+    //     assert_eq!(surplus_frame.iter().product::<usize>(), macrocell.len());
+    // }
 
     // max(all results)
     let target_inner_shape = macrocell_results

@@ -4,19 +4,18 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{impl_array, promote_to_array};
-use crate::{ArrayPair, JError};
-use crate::{IntoJArray, JArray};
-use crate::{Num, Word};
+use crate::{
+    arr0d, impl_array, promote_to_array, ArrayPair, IntoJArray, JArray, JError, Num, Word,
+};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 use num::complex::Complex64;
 use num::BigRational;
 
-use crate::cells::{apply_cells, flatten, generate_cells};
+use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
@@ -72,7 +71,31 @@ pub enum VerbImpl {
     },
 }
 
-fn exec_dyad(f: DyadF, rank: DyadRank, x: &JArray, y: &JArray) -> Result<Word> {
+pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
+    if rank.is_infinite() {
+        return f(y).context("infinite monad shortcut");
+    }
+
+    let (cells, common_frame) = monad_cells(y, rank)?;
+
+    let results = monad_apply(&cells, |y| {
+        Ok(match f(y)? {
+            Word::Noun(arr) => arr,
+            other => bail!("not handling non-noun outputs {other:?}"),
+        })
+    })?;
+
+    let results = flatten(&common_frame, &[], &[results])?;
+
+    Ok(Word::Noun(results))
+}
+
+pub fn exec_dyad(
+    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    rank: DyadRank,
+    x: &JArray,
+    y: &JArray,
+) -> Result<Word> {
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
@@ -99,9 +122,8 @@ impl VerbImpl {
     ) -> Result<Word> {
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
-                (None, Word::Noun(y)) => {
-                    (imp.monad.f)(y).with_context(|| anyhow!("monadic {:?}", imp.name))
-                }
+                (None, Word::Noun(y)) => exec_monad(imp.monad.f, imp.monad.rank, y)
+                    .with_context(|| anyhow!("monadic {:?}", imp.name)),
                 (Some(Word::Noun(x)), Word::Noun(y)) => {
                     let dyad = imp
                         .dyad
@@ -284,9 +306,17 @@ pub fn v_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
+pub fn atom_aware_box(y: &JArray) -> JArray {
+    JArray::BoxArray(if y.shape().is_empty() {
+        arr0d(Word::Noun(y.clone()))
+    } else {
+        array![Noun(y.clone())].into_dyn()
+    })
+}
+
 /// < (monad)
 pub fn v_box(y: &JArray) -> Result<Word> {
-    Word::noun([Noun(y.clone())])
+    Ok(Word::Noun(atom_aware_box(y)))
 }
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<Word> {
@@ -315,7 +345,7 @@ pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_open(y: &JArray) -> Result<Word> {
     match y {
         BoxArray(y) => match y.len() {
-            1 => Ok(y[0].clone()),
+            1 => Ok(y.iter().next().expect("just checked").clone()),
             _ => bail!("todo: unbox BoxArray"),
         },
         y => Ok(Noun(y.clone())),
@@ -580,6 +610,16 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
+pub fn atom_to_singleton<T: Clone>(y: ArrayD<T>) -> ArrayD<T> {
+    if !y.shape().is_empty() {
+        y
+    } else {
+        y.to_shape(IxDyn(&[1]))
+            .expect("checked it was an atom")
+            .to_owned()
+    }
+}
+
 /// ; (monad)
 pub fn v_raze(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
@@ -589,13 +629,21 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<Word> {
     match (x, y) {
         // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
         // always box x, only box y if not already boxed
-        (x, BoxArray(y)) => match Word::noun([Noun(x.clone())]).unwrap() {
-            Noun(BoxArray(x)) => {
-                Ok(Word::noun(concatenate(Axis(0), &[x.view(), y.view()]).unwrap()).unwrap())
-            }
-            _ => panic!("invalid types v_semi({:?}, {:?})", x, y),
+        (x, BoxArray(y)) => match atom_aware_box(x) {
+            BoxArray(x) => Ok(Word::noun(
+                concatenate(
+                    Axis(0),
+                    &[
+                        atom_to_singleton(x).view(),
+                        atom_to_singleton(y.clone()).view(),
+                    ],
+                )
+                .context("concatenate")?,
+            )
+            .context("noun")?),
+            _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
         },
-        (x, y) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())]).unwrap()),
+        (x, y) => Ok(Word::noun([Noun(x.clone()), Noun(y.clone())])?),
     }
 }
 
@@ -613,8 +661,24 @@ pub fn v_tally(y: &JArray) -> Result<Word> {
     Word::noun([i64::try_from(y.len()).map_err(|_| JError::LimitError)?])
 }
 /// # (dyad)
-pub fn v_copy(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
+    if x.shape().is_empty() && x.len() == 1 && y.shape().len() == 1 {
+        if let Some(i) = x.to_i64() {
+            let repetitions = i.iter().copied().next().expect("checked");
+            ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
+            let mut output = Vec::new();
+            for item in y.clone().into_nums()? {
+                for _ in 0..repetitions {
+                    output.push(item.clone());
+                }
+            }
+            Ok(Word::Noun(promote_to_array(output)?))
+        } else {
+            Err(JError::NonceError).context("single-int # list-of-nums only")
+        }
+    } else {
+        Err(JError::NonceError).context("non-atom # non-list")
+    }
 }
 
 /// #. (monad)
