@@ -2,6 +2,7 @@ pub mod arrays;
 pub mod cells;
 mod empty;
 mod error;
+use ndarray::{ArrayD, IxDyn};
 pub mod eval;
 pub mod modifiers;
 pub mod scan;
@@ -207,10 +208,15 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     })
 }
 
-fn primitive_nouns() -> &'static [&'static str] {
-    // TODO
+fn primitive_nouns(sentence: &str) -> Option<Word> {
     // https://code.jsoftware.com/wiki/NuVoc
-    &["_", "_.", "a.", "a:"]
+    Some(match sentence {
+        "a." => todo!("alphabet noun https://code.jsoftware.com/wiki/Vocabulary/adot"),
+        //"a:" => Word::Noun(JArray::BoxArray(arr0d([]))),
+        // TODO declare a: properly instead of the scan hack
+        "a:" => scan("<0$0").unwrap()[0].clone(),
+        _ => return None,
+    })
 }
 
 fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {

@@ -105,6 +105,7 @@ fn scan_num_token(term: &str) -> Result<Num> {
     .demote())
 }
 
+// TODO also parse_nan "_."
 fn parse_infinity(term: &str) -> Option<f64> {
     if term == "_" {
         Some(f64::INFINITY)
