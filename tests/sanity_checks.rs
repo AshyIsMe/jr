@@ -1,14 +1,30 @@
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
 use jr::{
-    arr0d, collect_nouns, resolve_names, IntoJArray, JArray, ModifierImpl, Rank, VerbImpl, Word,
+    arr0d, collect_nouns, eval, resolve_names, scan, IntoJArray, JArray, ModifierImpl, Rank,
+    VerbImpl, Word,
 };
+use log::debug;
+
+// AA TODO scan_eval and idot don't live here, was too lazy to get git to cherry pick nicely
+//use jr::test_impls::{idot, scan_eval};
+pub fn scan_eval(sentence: &str) -> Result<Word> {
+    let tokens = crate::scan(sentence)?;
+    debug!("tokens: {:?}", tokens);
+    crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
+}
+
+pub fn idot(s: &[usize]) -> JArray {
+    let p = s.iter().map(|i| *i as i64).product();
+    //Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap(),))
+    IntArray(ArrayD::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap())
+}
 
 #[test]
 fn test_basic_addition() {
@@ -335,15 +351,11 @@ fn test_hook() {
 fn test_idot() {
     assert_eq!(
         jr::eval(jr::scan("i. 4").unwrap(), &mut HashMap::new()).unwrap(),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[4]), vec![0, 1, 2, 3]).unwrap(),
-        ))
+        Noun(idot(&[4]))
     );
     assert_eq!(
         jr::eval(jr::scan("i. 2 3").unwrap(), &mut HashMap::new()).unwrap(),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
-        ))
+        Noun(idot(&[2, 3]))
     );
 }
 
@@ -548,7 +560,7 @@ fn test_link() {
 
 #[test]
 fn test_jarray_rank_iter() {
-    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap());
+    let a = idot(&[2, 3]);
     let v = a.rank_iter(0);
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
@@ -564,7 +576,7 @@ fn test_jarray_rank_iter() {
         ]
     );
 
-    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let a = idot(&[2, 2, 3]);
     let v = a.rank_iter(1);
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
@@ -578,39 +590,29 @@ fn test_jarray_rank_iter() {
         ]
     );
 
-    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let a = idot(&[2, 2, 3]);
     let v = a.rank_iter(2);
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
     assert_eq!(
         v,
         vec![
-            IntArray(Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
+            idot(&[2, 3]),
             IntArray(6i64 + Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
         ]
     );
 
-    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let a = idot(&[2, 2, 3]);
     let v = a.rank_iter(3);
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
-    assert_eq!(
-        v,
-        vec![IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap()
-        )]
-    );
+    assert_eq!(v, vec![idot(&[2, 2, 3])]);
 
-    let a = IntArray(Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap());
+    let a = idot(&[2, 2, 3]);
     let v = a.rank_iter(Rank::infinite().raw_u8().into());
     println!("v.len(): {}", v.len());
     println!("{:?}", v);
-    assert_eq!(
-        v,
-        vec![IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2, 3]), (0..12).collect()).unwrap()
-        )]
-    );
+    assert_eq!(v, vec![idot(&[2, 2, 3])]);
 }
 
 #[test]
@@ -618,11 +620,9 @@ fn test_rank_conjunction_1_1() {
     // Sum each row independently
     //    (+/"1) i.2 3
     // 3 12
-    let words = jr::scan("+/\"1 i.2 3").unwrap();
-    println!("words: {:?}", words);
 
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        scan_eval("+/\"1 i.2 3").unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2]), vec![3, 12]).unwrap(),
         ))
@@ -635,11 +635,9 @@ fn test_rank_conjunction_0_1() {
     //    1 2 (+"0 1) 1 2 3
     // 2 3 4
     // 3 4 5
-    let words = jr::scan("1 2 (+\"0 1) 1 2 3").unwrap();
-    println!("words: {:?}", words);
 
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        scan_eval("1 2 (+\"0 1) 1 2 3").unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
         ))
