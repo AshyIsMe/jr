@@ -211,7 +211,8 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
 fn primitive_nouns(sentence: &str) -> Option<Word> {
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
-        "a." => todo!("alphabet noun https://code.jsoftware.com/wiki/Vocabulary/adot"),
+        //https://code.jsoftware.com/wiki/Vocabulary/adot
+        "a." => char_array((0..=255u8).map(|i| i as char).collect::<String>()).unwrap(),
         //"a:" => Word::Noun(JArray::BoxArray(arr0d([]))),
         // TODO declare a: properly instead of the scan hack
         "a:" => scan("<0$0").unwrap()[0].clone(),
