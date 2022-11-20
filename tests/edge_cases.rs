@@ -1,4 +1,5 @@
 use anyhow::Result;
+use jr::primitive_nouns;
 use jr::JArray::*;
 use jr::Word;
 use ndarray::prelude::*;
@@ -132,7 +133,7 @@ fn test_scan_primitives() -> Result<()> {
     assert_eq!(
         words,
         [
-            jr::char_array("a.")?,
+            primitive_nouns("a.").unwrap(),
             Word::static_verb("I."),
             Word::Noun(CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
         ]
@@ -146,7 +147,7 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
     assert_eq!(
         words,
         [
-            jr::char_array("a.")?,
+            primitive_nouns("a.").unwrap(),
             Word::static_verb("I."),
             Word::Noun(CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
         ]

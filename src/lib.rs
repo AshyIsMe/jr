@@ -208,7 +208,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     })
 }
 
-fn primitive_nouns(sentence: &str) -> Option<Word> {
+pub fn primitive_nouns(sentence: &str) -> Option<Word> {
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
         //https://code.jsoftware.com/wiki/Vocabulary/adot
