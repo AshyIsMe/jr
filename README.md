@@ -24,7 +24,7 @@ Some extremely useful j books and documentation:
 * [Learning J](https://www.jsoftware.com/help/learning/contents.htm)
 * [J Primer](https://www.jsoftware.com/help/primer/contents.htm)
 
-Note: [Arthur Whitney](https://code.jsoftware.com/wiki/Essays/Incunabulum) and Roger Hui style C is _not_ a direct inspiration for the rust code in this project.
+Note: [Arthur Whitney](https://aplwiki.com/wiki/Arthur_Whitney) and [Roger Hui](https://aplwiki.com/wiki/Roger_Hui) style C ([Incunabulum](https://code.jsoftware.com/wiki/Essays/Incunabulum)) is _not_ a direct inspiration for the rust code in this project.
 
 ## Why
 
