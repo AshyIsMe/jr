@@ -1,6 +1,6 @@
 use std::{fmt, iter};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::IntoDimension;
@@ -9,7 +9,7 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
-use crate::{JError, Num, Word};
+use crate::{Num, Word};
 
 #[derive(Clone, PartialEq)]
 pub enum JArray {
@@ -143,9 +143,9 @@ impl JArray {
         }
     }
 
-    pub fn into_nums(self) -> Result<Vec<Num>> {
+    pub fn into_nums(self) -> Option<Vec<Num>> {
         use JArray::*;
-        Ok(match self {
+        Some(match self {
             BoolArray(a) => a.into_iter().map(|v| v.into()).collect(),
             IntArray(a) => a.into_iter().map(|v| v.into()).collect(),
             ExtIntArray(a) => a.into_iter().map(|v| v.into()).collect(),
@@ -153,9 +153,18 @@ impl JArray {
             FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
             ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
             // Num isn't the real return type here, but it does exist, and have working promotions
-            CharArray(_) => return Err(JError::NonceError).context("iterating a char array"),
-            BoxArray(_) => return Err(JError::NonceError).context("iterating a box array"),
+            CharArray(_) => return None,
+            BoxArray(_) => return None,
         })
+    }
+
+    pub fn single_math_num(&self) -> Option<Num> {
+        if self.len() != 1 {
+            return None;
+        }
+        self.clone()
+            .into_nums()
+            .map(|v| v.into_iter().next().expect("checked"))
     }
 }
 
@@ -340,3 +349,16 @@ impl_from_atom_ref!(&BigRational, JArray::RationalArray);
 impl_from_atom_ref!(&f64, JArray::FloatArray);
 impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
 impl_from_atom_ref!(&Word, JArray::BoxArray);
+
+impl From<Num> for JArray {
+    fn from(value: Num) -> Self {
+        match value {
+            Num::Bool(a) => JArray::from(a),
+            Num::Int(a) => JArray::from(a),
+            Num::ExtInt(a) => JArray::from(a),
+            Num::Rational(a) => JArray::from(a),
+            Num::Float(a) => JArray::from(a),
+            Num::Complex(a) => JArray::from(a),
+        }
+    }
+}

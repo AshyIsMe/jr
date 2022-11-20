@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod arrays;
 pub mod cells;
 mod empty;

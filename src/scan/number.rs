@@ -1,6 +1,8 @@
+use std::ops;
+
 use num::complex::Complex64;
-use num::{BigInt, BigRational};
-use num_traits::{One, ToPrimitive};
+use num::{BigInt, BigRational, Integer};
+use num_traits::{CheckedAdd, CheckedMul, One, ToPrimitive, Zero};
 
 #[derive(Debug, Clone)]
 pub enum Num {
@@ -43,6 +45,10 @@ impl Num {
             Num::Bool(b) => Num::Bool(b),
         }
     }
+
+    pub fn one() -> Self {
+        Num::Bool(1)
+    }
 }
 
 fn float_is_zero(v: f64) -> bool {
@@ -82,3 +88,203 @@ impl_from_atom!(BigInt, Num::ExtInt);
 impl_from_atom!(BigRational, Num::Rational);
 impl_from_atom!(f64, Num::Float);
 impl_from_atom!(Complex64, Num::Complex);
+
+#[inline]
+fn to_f64_panic(v: impl ToPrimitive) -> f64 {
+    v.to_f64()
+        .expect("float conversion is infalliable on supported types")
+}
+
+#[inline]
+fn rational(v: impl Into<BigInt>) -> Num {
+    Num::Rational(BigRational::new(v.into(), BigInt::one()))
+}
+
+#[inline]
+fn complex(v: impl Into<f64>) -> Num {
+    Num::Complex(Complex64::new(v.into(), 0.))
+}
+
+fn checked_add<T>(l: T, r: T) -> Option<Num>
+where
+    T: ops::Add<T> + CheckedAdd,
+    Num: From<T>,
+{
+    l.checked_add(&r).map(|x| Num::from(x))
+}
+
+fn checked_mul<T>(l: T, r: T) -> Option<Num>
+where
+    T: ops::Mul<T> + CheckedMul,
+    Num: From<T>,
+{
+    l.checked_mul(&r).map(|x| Num::from(x))
+}
+
+impl ops::Add for Num {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        use Num::*;
+        match promo(self, rhs) {
+            (Int(l), Int(r)) => checked_add(l, r).unwrap_or_else(|| ExtInt(BigInt::from(l) + r)),
+            (ExtInt(l), ExtInt(r)) => ExtInt(l + r),
+            (Rational(l), Rational(r)) => Rational(l + r),
+            (Float(l), Float(r)) => Float(l + r),
+            (Complex(l), Complex(r)) => Complex(l + r),
+
+            (l, r) => unreachable!("add({l:?}, {r:?})"),
+        }
+    }
+}
+
+impl ops::Mul for Num {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self::Output {
+        use Num::*;
+        match promo(self, rhs) {
+            (Int(l), Int(r)) => checked_mul(l, r).unwrap_or_else(|| ExtInt(BigInt::from(l) * r)),
+            (ExtInt(l), ExtInt(r)) => ExtInt(l * r),
+            (Rational(l), Rational(r)) => Rational(l * r),
+            (Float(l), Float(r)) => Float(l * r),
+            (Complex(l), Complex(r)) => Complex(l * r),
+
+            (l, r) => unreachable!("mul({l:?}, {r:?})"),
+        }
+    }
+}
+
+macro_rules! sign {
+    ($x:expr) => {
+        if $x > Zero::zero() {
+            1.
+        } else if $x < Zero::zero() {
+            -1.
+        } else {
+            0.
+        }
+    };
+}
+
+impl ops::Div for Num {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self::Output {
+        use Num::*;
+        if rhs.is_zero() {
+            if self.is_zero() {
+                return Num::zero();
+            }
+            return match self {
+                Bool(l) => Float(sign!(l) * f64::INFINITY),
+                Int(l) => Float(sign!(l) * f64::INFINITY),
+                ExtInt(l) => Float(sign!(l) * f64::INFINITY),
+                Rational(l) => Float(sign!(l) * f64::INFINITY),
+                Float(l) => Float(l * f64::INFINITY),
+                // don't ask
+                Complex(l) => Complex(Complex64::new(0., sign!(l.im) * f64::INFINITY)),
+            };
+        }
+
+        match promo(self, rhs) {
+            (Int(l), Int(r)) => match l.div_rem(&r) {
+                (o, 0) => Int(o),
+                (_, _) => rational(l) / rational(r),
+            },
+            (ExtInt(l), ExtInt(r)) => match l.div_rem(&r) {
+                (o, r) if r.is_zero() => ExtInt(o),
+                (_, _) => rational(l) / rational(r),
+            },
+            (Rational(l), Rational(r)) => Rational(l / r),
+            (Float(l), Float(r)) => Float(l / r),
+            (Complex(l), Complex(r)) => Complex(l / r),
+
+            (l, r) => unreachable!("mul({l:?}, {r:?})"),
+        }
+    }
+}
+
+#[inline]
+fn flip<T>((b, a): (T, T)) -> (T, T) {
+    (a, b)
+}
+
+fn promo(l: Num, r: Num) -> (Num, Num) {
+    use Num::*;
+
+    match (&l, &r) {
+        (Int(_), Bool(_)) => flip(promo_ordered((r, l))),
+        (ExtInt(_), Bool(_)) => flip(promo_ordered((r, l))),
+        (ExtInt(_), Int(_)) => flip(promo_ordered((r, l))),
+        (Rational(_), Bool(_)) => flip(promo_ordered((r, l))),
+        (Rational(_), Int(_)) => flip(promo_ordered((r, l))),
+        (Rational(_), ExtInt(_)) => flip(promo_ordered((r, l))),
+        (Float(_), Bool(_)) => flip(promo_ordered((r, l))),
+        (Float(_), Int(_)) => flip(promo_ordered((r, l))),
+        (Float(_), ExtInt(_)) => flip(promo_ordered((r, l))),
+        (Float(_), Rational(_)) => flip(promo_ordered((r, l))),
+        (Complex(_), Bool(_)) => flip(promo_ordered((r, l))),
+        (Complex(_), Int(_)) => flip(promo_ordered((r, l))),
+        (Complex(_), ExtInt(_)) => flip(promo_ordered((r, l))),
+        (Complex(_), Rational(_)) => flip(promo_ordered((r, l))),
+        (Complex(_), Float(_)) => flip(promo_ordered((r, l))),
+        _ => promo_ordered((l, r)),
+    }
+}
+
+fn promo_ordered((l, r): (Num, Num)) -> (Num, Num) {
+    use Num::*;
+
+    match (l, r) {
+        // already similar, don't touch it
+        orig @ (Int(_), Int(_)) => orig,
+        orig @ (ExtInt(_), ExtInt(_)) => orig,
+        orig @ (Rational(_), Rational(_)) => orig,
+        orig @ (Float(_), Float(_)) => orig,
+        orig @ (Complex(_), Complex(_)) => orig,
+
+        // bool could technically not promote but most(tm) maths ops want promotion
+        (Bool(l), Bool(r)) => (Int(l.into()), Int(r.into())),
+
+        // (bool, int) -> int
+        (Bool(l), Int(r)) => (Int(l.into()), Int(r.into())),
+
+        // (bool|int, extint) -> extint
+        (Bool(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r.into())),
+        (Int(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r.into())),
+
+        // (bool|int|extint, rational) -> rational
+        (Bool(l), Rational(r)) => (rational(l), r.into()),
+        (Int(l), Rational(r)) => (rational(l), r.into()),
+        (ExtInt(l), Rational(r)) => (rational(l), r.into()),
+
+        // (bool|int|extint|rational) -> float
+        (Bool(l), Float(r)) => (f64::from(l).into(), r.into()),
+        (Int(l), Float(r)) => (to_f64_panic(l).into(), r.into()),
+        (ExtInt(l), Float(r)) => (to_f64_panic(l).into(), r.into()),
+        (Rational(l), Float(r)) => (to_f64_panic(l).into(), r.into()),
+
+        (Bool(l), Complex(r)) => (complex(l), r.into()),
+        (Int(l), Complex(r)) => (complex(l as f64), r.into()),
+        (ExtInt(l), Complex(r)) => (complex(to_f64_panic(l)), r.into()),
+        (Rational(l), Complex(r)) => (complex(to_f64_panic(l)), r.into()),
+        (Float(l), Complex(r)) => (complex(l), r.into()),
+
+        (l, r) => unreachable!("promo({l:?}, {r:?})"),
+    }
+}
+
+impl Zero for Num {
+    fn zero() -> Self {
+        Num::Bool(0)
+    }
+
+    fn is_zero(&self) -> bool {
+        match self {
+            Num::Bool(a) => a.is_zero(),
+            Num::Int(a) => a.is_zero(),
+            Num::ExtInt(a) => a.is_zero(),
+            Num::Rational(a) => a.is_zero(),
+            Num::Float(a) => a.is_zero(),
+            Num::Complex(a) => a.is_zero(),
+        }
+    }
+}

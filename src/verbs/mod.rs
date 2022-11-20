@@ -370,8 +370,12 @@ pub fn v_larger_of_max(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// >: (monad)
-pub fn v_increment(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_increment(y: &JArray) -> Result<Word> {
+    let num = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("increment expects a single number")?;
+    Ok(Word::Noun((num + Num::one()).into()))
 }
 /// >: (dyad)
 pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -484,7 +488,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<Word> {
     let num = y
         .clone()
         .into_nums()
-        .map_err(|_| JError::DomainError)?
+        .ok_or_else(|| JError::DomainError)?
         .into_iter()
         .next()
         .expect("checked length");
@@ -673,7 +677,11 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
             let repetitions = i.iter().copied().next().expect("checked");
             ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
             let mut output = Vec::new();
-            for item in y.clone().into_nums()? {
+            for item in y
+                .clone()
+                .into_nums()
+                .ok_or_else(|| anyhow!("lazyness around nums / elems"))?
+            {
                 for _ in 0..repetitions {
                     output.push(item.clone());
                 }

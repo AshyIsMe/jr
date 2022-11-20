@@ -1,17 +1,15 @@
-use num::BigInt;
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Context, Result};
+use log::debug;
 use ndarray::prelude::*;
+use num::complex::Complex64;
+use num::{BigInt, BigRational};
 
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{
-    arr0d, collect_nouns, eval, resolve_names, scan, IntoJArray, JArray, ModifierImpl, Rank,
-    VerbImpl, Word,
-};
-use log::debug;
+use jr::{arr0d, collect_nouns, eval, resolve_names, scan, IntoJArray, JArray, Rank, Word};
 
 // AA TODO scan_eval and idot don't live here, was too lazy to get git to cherry pick nicely
 //use jr::test_impls::{idot, scan_eval};
@@ -20,6 +18,13 @@ pub fn scan_eval(sentence: &str) -> Result<Word> {
     debug!("tokens: {:?}", tokens);
     crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
 }
+
+pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
+    let sentence = sentence.as_ref();
+    scan_eval(sentence).expect("scan_eval_unwrap")
+}
+
+use scan_eval_unwrap as s;
 
 pub fn idot(s: &[usize]) -> JArray {
     let p = s.iter().map(|i| *i as i64).product();
@@ -437,6 +442,24 @@ fn test_unbox() {
         jr::eval(jr::scan("> < 42").unwrap(), &mut names).unwrap(),
         Word::from(42)
     );
+}
+
+#[test]
+fn test_increment() {
+    assert_eq!(s(">: 0"), Word::from(1i64));
+    assert_eq!(s(">: 1"), Word::from(2i64));
+    assert_eq!(s(">: 2"), Word::from(3i64));
+    assert_eq!(s(&format!(">: {}", i64::MAX - 1)), Word::from(i64::MAX));
+    assert_eq!(
+        s(&format!(">: {}", i64::MAX)),
+        Word::from(BigInt::from(i64::MAX) + 1)
+    );
+    assert_eq!(
+        s(">: 5r11"),
+        Word::from(BigRational::new(16.into(), 11.into()))
+    );
+    assert_eq!(s(">: 2.7"), Word::from(3.7));
+    assert_eq!(s(">: 2j1"), Word::from(Complex64::new(3., 1.)));
 }
 
 #[test]
