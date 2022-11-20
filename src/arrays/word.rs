@@ -1,3 +1,6 @@
+use num::complex::Complex64;
+use num::{BigInt, BigRational};
+use std::convert::From;
 use std::fmt;
 
 use anyhow::Result;
@@ -67,3 +70,20 @@ impl fmt::Display for Word {
         }
     }
 }
+
+macro_rules! impl_from_atom {
+    ($t:ty, $j:path) => {
+        impl From<$t> for Word {
+            fn from(value: $t) -> Word {
+                Word::Noun($j(Array::from_elem(IxDyn(&[]), value.into())))
+            }
+        }
+    };
+}
+impl_from_atom!(u8, JArray::BoolArray);
+impl_from_atom!(i32, JArray::IntArray);
+impl_from_atom!(i64, JArray::IntArray);
+impl_from_atom!(BigInt, JArray::ExtIntArray);
+impl_from_atom!(BigRational, JArray::RationalArray);
+impl_from_atom!(f64, JArray::FloatArray);
+impl_from_atom!(Complex64, JArray::ComplexArray);
