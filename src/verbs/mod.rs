@@ -146,7 +146,9 @@ impl VerbImpl {
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
-                    debug!("Fork {} {} {}", f, g, h);
+                    log::warn!("Fork {:?} {:?} {:?}", f, g, h);
+                    log::warn!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(x, y));
+                    log::warn!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(x, y));
                     g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
                 }
                 (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
@@ -659,7 +661,9 @@ pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// # (monad)
 pub fn v_tally(y: &JArray) -> Result<Word> {
-    Word::noun([i64::try_from(y.len()).map_err(|_| JError::LimitError)?])
+    Ok(Word::from(
+        i64::try_from(y.len()).map_err(|_| JError::LimitError)?,
+    ))
 }
 /// # (dyad)
 pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {

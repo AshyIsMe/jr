@@ -58,7 +58,7 @@ macro_rules! impl_array {
 
 impl JArray {
     pub fn len(&self) -> usize {
-        impl_array!(self, |a: &ArrayBase<_, _>| a.len())
+        impl_array!(self, |a: &ArrayBase<_, _>| a.shape()[0])
     }
 
     pub fn len_of(&self, axis: Axis) -> usize {
