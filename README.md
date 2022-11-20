@@ -9,10 +9,37 @@ How hard could it be to write our own j interpreter in rust?...
 * http://craftinginterpreters.com/
 
 
+## What is jr?
+
+Jr is a rust implementation of the [J programming language](https://www.jsoftware.com/).
+It is intended to be feature compatible with the official [jsoftware implementation](https://github.com/jsoftware/jsource) (though not necessarily bug compatible).
+
+It relies on the [ndarray crate](https://docs.rs/ndarray/latest/ndarray/).
+
+Some extremely useful j books and documentation:
+
+* [J Wiki](https://code.jsoftware.com/wiki/Main_Page)
+* [An Implementation of J](https://www.jsoftware.com/ioj/ioj.htm)
+* [J for C Programmers](https://www.jsoftware.com/help/jforc/contents.htm)
+* [Learning J](https://www.jsoftware.com/help/learning/contents.htm)
+* [J Primer](https://www.jsoftware.com/help/primer/contents.htm)
+
+Note: [Arthur Whitney](https://code.jsoftware.com/wiki/Essays/Incunabulum) and Roger Hui style C is _not_ a direct inspiration for the rust code in this project.
+
+## Why
+
+For fun! :D
+
+Also to get better at rust and j.
+
+## What's left to do?
+
 _TODO:_
 
-* Finish `src/lib.rs:eval()`
-* Implement the verb rank concept
+* Implement the rest of the primitives (see: `src/lib.rs`)
+* [J compatible display](https://www.jsoftware.com/ioj/iojDisp.htm) of nouns
+* [Foreigns](https://code.jsoftware.com/wiki/Vocabulary/Foreigns)
+* [Locales](https://code.jsoftware.com/wiki/Vocabulary/Locales)
 * Draw the rest of the owl
 
 
@@ -21,3 +48,25 @@ _Done:_
 * Basic scanning and tokenizing
 * Basic verb and adverb evaluation
 * A few primitive verbs implemented for integer nouns
+* Finish `src/lib.rs:eval()`
+* Implement the verb rank concept
+
+
+## usage
+
+``` sh
+cargo build --release
+
+./target/release/jr
+   1 2 3 + 4 5 6
+[5, 7, 9]
+```
+
+Tests:
+
+``` sh
+cargo test
+
+# quick run
+cargo run
+```
