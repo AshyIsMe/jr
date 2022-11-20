@@ -37,7 +37,13 @@ macro_rules! impl_array {
 
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
-        impl_array!(self, ArrayBase::len)
+        //impl_array!(self, ArrayBase::len)
+        impl_array!(self, |a: &ArrayBase<_, _>| {
+            match a.shape() {
+                [] => 1,
+                a => a[0],
+            }
+        })
     }
 
     pub fn shape(&self) -> &[usize] {

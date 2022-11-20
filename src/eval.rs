@@ -162,8 +162,8 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 let verb_str = format!("{} {} {}", sf, sg, sh);
                 let fork = VerbImpl::Fork {
                     f: Box::new(Verb(sf, f.clone())),
-                    g: Box::new(Verb(sh, h.clone())),
-                    h: Box::new(Verb(sg, g.clone())),
+                    g: Box::new(Verb(sg, g.clone())),
+                    h: Box::new(Verb(sh, h.clone())),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, fork)])
             }
@@ -177,8 +177,8 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 let verb_str = format!("n {} {}", sg, sh);
                 let fork = VerbImpl::Fork {
                     f: Box::new(Noun(m)),
-                    g: Box::new(Verb(sh, h.clone())),
-                    h: Box::new(Verb(sg, g.clone())),
+                    g: Box::new(Verb(sg, g.clone())),
+                    h: Box::new(Verb(sh, h.clone())),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, fork)])
             }

@@ -229,82 +229,23 @@ fn test_collect_char_nouns() {
 
 #[test]
 fn test_fork() {
-    //let words = jr::scan("(+/ % #) 1 2 3 4 5").unwrap(); //TODO use this when parens are implemented
-    let sum = Verb(
-        String::from("+/"),
-        VerbImpl::DerivedVerb {
-            l: Box::new(Word::static_verb("+")),
-            r: Box::new(Nothing),
-            m: Box::new(Adverb(String::from("/"), ModifierImpl::Slash)),
-        },
-    );
-    let words = vec![
-        Verb(
-            String::from("+/%#"),
-            VerbImpl::Fork {
-                f: Box::new(sum),
-                g: Box::new(Word::static_verb("%")),
-                h: Box::new(Word::static_verb("#")),
-            },
-        ),
-        Word::noun([1i64, 2, 3, 4, 5]).unwrap(),
-    ];
+    let words = jr::scan("(+/ % #) 1 2 3 4 5").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun([3i64]).unwrap()
+        Word::from(3i64)
     );
 }
 
 #[test]
 fn test_fork_noun() {
-    //let words = jr::scan("(15 % #) 1 2 3 4 5").unwrap(); //TODO use this when parens are implemented
-    let words = vec![
-        Verb(
-            String::from("+/%#"),
-            VerbImpl::Fork {
-                f: Box::new(Word::noun(vec![15i64]).unwrap()),
-                g: Box::new(Word::static_verb("%")),
-                h: Box::new(Word::static_verb("#")),
-            },
-        ),
-        Word::noun([1i64, 2, 3, 4, 5]).unwrap(),
-    ];
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun(vec![3i64]).unwrap() // TODO Wrong! this result should be an atom 3 not a vec![3]
-                                        //Word::from(3)
-    );
+    let words = jr::scan("(15 % #) 1 2 3 4 5").unwrap();
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(3));
 }
 
 #[test]
-#[ignore]
 fn test_fork_average() {
     let words = jr::scan("(+/ % #) 1 2 3").unwrap();
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun([2i64]).unwrap() // TODO Wrong! this result should be an atom 2 not a vec![2]
-    );
-}
-
-#[test]
-fn test_hook() {
-    //let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap(); //TODO use this when parens are implemented
-    let words = vec![
-        Verb(
-            String::from("i.#"),
-            VerbImpl::Hook {
-                l: Box::new(Word::static_verb("i.")),
-                r: Box::new(Word::static_verb("#")),
-            },
-        ),
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
-        )),
-    ];
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun(vec![6i64]).unwrap() // TODO Wrong! this result should be an atom 6 not a vec![6]
-    );
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(2));
 }
 
 #[test]
@@ -317,6 +258,16 @@ fn test_idot() {
         jr::eval(jr::scan("i. 2 3").unwrap(), &mut HashMap::new()).unwrap(),
         Noun(idot(&[2, 3]))
     );
+}
+
+// TODO fix dyadic i. - this hook is equivalent to:
+// (f g) y  ==> y f g y
+// 3 1 4 1 5 9 i. # 3 1 4 1 5 9
+#[test]
+#[ignore]
+fn test_hook() {
+    let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap();
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(6));
 }
 
 // TODO fix dyadic i.
