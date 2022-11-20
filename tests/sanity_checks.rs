@@ -269,21 +269,13 @@ fn test_fork_noun() {
         ),
         Word::noun([1i64, 2, 3, 4, 5]).unwrap(),
     ];
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun(vec![3i64]).unwrap() // TODO Wrong! this result should be an atom 3 not a vec![3]
-                                        //Word::from(3)
-    );
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(3));
 }
 
 #[test]
-#[ignore]
 fn test_fork_average() {
     let words = jr::scan("(+/ % #) 1 2 3").unwrap();
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun([2i64]).unwrap() // TODO Wrong! this result should be an atom 2 not a vec![2]
-    );
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(2));
 }
 
 #[test]
@@ -301,10 +293,7 @@ fn test_hook() {
             Array::from_shape_vec(IxDyn(&[6]), vec![3, 1, 4, 1, 5, 9]).unwrap(),
         )),
     ];
-    assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
-        Word::noun(vec![6i64]).unwrap() // TODO Wrong! this result should be an atom 6 not a vec![6]
-    );
+    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(6));
 }
 
 #[test]
