@@ -146,6 +146,7 @@ impl VerbImpl {
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
+                    debug!("Fork {} {} {}", f, g, h);
                     g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
                 }
                 (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
