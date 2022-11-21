@@ -182,14 +182,14 @@ fn identify_primitive(sentence: &str) -> usize {
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
-    Ok(Some(if primitive_nouns().contains(&sentence) {
-        char_array(sentence)? // TODO - actually lookup the noun
-    } else if let Some(refd) = primitive_verbs(&sentence) {
-        Word::Verb(sentence.to_string(), refd)
-    } else if let Some(refd) = primitive_adverbs(sentence) {
-        Word::Adverb(sentence.to_string(), refd.clone())
-    } else if let Some(refd) = primitive_conjunctions(sentence) {
-        Word::Conjunction(sentence.to_string(), refd.clone())
+    Ok(Some(if let Some(n) = primitive_nouns(&sentence) {
+        n
+    } else if let Some(v) = primitive_verbs(&sentence) {
+        Word::Verb(sentence.to_string(), v)
+    } else if let Some(a) = primitive_adverbs(sentence) {
+        Word::Adverb(sentence.to_string(), a.clone())
+    } else if let Some(c) = primitive_conjunctions(sentence) {
+        Word::Conjunction(sentence.to_string(), c.clone())
     } else {
         match sentence {
             "=:" => Word::IsGlobal,
