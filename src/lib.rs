@@ -213,6 +213,7 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
     Some(match sentence {
         //https://code.jsoftware.com/wiki/Vocabulary/adot
         "a." => {
+            // TODO Fix this:
             // A chunk of alphabet is jumbled around (sorta, it's complicated...)
             //    |:(16+i.11) ([ ; {)"0 _ a.
             // ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
