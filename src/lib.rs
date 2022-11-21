@@ -212,7 +212,26 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
         //https://code.jsoftware.com/wiki/Vocabulary/adot
-        "a." => char_array((0..=255u8).map(|i| i as char).collect::<String>()).unwrap(),
+        "a." => {
+            // A chunk of alphabet is jumbled around (sorta, it's complicated...)
+            //    |:(16+i.11) ([ ; {)"0 _ a.
+            // ┌──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┐
+            // │16│17│18│19│20│21│22│23│24│25│26│
+            // ├──┼──┼──┼──┼──┼──┼──┼──┼──┼──┼──┤
+            // │┌ │┬ │┐ │├ │┼ │┤ │└ │┴ │┘ ││ │─ │
+            // └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┘
+            // Extended ascii codes from here: https://www.asciitable.com/
+            // 218 194 191 195 197 180 192 193 217 179 196
+            // This doesn't do what I hoped:
+            // let ascii_ints = [
+            //     (0..=15u8).collect(),
+            //     vec![218u8, 194, 191, 195, 197, 180, 192, 193, 217, 179, 196],
+            //     (27..=255u8).collect(),
+            // ]
+            // .concat();
+            let ascii_ints: Vec<u8> = (0..=255u8).collect();
+            char_array(ascii_ints.iter().map(|i| *i as char).collect::<String>()).unwrap()
+        }
         //"a:" => Word::Noun(JArray::BoxArray(arr0d([]))),
         // TODO declare a: properly instead of the scan hack
         "a:" => scan("<0$0").unwrap()[0].clone(),
