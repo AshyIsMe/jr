@@ -592,3 +592,22 @@ fn test_rank_conjunction_1_0() {
         ))
     );
 }
+
+#[test]
+fn test_head() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("{. 1 2 3")?, &mut HashMap::new())?,
+        Word::from(1i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{. i.2 3")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{. i.3 3")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2])?
+    );
+    Ok(())
+}

@@ -751,8 +751,17 @@ pub fn v_from(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// {. (monad)
-pub fn v_head(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_head(y: &JArray) -> Result<Word> {
+    impl_array!(y, |arr: &ArrayD<_>| Ok(match arr.shape().len() {
+        0 => arr.clone().into_owned().into_noun(),
+        _ => {
+            let s = &arr.shape()[1..];
+            arr.slice_axis(Axis(0), Slice::from(..1usize))
+                .into_shape(IxDyn(s))?
+                .into_owned()
+                .into_noun()
+        }
+    }))
 }
 /// {. (dyad)
 pub fn v_take(_x: &JArray, _y: &JArray) -> Result<Word> {

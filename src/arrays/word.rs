@@ -80,6 +80,7 @@ macro_rules! impl_from_atom {
         }
     };
 }
+impl_from_atom!(char, JArray::CharArray);
 impl_from_atom!(u8, JArray::BoolArray);
 impl_from_atom!(i32, JArray::IntArray);
 impl_from_atom!(i64, JArray::IntArray);
