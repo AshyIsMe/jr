@@ -1,5 +1,6 @@
 mod ranks;
 
+use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
@@ -764,8 +765,31 @@ pub fn v_head(y: &JArray) -> Result<Word> {
     }))
 }
 /// {. (dyad)
-pub fn v_take(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
+    match x {
+        IntArray(x) => match x.shape().len() {
+            0 => impl_array!(y, |arr: &ArrayD<_>| {
+                Ok(match arr.shape().len() {
+                    0 => arr.clone().into_owned().into_noun(),
+                    _ => {
+                        let x = x.clone().into_raw_vec()[0];
+                        match x.cmp(&0) {
+                            Ordering::Equal => todo!("v_take(): return empty array"),
+                            Ordering::Less => todo!("v_take(): negative x (take from right)"),
+                            Ordering::Greater => {
+                                let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
+                                arr.select(Axis(0), &ixs).into_owned().into_noun()
+                            }
+                        }
+                    }
+                })
+            }),
+            _ => Err(JError::LengthError.into()),
+        },
+        BoolArray(_x) => todo!("v_take(): handle BoolArray"),
+        ExtIntArray(_x) => todo!("v_take(): handle ExtIntArray"),
+        _ => Err(JError::DomainError.into()),
+    }
 }
 
 /// {: (monad)

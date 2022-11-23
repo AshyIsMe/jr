@@ -611,3 +611,31 @@ fn test_head() -> Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn test_take() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("1 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::from(1i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([1i64, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 {. i.3 3")?, &mut HashMap::new())?,
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+        ))
+    );
+
+    // Framing Fill is a thing here
+    assert_eq!(
+        jr::eval(jr::scan("3 {. 1")?, &mut HashMap::new())?,
+        Word::noun([1i64, 0, 0])?
+    );
+
+    Ok(())
+}
