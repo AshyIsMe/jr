@@ -592,3 +592,60 @@ fn test_rank_conjunction_1_0() {
         ))
     );
 }
+
+#[test]
+fn test_head() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("{. 1 2 3")?, &mut HashMap::new())?,
+        Word::from(1i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{. i.2 3")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{. i.3 3")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2])?
+    );
+    Ok(())
+}
+
+#[test]
+fn test_take() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("1 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::from(1i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("1 {. 1")?, &mut HashMap::new())?,
+        Word::from(1u8)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([1i64, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 {. i.3 3")?, &mut HashMap::new())?,
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+        ))
+    );
+    Ok(())
+}
+
+#[test]
+#[ignore]
+fn test_take_framingfill() -> Result<()> {
+    // TODO Fix Framing Fill here
+    assert_eq!(
+        jr::eval(jr::scan("3 {. 1")?, &mut HashMap::new())?,
+        Word::noun([1i64, 0, 0])?
+    );
+
+    Ok(())
+}
