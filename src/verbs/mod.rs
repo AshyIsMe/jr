@@ -312,8 +312,12 @@ pub fn v_floor(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// <. (dyad)
-pub fn v_lesser_of_min(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_lesser_of_min(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) | Some(Ordering::Equal) => Ok(x),
+        Some(Ordering::Greater) => Ok(y),
+        None => Err(JError::DomainError).context("non-comparable number"),
+    })
 }
 
 /// <: (monad)
@@ -336,8 +340,12 @@ pub fn v_open(y: &JArray) -> Result<Word> {
     }
 }
 /// > (dyad)
-pub fn v_larger_than(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_larger_than(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) => Ok(Num::Bool(1)),
+        None => Err(JError::DomainError).context("non-comparable number"),
+        _ => Ok(Num::Bool(0)),
+    })
 }
 
 /// >. (monad)
@@ -345,8 +353,12 @@ pub fn v_ceiling(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// >. (dyad)
-pub fn v_larger_of_max(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_larger_of_max(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) | Some(Ordering::Equal) => Ok(x),
+        Some(Ordering::Less) => Ok(y),
+        None => Err(JError::DomainError).context("non-comparable number"),
+    })
 }
 
 /// >: (monad)
@@ -394,8 +406,11 @@ pub fn v_double(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// +: (dyad)
-pub fn v_not_or(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+        (Some(x), Some(y)) => Ok(Num::Bool(!(x || y) as u8)),
+        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+    })
 }
 
 /// * (monad)
@@ -427,8 +442,11 @@ pub fn v_square(y: &JArray) -> Result<Word> {
     }
 }
 /// *: (dyad)
-pub fn v_not_and(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+        (Some(x), Some(y)) => Ok(Num::Bool(!(x && y) as u8)),
+        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+    })
 }
 
 /// - (monad)
@@ -502,6 +520,7 @@ pub fn v_square_root(_y: &JArray) -> Result<Word> {
 }
 /// %: (dyad)
 pub fn v_root(_x: &JArray, _y: &JArray) -> Result<Word> {
+    // weird promotion rules here; 2 %: 16 is 4. (float), 2x %: 16 is 4x (extended)
     Err(JError::NonceError.into())
 }
 
@@ -936,12 +955,17 @@ pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// j. (monad)
-pub fn v_imaginary(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_imaginary(y: &JArray) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("expecting a single number for 'y'")?;
+
+    Ok(Word::Noun((y * Num::i()).into()))
 }
 /// j. (dyad)
-pub fn v_complex(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_complex(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| Ok(x + (Num::i() * y)))
 }
 
 /// o. (monad)

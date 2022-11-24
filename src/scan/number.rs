@@ -3,7 +3,7 @@ use std::ops;
 
 use num::complex::Complex64;
 use num::{BigInt, BigRational, Integer};
-use num_traits::{CheckedMul, One, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 #[derive(Debug, Clone)]
 pub enum Num {
@@ -24,6 +24,20 @@ impl Num {
             Num::Rational(i) => i.to_f64()?,
             Num::Float(i) => *i,
             Num::Complex(_) => return None,
+        })
+    }
+
+    /// true if the value looks like a 1, regardless of type; false if it looks like a 0
+    pub fn value_bool(self) -> Option<bool> {
+        Some(match self {
+            Num::Bool(i) => i == 1,
+            Num::Int(i) if i == 1 => true,
+            Num::Int(i) if i == 0 => false,
+            Num::Int(_) => return None,
+            Num::ExtInt(i) if i.is_one() => true,
+            Num::ExtInt(i) if i.is_zero() => false,
+            Num::ExtInt(_) => return None,
+            other => return other.demote().value_bool(),
         })
     }
 
@@ -49,6 +63,10 @@ impl Num {
 
     pub fn one() -> Self {
         Num::Bool(1)
+    }
+
+    pub fn i() -> Self {
+        Num::Complex(Complex64::new(0., 1.))
     }
 }
 
