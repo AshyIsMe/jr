@@ -769,64 +769,40 @@ pub fn v_head(y: &JArray) -> Result<Word> {
 pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
-        ExtIntArray(_x) => todo!("v_take(): handle ExtIntArray"),
+        RationalArray(_) => Err(JError::DomainError.into()),
+        FloatArray(_) => Err(JError::DomainError.into()),
+        ComplexArray(_) => Err(JError::DomainError.into()),
+        BoxArray(_) => Err(JError::DomainError.into()),
 
-        // TODO fix this duplication for BoolArray and IntArray
-        BoolArray(x) => match x.shape().len() {
-            0 => impl_array!(y, |arr: &ArrayD<_>| {
-                let x = x.clone().into_raw_vec()[0];
-                Ok(match x.cmp(&0) {
-                    Ordering::Equal => todo!("v_take(): return empty array of type y"),
-                    Ordering::Less => todo!("v_take(): negative x (take from right)"),
-                    Ordering::Greater => {
-                        if x == 1 {
-                            match arr.shape() {
-                                [] => arr.clone().into_owned().into_noun(),
-                                _ => {
-                                    let s = &arr.shape()[1..];
-                                    arr.slice_axis(Axis(0), Slice::from(..1usize))
-                                        .into_shape(IxDyn(s))?
-                                        .into_owned()
-                                        .into_noun()
+        _ => impl_array!(x, |xarr: &ArrayD<_>| {
+            match xarr.shape().len() {
+                0 => impl_array!(y, |arr: &ArrayD<_>| {
+                    let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
+                    Ok(match x.cmp(&0) {
+                        Ordering::Equal => todo!("v_take(): return empty array of type y"),
+                        Ordering::Less => todo!("v_take(): negative x (take from right)"),
+                        Ordering::Greater => {
+                            if x == 1 {
+                                match arr.shape() {
+                                    [] => arr.clone().into_owned().into_noun(),
+                                    _ => {
+                                        let s = &arr.shape()[1..];
+                                        arr.slice_axis(Axis(0), Slice::from(..1usize))
+                                            .into_shape(IxDyn(s))?
+                                            .into_owned()
+                                            .into_noun()
+                                    }
                                 }
+                            } else {
+                                let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
+                                arr.select(Axis(0), &ixs).into_owned().into_noun()
                             }
-                        } else {
-                            let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
-                            arr.select(Axis(0), &ixs).into_owned().into_noun()
                         }
-                    }
-                })
-            }),
-            _ => Err(JError::LengthError.into()),
-        },
-        IntArray(x) => match x.shape().len() {
-            0 => impl_array!(y, |arr: &ArrayD<_>| {
-                let x = x.clone().into_raw_vec()[0];
-                Ok(match x.cmp(&0) {
-                    Ordering::Equal => todo!("v_take(): return empty array of type y"),
-                    Ordering::Less => todo!("v_take(): negative x (take from right)"),
-                    Ordering::Greater => {
-                        if x == 1 {
-                            match arr.shape() {
-                                [] => arr.clone().into_owned().into_noun(),
-                                _ => {
-                                    let s = &arr.shape()[1..];
-                                    arr.slice_axis(Axis(0), Slice::from(..1usize))
-                                        .into_shape(IxDyn(s))?
-                                        .into_owned()
-                                        .into_noun()
-                                }
-                            }
-                        } else {
-                            let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
-                            arr.select(Axis(0), &ixs).into_owned().into_noun()
-                        }
-                    }
-                })
-            }),
-            _ => Err(JError::LengthError.into()),
-        },
-        _ => Err(JError::DomainError.into()),
+                    })
+                }),
+                _ => Err(JError::LengthError.into()),
+            }
+        }),
     }
 }
 
