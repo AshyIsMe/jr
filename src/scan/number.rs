@@ -1,8 +1,9 @@
+use std::cmp::Ordering;
 use std::ops;
 
 use num::complex::Complex64;
 use num::{BigInt, BigRational, Integer};
-use num_traits::{CheckedAdd, CheckedMul, One, ToPrimitive, Zero};
+use num_traits::{CheckedMul, One, ToPrimitive, Zero};
 
 #[derive(Debug, Clone)]
 pub enum Num {
@@ -105,28 +106,15 @@ fn complex(v: impl Into<f64>) -> Num {
     Num::Complex(Complex64::new(v.into(), 0.))
 }
 
-fn checked_add<T>(l: T, r: T) -> Option<Num>
-where
-    T: ops::Add<T> + CheckedAdd,
-    Num: From<T>,
-{
-    l.checked_add(&r).map(|x| Num::from(x))
-}
-
-fn checked_mul<T>(l: T, r: T) -> Option<Num>
-where
-    T: ops::Mul<T> + CheckedMul,
-    Num: From<T>,
-{
-    l.checked_mul(&r).map(|x| Num::from(x))
-}
-
 impl ops::Add for Num {
     type Output = Self;
     fn add(self, rhs: Self) -> Self::Output {
         use Num::*;
         match promo(self, rhs) {
-            (Int(l), Int(r)) => checked_add(l, r).unwrap_or_else(|| ExtInt(BigInt::from(l) + r)),
+            (Int(l), Int(r)) => l
+                .checked_add(r)
+                .map(Int)
+                .unwrap_or_else(|| Float(l as f64 + r as f64)),
             (ExtInt(l), ExtInt(r)) => ExtInt(l + r),
             (Rational(l), Rational(r)) => Rational(l + r),
             (Float(l), Float(r)) => Float(l + r),
@@ -137,12 +125,33 @@ impl ops::Add for Num {
     }
 }
 
+impl ops::Sub for Num {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        use Num::*;
+        match promo(self, rhs) {
+            (Int(l), Int(r)) => l
+                .checked_sub(r)
+                .map(Int)
+                .unwrap_or_else(|| Float(l as f64 - r as f64)),
+            (ExtInt(l), ExtInt(r)) => ExtInt(l - r),
+            (Rational(l), Rational(r)) => Rational(l - r),
+            (Float(l), Float(r)) => Float(l - r),
+            (Complex(l), Complex(r)) => Complex(l - r),
+            (l, r) => unreachable!("sub({l:?}, {r:?})"),
+        }
+    }
+}
+
 impl ops::Mul for Num {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self::Output {
         use Num::*;
         match promo(self, rhs) {
-            (Int(l), Int(r)) => checked_mul(l, r).unwrap_or_else(|| ExtInt(BigInt::from(l) * r)),
+            (Int(l), Int(r)) => l
+                .checked_mul(r)
+                .map(Int)
+                .unwrap_or_else(|| Float((l as f64) * (r as f64))),
             (ExtInt(l), ExtInt(r)) => ExtInt(l * r),
             (Rational(l), Rational(r)) => Rational(l * r),
             (Float(l), Float(r)) => Float(l * r),
@@ -198,6 +207,38 @@ impl ops::Div for Num {
             (Complex(l), Complex(r)) => Complex(l / r),
 
             (l, r) => unreachable!("mul({l:?}, {r:?})"),
+        }
+    }
+}
+
+impl PartialEq for Num {
+    fn eq(&self, other: &Self) -> bool {
+        use Num::*;
+        // TODO: non-cloning version of promo()?
+        match promo(self.clone(), other.clone()) {
+            (Int(l), Int(r)) => l == r,
+            (ExtInt(l), ExtInt(r)) => l == r,
+            (Rational(l), Rational(r)) => l == r,
+            (Float(l), Float(r)) => l == r,
+            (Complex(l), Complex(r)) => l == r,
+
+            (l, r) => unreachable!("eq({l:?}, {r:?})"),
+        }
+    }
+}
+
+impl PartialOrd for Num {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Num::*;
+        // TODO: non-cloning version of promo()?
+        match promo(self.clone(), other.clone()) {
+            (Int(l), Int(r)) => l.partial_cmp(&r),
+            (ExtInt(l), ExtInt(r)) => l.partial_cmp(&r),
+            (Rational(l), Rational(r)) => l.partial_cmp(&r),
+            (Float(l), Float(r)) => l.partial_cmp(&r),
+            (Complex(_), Complex(_)) => None,
+
+            (l, r) => unreachable!("cmp({l:?}, {r:?})"),
         }
     }
 }

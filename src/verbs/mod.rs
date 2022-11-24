@@ -1,3 +1,4 @@
+mod maff;
 mod ranks;
 
 use std::cmp::Ordering;
@@ -5,9 +6,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{
-    arr0d, impl_array, promote_to_array, ArrayPair, IntoJArray, JArray, JError, Num, Word,
-};
+use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
@@ -21,6 +20,7 @@ use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
+use maff::rank0;
 pub use ranks::Rank;
 
 #[derive(Copy, Clone)]
@@ -210,30 +210,6 @@ impl PartialEq for PrimitiveImpl {
     }
 }
 
-fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
-    //promote_homogenous:
-    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
-    use ArrayPair::*;
-    Ok(match (x, y) {
-        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?.into(), y.cast()?.into()),
-        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?.into(), y.into()),
-        (IntArray(x), BoolArray(y)) => IntPair(x.into(), y.cast()?.into()),
-        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?.into(), y.into()),
-        (FloatArray(x), BoolArray(y)) => FloatPair(x.into(), y.cast()?.into()),
-
-        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64).into(), y.into()),
-        (FloatArray(x), IntArray(y)) => FloatPair(x.into(), y.map(|i| *i as f64).into()),
-
-        (CharArray(x), CharArray(y)) => {
-            IntPair(x.map(|&i| i as i64).into(), y.map(|&i| i as i64).into())
-        }
-        (IntArray(x), IntArray(y)) => IntPair(x.into(), y.into()),
-        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.into(), y.into()),
-        (FloatArray(x), FloatArray(y)) => FloatPair(x.into(), y.into()),
-        _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
-    })
-}
-
 pub trait ArrayUtil<A> {
     fn cast<T: From<A>>(&self) -> Result<ArrayD<T>>;
 }
@@ -324,7 +300,11 @@ pub fn v_box(y: &JArray) -> Result<Word> {
 }
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.lessthan()))
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) => Ok(Num::Bool(1)),
+        None => Err(JError::DomainError).context("non-comparable number"),
+        _ => Ok(Num::Bool(0)),
+    })
 }
 
 /// <. (monad)
@@ -388,8 +368,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    debug!("executing plus on {x:?} + {y:?}");
-    Ok(Word::Noun(prohomo(x, y)?.plus()))
+    rank0(x, y, |x, y| Ok(x + y))
 }
 
 /// +. (monad)
@@ -425,7 +404,7 @@ pub fn v_signum(_y: &JArray) -> Result<Word> {
 }
 /// * (dyad)
 pub fn v_times(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.star()))
+    rank0(x, y, |x, y| Ok(x * y))
 }
 
 /// *. (monad)
@@ -458,7 +437,7 @@ pub fn v_negate(_y: &JArray) -> Result<Word> {
 }
 /// - (dyad)
 pub fn v_minus(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.minus()))
+    rank0(x, y, |x, y| Ok(x - y))
 }
 
 /// -. (monad)
@@ -505,7 +484,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<Word> {
 }
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.slash()))
+    rank0(x, y, |x, y| Ok(x / y))
 }
 
 /// %. (monad)

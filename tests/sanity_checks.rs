@@ -9,7 +9,7 @@ use num::{BigInt, BigRational};
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, eval, resolve_names, scan, IntoJArray, JArray, Rank, Word};
+use jr::{arr0d, collect_nouns, eval, resolve_names, scan, JArray, Rank, Word};
 
 // AA TODO scan_eval and idot don't live here, was too lazy to get git to cherry pick nicely
 //use jr::test_impls::{idot, scan_eval};
@@ -452,7 +452,7 @@ fn test_increment() {
     assert_eq!(s(&format!(">: {}", i64::MAX - 1)), Word::from(i64::MAX));
     assert_eq!(
         s(&format!(">: {}", i64::MAX)),
-        Word::from(BigInt::from(i64::MAX) + 1)
+        Word::from((i64::MAX as f64) + 1.)
     );
     assert_eq!(
         s(">: 5r11"),
@@ -572,24 +572,7 @@ fn test_rank_conjunction_0_1() {
 #[test]
 fn test_agreement_plus_rank_0_1() {
     // Add each atom of x to each vector of y (same as test_rank_conjunction_0_1() but without the rank conjunction)
-    //    1 2 (+"0 1) 1 2 3
-    let x = array![1i64, 2].into_dyn().into_noun();
-    let y = Word::noun([1i64, 2, 3]).unwrap();
-
-    use jr::verbs::*;
-
-    // +"0 1
-    let f = Word::Verb(
-        "+\"0 1".to_string(),
-        VerbImpl::Primitive(PrimitiveImpl::new(
-            "+",
-            v_conjugate,
-            v_plus,
-            (Rank::zero(), Rank::zero(), Rank::one()),
-        )),
-    );
-
-    let words = vec![x, f, y];
+    let words = jr::scan("1 2 (+\"0 1) 1 2 3").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray(

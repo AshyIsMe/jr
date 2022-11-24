@@ -7,7 +7,7 @@ mod word;
 pub use arrayable::Arrayable;
 pub use cow::{CowArrayD, JArrayCow};
 pub use owned::{IntoJArray, JArray};
-pub use plural::{ArrayPair, JArrays};
+pub use plural::JArrays;
 pub use word::Word;
 
 // All terminology should match J terminology:
