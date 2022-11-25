@@ -838,8 +838,20 @@ pub fn v_format(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// ? (monad)
-pub fn v_roll(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_roll(y: &JArray) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .and_then(|v| v.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting zero or a positive integer")?;
+    let y = i64::try_from(y)
+        .map_err(|_| JError::DomainError)
+        .context("must fit in an int")?;
+    let mut rng = thread_rng();
+    Ok(Word::Noun(match y {
+        0 => JArray::from(rng.gen::<f64>()),
+        limit => JArray::from(rng.gen_range(0..limit)),
+    }))
 }
 /// ? (dyad)
 pub fn v_deal(x: &JArray, y: &JArray) -> Result<Word> {
