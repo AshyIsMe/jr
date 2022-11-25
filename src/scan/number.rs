@@ -24,6 +24,17 @@ impl Num {
         }
     }
 
+    /// Int if the decimal part is effectively zero, and it safely fits; otherwise float
+    ///
+    /// This is then behaviour of a bunch of math operations, like v_floor
+    pub fn float_or_int(val: f64) -> Num {
+        if let Some(i) = float_is_int(val) {
+            Num::Int(i)
+        } else {
+            Num::Float(val)
+        }
+    }
+
     pub fn approx_f64(&self) -> Option<f64> {
         Some(match self {
             Num::Bool(i) => *i as f64,
@@ -113,7 +124,7 @@ fn complex_is_float(c: &Complex64) -> Option<f64> {
     }
 }
 
-fn float_is_int(v: f64) -> Option<i64> {
+pub fn float_is_int(v: f64) -> Option<i64> {
     if float_is_zero(v) {
         return Some(0);
     }
