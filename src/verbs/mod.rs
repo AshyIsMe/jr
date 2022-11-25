@@ -510,8 +510,13 @@ pub fn v_minus(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// -. (monad)
-pub fn v_not(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nn(y, |y| match y {
+        Bool(x) if x == 0 => Bool(1),
+        Bool(x) if x == 1 => Bool(0),
+        other => Num::one() - other,
+    })
 }
 /// -. (dyad)
 pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -519,8 +524,8 @@ pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// -: (monad)
-pub fn v_halve(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_halve(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| y / Num::Int(2))
 }
 /// -: (dyad)
 pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
