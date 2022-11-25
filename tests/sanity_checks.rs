@@ -426,6 +426,31 @@ fn test_behead() -> Result<()> {
 }
 
 #[test]
+fn test_drop() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("2 }. 5 6 7")?, &mut HashMap::new())?,
+        Word::from(7i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}. 3 2 $ i. 10")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[1, 2]),
+            [4, 5].to_vec()
+        )?))
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 }. 3 3 3 $ i. 30")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[1, 3, 3]),
+            (18..27).collect()
+        )?))
+    );
+    Ok(())
+}
+
+#[test]
 fn test_box() {
     // "$ < 42" == []
     let mut names = HashMap::new();
@@ -687,6 +712,32 @@ fn test_tail() -> Result<()> {
     assert_eq!(
         jr::eval(jr::scan("{: i.3 3")?, &mut HashMap::new())?,
         Word::noun([6i64, 7, 8])?
+    );
+    Ok(())
+}
+
+#[test]
+fn test_curtail() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("}: 'abc'")?, &mut HashMap::new())?,
+        Word::noun(['a', 'b'])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([1i64, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: i.2 3")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: i.3 3")?, &mut HashMap::new())?,
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+        ))
     );
     Ok(())
 }

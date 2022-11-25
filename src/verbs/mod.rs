@@ -861,6 +861,11 @@ pub fn v_tail(y: &JArray) -> Result<Word> {
     v_take(&JArray::from(-1i64), y)
 }
 
+/// }: (monad)
+pub fn v_curtail(y: &JArray) -> Result<Word> {
+    v_drop(&JArray::from(-1i64), y)
+}
+
 /// {:: (monad)
 pub fn v_map(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
@@ -878,7 +883,8 @@ pub fn v_behead(y: &JArray) -> Result<Word> {
         .into_noun()))
 }
 /// }. (dyad)
-pub fn v_drop(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
+    debug!("v_drop( {:?}, {:?} )", x, y);
     Err(JError::NonceError.into())
 }
 
