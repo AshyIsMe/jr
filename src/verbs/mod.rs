@@ -6,14 +6,12 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arr0d, impl_array, promote_to_array, Elem, IntoJArray, JArray, JError, Num, Word};
+use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
-use num::complex::Complex64;
-use num::BigRational;
 
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
@@ -478,27 +476,11 @@ pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// % (monad)
 pub fn v_reciprocal(y: &JArray) -> Result<Word> {
-    use num_traits::{One, ToPrimitive};
-
-    assert_eq!(&[] as &[usize], y.shape());
-    assert_eq!(1, y.len());
-    let num = y
-        .clone()
-        .into_nums()
-        .ok_or_else(|| JError::DomainError)?
-        .into_iter()
-        .next()
-        .expect("checked length");
-    let result = match num {
-        Num::Bool(i) => Num::Float(1. / (i as f64)),
-        Num::Int(i) => Num::Float(1. / (i as f64)),
-        Num::Float(i) => Num::Float(1. / i),
-
-        Num::ExtInt(i) => Num::Float(1. / i.to_f64().ok_or(JError::NaNError)?),
-        Num::Rational(i) => Num::Rational(BigRational::one() / i),
-        Num::Complex(i) => Num::Complex(Complex64::one() / i),
-    };
-    Ok(Word::Noun(promote_to_array(vec![Elem::Num(result)])?))
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("reciprocal expects a number")?;
+    Ok(Word::Noun((Num::one() / y).into()))
 }
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<Word> {
