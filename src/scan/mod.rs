@@ -197,8 +197,8 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 
 #[cfg(test)]
 mod tests {
+    use super::{scan, Word};
     use crate::scan::identify_primitive;
-    use crate::{scan, Word};
 
     fn ident(sentence: &str) -> usize {
         // oh god please

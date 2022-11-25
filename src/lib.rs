@@ -1,5 +1,3 @@
-extern crate core;
-
 pub mod arrays;
 pub mod cells;
 mod empty;
@@ -7,7 +5,7 @@ mod error;
 pub mod eval;
 pub mod modifiers;
 mod number;
-pub mod scan;
+mod scan;
 mod verbs;
 
 #[cfg(feature = "ui")]
@@ -19,7 +17,9 @@ pub use empty::HasEmpty;
 pub use error::JError;
 pub use eval::*;
 pub use modifiers::*;
-pub use scan::*;
+
+// e.g. cli syntax highlighting
+pub use scan::{scan, scan_with_locations};
 
 // test only?
 pub use verbs::Rank;
