@@ -2,7 +2,7 @@ pub mod arrays;
 pub mod cells;
 mod empty;
 mod error;
-pub mod eval;
+mod eval;
 mod modifiers;
 mod number;
 mod scan;
@@ -14,8 +14,10 @@ mod plot;
 pub use arrays::*;
 pub use cells::flatten;
 pub use empty::HasEmpty;
-pub use error::JError;
-pub use eval::*;
+
+// public API
+pub use crate::error::JError;
+pub use crate::eval::eval;
 
 // e.g. cli syntax highlighting
 pub use scan::{scan, scan_with_locations};
@@ -24,6 +26,7 @@ use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
 // TODO: helper function for tests, not really public
+pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
 pub use crate::verbs::Rank;
