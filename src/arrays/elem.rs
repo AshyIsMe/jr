@@ -37,3 +37,14 @@ impl From<Word> for Elem {
         Elem::Boxed(value)
     }
 }
+
+impl PartialEq for Elem {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Elem::Num(l), Elem::Num(r)) => l == r,
+            (Elem::Boxed(l), Elem::Boxed(r)) => l == r,
+            (Elem::Char(l), Elem::Char(r)) => l == r,
+            _ => false,
+        }
+    }
+}

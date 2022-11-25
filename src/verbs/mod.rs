@@ -18,7 +18,7 @@ use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
-use maff::rank0;
+use maff::{rank0, rank0eb};
 pub use ranks::Rank;
 
 #[derive(Copy, Clone)]
@@ -280,8 +280,8 @@ pub fn v_self_classify(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// = (dyad)
-pub fn v_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_equal(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0eb(x, y, |x, y| x == y)
 }
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
@@ -549,8 +549,8 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// ~: (dyad)
-pub fn v_not_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_equal(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0eb(x, y, |x, y| x != y)
 }
 
 /// | (monad)

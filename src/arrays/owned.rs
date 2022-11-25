@@ -174,6 +174,19 @@ impl JArray {
         })
     }
 
+    pub fn single_elem(&self) -> Option<Elem> {
+        if self.len() != 1 {
+            return None;
+        }
+        Some(
+            self.clone()
+                .into_elems()
+                .into_iter()
+                .next()
+                .expect("checked"),
+        )
+    }
+
     pub fn single_math_num(&self) -> Option<Num> {
         if self.len() != 1 {
             return None;
@@ -375,6 +388,16 @@ impl From<Num> for JArray {
             Num::Rational(a) => JArray::from(a),
             Num::Float(a) => JArray::from(a),
             Num::Complex(a) => JArray::from(a),
+        }
+    }
+}
+
+impl From<Elem> for JArray {
+    fn from(value: Elem) -> Self {
+        match value {
+            Elem::Char(a) => JArray::from(a),
+            Elem::Boxed(a) => JArray::from(a),
+            Elem::Num(a) => JArray::from(a),
         }
     }
 }
