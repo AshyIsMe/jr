@@ -1,3 +1,5 @@
+mod jsoft_runs;
+
 use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
@@ -7,7 +9,14 @@ use log::debug;
 
 use crate::Word;
 
-pub fn run_j(expr: &str) -> Result<String> {
+pub use jsoft_runs::{Run, RunList};
+
+pub fn run_j(expr: impl AsRef<str>) -> Result<String> {
+    let expr = expr.as_ref();
+    run_j_inner(expr).with_context(|| anyhow!("running j on: {expr:?}"))
+}
+
+fn run_j_inner(expr: &str) -> Result<String> {
     let mut p = Command::new("jconsole.sh")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
