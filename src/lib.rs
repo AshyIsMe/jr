@@ -1,4 +1,4 @@
-pub mod arrays;
+mod arrays;
 pub mod cells;
 mod empty;
 mod error;
@@ -11,7 +11,8 @@ mod verbs;
 #[cfg(feature = "ui")]
 mod plot;
 
-pub use arrays::*;
+// laziness
+pub use arrays::{Elem, IntoJArray, JArray, Word};
 pub use cells::flatten;
 pub use empty::HasEmpty;
 
