@@ -10,7 +10,8 @@ use num_traits::ToPrimitive;
 
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
-use crate::{Num, Word};
+use crate::number::Num;
+use crate::Word;
 
 #[derive(Clone, PartialEq)]
 pub enum JArray {

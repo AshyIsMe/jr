@@ -6,9 +6,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{
-    arr0d, impl_array, promote_to_array, Arrayable, IntoJArray, JArray, JError, Num, Word,
-};
+use crate::number::{promote_to_array, Num};
+use crate::{arr0d, impl_array, Arrayable, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;

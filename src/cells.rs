@@ -5,7 +5,8 @@ use itertools::Itertools;
 use log::debug;
 use num_traits::Zero;
 
-use crate::{promote_to_array, DyadRank, Elem, JArray, JError, Num, Rank, Word};
+use crate::number::{promote_to_array, Num};
+use crate::{DyadRank, Elem, JArray, JError, Rank, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()

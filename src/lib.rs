@@ -6,6 +6,7 @@ mod empty;
 mod error;
 pub mod eval;
 pub mod modifiers;
+mod number;
 pub mod scan;
 pub mod verbs;
 
