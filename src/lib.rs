@@ -62,7 +62,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "+." => primitive("+.", v_real_imaginary, v_gcd_or, (0, 0, 0)),
         "+:" => primitive("+:", v_double, v_not_or, (0, 0, 0)),
         "*" => primitive("*", v_signum, v_times, (0, 0, 0)),
-        "*." => primitive("*.", v_lengthangle, v_lcm_and, (0, 0, 0)),
+        "*." => primitive("*.", v_length_angle, v_lcm_and, (0, 0, 0)),
         "*:" => primitive("*:", v_square, v_not_and, (0, 0, 0)),
         "-" => primitive("-", v_negate, v_minus, (0, 0, 0)),
         "-." => primitive("-.", v_not, v_less, (0, inf, inf)),

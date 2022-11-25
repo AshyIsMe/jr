@@ -2,6 +2,36 @@ use anyhow::{Context, Result};
 
 use crate::{Elem, JArray, JError, Num, Word};
 
+/// monad, rank 0, num ->  num
+pub fn m0nn(y: &JArray, f: impl FnOnce(Num) -> Num) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("expecting a single number for 'y'")?;
+
+    Ok(Word::Noun(f(y).into()))
+}
+
+/// monad, rank 0, num -> result num
+pub fn m0nrn(y: &JArray, f: impl FnOnce(Num) -> Result<Num>) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("expecting a single number for 'y'")?;
+
+    Ok(Word::Noun(f(y)?.into()))
+}
+
+/// monad, rank 0, num -> jarray
+pub fn m0nj(y: &JArray, f: impl FnOnce(Num) -> JArray) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("expecting a single number for 'y'")?;
+
+    Ok(Word::Noun(f(y)))
+}
+
 /// rank: (0, 0), input: any Num, output: Result<Num>
 pub fn rank0(x: &JArray, y: &JArray, f: impl FnOnce(Num, Num) -> Result<Num>) -> Result<Word> {
     let x = x

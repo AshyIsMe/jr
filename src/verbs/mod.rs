@@ -6,19 +6,23 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
+use crate::{
+    arr0d, impl_array, promote_to_array, Arrayable, IntoJArray, JArray, JError, Num, Word,
+};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
+use num_traits::{FloatConst, Zero};
+use rand::prelude::*;
 
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
-use maff::{rank0, rank0eb};
+use maff::*;
 pub use ranks::Rank;
 
 #[derive(Copy, Clone)]
@@ -306,8 +310,21 @@ pub fn v_less_than(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// <. (monad)
-pub fn v_floor(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_floor(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nrn(y, |y| {
+        Ok(match y {
+            Bool(x) => Bool(x),
+            Int(x) => Int(x),
+            ExtInt(x) => ExtInt(x),
+            Rational(x) => Rational(x.floor()),
+            Float(x) => Num::float_or_int(x.floor()),
+            Complex(_) => {
+                return Err(JError::NonceError)
+                    .context("floor of a complex number is a complex subject")
+            }
+        })
+    })
 }
 /// <. (dyad)
 pub fn v_lesser_of_min(x: &JArray, y: &JArray) -> Result<Word> {
@@ -319,8 +336,8 @@ pub fn v_lesser_of_min(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// <: (monad)
-pub fn v_decrement(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_decrement(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| y - Num::one())
 }
 /// <: (dyad)
 pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -347,8 +364,21 @@ pub fn v_larger_than(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// >. (monad)
-pub fn v_ceiling(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_ceiling(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nrn(y, |y| {
+        Ok(match y {
+            Bool(x) => Bool(x),
+            Int(x) => Int(x),
+            ExtInt(x) => ExtInt(x),
+            Rational(x) => Rational(x.ceil()),
+            Float(x) => Num::float_or_int(x.ceil()),
+            Complex(_) => {
+                return Err(JError::NonceError)
+                    .context("ceil of a complex number is a complex subject")
+            }
+        })
+    })
 }
 /// >. (dyad)
 pub fn v_larger_of_max(x: &JArray, y: &JArray) -> Result<Word> {
@@ -361,11 +391,7 @@ pub fn v_larger_of_max(x: &JArray, y: &JArray) -> Result<Word> {
 
 /// >: (monad)
 pub fn v_increment(y: &JArray) -> Result<Word> {
-    let num = y
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("increment expects a single number")?;
-    Ok(Word::Noun((num + Num::one()).into()))
+    m0nn(y, |y| y + Num::one())
 }
 /// >: (dyad)
 pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -373,8 +399,12 @@ pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// + (monad)
-pub fn v_conjugate(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_conjugate(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nn(y, |y| match y {
+        Complex(c) => Complex(c.conj()),
+        other => other,
+    })
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
@@ -400,8 +430,8 @@ pub fn v_gcd_or(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// +: (monad)
-pub fn v_double(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_double(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| Num::Int(2) * y)
 }
 /// +: (dyad)
 pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
@@ -412,8 +442,22 @@ pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// * (monad)
-pub fn v_signum(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_signum(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nrn(y, |y| {
+        Ok(match y {
+            Complex(_) => {
+                return Err(JError::NonceError)
+                    .context("floor of a complex number is a complex subject")
+            }
+            // dumb, so dumb
+            n @ Bool(_) => n,
+            n if n < Num::zero() => Int(-1),
+            n if n.is_zero() => Int(0),
+            n if n > Num::zero() => Int(1),
+            _ => return Err(JError::NaNError).context("should be able to compare with zero"),
+        })
+    })
 }
 /// * (dyad)
 pub fn v_times(x: &JArray, y: &JArray) -> Result<Word> {
@@ -421,8 +465,22 @@ pub fn v_times(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// *. (monad)
-pub fn v_lengthangle(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_length_angle(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nj(y, |y| {
+        let pair = match y {
+            Complex(c) => {
+                let len = ((c.im * c.im) + (c.re * c.re)).sqrt();
+                let ang = (c.im / c.re).atan();
+                [len, ang]
+            }
+            other => [other.approx_f64().expect("complex covered above"), 0.],
+        };
+
+        pair.into_array()
+            .expect("infalliable for fixed arrays")
+            .into_jarray()
+    })
 }
 /// *. (dyad)
 pub fn v_lcm_and(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -431,13 +489,8 @@ pub fn v_lcm_and(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// *: (monad)
 pub fn v_square(y: &JArray) -> Result<Word> {
-    match y {
-        BoolArray(a) => Ok(Word::Noun(BoolArray(a.clone() * a.clone()))),
-        IntArray(a) => Ok(Word::Noun(IntArray(a.clone() * a.clone()))),
-        ExtIntArray(a) => Ok(Word::Noun(ExtIntArray(a.clone() * a.clone()))),
-        FloatArray(a) => Ok(Word::Noun(FloatArray(a.clone() * a.clone()))),
-        _ => Err(JError::DomainError.into()),
-    }
+    // TODO: not clone?
+    m0nn(y, |y| y.clone() * y)
 }
 /// *: (dyad)
 pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
@@ -835,12 +888,44 @@ pub fn v_format(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// ? (monad)
-pub fn v_roll(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_roll(y: &JArray) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .and_then(|v| v.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting zero or a positive integer")?;
+    let y = i64::try_from(y)
+        .map_err(|_| JError::DomainError)
+        .context("must fit in an int")?;
+    let mut rng = thread_rng();
+    Ok(Word::Noun(match y {
+        0 => JArray::from(rng.gen::<f64>()),
+        limit => JArray::from(rng.gen_range(0..limit)),
+    }))
 }
 /// ? (dyad)
-pub fn v_deal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_deal(x: &JArray, y: &JArray) -> Result<Word> {
+    let x = x
+        .single_math_num()
+        .and_then(|n| n.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting an usize-like x")?;
+    // going via. value_len to elide floats and ban negatives
+    let y = y
+        .single_math_num()
+        .and_then(|n| n.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting an usize-like y")?;
+    if x > y {
+        return Err(JError::DomainError).context("can't pick more items than we have");
+    }
+    let y = i64::try_from(y)
+        .map_err(|_| JError::DomainError)
+        .context("must fit in an int")?;
+    let mut rng = rand::thread_rng();
+    let mut chosen = (0..y).choose_multiple(&mut rng, x);
+    chosen.shuffle(&mut rng);
+    Ok(chosen.into_array()?.into_noun())
 }
 
 /// ?. (dyad)
@@ -947,8 +1032,8 @@ pub fn v_complex(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// o. (monad)
-pub fn v_pi_times(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_pi_times(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| y * Num::Float(f64::PI()))
 }
 /// o. (dyad)
 pub fn v_circle_function(_x: &JArray, _y: &JArray) -> Result<Word> {
