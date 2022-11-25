@@ -1,5 +1,5 @@
 mod arrays;
-pub mod cells;
+mod cells;
 mod empty;
 mod error;
 mod eval;
@@ -23,14 +23,15 @@ pub use crate::eval::eval;
 // e.g. cli syntax highlighting
 pub use scan::{scan, scan_with_locations};
 
-use modifiers::ModifierImpl;
-use verbs::VerbImpl;
-
 // TODO: helper function for tests, not really public
+pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
 pub use crate::verbs::Rank;
+
+use modifiers::ModifierImpl;
+use verbs::VerbImpl;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
