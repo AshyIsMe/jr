@@ -1109,3 +1109,15 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
         _ => Err(JError::DomainError).context("other modes do not exist"),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reshape_helper() {
+        let y = Array::from_elem(IxDyn(&[1]), 1);
+        let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
+        assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
+    }
+}

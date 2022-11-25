@@ -6,7 +6,8 @@ use log::debug;
 use num_traits::Zero;
 
 use crate::number::{promote_to_array, Num};
-use crate::{DyadRank, Elem, JArray, JError, Rank, Word};
+use crate::verbs::{DyadRank, Rank};
+use crate::{Elem, JArray, JError, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()

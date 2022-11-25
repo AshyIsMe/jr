@@ -6,7 +6,6 @@ use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
 use jr::{arr0d, collect_nouns, eval, resolve_names, scan, JArray, Rank, Word};
@@ -99,13 +98,6 @@ fn test_reshape() {
             Array::from_shape_vec(IxDyn(&[3, 2]), vec![0, 1, 2, 3, 0, 1]).unwrap()
         ))
     );
-}
-
-#[test]
-fn test_reshape_helper() {
-    let y = Array::from_elem(IxDyn(&[1]), 1);
-    let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
-    assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
 }
 
 #[test]

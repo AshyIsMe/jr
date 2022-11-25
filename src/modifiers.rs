@@ -1,9 +1,10 @@
 use std::iter;
 
-use crate::{exec_dyad, exec_monad, reduce_arrays, HasEmpty, JArray, JArrays, JError, Rank, Word};
-
 use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
+
+use crate::verbs::{exec_dyad, exec_monad, Rank};
+use crate::{reduce_arrays, HasEmpty, JArray, JArrays, JError, Word};
 
 // Implementations for Adverbs and Conjuntions
 // https://code.jsoftware.com/wiki/Vocabulary/Modifiers

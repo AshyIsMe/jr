@@ -8,7 +8,7 @@ pub mod eval;
 pub mod modifiers;
 mod number;
 pub mod scan;
-pub mod verbs;
+mod verbs;
 
 #[cfg(feature = "ui")]
 mod plot;
@@ -20,7 +20,11 @@ pub use error::JError;
 pub use eval::*;
 pub use modifiers::*;
 pub use scan::*;
-pub use verbs::*;
+
+// test only?
+pub use verbs::Rank;
+
+use verbs::VerbImpl;
 
 // TODO: helper function for tests, not really public
 pub use crate::scan::char_array;
