@@ -810,11 +810,26 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         Ordering::Equal => todo!("v_take(): return empty array of type y"),
                         Ordering::Less => {
                             // negative x (take from right)
-                            let i = arr.len_of(Axis(0)) - x.abs() as usize;
-                            debug!("i: {}", i);
-                            let ixs: Vec<usize> =
-                                (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                            arr.select(Axis(0), &ixs).into_owned().into_noun()
+                            if x.abs() == 1 {
+                                match arr.shape() {
+                                    [] => arr.clone().into_owned().into_noun(),
+                                    _ => {
+                                        let s = &arr.shape()[1..];
+                                        let i = arr.len_of(Axis(0)) - x.abs() as usize;
+                                        let ixs: Vec<usize> =
+                                            (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
+                                        arr.select(Axis(0), &ixs)
+                                            .into_shape(s)?
+                                            .into_owned()
+                                            .into_noun()
+                                    }
+                                }
+                            } else {
+                                let i = arr.len_of(Axis(0)) - x.abs() as usize;
+                                let ixs: Vec<usize> =
+                                    (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
+                                arr.select(Axis(0), &ixs).into_owned().into_noun()
+                            }
                         }
                         Ordering::Greater => {
                             if x == 1 {
@@ -842,8 +857,8 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// {: (monad)
-pub fn v_tail(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_tail(y: &JArray) -> Result<Word> {
+    v_take(&JArray::from(-1i64), y)
 }
 
 /// {:: (monad)

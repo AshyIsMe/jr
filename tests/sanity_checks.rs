@@ -666,3 +666,27 @@ fn test_take_framingfill() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_tail() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("{: 'abc'")?, &mut HashMap::new())?,
+        Word::from('c')
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: 1 2 3")?, &mut HashMap::new())?,
+        Word::from(3i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: i.2 3")?, &mut HashMap::new())?,
+        Word::noun([3i64, 4, 5])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: i.3 3")?, &mut HashMap::new())?,
+        Word::noun([6i64, 7, 8])?
+    );
+    Ok(())
+}
