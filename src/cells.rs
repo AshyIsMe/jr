@@ -148,7 +148,11 @@ pub fn flatten(
             if arr.shape() == target_inner_shape {
                 // TODO: don't clone
 
-                big_daddy.extend(arr.clone().into_nums()?);
+                big_daddy.extend(
+                    arr.clone()
+                        .into_nums()
+                        .ok_or_else(|| anyhow!("lazyness around nums / elems"))?,
+                );
                 continue;
             }
 
@@ -157,7 +161,11 @@ pub fn flatten(
                     let current = arr.shape()[0];
                     let target = target_inner_shape[0];
                     assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
-                    big_daddy.extend(arr.clone().into_nums()?);
+                    big_daddy.extend(
+                        arr.clone()
+                            .into_nums()
+                            .ok_or_else(|| anyhow!("lazyness around nums / elems"))?,
+                    );
                     for _ in current..target {
                         big_daddy.push(Num::Bool(0));
                     }

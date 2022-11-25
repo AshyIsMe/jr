@@ -1,3 +1,4 @@
+mod maff;
 mod ranks;
 
 use std::cmp::Ordering;
@@ -5,9 +6,7 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{
-    arr0d, impl_array, promote_to_array, ArrayPair, IntoJArray, JArray, JError, Num, Word,
-};
+use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
@@ -21,6 +20,7 @@ use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
+use maff::rank0;
 pub use ranks::Rank;
 
 #[derive(Copy, Clone)]
@@ -210,30 +210,6 @@ impl PartialEq for PrimitiveImpl {
     }
 }
 
-fn prohomo<'l, 'r>(x: &'l JArray, y: &'r JArray) -> Result<ArrayPair<'l, 'r>> {
-    //promote_homogenous:
-    //https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Automatic_Promotion_of_Argument_Precision
-    use ArrayPair::*;
-    Ok(match (x, y) {
-        (BoolArray(x), BoolArray(y)) => IntPair(x.cast()?.into(), y.cast()?.into()),
-        (BoolArray(x), IntArray(y)) => IntPair(x.cast()?.into(), y.into()),
-        (IntArray(x), BoolArray(y)) => IntPair(x.into(), y.cast()?.into()),
-        (BoolArray(x), FloatArray(y)) => FloatPair(x.cast()?.into(), y.into()),
-        (FloatArray(x), BoolArray(y)) => FloatPair(x.into(), y.cast()?.into()),
-
-        (IntArray(x), FloatArray(y)) => FloatPair(x.map(|i| *i as f64).into(), y.into()),
-        (FloatArray(x), IntArray(y)) => FloatPair(x.into(), y.map(|i| *i as f64).into()),
-
-        (CharArray(x), CharArray(y)) => {
-            IntPair(x.map(|&i| i as i64).into(), y.map(|&i| i as i64).into())
-        }
-        (IntArray(x), IntArray(y)) => IntPair(x.into(), y.into()),
-        (ExtIntArray(x), ExtIntArray(y)) => ExtIntPair(x.into(), y.into()),
-        (FloatArray(x), FloatArray(y)) => FloatPair(x.into(), y.into()),
-        _ => return Err(JError::DomainError).with_context(|| anyhow!("{x:?} {y:?}")),
-    })
-}
-
 pub trait ArrayUtil<A> {
     fn cast<T: From<A>>(&self) -> Result<ArrayD<T>>;
 }
@@ -324,7 +300,11 @@ pub fn v_box(y: &JArray) -> Result<Word> {
 }
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.lessthan()))
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) => Ok(Num::Bool(1)),
+        None => Err(JError::DomainError).context("non-comparable number"),
+        _ => Ok(Num::Bool(0)),
+    })
 }
 
 /// <. (monad)
@@ -332,8 +312,12 @@ pub fn v_floor(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// <. (dyad)
-pub fn v_lesser_of_min(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_lesser_of_min(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) | Some(Ordering::Equal) => Ok(x),
+        Some(Ordering::Greater) => Ok(y),
+        None => Err(JError::DomainError).context("non-comparable number"),
+    })
 }
 
 /// <: (monad)
@@ -356,8 +340,12 @@ pub fn v_open(y: &JArray) -> Result<Word> {
     }
 }
 /// > (dyad)
-pub fn v_larger_than(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_larger_than(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) => Ok(Num::Bool(1)),
+        None => Err(JError::DomainError).context("non-comparable number"),
+        _ => Ok(Num::Bool(0)),
+    })
 }
 
 /// >. (monad)
@@ -365,13 +353,21 @@ pub fn v_ceiling(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// >. (dyad)
-pub fn v_larger_of_max(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_larger_of_max(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) | Some(Ordering::Equal) => Ok(x),
+        Some(Ordering::Less) => Ok(y),
+        None => Err(JError::DomainError).context("non-comparable number"),
+    })
 }
 
 /// >: (monad)
-pub fn v_increment(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_increment(y: &JArray) -> Result<Word> {
+    let num = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("increment expects a single number")?;
+    Ok(Word::Noun((num + Num::one()).into()))
 }
 /// >: (dyad)
 pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -384,8 +380,7 @@ pub fn v_conjugate(_y: &JArray) -> Result<Word> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<Word> {
-    debug!("executing plus on {x:?} + {y:?}");
-    Ok(Word::Noun(prohomo(x, y)?.plus()))
+    rank0(x, y, |x, y| Ok(x + y))
 }
 
 /// +. (monad)
@@ -411,8 +406,11 @@ pub fn v_double(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// +: (dyad)
-pub fn v_not_or(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+        (Some(x), Some(y)) => Ok(Num::Bool(!(x || y) as u8)),
+        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+    })
 }
 
 /// * (monad)
@@ -421,7 +419,7 @@ pub fn v_signum(_y: &JArray) -> Result<Word> {
 }
 /// * (dyad)
 pub fn v_times(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.star()))
+    rank0(x, y, |x, y| Ok(x * y))
 }
 
 /// *. (monad)
@@ -444,8 +442,11 @@ pub fn v_square(y: &JArray) -> Result<Word> {
     }
 }
 /// *: (dyad)
-pub fn v_not_and(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+        (Some(x), Some(y)) => Ok(Num::Bool(!(x && y) as u8)),
+        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+    })
 }
 
 /// - (monad)
@@ -454,7 +455,7 @@ pub fn v_negate(_y: &JArray) -> Result<Word> {
 }
 /// - (dyad)
 pub fn v_minus(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.minus()))
+    rank0(x, y, |x, y| Ok(x - y))
 }
 
 /// -. (monad)
@@ -484,7 +485,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<Word> {
     let num = y
         .clone()
         .into_nums()
-        .map_err(|_| JError::DomainError)?
+        .ok_or_else(|| JError::DomainError)?
         .into_iter()
         .next()
         .expect("checked length");
@@ -501,7 +502,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<Word> {
 }
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(prohomo(x, y)?.slash()))
+    rank0(x, y, |x, y| Ok(x / y))
 }
 
 /// %. (monad)
@@ -519,6 +520,7 @@ pub fn v_square_root(_y: &JArray) -> Result<Word> {
 }
 /// %: (dyad)
 pub fn v_root(_x: &JArray, _y: &JArray) -> Result<Word> {
+    // weird promotion rules here; 2 %: 16 is 4. (float), 2x %: 16 is 4x (extended)
     Err(JError::NonceError.into())
 }
 
@@ -673,7 +675,11 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
             let repetitions = i.iter().copied().next().expect("checked");
             ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
             let mut output = Vec::new();
-            for item in y.clone().into_nums()? {
+            for item in y
+                .clone()
+                .into_nums()
+                .ok_or_else(|| anyhow!("lazyness around nums / elems"))?
+            {
                 for _ in 0..repetitions {
                     output.push(item.clone());
                 }
@@ -949,12 +955,17 @@ pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// j. (monad)
-pub fn v_imaginary(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_imaginary(y: &JArray) -> Result<Word> {
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("expecting a single number for 'y'")?;
+
+    Ok(Word::Noun((y * Num::i()).into()))
 }
 /// j. (dyad)
-pub fn v_complex(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_complex(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| Ok(x + (Num::i() * y)))
 }
 
 /// o. (monad)

@@ -89,25 +89,7 @@ fn test_agreement_4() -> Result<()> {
 
 #[test]
 fn test_agreement_plus_rank1() {
-    // 1 2 3 +"1 i.2 3
-    let x = array![1i64, 2, 3].into_dyn().into_noun();
-    let y =
-        Word::noun(Array::from_shape_vec(IxDyn(&[2, 3]), (0i64..6).collect()).unwrap()).unwrap();
-
-    use jr::verbs::*;
-
-    // +"1
-    let f = Word::Verb(
-        "+\"1".to_string(),
-        VerbImpl::Primitive(PrimitiveImpl::new(
-            "+",
-            v_conjugate,
-            v_plus,
-            (Rank::zero(), Rank::one(), Rank::one()),
-        )),
-    );
-
-    let words = vec![x, f, y];
+    let words = jr::scan("1 2 3 +\"1 i.2 3").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8])

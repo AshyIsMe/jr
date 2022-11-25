@@ -1,8 +1,9 @@
+extern crate core;
+
 pub mod arrays;
 pub mod cells;
 mod empty;
 mod error;
-use ndarray::{ArrayD, IxDyn};
 pub mod eval;
 pub mod modifiers;
 pub mod scan;

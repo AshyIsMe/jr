@@ -1,17 +1,15 @@
-use num::BigInt;
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Context, Result};
+use log::debug;
 use ndarray::prelude::*;
+use num::complex::Complex64;
+use num::{BigInt, BigRational};
 
 use jr::verbs::reshape;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{
-    arr0d, collect_nouns, eval, resolve_names, scan, IntoJArray, JArray, ModifierImpl, Rank,
-    VerbImpl, Word,
-};
-use log::debug;
+use jr::{arr0d, collect_nouns, eval, resolve_names, scan, JArray, Rank, Word};
 
 // AA TODO scan_eval and idot don't live here, was too lazy to get git to cherry pick nicely
 //use jr::test_impls::{idot, scan_eval};
@@ -20,6 +18,13 @@ pub fn scan_eval(sentence: &str) -> Result<Word> {
     debug!("tokens: {:?}", tokens);
     crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
 }
+
+pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
+    let sentence = sentence.as_ref();
+    scan_eval(sentence).expect("scan_eval_unwrap")
+}
+
+use scan_eval_unwrap as s;
 
 pub fn idot(s: &[usize]) -> JArray {
     let p = s.iter().map(|i| *i as i64).product();
@@ -440,6 +445,24 @@ fn test_unbox() {
 }
 
 #[test]
+fn test_increment() {
+    assert_eq!(s(">: 0"), Word::from(1i64));
+    assert_eq!(s(">: 1"), Word::from(2i64));
+    assert_eq!(s(">: 2"), Word::from(3i64));
+    assert_eq!(s(&format!(">: {}", i64::MAX - 1)), Word::from(i64::MAX));
+    assert_eq!(
+        s(&format!(">: {}", i64::MAX)),
+        Word::from((i64::MAX as f64) + 1.)
+    );
+    assert_eq!(
+        s(">: 5r11"),
+        Word::from(BigRational::new(16.into(), 11.into()))
+    );
+    assert_eq!(s(">: 2.7"), Word::from(3.7));
+    assert_eq!(s(">: 2j1"), Word::from(Complex64::new(3., 1.)));
+}
+
+#[test]
 fn test_link() {
     let mut names = HashMap::new();
     assert_eq!(
@@ -549,24 +572,7 @@ fn test_rank_conjunction_0_1() {
 #[test]
 fn test_agreement_plus_rank_0_1() {
     // Add each atom of x to each vector of y (same as test_rank_conjunction_0_1() but without the rank conjunction)
-    //    1 2 (+"0 1) 1 2 3
-    let x = array![1i64, 2].into_dyn().into_noun();
-    let y = Word::noun([1i64, 2, 3]).unwrap();
-
-    use jr::verbs::*;
-
-    // +"0 1
-    let f = Word::Verb(
-        "+\"0 1".to_string(),
-        VerbImpl::Primitive(PrimitiveImpl::new(
-            "+",
-            v_conjugate,
-            v_plus,
-            (Rank::zero(), Rank::zero(), Rank::one()),
-        )),
-    );
-
-    let words = vec![x, f, y];
+    let words = jr::scan("1 2 (+\"0 1) 1 2 3").unwrap();
     assert_eq!(
         jr::eval(words, &mut HashMap::new()).unwrap(),
         Noun(IntArray(
