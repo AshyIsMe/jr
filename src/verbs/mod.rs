@@ -790,16 +790,7 @@ pub fn v_from(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// {. (monad)
 pub fn v_head(y: &JArray) -> Result<Word> {
-    impl_array!(y, |arr: &ArrayD<_>| Ok(match arr.shape().len() {
-        0 => arr.clone().into_owned().into_noun(),
-        _ => {
-            let s = &arr.shape()[1..];
-            arr.slice_axis(Axis(0), Slice::from(..1usize))
-                .into_shape(IxDyn(s))?
-                .into_owned()
-                .into_noun()
-        }
-    }))
+    v_take(&JArray::from(1i64), y)
 }
 
 /// {. (dyad)
@@ -817,7 +808,14 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                     let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
                     Ok(match x.cmp(&0) {
                         Ordering::Equal => todo!("v_take(): return empty array of type y"),
-                        Ordering::Less => todo!("v_take(): negative x (take from right)"),
+                        Ordering::Less => {
+                            // negative x (take from right)
+                            let i = arr.len_of(Axis(0)) - x.abs() as usize;
+                            debug!("i: {}", i);
+                            let ixs: Vec<usize> =
+                                (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
+                            arr.select(Axis(0), &ixs).into_owned().into_noun()
+                        }
                         Ordering::Greater => {
                             if x == 1 {
                                 match arr.shape() {

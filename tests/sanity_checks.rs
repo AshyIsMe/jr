@@ -602,6 +602,11 @@ fn test_rank_conjunction_1_0() {
 #[test]
 fn test_head() -> Result<()> {
     assert_eq!(
+        jr::eval(jr::scan("{. 'abc'")?, &mut HashMap::new())?,
+        Word::from('a')
+    );
+
+    assert_eq!(
         jr::eval(jr::scan("{. 1 2 3")?, &mut HashMap::new())?,
         Word::from(1i64)
     );
@@ -641,6 +646,12 @@ fn test_take() -> Result<()> {
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
     );
+
+    assert_eq!(
+        jr::eval(jr::scan("_2 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([2i64, 3])?
+    );
+
     Ok(())
 }
 
