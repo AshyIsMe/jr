@@ -3,7 +3,7 @@ pub mod cells;
 mod empty;
 mod error;
 pub mod eval;
-pub mod modifiers;
+mod modifiers;
 mod number;
 mod scan;
 mod verbs;
@@ -16,18 +16,17 @@ pub use cells::flatten;
 pub use empty::HasEmpty;
 pub use error::JError;
 pub use eval::*;
-pub use modifiers::*;
 
 // e.g. cli syntax highlighting
 pub use scan::{scan, scan_with_locations};
 
-// test only?
-pub use verbs::Rank;
-
+use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
 // TODO: helper function for tests, not really public
+pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
+pub use crate::verbs::Rank;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;

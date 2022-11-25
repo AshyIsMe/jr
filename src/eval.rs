@@ -5,9 +5,10 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 
+use crate::error::JError;
+use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::Word::{self, *};
-use crate::{JError, ModifierImpl};
 
 pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word> {
     // Attempt to parse j properly as per the documentation here:
