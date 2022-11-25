@@ -30,5 +30,5 @@ pub fn rank0eb(x: &JArray, y: &JArray, f: impl FnOnce(Elem, Elem) -> bool) -> Re
         .context("expecting a single element for 'y'")?;
 
     let v = f(x, y);
-    Ok(Word::Noun(Num::Bool(v as u8).into()))
+    Ok(Word::Noun(Num::bool(v).into()))
 }

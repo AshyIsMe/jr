@@ -406,7 +406,7 @@ pub fn v_double(_y: &JArray) -> Result<Word> {
 /// +: (dyad)
 pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
-        (Some(x), Some(y)) => Ok(Num::Bool(!(x || y) as u8)),
+        (Some(x), Some(y)) => Ok(Num::bool(!(x || y))),
         _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
     })
 }
@@ -442,7 +442,7 @@ pub fn v_square(y: &JArray) -> Result<Word> {
 /// *: (dyad)
 pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
-        (Some(x), Some(y)) => Ok(Num::Bool(!(x && y) as u8)),
+        (Some(x), Some(y)) => Ok(Num::bool(!(x && y))),
         _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
     })
 }
