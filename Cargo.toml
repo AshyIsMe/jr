@@ -19,6 +19,7 @@ ndarray = "0.15.6"
 num = "0.4"
 num-traits = "0.2"
 ordered-float = "3"
+rand = "0.8"
 thiserror = "1"
 
 colored = { version = "2", optional = true }

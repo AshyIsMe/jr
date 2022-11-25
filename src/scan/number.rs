@@ -45,8 +45,29 @@ impl Num {
             Num::ExtInt(i) if i.is_one() => true,
             Num::ExtInt(i) if i.is_zero() => false,
             Num::ExtInt(_) => return None,
+            // TODO: this infinite loops, right
             other => return other.demote().value_bool(),
         })
+    }
+
+    /// the `usize` in the value, regardless of type
+    pub fn value_len(&self) -> Option<usize> {
+        use Num::*;
+        match self {
+            Bool(i) => i.to_usize(),
+            Int(i) => i.to_usize(),
+            ExtInt(i) => i.to_usize(),
+            // TODO: are these doing a reasonable thing?
+            Rational(f) => f.to_usize(),
+            Float(f) => f.to_usize(),
+            Complex(c) => {
+                if let Some(f) = complex_is_float(c) {
+                    Float(f).value_len()
+                } else {
+                    None
+                }
+            }
+        }
     }
 
     pub fn demote(self) -> Num {
@@ -83,6 +104,14 @@ fn float_is_zero(v: f64) -> bool {
 }
 
 const MAX_SAFE_INTEGER: f64 = 9007199254740991.;
+
+fn complex_is_float(c: &Complex64) -> Option<f64> {
+    if float_is_zero(c.im) {
+        Some(c.re)
+    } else {
+        None
+    }
+}
 
 fn float_is_int(v: f64) -> Option<i64> {
     if float_is_zero(v) {

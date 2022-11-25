@@ -6,12 +6,15 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{arr0d, impl_array, promote_to_array, IntoJArray, JArray, JError, Num, Word};
+use crate::{
+    arr0d, impl_array, promote_to_array, Arrayable, IntoJArray, JArray, JError, Num, Word,
+};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
+use rand::prelude::*;
 
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
@@ -839,8 +842,28 @@ pub fn v_roll(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// ? (dyad)
-pub fn v_deal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_deal(x: &JArray, y: &JArray) -> Result<Word> {
+    let x = x
+        .single_math_num()
+        .and_then(|n| n.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting an usize-like x")?;
+    // going via. value_len to elide floats and ban negatives
+    let y = y
+        .single_math_num()
+        .and_then(|n| n.value_len())
+        .ok_or(JError::DomainError)
+        .context("expecting an usize-like y")?;
+    if x > y {
+        return Err(JError::DomainError).context("can't pick more items than we have");
+    }
+    let y = i64::try_from(y)
+        .map_err(|_| JError::DomainError)
+        .context("must fit in an int")?;
+    let mut rng = rand::thread_rng();
+    let mut chosen = (0..y).choose_multiple(&mut rng, x);
+    chosen.shuffle(&mut rng);
+    Ok(chosen.into_array()?.into_noun())
 }
 
 /// ?. (dyad)
