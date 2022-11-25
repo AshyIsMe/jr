@@ -12,15 +12,13 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
-use num::complex::Complex64;
-use num::BigRational;
 
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::JError::DomainError;
 use JArray::*;
 use Word::*;
 
-use maff::rank0;
+use maff::{rank0, rank0eb};
 pub use ranks::Rank;
 
 #[derive(Copy, Clone)]
@@ -282,8 +280,8 @@ pub fn v_self_classify(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// = (dyad)
-pub fn v_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_equal(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0eb(x, y, |x, y| x == y)
 }
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
@@ -408,7 +406,7 @@ pub fn v_double(_y: &JArray) -> Result<Word> {
 /// +: (dyad)
 pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
-        (Some(x), Some(y)) => Ok(Num::Bool(!(x || y) as u8)),
+        (Some(x), Some(y)) => Ok(Num::bool(!(x || y))),
         _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
     })
 }
@@ -444,7 +442,7 @@ pub fn v_square(y: &JArray) -> Result<Word> {
 /// *: (dyad)
 pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
-        (Some(x), Some(y)) => Ok(Num::Bool(!(x && y) as u8)),
+        (Some(x), Some(y)) => Ok(Num::bool(!(x && y))),
         _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
     })
 }
@@ -478,27 +476,11 @@ pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// % (monad)
 pub fn v_reciprocal(y: &JArray) -> Result<Word> {
-    use num_traits::{One, ToPrimitive};
-
-    assert_eq!(&[] as &[usize], y.shape());
-    assert_eq!(1, y.len());
-    let num = y
-        .clone()
-        .into_nums()
-        .ok_or_else(|| JError::DomainError)?
-        .into_iter()
-        .next()
-        .expect("checked length");
-    let result = match num {
-        Num::Bool(i) => Num::Float(1. / (i as f64)),
-        Num::Int(i) => Num::Float(1. / (i as f64)),
-        Num::Float(i) => Num::Float(1. / i),
-
-        Num::ExtInt(i) => Num::Float(1. / i.to_f64().ok_or(JError::NaNError)?),
-        Num::Rational(i) => Num::Rational(BigRational::one() / i),
-        Num::Complex(i) => Num::Complex(Complex64::one() / i),
-    };
-    Ok(Word::Noun(promote_to_array(vec![result])?))
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("reciprocal expects a number")?;
+    Ok(Word::Noun((Num::one() / y).into()))
 }
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<Word> {
@@ -567,8 +549,8 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 /// ~: (dyad)
-pub fn v_not_equal(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not_equal(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0eb(x, y, |x, y| x != y)
 }
 
 /// | (monad)
@@ -675,11 +657,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
             let repetitions = i.iter().copied().next().expect("checked");
             ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
             let mut output = Vec::new();
-            for item in y
-                .clone()
-                .into_nums()
-                .ok_or_else(|| anyhow!("lazyness around nums / elems"))?
-            {
+            for item in y.clone().into_elems() {
                 for _ in 0..repetitions {
                     output.push(item.clone());
                 }

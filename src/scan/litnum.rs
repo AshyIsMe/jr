@@ -1,12 +1,13 @@
 use std::ops;
 
 use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
 use super::number::Num;
-use crate::{IntoJArray, JArray, Word};
+use crate::{Elem, IntoJArray, JArray, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let sentence = sentence
@@ -19,30 +20,52 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let parts = sentence
         .split_whitespace()
         .map(|term| scan_num_token(term).with_context(|| anyhow!("parsing {term:?}")))
+        .map_ok(|x| Elem::Num(x))
         .collect::<Result<Vec<_>>>()?;
 
     Ok((l, Word::Noun(promote_to_array(parts)?)))
 }
 
-pub fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
+pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
-    if parts.iter().any(|n| matches!(n, Num::Complex(_))) {
+    if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
+        return arrayise(parts.into_iter().map(|v| match v {
+            Elem::Boxed(b) => Ok(b),
+            _ => {
+                Err(JError::NonceError).context("TODO: unable to arrayise partially boxed content")
+            }
+        }));
+    } else if parts.iter().any(|n| matches!(n, Elem::Char(_))) {
+        arrayise(parts.into_iter().map(|v| match v {
+            Elem::Char(c) => Ok(c),
+            _ => Err(JError::NonceError).context("TODO: unable to arrayise partially char content"),
+        }))
+    } else if parts
+        .iter()
+        .any(|n| matches!(n, Elem::Num(Num::Complex(_))))
+    {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(i) => i,
                 other => Complex64::new(other.approx_f64().expect("covered above"), 0.),
             })
         }))
-    } else if parts.iter().any(|n| matches!(n, Num::Float(_))) {
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Float(_)))) {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) => unreachable!("covered by above cases"),
                 Num::Float(i) => i,
                 other => other.approx_f64().expect("covered above"),
             })
         }))
-    } else if parts.iter().any(|n| matches!(n, Num::Rational(_))) {
+    } else if parts
+        .iter()
+        .any(|n| matches!(n, Elem::Num(Num::Rational(_))))
+    {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
                 Num::Rational(i) => i,
@@ -51,8 +74,9 @@ pub fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
                 Num::Bool(i) => BigRational::new(i.into(), 1.into()),
             })
         }))
-    } else if parts.iter().any(|n| matches!(n, Num::ExtInt(_))) {
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::ExtInt(_)))) {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) => {
                     unreachable!("covered by above cases")
@@ -62,8 +86,9 @@ pub fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
                 Num::Bool(i) => i.into(),
             })
         }))
-    } else if parts.iter().any(|n| matches!(n, Num::Int(_))) {
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Int(_)))) {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) | Num::ExtInt(_) => {
                     unreachable!("covered by above cases")
@@ -74,6 +99,7 @@ pub fn promote_to_array(parts: Vec<Num>) -> Result<JArray> {
         }))
     } else {
         arrayise(parts.into_iter().map(|v| {
+            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_)
                 | Num::Float(_)

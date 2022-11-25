@@ -16,6 +16,14 @@ pub enum Num {
 }
 
 impl Num {
+    pub fn bool(val: bool) -> Num {
+        if val {
+            Num::Bool(1)
+        } else {
+            Num::Bool(0)
+        }
+    }
+
     pub fn approx_f64(&self) -> Option<f64> {
         Some(match self {
             Num::Bool(i) => *i as f64,
