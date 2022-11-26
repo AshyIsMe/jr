@@ -915,7 +915,6 @@ pub fn v_behead(y: &JArray) -> Result<Word> {
 }
 /// }. (dyad)
 pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
-    debug!("v_drop( {:?}, {:?} )", x, y);
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
         RationalArray(_) => Err(JError::DomainError.into()),
@@ -927,19 +926,16 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
             match xarr.shape().len() {
                 0 => impl_array!(y, |arr: &ArrayD<_>| {
                     let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
-                    debug!("x: {:?}, arr: {:?}", x, arr);
                     Ok(match x.cmp(&0) {
                         Ordering::Equal => arr.clone().into_owned().into_noun(),
                         Ordering::Less => {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4
-                            let new_x = x.abs();
-                            debug!("Less - new_x {}", new_x);
+                            let new_x = y.len_of(Axis(0)) as i64 - x.abs();
                             v_take(&JArray::from(new_x), y)?
                         }
                         Ordering::Greater => {
                             let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
-                            debug!("Greater - new_x {}", new_x);
                             if new_x < 0 {
                                 todo!("return empty array of type arr")
                             } else {

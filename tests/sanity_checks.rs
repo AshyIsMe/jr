@@ -442,6 +442,11 @@ fn test_drop() -> Result<()> {
         )?))
     );
 
+    assert_eq!(
+        jr::eval(jr::scan("_1 }. 'abc'")?, &mut HashMap::new())?,
+        Word::noun(['a', 'b'])?
+    );
+
     Ok(())
 }
 
