@@ -844,7 +844,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
     match x.len() {
         1 => {
             let x = x[0];
-            Ok(match x.cmp(&0) {
+            Ok(Word::Noun(match x.cmp(&0) {
                 Ordering::Equal => bail!("v_take(): return empty array of type y"),
                 Ordering::Less => {
                     // negative x (take from right)
@@ -852,19 +852,19 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         match y.shape() {
                             [] => {
                                 let s: Vec<usize> = vec![x.abs() as usize];
-                                Word::Noun(JArray::from(y.to_shape(s)?))
+                                JArray::from(y.to_shape(s)?)
                             }
                             _ => {
                                 let i = y.len_of(Axis(0)) - x.abs() as usize;
                                 let ixs: Vec<usize> =
                                     (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
-                                Word::Noun(y.select(Axis(0), &ixs))
+                                y.select(Axis(0), &ixs)
                             }
                         }
                     } else {
                         let i = y.len_of(Axis(0)) - x.abs() as usize;
                         let ixs: Vec<usize> = (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
-                        Word::Noun(y.select(Axis(0), &ixs))
+                        y.select(Axis(0), &ixs)
                     }
                 }
                 Ordering::Greater => {
@@ -872,16 +872,16 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         match y.shape() {
                             [] => {
                                 let s: Vec<usize> = vec![x as usize];
-                                Word::Noun(y.to_shape(s)?.into())
+                                y.to_shape(s)?.into()
                             }
-                            _ => Word::Noun(y.slice_axis(Axis(0), Slice::from(..1usize))),
+                            _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
                         }
                     } else {
                         let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
-                        Word::Noun(y.select(Axis(0), &ixs))
+                        y.select(Axis(0), &ixs)
                     }
                 }
-            })
+            }))
         }
         _ => Err(JError::LengthError)
             .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
