@@ -743,7 +743,9 @@ fn test_curtail() -> Result<()> {
 
     assert_eq!(
         jr::eval(jr::scan("}: i.2 3")?, &mut HashMap::new())?,
-        Word::noun([0i64, 1, 2])?
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[1, 3]), vec![0, 1, 2]).unwrap(),
+        ))
     );
 
     assert_eq!(
