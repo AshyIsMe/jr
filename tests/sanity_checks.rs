@@ -665,7 +665,6 @@ fn test_take() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_take_agreement() -> Result<()> {
     assert_eq!(
         jr::eval(jr::scan("(2 1 $ 2) {. 'abcdef'")?, &mut HashMap::new())?,
