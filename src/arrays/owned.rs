@@ -3,7 +3,7 @@ use std::{fmt, iter};
 use anyhow::Result;
 use log::debug;
 use ndarray::prelude::*;
-use ndarray::IntoDimension;
+use ndarray::{IntoDimension, Slice};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
@@ -58,6 +58,21 @@ macro_rules! impl_array {
     };
 }
 
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray(a) => JArray::BoolArray($func(a)),
+            JArray::CharArray(a) => JArray::CharArray($func(a)),
+            JArray::IntArray(a) => JArray::IntArray($func(a)),
+            JArray::ExtIntArray(a) => JArray::ExtIntArray($func(a)),
+            JArray::RationalArray(a) => JArray::RationalArray($func(a)),
+            JArray::FloatArray(a) => JArray::FloatArray($func(a)),
+            JArray::ComplexArray(a) => JArray::ComplexArray($func(a)),
+            JArray::BoxArray(a) => JArray::BoxArray($func(a)),
+        }
+    };
+}
+
 impl JArray {
     pub fn len(&self) -> usize {
         impl_array!(self, |a: &ArrayBase<_, _>| {
@@ -74,6 +89,17 @@ impl JArray {
 
     pub fn shape<'s>(&'s self) -> &[usize] {
         impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
+    }
+
+    pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
+        map_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix))
+    }
+
+    // TODO: CoW
+    pub fn slice_axis(&self, axis: Axis, slice: Slice) -> JArray {
+        map_array!(self, |a: &ArrayBase<_, _>| a
+            .slice_axis(axis, slice)
+            .to_owned())
     }
 
     pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow> {

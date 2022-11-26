@@ -47,17 +47,20 @@ impl Num {
     }
 
     /// true if the value looks like a 1, regardless of type; false if it looks like a 0
-    pub fn value_bool(self) -> Option<bool> {
+    pub fn value_bool(&self) -> Option<bool> {
+        use Num::*;
         Some(match self {
-            Num::Bool(i) => i == 1,
-            Num::Int(i) if i == 1 => true,
-            Num::Int(i) if i == 0 => false,
-            Num::Int(_) => return None,
-            Num::ExtInt(i) if i.is_one() => true,
-            Num::ExtInt(i) if i.is_zero() => false,
-            Num::ExtInt(_) => return None,
-            // TODO: this infinite loops, right
-            other => return other.demote().value_bool(),
+            Bool(i) => *i == 1,
+            Int(i) if *i == 1 => true,
+            Int(i) if *i == 0 => false,
+            Int(_) => return None,
+            ExtInt(i) if i.is_one() => true,
+            ExtInt(i) if i.is_zero() => false,
+            ExtInt(_) => return None,
+            // moderately inefficient, but this is mostsly only used on small lists?
+            Float(f) => return float_is_int(*f).and_then(|i| Int(i).value_bool()),
+            Rational(r) => return r.to_f64().and_then(|f| Float(f).value_bool()),
+            Complex(c) => return complex_is_float(&c).and_then(|f| Float(f).value_bool()),
         })
     }
 
@@ -68,16 +71,25 @@ impl Num {
             Bool(i) => i.to_usize(),
             Int(i) => i.to_usize(),
             ExtInt(i) => i.to_usize(),
-            // TODO: are these doing a reasonable thing?
-            Rational(f) => f.to_usize(),
-            Float(f) => f.to_usize(),
-            Complex(c) => {
-                if let Some(f) = complex_is_float(c) {
-                    Float(f).value_len()
-                } else {
-                    None
-                }
-            }
+            Rational(f) => f.to_f64().and_then(|f| Float(f).value_len()),
+            Float(f) if *f < 0. => None,
+            Float(f) => float_is_int(*f).and_then(|i| usize::try_from(i).ok()),
+            Complex(c) => complex_is_float(c).and_then(|f| Float(f).value_len()),
+        }
+    }
+
+    /// the `i64` in the value, regardless of typ
+    pub fn value_i64(&self) -> Option<i64> {
+        use Num::*;
+        match self {
+            Bool(i) => Some(i64::from(*i)),
+            Int(i) => Some(*i),
+            ExtInt(i) => i.to_i64(),
+            Float(f) => float_is_int(*f),
+
+            // rational.to_i64 truncates
+            Rational(f) => f.to_f64().and_then(|f| Float(f).value_i64()),
+            Complex(c) => complex_is_float(c).and_then(|f| Float(f).value_i64()),
         }
     }
 

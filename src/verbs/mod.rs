@@ -11,6 +11,7 @@ use crate::number::{promote_to_array, Num};
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
+use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
@@ -824,63 +825,62 @@ pub fn v_head(y: &JArray) -> Result<Word> {
 
 /// {. (dyad)
 pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
-    match x {
-        CharArray(_) => Err(JError::DomainError.into()),
-        RationalArray(_) => Err(JError::DomainError.into()),
-        FloatArray(_) => Err(JError::DomainError.into()),
-        ComplexArray(_) => Err(JError::DomainError.into()),
-        BoxArray(_) => Err(JError::DomainError.into()),
+    assert!(
+        x.shape().len() <= 1,
+        "agreement guarantee x: {:?}",
+        x.shape()
+    );
 
-        _ => impl_array!(x, |xarr: &ArrayD<_>| {
-            match xarr.shape().len() {
-                0 => impl_array!(y, |arr: &ArrayD<_>| {
-                    let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
-                    Ok(match x.cmp(&0) {
-                        Ordering::Equal => todo!("v_take(): return empty array of type y"),
-                        Ordering::Less => {
-                            // negative x (take from right)
-                            if x.abs() == 1 {
-                                match arr.shape() {
-                                    [] => {
-                                        let s: Vec<usize> = vec![x.abs() as usize];
-                                        arr.clone().into_shape(s)?.into_owned().into_noun()
-                                    }
-                                    _ => {
-                                        let i = arr.len_of(Axis(0)) - x.abs() as usize;
-                                        let ixs: Vec<usize> =
-                                            (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                                        arr.select(Axis(0), &ixs).into_owned().into_noun()
-                                    }
-                                }
-                            } else {
-                                let i = arr.len_of(Axis(0)) - x.abs() as usize;
-                                let ixs: Vec<usize> =
-                                    (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                                arr.select(Axis(0), &ixs).into_owned().into_noun()
-                            }
+    let x = x
+        .clone()
+        .into_nums()
+        .ok_or(JError::DomainError)
+        .context("take expecting numeric x")?
+        .into_iter()
+        .map(|n| n.value_i64())
+        .collect::<Option<Vec<i64>>>()
+        .ok_or(JError::DomainError)
+        .context("takee expecting integer-like x")?;
+
+    match x.len() {
+        1 => {
+            let x = x[0];
+            Ok(Word::Noun(match x.cmp(&0) {
+                Ordering::Equal => bail!("v_take(): return empty array of type y"),
+                Ordering::Less => {
+                    // negative x (take from right)
+                    let x = usize::try_from(x.abs())
+                        .map_err(|_| JError::NaNError)
+                        .context("offset doesn't fit in memory")?;
+                    let y_len_zero = y.len_of(Axis(0));
+
+                    if x == 1 {
+                        match y.shape() {
+                            [] => JArray::from(y.to_shape(vec![x])?),
+                            _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                         }
-                        Ordering::Greater => {
-                            if x == 1 {
-                                match arr.shape() {
-                                    [] => {
-                                        let s: Vec<usize> = vec![x as usize];
-                                        arr.clone().into_shape(s)?.into_owned().into_noun()
-                                    }
-                                    _ => arr
-                                        .slice_axis(Axis(0), Slice::from(..1usize))
-                                        .into_owned()
-                                        .into_noun(),
-                                }
-                            } else {
-                                let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
-                                arr.select(Axis(0), &ixs).into_owned().into_noun()
-                            }
+                    } else {
+                        y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
+                    }
+                }
+                Ordering::Greater => {
+                    let x = usize::try_from(x)
+                        .map_err(|_| JError::NaNError)
+                        .context("offset doesn't fit in memory")?;
+
+                    if x == 1 {
+                        match y.shape() {
+                            [] => y.to_shape(vec![x])?.into(),
+                            _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
                         }
-                    })
-                }),
-                _ => Err(JError::LengthError.into()),
-            }
-        }),
+                    } else {
+                        y.select(Axis(0), &(0..x).collect_vec())
+                    }
+                }
+            }))
+        }
+        _ => Err(JError::LengthError)
+            .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
     }
 }
 
