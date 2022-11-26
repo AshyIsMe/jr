@@ -172,19 +172,7 @@ impl JArray {
     }
 
     pub fn into_elems(self) -> Vec<Elem> {
-        use JArray::*;
-        // don't understand why the macro won't work here
-        // Ok(impl_array!(self, |a: ArrayD<_>| a.into_iter().map(|v| v.into()).collect()))
-        match self {
-            BoolArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            CharArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            IntArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            ExtIntArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            RationalArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            BoxArray(a) => a.into_iter().map(|v| v.into()).collect(),
-        }
+        impl_array!(self, |a: ArrayD<_>| a.into_iter().map(Elem::from).collect())
     }
 
     pub fn into_nums(self) -> Option<Vec<Num>> {
