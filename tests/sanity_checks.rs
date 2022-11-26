@@ -429,22 +429,18 @@ fn test_behead() -> Result<()> {
 fn test_drop() -> Result<()> {
     //    2 }. 5 6 7
     // 7
-    println!("2 }}. 5 6 7");
     assert_eq!(
         jr::eval(jr::scan("2 }. 5 6 7")?, &mut HashMap::new())?,
         Word::noun([7i64])?
     );
 
-    println!("2 }}. i.3 3");
-    let res = jr::eval(jr::scan("2 }. i.3 3")?, &mut HashMap::new())?;
-    println!("res: {}", res);
-    let expected = Word::Noun(JArray::IntArray(Array::from_shape_vec(
-        IxDyn(&[1, 2]),
-        [6, 7, 8].to_vec(),
-    )?));
-    println!("expected: {}", expected);
-    assert_eq!(res, expected);
-    println!("done???");
+    assert_eq!(
+        jr::eval(jr::scan("2 }. i.3 3")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[1, 3]),
+            [6, 7, 8].to_vec()
+        )?))
+    );
 
     Ok(())
 }
