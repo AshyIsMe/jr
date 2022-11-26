@@ -682,6 +682,19 @@ fn test_take() -> Result<()> {
 
 #[test]
 #[ignore]
+fn test_take_agreement() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("(2 1 $ 2) {. 'abcdef'")?, &mut HashMap::new())?,
+        Noun(CharArray(
+            Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'a', 'b']).unwrap(),
+        ))
+    );
+
+    Ok(())
+}
+
+#[test]
+#[ignore]
 fn test_take_framingfill() -> Result<()> {
     // TODO Fix Framing Fill here
     assert_eq!(
