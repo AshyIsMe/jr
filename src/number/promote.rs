@@ -11,12 +11,12 @@ use crate::error::JError;
 pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
-        return arrayise(parts.into_iter().map(|v| match v {
+        arrayise(parts.into_iter().map(|v| match v {
             Elem::Boxed(b) => Ok(b),
             _ => {
                 Err(JError::NonceError).context("TODO: unable to arrayise partially boxed content")
             }
-        }));
+        }))
     } else if parts.iter().any(|n| matches!(n, Elem::Char(_))) {
         arrayise(parts.into_iter().map(|v| match v {
             Elem::Char(c) => Ok(c),

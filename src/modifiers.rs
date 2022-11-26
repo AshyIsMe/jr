@@ -25,7 +25,7 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec<'a>(&'a self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    pub fn exec(&self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
         match self {
             ModifierImpl::NotImplemented => a_not_implemented(x, u, y),
             ModifierImpl::Slash => a_slash(x, u, y),
@@ -105,7 +105,7 @@ pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
 
 fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
     // TODO: this special cases the atom/scalar case, as the reshape algorithm mangles it
-    if arr.len() == 1 && arr[0].shape() == [] {
+    if arr.len() == 1 && arr[0].shape().is_empty() {
         return Ok(arr[0].to_owned());
     }
     let cell_shape = arr
@@ -167,10 +167,8 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     y,
                 )
                 .context("dyadic rank drifting"),
-                _ => {
-                    return Err(JError::NonceError)
-                        .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}"))
-                }
+                _ => Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
             }
         }
         _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),

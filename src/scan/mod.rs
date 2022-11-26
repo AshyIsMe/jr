@@ -121,7 +121,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
             l,
             Noun(CharArray(ArrayD::from_elem(
                 IxDyn(&[]),
-                s.chars().nth(0).unwrap(),
+                s.chars().next().unwrap(),
             ))),
         ))
     } else {
@@ -179,14 +179,14 @@ fn identify_primitive(sentence: &str) -> usize {
 }
 
 fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
-    Ok(Some(if let Some(n) = primitive_nouns(&sentence) {
+    Ok(Some(if let Some(n) = primitive_nouns(sentence) {
         n
-    } else if let Some(v) = primitive_verbs(&sentence) {
+    } else if let Some(v) = primitive_verbs(sentence) {
         Word::Verb(sentence.to_string(), v)
     } else if let Some(a) = primitive_adverbs(sentence) {
-        Word::Adverb(sentence.to_string(), a.clone())
+        Word::Adverb(sentence.to_string(), a)
     } else if let Some(c) = primitive_conjunctions(sentence) {
-        Word::Conjunction(sentence.to_string(), c.clone())
+        Word::Conjunction(sentence.to_string(), c)
     } else {
         match sentence {
             "=:" => Word::IsGlobal,

@@ -128,7 +128,7 @@ impl Hinter for DIYHinter {
         };
 
         let mut helped = HashSet::with_capacity(4);
-        let mut it = v.into_iter().rev().flat_map(|w| match w {
+        let it = v.into_iter().rev().flat_map(|w| match w {
             Word::Verb(token, _) if helped.insert(token.clone()) => {
                 help(&token).into_iter().collect()
             }
@@ -140,7 +140,7 @@ impl Hinter for DIYHinter {
 
         let mut buf = String::with_capacity(64);
 
-        while let Some(word) = it.next() {
+        for word in it {
             if buf.len() > 70 {
                 break;
             }

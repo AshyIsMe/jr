@@ -68,7 +68,7 @@ impl<'v> JArrayCow<'v> {
     pub fn outer_iter(&'v self) -> Vec<Self> {
         impl_array!(self, |x: &'v ArrayBase<_, _>| x
             .outer_iter()
-            .map(|x| Self::from(x))
+            .map(Self::from)
             .collect())
     }
 
@@ -86,8 +86,8 @@ impl<'v> JArrayCow<'v> {
             IntArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
             ExtIntArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
             RationalArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
-            FloatArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
-            ComplexArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            FloatArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
+            ComplexArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
             BoxArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
         }
     }

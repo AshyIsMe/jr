@@ -333,7 +333,7 @@ pub fn v_extend_precision(_y: &JArray) -> Result<Word> {
 }
 /// x: (dyad)
 pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
-    if x.shape() != [] {
+    if !x.shape().is_empty() {
         return Err(JError::RankError).context("num denum requires atomic x");
     }
     let mode = match x.to_i64() {

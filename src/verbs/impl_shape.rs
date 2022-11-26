@@ -153,7 +153,7 @@ pub fn v_head(y: &JArray) -> Result<Word> {
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
     match res {
         Noun(a) => {
-            if a.shape().len() > 0 {
+            if !a.shape().is_empty() {
                 let s = &a.shape()[1..];
                 Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
             } else {
@@ -233,7 +233,7 @@ pub fn v_tail(y: &JArray) -> Result<Word> {
     // 3  NB. atom not a single element list
     match res {
         Noun(a) => {
-            if a.shape().len() > 0 {
+            if !a.shape().is_empty() {
                 let s = &a.shape()[1..];
                 Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
             } else {
@@ -288,7 +288,7 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
                             if new_x < 0 {
                                 todo!("return empty array of type arr")
                             } else {
-                                v_take(&JArray::from(new_x * -1), y)?
+                                v_take(&JArray::from(-new_x), y)?
                             }
                         }
                     })

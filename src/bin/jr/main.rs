@@ -53,7 +53,7 @@ fn eval(buffer: &str, names: &mut HashMap<String, Word>) -> Result<bool> {
         return Ok(true);
     }
 
-    match scan_eval(&buffer, names) {
+    match scan_eval(buffer, names) {
         //Ok(output) => println!("{:?}", output),
         Ok(output) => println!("{}", output),
         Err(e) => {
