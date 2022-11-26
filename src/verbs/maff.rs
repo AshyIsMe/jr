@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 
-use crate::{Elem, JArray, JError, Num, Word};
+use crate::number::Num;
+use crate::{Elem, JArray, JError, Word};
 
 /// monad, rank 0, num ->  num
 pub fn m0nn(y: &JArray, f: impl FnOnce(Num) -> Num) -> Result<Word> {

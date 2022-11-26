@@ -6,9 +6,9 @@ use std::fmt;
 use std::fmt::Debug;
 use std::ops::Deref;
 
-use crate::{
-    arr0d, impl_array, promote_to_array, Arrayable, IntoJArray, JArray, JError, Num, Word,
-};
+use crate::arrays::Arrayable;
+use crate::number::{promote_to_array, Num};
+use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
@@ -1182,5 +1182,17 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
         1 => Err(JError::NonceError).context("mode one unimplemented"),
         x if x < 0 => Err(JError::NonceError).context("negative modes unimplemented"),
         _ => Err(JError::DomainError).context("other modes do not exist"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reshape_helper() {
+        let y = Array::from_elem(IxDyn(&[1]), 1);
+        let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
+        assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
     }
 }

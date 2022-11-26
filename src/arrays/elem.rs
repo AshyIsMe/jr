@@ -1,6 +1,8 @@
-use crate::{Num, Word};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
+
+use crate::arrays::Word;
+use crate::number::Num;
 
 #[derive(Clone, Debug)]
 pub enum Elem {

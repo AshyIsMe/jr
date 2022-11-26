@@ -1,28 +1,37 @@
-extern crate core;
-
-pub mod arrays;
-pub mod cells;
+mod arrays;
+mod cells;
 mod empty;
 mod error;
-pub mod eval;
-pub mod modifiers;
-pub mod scan;
-pub mod verbs;
+mod eval;
+mod modifiers;
+mod number;
+mod scan;
+mod verbs;
 
 #[cfg(feature = "ui")]
 mod plot;
 
-pub use arrays::*;
+// laziness
+pub use arrays::{Elem, IntoJArray, JArray, Word};
 pub use cells::flatten;
 pub use empty::HasEmpty;
-pub use error::JError;
-pub use eval::*;
-pub use modifiers::*;
-pub use scan::*;
-pub use verbs::*;
+
+// public API
+pub use crate::error::JError;
+pub use crate::eval::eval;
+
+// e.g. cli syntax highlighting
+pub use scan::{scan, scan_with_locations};
 
 // TODO: helper function for tests, not really public
+pub use crate::cells::generate_cells;
+pub use crate::eval::resolve_names;
+pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
+pub use crate::verbs::Rank;
+
+use modifiers::ModifierImpl;
+use verbs::VerbImpl;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;

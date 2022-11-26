@@ -1,5 +1,4 @@
 mod litnum;
-mod number;
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
@@ -14,9 +13,6 @@ use JArray::*;
 use Word::*;
 
 type Pos = (usize, usize);
-
-pub use litnum::promote_to_array;
-pub use number::Num;
 
 pub fn scan(sentence: &str) -> Result<Vec<Word>> {
     Ok(scan_with_locations(sentence)?
@@ -201,8 +197,8 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 
 #[cfg(test)]
 mod tests {
+    use super::{scan, Word};
     use crate::scan::identify_primitive;
-    use crate::{scan, Word};
 
     fn ident(sentence: &str) -> usize {
         // oh god please

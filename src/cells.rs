@@ -5,7 +5,9 @@ use itertools::Itertools;
 use log::debug;
 use num_traits::Zero;
 
-use crate::{promote_to_array, DyadRank, Elem, JArray, JError, Num, Rank, Word};
+use crate::number::{promote_to_array, Num};
+use crate::verbs::{DyadRank, Rank};
+use crate::{Elem, JArray, JError, Word};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -284,7 +286,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_gen_macrocells_hash() -> Result<()> {
         let x = array![24i64, 60, 61].into_dyn().into_jarray();
         let y = array![1800i64, 7200].into_dyn().into_jarray();
@@ -295,6 +296,19 @@ mod tests {
                 array![24i64, 60, 61].into_dyn().into_jarray(),
                 array![1800i64, 7200].into_dyn().into_jarray()
             )]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn monadic_apply() -> Result<()> {
+        let y = array![2i64, 3].into_dyn().into_jarray();
+        let (cells, _) = monad_cells(&y, Rank::one())?;
+        assert_eq!(cells, vec![y.clone()],);
+
+        assert_eq!(
+            monad_apply(&[y.clone()], |y| Ok(y.clone()))?,
+            vec![y.clone()],
         );
         Ok(())
     }

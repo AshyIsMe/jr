@@ -5,8 +5,7 @@ use std::process::{Command, Stdio};
 use anyhow::{anyhow, bail, Context, Result};
 use log::debug;
 
-use jr::cells::generate_cells;
-use jr::{JArray, Rank, Word};
+use jr::{generate_cells, JArray, Rank, Word};
 
 fn main() -> Result<()> {
     env_logger::init();
