@@ -824,6 +824,12 @@ pub fn v_head(y: &JArray) -> Result<Word> {
 
 /// {. (dyad)
 pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
+    assert!(
+        x.shape().len() <= 1,
+        "agreement guarantee x: {:?}",
+        x.shape()
+    );
+
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
         RationalArray(_) => Err(JError::DomainError.into()),
@@ -878,7 +884,9 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         }
                     })
                 }),
-                _ => Err(JError::LengthError.into()),
+                _ => Err(JError::LengthError).with_context(|| {
+                    anyhow!("expected an atomic x, got a shape of {:?}", xarr.shape())
+                }),
             }
         }),
     }
