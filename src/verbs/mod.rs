@@ -842,51 +842,47 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
         .context("takee expecting integer-like x")?;
 
     match x.len() {
-        1 => impl_array!(y, |arr: &ArrayD<_>| {
+        1 => {
             let x = x[0];
             Ok(match x.cmp(&0) {
                 Ordering::Equal => bail!("v_take(): return empty array of type y"),
                 Ordering::Less => {
                     // negative x (take from right)
                     if x.abs() == 1 {
-                        match arr.shape() {
+                        match y.shape() {
                             [] => {
                                 let s: Vec<usize> = vec![x.abs() as usize];
-                                arr.clone().into_shape(s)?.into_owned().into_noun()
+                                Word::Noun(JArray::from(y.to_shape(s)?))
                             }
                             _ => {
-                                let i = arr.len_of(Axis(0)) - x.abs() as usize;
+                                let i = y.len_of(Axis(0)) - x.abs() as usize;
                                 let ixs: Vec<usize> =
-                                    (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                                arr.select(Axis(0), &ixs).into_owned().into_noun()
+                                    (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
+                                Word::Noun(y.select(Axis(0), &ixs))
                             }
                         }
                     } else {
-                        let i = arr.len_of(Axis(0)) - x.abs() as usize;
-                        let ixs: Vec<usize> =
-                            (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                        arr.select(Axis(0), &ixs).into_owned().into_noun()
+                        let i = y.len_of(Axis(0)) - x.abs() as usize;
+                        let ixs: Vec<usize> = (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
+                        Word::Noun(y.select(Axis(0), &ixs))
                     }
                 }
                 Ordering::Greater => {
                     if x == 1 {
-                        match arr.shape() {
+                        match y.shape() {
                             [] => {
                                 let s: Vec<usize> = vec![x as usize];
-                                arr.clone().into_shape(s)?.into_owned().into_noun()
+                                Word::Noun(y.to_shape(s)?.into())
                             }
-                            _ => arr
-                                .slice_axis(Axis(0), Slice::from(..1usize))
-                                .into_owned()
-                                .into_noun(),
+                            _ => Word::Noun(y.slice_axis(Axis(0), Slice::from(..1usize))),
                         }
                     } else {
                         let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
-                        arr.select(Axis(0), &ixs).into_owned().into_noun()
+                        Word::Noun(y.select(Axis(0), &ixs))
                     }
                 }
             })
-        }),
+        }
         _ => Err(JError::LengthError)
             .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
     }
