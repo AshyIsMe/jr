@@ -11,6 +11,8 @@ mod verbs;
 #[cfg(feature = "ui")]
 mod plot;
 
+pub mod test_impls;
+
 // laziness
 pub use arrays::{Elem, IntoJArray, JArray, Word};
 pub use cells::flatten;
@@ -75,7 +77,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "*:" => primitive("*:", v_square, v_not_and, (0, 0, 0)),
         "-" => primitive("-", v_negate, v_minus, (0, 0, 0)),
         "-." => primitive("-.", v_not, v_less, (0, inf, inf)),
-        "-:" => primitive("-:", v_halve, v_match, (inf, inf, 0)),
+        "-:" => primitive("-:", v_halve, v_match, (0, inf, inf)),
         "%" => primitive("%", v_reciprocal, v_divide, (0, 0, 0)),
         "%." => primitive("%.", v_matrix_inverse, v_matrix_divide, (2, inf, 2)),
         "%:" => primitive("%:", v_square_root, v_root, (0, 0, 0)),

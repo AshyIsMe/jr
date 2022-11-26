@@ -14,6 +14,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
+use num::complex::Complex64;
 use num_traits::{FloatConst, Zero};
 use rand::prelude::*;
 
@@ -437,7 +438,7 @@ pub fn v_double(y: &JArray) -> Result<Word> {
 pub fn v_not_or(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
         (Some(x), Some(y)) => Ok(Num::bool(!(x || y))),
-        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+        _ => Err(JError::DomainError).context("boolean operators only accept zeros and ones"),
     })
 }
 
@@ -448,7 +449,7 @@ pub fn v_signum(y: &JArray) -> Result<Word> {
         Ok(match y {
             Complex(_) => {
                 return Err(JError::NonceError)
-                    .context("floor of a complex number is a complex subject")
+                    .context("sign of a complex number is a complex subject")
             }
             // dumb, so dumb
             n @ Bool(_) => n,
@@ -496,13 +497,13 @@ pub fn v_square(y: &JArray) -> Result<Word> {
 pub fn v_not_and(x: &JArray, y: &JArray) -> Result<Word> {
     rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
         (Some(x), Some(y)) => Ok(Num::bool(!(x && y))),
-        _ => Err(JError::DomainError).context("boolean operators only except zeros and ones"),
+        _ => Err(JError::DomainError).context("boolean operators only accept zeros and ones"),
     })
 }
 
 /// - (monad)
-pub fn v_negate(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_negate(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| Num::zero() - y)
 }
 /// - (dyad)
 pub fn v_minus(x: &JArray, y: &JArray) -> Result<Word> {
@@ -510,8 +511,13 @@ pub fn v_minus(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// -. (monad)
-pub fn v_not(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_not(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nn(y, |y| match y {
+        Bool(x) if x == 0 => Bool(1),
+        Bool(x) if x == 1 => Bool(0),
+        other => Num::one() - other,
+    })
 }
 /// -. (dyad)
 pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -519,8 +525,8 @@ pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// -: (monad)
-pub fn v_halve(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_halve(y: &JArray) -> Result<Word> {
+    m0nn(y, |y| y / Num::Int(2))
 }
 /// -: (dyad)
 pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
@@ -550,8 +556,19 @@ pub fn v_matrix_divide(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// %: (monad)
-pub fn v_square_root(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_square_root(y: &JArray) -> Result<Word> {
+    use Num::*;
+    m0nrn(y, |y| {
+        if let Some(f) = y.approx_f64() {
+            if f >= 0. {
+                Ok(Float(f.sqrt()))
+            } else {
+                Ok(Complex(Complex64::new(0., (-f).sqrt())))
+            }
+        } else {
+            Err(JError::NonceError).context("square roots of complex numbers is a complex subject")
+        }
+    })
 }
 /// %: (dyad)
 pub fn v_root(_x: &JArray, _y: &JArray) -> Result<Word> {

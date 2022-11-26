@@ -25,7 +25,7 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     Ok((l, Word::Noun(promote_to_array(parts)?)))
 }
 
-fn scan_num_token(term: &str) -> Result<Num> {
+pub fn scan_num_token(term: &str) -> Result<Num> {
     Ok(if let Some(inf) = parse_infinity(term) {
         Num::Float(inf)
     } else if term.contains('j') {

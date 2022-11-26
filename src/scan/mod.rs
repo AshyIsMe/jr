@@ -9,6 +9,7 @@ use crate::JError;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
 
 use litnum::scan_litnumarray;
+pub use litnum::scan_num_token;
 use JArray::*;
 use Word::*;
 
