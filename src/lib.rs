@@ -96,6 +96,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "{" => primitive("{", v_catalogue, v_from, (1, 0, inf)),
         "{." => primitive("{.", v_head, v_take, (inf, 1, inf)),
         "{:" => primitive("{:", v_tail, v_not_implemented_dyad, (inf, inf, inf)),
+        "}:" => primitive("}:", v_curtail, v_not_implemented_dyad, (inf, inf, inf)),
         "{::" => primitive("{:", v_map, v_fetch, (inf, 1, inf)),
         "}." => primitive("}.", v_behead, v_drop, (inf, 1, inf)),
 
@@ -132,7 +133,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
         "[:" => not_impl("[:"),
-        "}:" => not_impl("}:"),
         "C.!.2" => not_impl("C.!.2"),
         "E." => not_impl("E."),
         "L." => not_impl("L."),

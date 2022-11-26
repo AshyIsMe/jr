@@ -426,6 +426,31 @@ fn test_behead() -> Result<()> {
 }
 
 #[test]
+fn test_drop() -> Result<()> {
+    //    2 }. 5 6 7
+    // 7
+    assert_eq!(
+        jr::eval(jr::scan("2 }. 5 6 7")?, &mut HashMap::new())?,
+        Word::noun([7i64])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("2 }. i.3 3")?, &mut HashMap::new())?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[1, 3]),
+            [6, 7, 8].to_vec()
+        )?))
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("_1 }. 'abc'")?, &mut HashMap::new())?,
+        Word::noun(['a', 'b'])?
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_box() {
     // "$ < 42" == []
     let mut names = HashMap::new();
@@ -602,6 +627,11 @@ fn test_rank_conjunction_1_0() {
 #[test]
 fn test_head() -> Result<()> {
     assert_eq!(
+        jr::eval(jr::scan("{. 'abc'")?, &mut HashMap::new())?,
+        Word::from('a')
+    );
+
+    assert_eq!(
         jr::eval(jr::scan("{. 1 2 3")?, &mut HashMap::new())?,
         Word::from(1i64)
     );
@@ -622,12 +652,12 @@ fn test_head() -> Result<()> {
 fn test_take() -> Result<()> {
     assert_eq!(
         jr::eval(jr::scan("1 {. 1 2 3")?, &mut HashMap::new())?,
-        Word::from(1i64)
+        Word::noun([1i64])?
     );
 
     assert_eq!(
         jr::eval(jr::scan("1 {. 1")?, &mut HashMap::new())?,
-        Word::from(1u8)
+        Word::noun([1u8])?
     );
 
     assert_eq!(
@@ -641,6 +671,25 @@ fn test_take() -> Result<()> {
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
     );
+
+    assert_eq!(
+        jr::eval(jr::scan("_2 {. 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([2i64, 3])?
+    );
+
+    Ok(())
+}
+
+#[test]
+#[ignore]
+fn test_take_agreement() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("(2 1 $ 2) {. 'abcdef'")?, &mut HashMap::new())?,
+        Noun(CharArray(
+            Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'a', 'b']).unwrap(),
+        ))
+    );
+
     Ok(())
 }
 
@@ -653,5 +702,57 @@ fn test_take_framingfill() -> Result<()> {
         Word::noun([1i64, 0, 0])?
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_tail() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("{: 'abc'")?, &mut HashMap::new())?,
+        Word::from('c')
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: 1 2 3")?, &mut HashMap::new())?,
+        Word::from(3i64)
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: i.2 3")?, &mut HashMap::new())?,
+        Word::noun([3i64, 4, 5])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("{: i.3 3")?, &mut HashMap::new())?,
+        Word::noun([6i64, 7, 8])?
+    );
+    Ok(())
+}
+
+#[test]
+fn test_curtail() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("}: 'abc'")?, &mut HashMap::new())?,
+        Word::noun(['a', 'b'])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: 1 2 3")?, &mut HashMap::new())?,
+        Word::noun([1i64, 2])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: i.2 3")?, &mut HashMap::new())?,
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[1, 3]), vec![0, 1, 2]).unwrap(),
+        ))
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan("}: i.3 3")?, &mut HashMap::new())?,
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+        ))
+    );
     Ok(())
 }
