@@ -829,14 +829,10 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                                         arr.clone().into_shape(s)?.into_owned().into_noun()
                                     }
                                     _ => {
-                                        let s = &arr.shape()[1..];
                                         let i = arr.len_of(Axis(0)) - x.abs() as usize;
                                         let ixs: Vec<usize> =
                                             (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
-                                        arr.select(Axis(0), &ixs)
-                                            //.into_shape(s)?
-                                            .into_owned()
-                                            .into_noun()
+                                        arr.select(Axis(0), &ixs).into_owned().into_noun()
                                     }
                                 }
                             } else {
@@ -853,13 +849,10 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                                         let s: Vec<usize> = vec![x as usize];
                                         arr.clone().into_shape(s)?.into_owned().into_noun()
                                     }
-                                    _ => {
-                                        let s = &arr.shape()[1..];
-                                        arr.slice_axis(Axis(0), Slice::from(..1usize))
-                                            //.into_shape(IxDyn(s))?
-                                            .into_owned()
-                                            .into_noun()
-                                    }
+                                    _ => arr
+                                        .slice_axis(Axis(0), Slice::from(..1usize))
+                                        .into_owned()
+                                        .into_noun(),
                                 }
                             } else {
                                 let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
