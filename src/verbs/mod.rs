@@ -790,7 +790,19 @@ pub fn v_from(_x: &JArray, _y: &JArray) -> Result<Word> {
 
 /// {. (monad)
 pub fn v_head(y: &JArray) -> Result<Word> {
-    v_take(&JArray::from(1i64), y)
+    let res = v_take(&JArray::from(1i64), y)?;
+    // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
+    match res {
+        Noun(a) => {
+            if a.shape().len() > 0 {
+                let s = &a.shape()[1..];
+                Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
+            } else {
+                Ok(Noun(a))
+            }
+        }
+        _ => Err(JError::NonceError.into()),
+    }
 }
 
 /// {. (dyad)
@@ -812,14 +824,17 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                             // negative x (take from right)
                             if x.abs() == 1 {
                                 match arr.shape() {
-                                    [] => arr.clone().into_owned().into_noun(),
+                                    [] => {
+                                        let s: Vec<usize> = vec![x.abs() as usize];
+                                        arr.clone().into_shape(s)?.into_owned().into_noun()
+                                    }
                                     _ => {
                                         let s = &arr.shape()[1..];
                                         let i = arr.len_of(Axis(0)) - x.abs() as usize;
                                         let ixs: Vec<usize> =
                                             (i..arr.len_of(Axis(0))).map(|i| i as usize).collect();
                                         arr.select(Axis(0), &ixs)
-                                            .into_shape(s)?
+                                            //.into_shape(s)?
                                             .into_owned()
                                             .into_noun()
                                     }
@@ -834,11 +849,14 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         Ordering::Greater => {
                             if x == 1 {
                                 match arr.shape() {
-                                    [] => arr.clone().into_owned().into_noun(),
+                                    [] => {
+                                        let s: Vec<usize> = vec![x as usize];
+                                        arr.clone().into_shape(s)?.into_owned().into_noun()
+                                    }
                                     _ => {
                                         let s = &arr.shape()[1..];
                                         arr.slice_axis(Axis(0), Slice::from(..1usize))
-                                            .into_shape(IxDyn(s))?
+                                            //.into_shape(IxDyn(s))?
                                             .into_owned()
                                             .into_noun()
                                     }
@@ -858,7 +876,20 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
 
 /// {: (monad)
 pub fn v_tail(y: &JArray) -> Result<Word> {
-    v_take(&JArray::from(-1i64), y)
+    let res = v_take(&JArray::from(-1i64), y)?;
+    //    ({: 1 2 3) NB. similar to v_head() where it drops the leading shape rank
+    // 3  NB. atom not a single element list
+    match res {
+        Noun(a) => {
+            if a.shape().len() > 0 {
+                let s = &a.shape()[1..];
+                Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
+            } else {
+                Ok(Noun(a))
+            }
+        }
+        _ => Err(JError::NonceError.into()),
+    }
 }
 
 /// }: (monad)
@@ -885,7 +916,42 @@ pub fn v_behead(y: &JArray) -> Result<Word> {
 /// }. (dyad)
 pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
     debug!("v_drop( {:?}, {:?} )", x, y);
-    Err(JError::NonceError.into())
+    match x {
+        CharArray(_) => Err(JError::DomainError.into()),
+        RationalArray(_) => Err(JError::DomainError.into()),
+        FloatArray(_) => Err(JError::DomainError.into()),
+        ComplexArray(_) => Err(JError::DomainError.into()),
+        BoxArray(_) => Err(JError::DomainError.into()),
+
+        _ => impl_array!(x, |xarr: &ArrayD<_>| {
+            match xarr.shape().len() {
+                0 => impl_array!(y, |arr: &ArrayD<_>| {
+                    let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
+                    debug!("x: {:?}, arr: {:?}", x, arr);
+                    Ok(match x.cmp(&0) {
+                        Ordering::Equal => arr.clone().into_owned().into_noun(),
+                        Ordering::Less => {
+                            //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
+                            // 3 4
+                            let new_x = x.abs();
+                            debug!("Less - new_x {}", new_x);
+                            v_take(&JArray::from(new_x), y)?
+                        }
+                        Ordering::Greater => {
+                            let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
+                            debug!("Greater - new_x {}", new_x);
+                            if new_x < 0 {
+                                todo!("return empty array of type arr")
+                            } else {
+                                v_take(&JArray::from(new_x * -1), y)?
+                            }
+                        }
+                    })
+                }),
+                _ => Err(JError::LengthError.into()),
+            }
+        }),
+    }
 }
 
 /// ". (monad)
