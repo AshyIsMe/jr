@@ -1,5 +1,6 @@
 mod arrayable;
 mod cow;
+mod display;
 mod elem;
 mod owned;
 mod plural;
