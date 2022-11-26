@@ -848,36 +848,41 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                 Ordering::Equal => bail!("v_take(): return empty array of type y"),
                 Ordering::Less => {
                     // negative x (take from right)
-                    if x.abs() == 1 {
+                    let x = usize::try_from(x.abs())
+                        .map_err(|_| JError::NaNError)
+                        .context("offset doesn't fit in memory")?;
+                    if x == 1 {
                         match y.shape() {
                             [] => {
-                                let s: Vec<usize> = vec![x.abs() as usize];
+                                let s: Vec<usize> = vec![x];
                                 JArray::from(y.to_shape(s)?)
                             }
                             _ => {
-                                let i = y.len_of(Axis(0)) - x.abs() as usize;
-                                let ixs: Vec<usize> =
-                                    (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
+                                let i = y.len_of(Axis(0)) - x;
+                                let ixs: Vec<usize> = (i..y.len_of(Axis(0))).collect();
                                 y.select(Axis(0), &ixs)
                             }
                         }
                     } else {
-                        let i = y.len_of(Axis(0)) - x.abs() as usize;
-                        let ixs: Vec<usize> = (i..y.len_of(Axis(0))).map(|i| i as usize).collect();
+                        let i = y.len_of(Axis(0)) - x;
+                        let ixs: Vec<usize> = (i..y.len_of(Axis(0))).collect();
                         y.select(Axis(0), &ixs)
                     }
                 }
                 Ordering::Greater => {
+                    let x = usize::try_from(x)
+                        .map_err(|_| JError::NaNError)
+                        .context("offset doesn't fit in memory")?;
                     if x == 1 {
                         match y.shape() {
                             [] => {
-                                let s: Vec<usize> = vec![x as usize];
+                                let s: Vec<usize> = vec![x];
                                 y.to_shape(s)?.into()
                             }
                             _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
                         }
                     } else {
-                        let ixs: Vec<usize> = (0..x).map(|i| i as usize).collect();
+                        let ixs: Vec<usize> = (0..x).collect();
                         y.select(Axis(0), &ixs)
                     }
                 }
