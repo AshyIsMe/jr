@@ -153,3 +153,14 @@ NB. sqrt
 %:4 9 16
 NB. incorrect precision: %: 625r100
 NB. nonce: %: 5j2
+
+NB. exponential / power
+3^2
+3^3
+9^0.5
+32^1r5
+
+NB. reflexive / passive
+^~ 3
+3.2 %~ 16
+16 %~ 3.2

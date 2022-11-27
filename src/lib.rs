@@ -208,7 +208,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
     let adverb = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
     Some(match sentence {
-        "~" => adverb("~", a_not_implemented),
+        "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
         "/." => adverb("/.", a_not_implemented),
         "\\" => adverb("\\", a_not_implemented),

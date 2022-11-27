@@ -28,6 +28,21 @@ pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
+pub fn a_tilde(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match x {
+        None => match u {
+            Word::Verb(_, u) => u.exec(Some(y), y),
+            _ => Err(JError::DomainError)
+                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
+        },
+        Some(x) => match u {
+            Word::Verb(_, u) => u.exec(Some(y), x),
+            _ => Err(JError::DomainError)
+                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
+        },
+    }
+}
+
 pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match x {
         None => match u {

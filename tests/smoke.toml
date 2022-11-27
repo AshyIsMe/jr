@@ -207,6 +207,12 @@ datatype = 'integer'
 shape = ''
 
 [[runs]]
+expr = '16 %~ 3.2'
+output = '0.2'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '1r2'
 output = '1r2'
 datatype = 'rational'
@@ -291,6 +297,12 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '3.2 %~ 16'
+output = '5'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '3.2 < 5.1'
 output = '1'
 datatype = 'boolean'
@@ -309,10 +321,28 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '32^1r5'
+output = '2'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '3>.4 _4'
 output = '4 3'
 datatype = 'integer'
 shape = '2'
+
+[[runs]]
+expr = '3^2'
+output = '9'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
+expr = '3^3'
+output = '27'
+datatype = 'floating'
+shape = ''
 
 [[runs]]
 expr = '3e1'
@@ -393,6 +423,12 @@ datatype = 'boolean'
 shape = ''
 
 [[runs]]
+expr = '9^0.5'
+output = '3'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '<. 4.6 4 _4 _4.6'
 output = '4 4 _4 _5'
 datatype = 'integer'
@@ -433,6 +469,12 @@ expr = '>: 2 3 5 7'
 output = '3 4 6 8'
 datatype = 'integer'
 shape = '4'
+
+[[runs]]
+expr = '^~ 3'
+output = '27'
+datatype = 'floating'
+shape = ''
 
 [[runs]]
 expr = '_'
