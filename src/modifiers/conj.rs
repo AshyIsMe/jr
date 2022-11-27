@@ -1,3 +1,4 @@
+use std::fmt;
 use std::iter;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -7,60 +8,28 @@ use crate::arrays::JArrays;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
-// Implementations for Adverbs and Conjuntions
-// https://code.jsoftware.com/wiki/Vocabulary/Modifiers
-#[derive(Clone, Debug, PartialEq)]
-pub enum ModifierImpl {
-    NotImplemented,
+pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 
-    //adverbs
-    Slash,
-    CurlyRt,
-
-    DerivedAdverb { l: Box<Word>, r: Box<Word> },
-
-    //conjunctions
-    HatCo,
-    Quote,
+#[derive(Clone)]
+pub struct SimpleConjunction {
+    pub name: &'static str,
+    pub f: ConjunctionFn,
 }
 
-impl ModifierImpl {
-    pub fn exec(&self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-        match self {
-            ModifierImpl::NotImplemented => a_not_implemented(x, u, y),
-            ModifierImpl::Slash => a_slash(x, u, y),
-            ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
-            ModifierImpl::HatCo => c_hatco(x, u, v, y),
-            ModifierImpl::Quote => c_quote(x, u, v, y),
-            ModifierImpl::DerivedAdverb { l: _l, r: _r } => todo!("DerivedAdverb"),
-        }
+impl PartialEq for SimpleConjunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
     }
 }
 
-pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
-    Err(anyhow!("adverb not implemented yet"))
-}
-
-pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match u {
-            Word::Verb(_, u) => match y {
-                Word::Noun(_) => y
-                    .to_cells()?
-                    .into_iter()
-                    .map(Ok)
-                    .reduce(|x, y| u.exec(Some(&x?), &y?))
-                    .ok_or(JError::DomainError)?,
-                _ => Err(JError::custom("noun expected")),
-            },
-            _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
-        },
-        Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
+impl fmt::Debug for SimpleConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleAdverb({:?})", self.name)
     }
 }
 
-pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
-    Err(JError::custom("adverb not implemented yet"))
+pub fn c_not_implemented(_x: Option<&Word>, _u: &Word, _v: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
