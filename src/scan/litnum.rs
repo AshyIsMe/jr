@@ -2,17 +2,33 @@ use std::ops;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
+use regex::{Match, Regex};
 
 use crate::number::{promote_to_array, Num};
-use crate::{Elem, Word};
+use crate::{Elem, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
-    let sentence = sentence
-        .chars()
-        .take_while(|&c| matches!(c, '0'..='9' | '.' | '_' | 'e' | 'j' | 'r' | ' ' | '\t'))
-        .collect::<String>();
+    lazy_static! {
+        static ref LITNUM: Regex = Regex::new(
+            r#"(?x)     # allow comments and ignore whitespace
+            ^(?:        # from the start,
+            \s*         # optional leading whitespace
+            _?          # minus
+            (?:_|\d)    # infinity, or a leading number
+            [\d._ejrx]* # a bunch more number bits
+            (?:\s*\b)   # trailing whitespace, or the end of the string
+            )+          # repeatedly
+            "#
+        )
+        .expect("static regex");
+    }
+    let m: Match = LITNUM
+        .find(sentence)
+        .expect("at least the first number should match");
+    let sentence = m.as_str();
 
     let l = sentence.len() - 1;
 
@@ -34,11 +50,13 @@ pub fn scan_num_token(term: &str) -> Result<Num> {
         Num::Rational(parse_rational(term)?)
     } else if term.contains('.') || term.contains('e') {
         Num::Float(parse_float(term)?)
+    } else if term.ends_with('x') {
+        Num::ExtInt(parse_bigint_suffixed(term)?)
     } else {
         // we can't just demote 'cos bigints never demote
         match sign_lift(term, |term| Ok(term.parse::<i64>()?)) {
             Ok(x) => Num::Int(x),
-            Err(_) => Num::ExtInt(parse_bigint(term)?),
+            Err(_) => Num::Float(parse_float(term)?),
         }
     }
     .demote())
@@ -70,8 +88,8 @@ fn parse_rational(term: &str) -> Result<BigRational> {
         .split_once('r')
         .expect("scan_rational only sees delimited numbers");
     Ok(BigRational::new(
-        parse_bigint(numer).context("numerator")?,
-        parse_bigint(denom).context("denominator")?,
+        parse_bigint_plain(numer).context("numerator")?,
+        parse_bigint_plain(denom).context("denominator")?,
     ))
 }
 
@@ -86,7 +104,19 @@ fn parse_float(term: &str) -> Result<f64> {
     })
 }
 
-fn parse_bigint(term: &str) -> Result<BigInt> {
+/// a bigint which still has its 'x' suffix
+fn parse_bigint_suffixed(term: &str) -> Result<BigInt> {
+    let prefix = term
+        .strip_suffix('x')
+        .ok_or(JError::IllFormedNumber)
+        .with_context(|| {
+            anyhow!("{term:?} contains an 'x', so it should be an extint, but it is not")
+        })?;
+    parse_bigint_plain(prefix).context("x-suffixed number")
+}
+
+/// a bigint by the standard definition, without the 'x' suffix
+fn parse_bigint_plain(term: &str) -> Result<BigInt> {
     sign_lift(term, |v| {
         v.parse()
             .with_context(|| anyhow!("parsing {v:?} as a bigint"))
@@ -200,17 +230,10 @@ mod tests {
         );
 
         assert_eq!(
-            array![
-                BigInt::from(1),
-                4.into(),
-                "123123123123123123123123123123123"
-                    .parse()
-                    .expect("valid literal"),
-            ]
-            .into_dyn(),
+            array![1., 4., 123123123123123123123123123123123.,].into_dyn(),
             litnum_to_array("1 4 123123123123123123123123123123123")
-                .when_bigint()
-                .expect("bigint array"),
+                .when_f64()
+                .expect("float array"),
         );
 
         assert_eq!(
