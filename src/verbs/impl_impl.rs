@@ -143,8 +143,8 @@ impl VerbImpl {
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(&y), &v.exec(None, y)?),
-                    Some(x) => u.exec(Some(&x), &v.exec(None, y)?),
+                    None => u.exec(Some(y), &v.exec(None, y)?),
+                    Some(x) => u.exec(Some(x), &v.exec(None, y)?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },

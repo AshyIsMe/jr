@@ -74,6 +74,10 @@ macro_rules! map_array {
 }
 
 impl JArray {
+    pub fn is_empty(&self) -> bool {
+        impl_array!(self, |a: &ArrayBase<_, _>| { a.is_empty() })
+    }
+
     pub fn len(&self) -> usize {
         impl_array!(self, |a: &ArrayBase<_, _>| {
             match a.shape() {
@@ -149,7 +153,7 @@ impl JArray {
                 (l.to_vec(), s.to_vec())
             } else {
                 // Negative rank is a real thing in j, it's just the same but from the left instead of the right.
-                let (l, s) = shape.split_at(rank.abs() as usize);
+                let (l, s) = shape.split_at(rank.unsigned_abs() as usize);
                 (l.to_vec(), s.to_vec())
             };
             debug!("leading: {:?}, surplus: {:?}", leading, surplus);
@@ -172,19 +176,7 @@ impl JArray {
     }
 
     pub fn into_elems(self) -> Vec<Elem> {
-        use JArray::*;
-        // don't understand why the macro won't work here
-        // Ok(impl_array!(self, |a: ArrayD<_>| a.into_iter().map(|v| v.into()).collect()))
-        match self {
-            BoolArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            CharArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            IntArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            ExtIntArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            RationalArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            FloatArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
-            BoxArray(a) => a.into_iter().map(|v| v.into()).collect(),
-        }
+        impl_array!(self, |a: ArrayD<_>| a.into_iter().map(Elem::from).collect())
     }
 
     pub fn into_nums(self) -> Option<Vec<Num>> {

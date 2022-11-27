@@ -60,7 +60,7 @@ impl Num {
             // moderately inefficient, but this is mostsly only used on small lists?
             Float(f) => return float_is_int(*f).and_then(|i| Int(i).value_bool()),
             Rational(r) => return r.to_f64().and_then(|f| Float(f).value_bool()),
-            Complex(c) => return complex_is_float(&c).and_then(|f| Float(f).value_bool()),
+            Complex(c) => return complex_is_float(c).and_then(|f| Float(f).value_bool()),
         })
     }
 
@@ -364,11 +364,11 @@ fn promo_ordered((l, r): (Num, Num)) -> (Num, Num) {
         (Bool(l), Bool(r)) => (Int(l.into()), Int(r.into())),
 
         // (bool, int) -> int
-        (Bool(l), Int(r)) => (Int(l.into()), Int(r.into())),
+        (Bool(l), Int(r)) => (Int(l.into()), Int(r)),
 
         // (bool|int, extint) -> extint
-        (Bool(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r.into())),
-        (Int(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r.into())),
+        (Bool(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r)),
+        (Int(l), ExtInt(r)) => (ExtInt(l.into()), ExtInt(r)),
 
         // (bool|int|extint, rational) -> rational
         (Bool(l), Rational(r)) => (rational(l), r.into()),

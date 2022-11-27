@@ -19,7 +19,7 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let parts = sentence
         .split_whitespace()
         .map(|term| scan_num_token(term).with_context(|| anyhow!("parsing {term:?}")))
-        .map_ok(|x| Elem::Num(x))
+        .map_ok(Elem::Num)
         .collect::<Result<Vec<_>>>()?;
 
     Ok((l, Word::Noun(promote_to_array(parts)?)))
@@ -36,9 +36,9 @@ pub fn scan_num_token(term: &str) -> Result<Num> {
         Num::Float(parse_float(term)?)
     } else {
         // we can't just demote 'cos bigints never demote
-        match sign_lift(&term, |term| Ok(term.parse::<i64>()?)) {
+        match sign_lift(term, |term| Ok(term.parse::<i64>()?)) {
             Ok(x) => Num::Int(x),
-            Err(_) => Num::ExtInt(parse_bigint(&term)?),
+            Err(_) => Num::ExtInt(parse_bigint(term)?),
         }
     }
     .demote())
@@ -81,15 +81,15 @@ fn parse_float(term: &str) -> Result<f64> {
         return Ok(inf);
     }
     sign_lift(term, |v| {
-        Ok(v.parse()
-            .with_context(|| anyhow!("parsing {v:?} as a float"))?)
+        v.parse()
+            .with_context(|| anyhow!("parsing {v:?} as a float"))
     })
 }
 
 fn parse_bigint(term: &str) -> Result<BigInt> {
     sign_lift(term, |v| {
-        Ok(v.parse()
-            .with_context(|| anyhow!("parsing {v:?} as a bigint"))?)
+        v.parse()
+            .with_context(|| anyhow!("parsing {v:?} as a bigint"))
     })
 }
 
@@ -99,8 +99,8 @@ fn sign_lift<T: ops::Neg<Output = T>>(term: &str, f: impl FnOnce(&str) -> Result
     if term.contains('-') {
         unreachable!("numbers must contain _, not -");
     }
-    Ok(if term.starts_with('_') {
-        -f(&term[1..])?
+    Ok(if let Some(stripped) = term.strip_prefix('_') {
+        -f(stripped)?
     } else {
         f(term)?
     })
