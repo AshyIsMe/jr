@@ -5,7 +5,7 @@ mod maff;
 mod ranks;
 
 use crate::number::Num;
-use crate::{IntoJArray, JArray, JError, Word};
+use crate::{impl_array, IntoJArray, JArray, JError, Word};
 
 use anyhow::{bail, Context, Result};
 use ndarray::prelude::*;
@@ -85,8 +85,10 @@ pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// , (monad)
-pub fn v_ravel(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_ravel(y: &JArray) -> Result<Word> {
+    impl_array!(y, |arr: &ArrayD<_>| {
+        Word::noun(arr.clone().into_raw_vec())
+    })
 }
 
 /// ,. (monad)

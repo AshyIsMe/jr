@@ -739,3 +739,17 @@ fn test_curtail() -> Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn test_ravel() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan(", i.2 2")?, &mut HashMap::new())?,
+        Word::noun([0i64, 1, 2, 3])?
+    );
+
+    assert_eq!(
+        jr::eval(jr::scan(", i.2 3 4")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("i.24")?, &mut HashMap::new())?,
+    );
+    Ok(())
+}
