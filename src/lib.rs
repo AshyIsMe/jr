@@ -272,7 +272,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "\"" => conj("\"", c_quote),
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
-        "@" => conj("@", c_not_implemented),
+        "@" => conj("@", c_at),
         "@." => conj("@.", c_not_implemented),
         "@:" => conj("@:", c_not_implemented),
         "&" => conj("&", c_not_implemented),

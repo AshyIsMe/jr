@@ -689,6 +689,19 @@ fn test_take_framingfill() -> Result<()> {
 }
 
 #[test]
+fn test_cat() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("+:@- 7")?, &mut HashMap::new())?,
+        Word::from(-14i64)
+    );
+    assert_eq!(
+        jr::eval(jr::scan("3 +:@- 7")?, &mut HashMap::new())?,
+        Word::from(-8i64)
+    );
+    Ok(())
+}
+
+#[test]
 fn test_tail() -> Result<()> {
     assert_eq!(
         jr::eval(jr::scan("{: 'abc'")?, &mut HashMap::new())?,

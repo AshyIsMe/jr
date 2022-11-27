@@ -119,7 +119,8 @@ impl VerbImpl {
                     exec_dyad(dyad.f, rank.map(|r| (r.1, r.2)).unwrap_or(dyad.rank), x, y)
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
-                _ => Err(JError::DomainError).context("primitive on non-nouns"),
+                other => Err(JError::DomainError)
+                    .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
