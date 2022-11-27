@@ -148,23 +148,12 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 }
 
 pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match (u, v) {
-            (Word::Verb(_, u), Word::Verb(_, v)) => {
-                let a = v.exec(None, y).context("first half of @ execution")?;
-                u.exec(None, &a)
-            }
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to @ a verb, not {:?}", u)),
-        },
-        Some(x) => match (u, v) {
-            (Word::Verb(_, u), Word::Verb(_, v)) => {
-                let a = v.exec(Some(x), y).context("first half of @ execution")?;
-                u.exec(None, &a)
-            }
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to @ a verb, not {:?}", u)),
-        },
+    match (u, v) {
+        (Word::Verb(_, u), Word::Verb(_, v)) => {
+            let a = v.exec(x, y).context("first half of @ execution")?;
+            u.exec(None, &a)
+        }
+        _ => Err(JError::DomainError).with_context(|| anyhow!("expected to @ a verb, not {:?}", u)),
     }
 }
 
