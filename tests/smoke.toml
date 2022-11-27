@@ -159,6 +159,12 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '0x'
+output = '0'
+datatype = 'extended'
+shape = ''
+
+[[runs]]
 expr = '1'
 output = '1'
 datatype = 'boolean'
@@ -207,6 +213,12 @@ datatype = 'rational'
 shape = ''
 
 [[runs]]
+expr = '1x'
+output = '1'
+datatype = 'extended'
+shape = ''
+
+[[runs]]
 expr = '2'
 output = '2'
 datatype = 'integer'
@@ -240,6 +252,12 @@ shape = ''
 expr = '2j3'
 output = '2j3'
 datatype = 'complex'
+shape = ''
+
+[[runs]]
+expr = '2x'
+output = '2'
+datatype = 'extended'
 shape = ''
 
 [[runs]]
@@ -295,6 +313,12 @@ expr = '3>.4 _4'
 output = '4 3'
 datatype = 'integer'
 shape = '2'
+
+[[runs]]
+expr = '3e1'
+output = '30'
+datatype = 'integer'
+shape = ''
 
 [[runs]]
 expr = '3j4 * 3j_4'
@@ -423,6 +447,12 @@ datatype = 'floating'
 shape = '3'
 
 [[runs]]
+expr = '_3j_3.3'
+output = '_3j_3.3'
+datatype = 'complex'
+shape = ''
+
+[[runs]]
 expr = '__'
 output = '__'
 datatype = 'floating'
@@ -431,6 +461,18 @@ shape = ''
 [[runs]]
 expr = '__*3j3'
 output = '__j__'
+datatype = 'complex'
+shape = ''
+
+[[runs]]
+expr = '__j__'
+output = '__j__'
+datatype = 'complex'
+shape = ''
+
+[[runs]]
+expr = '_j_'
+output = '_j_'
 datatype = 'complex'
 shape = ''
 

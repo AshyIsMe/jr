@@ -11,6 +11,13 @@ NB. literal conversions
 1r2
 2j3
 2.1j3.1
+0x
+1x
+2x
+__j__
+_j_
+_3j_3.3
+3e1
 
 NB. literal promotions
 1 0.5 2j3
