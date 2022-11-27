@@ -547,3 +547,17 @@ expr = 'j. i. 5'
 output = '0 0j1 0j2 0j3 0j4'
 datatype = 'complex'
 shape = '5'
+
+[[runs]]
+expr = '~. (3 3 $ 1 2 3 1 2 3 4 5 6)'
+output = '''
+1 2 3
+4 5 6'''
+datatype = 'integer'
+shape = '2 3'
+
+[[runs]]
+expr = '~. 2 3 4 3 2 5 4 1'
+output = '2 3 4 5 1'
+datatype = 'integer'
+shape = '5'

@@ -20,6 +20,7 @@ use Word::*;
 use maff::*;
 pub use ranks::Rank;
 
+use crate::arrays::JArrayCow;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -70,6 +71,30 @@ pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
 /// -: (dyad)
 pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
+}
+
+/// ~. (monad) (_)
+pub fn v_nub(y: &JArray) -> Result<Word> {
+    // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
+    // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
+
+    let yc = y.clone();
+    let yc = JArrayCow::from(&yc);
+    let candidates = yc.outer_iter();
+
+    let mut included = Vec::new();
+    'outer: for (i, test) in candidates.iter().enumerate() {
+        // if we've already seen this value, don't add it to the `included` list,
+        // by continuing out of the two loops
+        for seen in &included {
+            if test == &candidates[*seen] {
+                continue 'outer;
+            }
+        }
+        included.push(i);
+    }
+
+    Ok(Word::Noun(y.select(Axis(0), &included)))
 }
 
 /// ~: (monad)
