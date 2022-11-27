@@ -4,13 +4,15 @@ mod impl_shape;
 mod maff;
 mod ranks;
 
-use crate::number::Num;
+use crate::number::{promote_to_array, Num};
 use crate::{impl_array, IntoJArray, JArray, JError, Word};
 
 use anyhow::{bail, Context, Result};
+use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
 use num_traits::FloatConst;
+use try_partialord::TrySort;
 
 use JArray::*;
 use Word::*;
@@ -148,13 +150,42 @@ pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_grade_up(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
-/// /: (dyad) and \: (dyad)
-pub fn v_sort(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+/// /: (dyad)
+pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<Word> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("sort only implemented for (1d) lists");
+    }
+
+    let mut y = y
+        .clone()
+        .into_nums()
+        .ok_or(JError::NonceError)
+        .context("sort only implemented for numerics")?
+        .into_iter()
+        .enumerate()
+        .collect_vec();
+    y.try_sort_by_key(|(_, n)| Some(n.clone()))
+        .map_err(|_| JError::NonceError)
+        .context("sort only implemented for sortable numerics")?;
+    let x = x.clone().into_elems();
+    if x.len() < y.len() {
+        return Err(JError::IndexError).context("need more xs than ys");
+    }
+    // TODO: unnecessary clones, as usual
+    Ok(Word::Noun(promote_to_array(
+        y.into_iter()
+            .map(|(i, _)| i)
+            .map(|i| x[i].clone())
+            .collect(),
+    )?))
 }
 
 /// \: (monad)
 pub fn v_grade_down(_y: &JArray) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// \: (dyad)
+pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 

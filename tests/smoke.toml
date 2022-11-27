@@ -423,6 +423,24 @@ datatype = 'boolean'
 shape = ''
 
 [[runs]]
+expr = '7 8 9 10 /: 4 2'
+output = '8 7'
+datatype = 'integer'
+shape = '2'
+
+[[runs]]
+expr = '7 8 9 10 /: 4 2 3'
+output = '8 9 7'
+datatype = 'integer'
+shape = '3'
+
+[[runs]]
+expr = '7 8 9 10 /: 4 2 3 1'
+output = '10 8 9 7'
+datatype = 'integer'
+shape = '4'
+
+[[runs]]
 expr = '9^0.5'
 output = '3'
 datatype = 'floating'

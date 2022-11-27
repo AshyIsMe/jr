@@ -18,7 +18,9 @@ fn exec(run: &Run) -> Result<()> {
     let Word::Noun(arr) = us else { bail!("unexpected non-array from eval: {us:?}") };
     let them_shape = run.parse_shape()?;
 
-    let them_data = run.parse_data()?;
+    let them_data = run
+        .parse_data()
+        .with_context(|| anyhow!("interpreting the generated jsoft output: {:?}", run.output))?;
     let us_data = arr
         .clone()
         .into_nums()

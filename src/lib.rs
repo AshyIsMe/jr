@@ -99,8 +99,8 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "#." => primitive("#.", v_base_, v_base, (1, 1, 1)),
         "#:" => primitive("#:", v_antibase_, v_antibase, (inf, 1, 0)),
         "!" => primitive("!", v_factorial, v_out_of, (0, 0, 0)),
-        "/:" => primitive("/:", v_grade_up, v_sort, (inf, inf, inf)),
-        "\\:" => primitive("\\:", v_grade_down, v_sort, (inf, inf, inf)),
+        "/:" => primitive("/:", v_grade_up, v_sort_up, (inf, inf, inf)),
+        "\\:" => primitive("\\:", v_grade_down, v_sort_down, (inf, inf, inf)),
 
         "[" => primitive("[", v_same, v_left, (inf, inf, inf)),
         "]" => primitive("]", v_same, v_right, (inf, inf, inf)),

@@ -164,3 +164,9 @@ NB. reflexive / passive
 ^~ 3
 3.2 %~ 16
 16 %~ 3.2
+
+NB. sort
+NB. test framework can't handle alphabetic output: 'abcd' /: 4 2 3 1
+7 8 9 10 /: 4 2 3 1
+7 8 9 10 /: 4 2 3
+7 8 9 10 /: 4 2
