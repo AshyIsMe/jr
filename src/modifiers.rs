@@ -1,3 +1,4 @@
+use std::fmt;
 use std::iter;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -7,38 +8,70 @@ use crate::arrays::JArrays;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
+pub type AdverbFn = fn(Option<&Word>, &Word, &Word) -> Result<Word>;
+pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
+
+#[derive(Clone)]
+pub struct SimpleAdverb {
+    pub name: &'static str,
+    pub f: AdverbFn,
+}
+
+#[derive(Clone)]
+pub struct SimpleConjunction {
+    pub name: &'static str,
+    pub f: ConjunctionFn,
+}
+
 // Implementations for Adverbs and Conjuntions
 // https://code.jsoftware.com/wiki/Vocabulary/Modifiers
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
-    NotImplemented,
-
-    //adverbs
-    Slash,
-    CurlyRt,
-
+    Adverb(SimpleAdverb),
+    Conjunction(SimpleConjunction),
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
+}
 
-    //conjunctions
-    HatCo,
-    Quote,
+impl PartialEq for SimpleAdverb {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for SimpleAdverb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleAdverb({:?})", self.name)
+    }
+}
+
+impl PartialEq for SimpleConjunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for SimpleConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleAdverb({:?})", self.name)
+    }
 }
 
 impl ModifierImpl {
     pub fn exec(&self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
         match self {
-            ModifierImpl::NotImplemented => a_not_implemented(x, u, y),
-            ModifierImpl::Slash => a_slash(x, u, y),
-            ModifierImpl::CurlyRt => a_curlyrt(x, u, y),
-            ModifierImpl::HatCo => c_hatco(x, u, v, y),
-            ModifierImpl::Quote => c_quote(x, u, v, y),
-            ModifierImpl::DerivedAdverb { l: _l, r: _r } => todo!("DerivedAdverb"),
+            ModifierImpl::Adverb(a) => {
+                (a.f)(x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
+            }
+            ModifierImpl::Conjunction(c) => {
+                (c.f)(x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
+            }
+            ModifierImpl::DerivedAdverb { l: _l, r: _r } => bail!("TODO: DerivedAdverb"),
         }
     }
 }
 
 pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
-    Err(anyhow!("adverb not implemented yet"))
+    Err(JError::NonceError).context("blanket adverb implementation")
 }
 
 pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
@@ -59,8 +92,8 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     }
 }
 
-pub fn a_curlyrt(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
-    Err(JError::custom("adverb not implemented yet"))
+pub fn c_not_implemented(_x: Option<&Word>, _u: &Word, _v: &Word, _y: &Word) -> Result<Word> {
+    Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
 pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
