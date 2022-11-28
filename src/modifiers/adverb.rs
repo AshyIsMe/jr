@@ -60,3 +60,12 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
         Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
     }
 }
+
+pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        // (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+        //
+        // }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
+    }
+}

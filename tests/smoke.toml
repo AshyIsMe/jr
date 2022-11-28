@@ -231,6 +231,36 @@ datatype = 'integer'
 shape = ''
 
 [[runs]]
+expr = '2 # 5 6 7'
+output = '5 5 6 6 7 7'
+datatype = 'integer'
+shape = '6'
+
+[[runs]]
+expr = '2 3 # 2'
+output = '2 2 2 2 2'
+datatype = 'integer'
+shape = '5'
+
+[[runs]]
+expr = '2 4 # (2 3 $ 7 8 9 4 5 6)'
+output = '''
+7 8 9
+7 8 9
+4 5 6
+4 5 6
+4 5 6
+4 5 6'''
+datatype = 'integer'
+shape = '6 3'
+
+[[runs]]
+expr = '2 4 # 7j7'
+output = '7j7 7j7 7j7 7j7 7j7 7j7'
+datatype = 'complex'
+shape = '6'
+
+[[runs]]
 expr = '2-0.5'
 output = '1.5'
 datatype = 'floating'

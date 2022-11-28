@@ -98,6 +98,12 @@ __*3j3
 * 0 1
 * 1 2
 
+NB. copy
+2 4 # (2 3 $ 7 8 9 4 5 6)
+2 # 5 6 7
+2 3 # 2
+2 4 # 7j7
+
 NB. length angle
 NB. test framework fails for float comparison: *. 3j4
 NB. test framework fails for float comparison: *. 3j4 5r2
