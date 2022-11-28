@@ -471,6 +471,38 @@ datatype = 'integer'
 shape = '2'
 
 [[runs]]
+expr = '= 1'
+output = '1'
+datatype = 'boolean'
+shape = '1 1'
+
+[[runs]]
+expr = '= 3 3 $ i. 6'
+output = '''
+1 0 1
+0 1 0'''
+datatype = 'boolean'
+shape = '2 3'
+
+[[runs]]
+expr = '= 5 4 3 4 5'
+output = '''
+1 0 0 0 1
+0 1 0 1 0
+0 0 1 0 0'''
+datatype = 'boolean'
+shape = '3 5'
+
+[[runs]]
+expr = '= i. 3'
+output = '''
+1 0 0
+0 1 0
+0 0 1'''
+datatype = 'boolean'
+shape = '3 3'
+
+[[runs]]
 expr = '>. 4.6 4 _4 _4.6'
 output = '5 4 _4 _4'
 datatype = 'integer'

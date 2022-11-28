@@ -59,8 +59,23 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> 
 // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "/// $a (monad)\npub fn v_$b(y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n/// $a (dyad)\npub fn v_$c(x: &Word, y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n\n"'
 
 /// = (monad)
-pub fn v_self_classify(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_self_classify(y: &JArray) -> Result<Word> {
+    let candidates = y.outer_iter();
+    let nubs = nub(&candidates);
+    let output_shape = [nubs.len(), candidates.len()];
+    let mut output = Vec::with_capacity(output_shape[0] * output_shape[1]);
+    for nub in &nubs {
+        for cand in &candidates {
+            let nub = &candidates[*nub];
+            output.push(if nub == cand { 1u8 } else { 0u8 });
+        }
+    }
+
+    Ok(Word::Noun(
+        ArrayD::from_shape_vec(&output_shape[..], output)
+            .expect("fixed shape")
+            .into_jarray(),
+    ))
 }
 
 /// -. (dyad)
@@ -73,15 +88,7 @@ pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 
-/// ~. (monad) (_)
-pub fn v_nub(y: &JArray) -> Result<Word> {
-    // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
-    // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
-
-    let yc = y.clone();
-    let yc = JArrayCow::from(&yc);
-    let candidates = yc.outer_iter();
-
+fn nub(candidates: &Vec<JArrayCow>) -> Vec<usize> {
     let mut included = Vec::new();
     'outer: for (i, test) in candidates.iter().enumerate() {
         // if we've already seen this value, don't add it to the `included` list,
@@ -93,6 +100,16 @@ pub fn v_nub(y: &JArray) -> Result<Word> {
         }
         included.push(i);
     }
+    included
+}
+
+/// ~. (monad) (_)
+pub fn v_nub(y: &JArray) -> Result<Word> {
+    // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
+    // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
+
+    let candidates = y.outer_iter();
+    let included = nub(&candidates);
 
     Ok(Word::Noun(y.select(Axis(0), &included)))
 }

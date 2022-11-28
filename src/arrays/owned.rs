@@ -120,6 +120,18 @@ impl JArray {
         })
     }
 
+    // TODO: Iterator
+    pub fn outer_iter<'v>(&'v self) -> Vec<JArrayCow<'v>> {
+        if self.shape().is_empty() {
+            vec![JArrayCow::from(self)]
+        } else {
+            impl_array!(self, |x: &'v ArrayBase<_, _>| x
+                .outer_iter()
+                .map(JArrayCow::from)
+                .collect())
+        }
+    }
+
     /// rank_iter, but the other way up, and more picky about its arguments
     pub fn dims_iter(&self, dims: usize) -> Vec<JArray> {
         assert!(

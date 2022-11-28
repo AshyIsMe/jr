@@ -171,6 +171,12 @@ NB. test framework can't handle alphabetic output: 'abcd' /: 4 2 3 1
 7 8 9 10 /: 4 2 3
 7 8 9 10 /: 4 2
 
+NB. self classify
+= i. 3
+= 5 4 3 4 5
+= 3 3 $ i. 6
+= 1
+
 NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
