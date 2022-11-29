@@ -1,10 +1,13 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::iter;
 
 use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 
+use crate::arrays::JArray::*;
 use crate::arrays::JArrays;
+use crate::eval;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -141,5 +144,32 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             }
         }
         _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
+    }
+}
+
+pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (n, m) {
+        (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
+            if n == Array::from_elem(IxDyn(&[]), 4) {
+                match x {
+                    None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
+                    Some(x) => {
+                        let mut env: HashMap<String, Word> = HashMap::new();
+                        env.insert("x".to_string(), x.clone());
+                        env.insert("y".to_string(), y.clone());
+                        eval(
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                            &mut env,
+                        )
+                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                    }
+                }
+            } else if n == Array::from_elem(IxDyn(&[]), 3) {
+                todo!("monad")
+            } else {
+                Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}"))
+            }
+        }
+        _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
     }
 }

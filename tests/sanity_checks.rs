@@ -753,3 +753,10 @@ fn test_ravel() -> Result<()> {
     );
     Ok(())
 }
+
+#[test]
+fn test_user_defined_dyadic_verb() -> Result<()> {
+    assert_eq!(scan_eval("2 (4 : 'x + y') 2").unwrap(), Word::from(4i64));
+
+    Ok(())
+}
