@@ -178,8 +178,11 @@ pub fn flatten(
         }
     }
 
-    let nums = promote_to_array(big_daddy)?;
-    Ok(nums.to_shape(target_shape)?.into())
+    let nums = promote_to_array(big_daddy).context("flattening promotion")?;
+    Ok(nums
+        .to_shape(target_shape)
+        .context("flattening output shape")?
+        .into())
 }
 
 #[cfg(test)]

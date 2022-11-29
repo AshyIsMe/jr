@@ -8,8 +8,8 @@ use ndarray::prelude::*;
 use crate::arrays::JArray::*;
 use crate::arrays::JArrays;
 use crate::eval;
-use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
+use crate::verbs::{exec_dyad, exec_dyad_inner, exec_monad, exec_monad_inner, Rank, VerbImpl};
+use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 
@@ -148,12 +148,36 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 }
 
 pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-    match (u, v) {
-        (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let a = v.exec(x, y).context("first half of @ execution")?;
-            u.exec(None, &a)
+    match (u, v, y) {
+        (Word::Verb(_, u), Word::Verb(_, VerbImpl::Primitive(p)), Word::Noun(y)) => {
+            // this is just v.exec() without flatten, isn't it
+            let (common_frame, surplus_frame, r) = match x {
+                Some(Word::Noun(x)) => {
+                    let dyad = p
+                        .dyad
+                        .ok_or(JError::DomainError)
+                        .context("expecting a dyadic v")?;
+                    exec_dyad_inner(dyad.f, dyad.rank, x, y)?
+                }
+                None => exec_monad_inner(p.monad.f, p.monad.rank, y)?,
+                _ => return Err(JError::NonceError).context("non-word noun"),
+            };
+
+            // then apply u
+            let r = r
+                .into_iter()
+                .flat_map(|v| v)
+                .map(|a| match u.exec(None, &Word::Noun(a.clone()))? {
+                    Word::Noun(arr) => Ok(arr),
+                    _ => Err(JError::NonceError).context("refusing to believe in non-nouns"),
+                })
+                .collect::<Result<Vec<JArray>>>()?;
+
+            // then flatten (fill)
+            Ok(Word::Noun(flatten(&common_frame, &surplus_frame, &[r])?))
         }
-        _ => Err(JError::DomainError).with_context(|| anyhow!("expected to @ a verb, not {:?}", u)),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("expected to @ a primitive verb, not {:?}", u)),
     }
 }
 
