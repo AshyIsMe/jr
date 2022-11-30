@@ -165,7 +165,18 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                     }
                 }
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
-                todo!("monad")
+                match x {
+                    None => {
+                        let mut env: HashMap<String, Word> = HashMap::new();
+                        env.insert("y".to_string(), y.clone());
+                        eval(
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                            &mut env,
+                        )
+                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                    }
+                    _ => Err(JError::DomainError).with_context(|| anyhow!("monad")),
+                }
             } else {
                 Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}"))
             }
