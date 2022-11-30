@@ -151,7 +151,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v, y) {
         (Word::Verb(_, u), Word::Verb(_, VerbImpl::Primitive(p)), Word::Noun(y)) => {
             // this is just v.exec() without flatten, isn't it
-            let (common_frame, surplus_frame, r) = match x {
+            let (frames, r) = match x {
                 Some(Word::Noun(x)) => {
                     let dyad = p
                         .dyad
@@ -173,7 +173,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                 .collect::<Result<Vec<JArray>>>()?;
 
             // then flatten (fill)
-            Ok(Word::Noun(flatten(&common_frame, &surplus_frame, &r)?))
+            Ok(Word::Noun(flatten(&frames, &r)?))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to @ a primitive verb, not {:?}", u)),

@@ -60,7 +60,7 @@ pub fn exec_monad_inner(
     f: impl Fn(&JArray) -> Result<Word>,
     rank: Rank,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<usize>, Vec<JArray>)> {
+) -> Result<(Vec<usize>, Vec<JArray>)> {
     let (cells, common_frame) = monad_cells(y, rank)?;
 
     let results = monad_apply(&cells, |y| {
@@ -70,7 +70,7 @@ pub fn exec_monad_inner(
         })
     })?;
 
-    Ok((common_frame, Vec::new(), results))
+    Ok((common_frame, results))
 }
 
 pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
@@ -78,8 +78,8 @@ pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -
         return f(y).context("infinite monad shortcut");
     }
 
-    let (common_frame, surplus_frame, application_result) = exec_monad_inner(f, rank, y)?;
-    let flat = flatten(&common_frame, &surplus_frame, &application_result)?;
+    let (frames, application_result) = exec_monad_inner(f, rank, y)?;
+    let flat = flatten(&frames, &application_result)?;
     Ok(Word::Noun(flat))
 }
 
@@ -88,12 +88,11 @@ pub fn exec_dyad_inner(
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<usize>, Vec<JArray>)> {
-    let (cells, common_frame, surplus_frame) =
-        generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
+) -> Result<(Vec<usize>, Vec<JArray>)> {
+    let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
     let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
-    Ok((common_frame, surplus_frame, application_result))
+    Ok((frames, application_result))
 }
 
 pub fn exec_dyad(
@@ -106,8 +105,8 @@ pub fn exec_dyad(
         return (f)(x, y).context("infinite dyad shortcut");
     }
 
-    let (common_frame, surplus_frame, application_result) = exec_dyad_inner(f, rank, x, y)?;
-    let flat = flatten(&common_frame, &surplus_frame, &application_result)?;
+    let (frames, application_result) = exec_dyad_inner(f, rank, x, y)?;
+    let flat = flatten(&frames, &application_result)?;
     Ok(Word::Noun(flat))
 }
 

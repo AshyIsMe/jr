@@ -21,9 +21,8 @@ fn main() -> Result<()> {
         let res = scan_eval(&expr);
         println!("r: {}", format!("{:?}", res).replace('\n', "\n   "));
 
-        let (c, common, spare) =
-            generate_cells(arr(x)?, arr(y)?, (Rank::new(xr)?, Rank::new(yr)?))?;
-        println!("g: {c:?} {common:?} {spare:?}");
+        let (frames, c) = generate_cells(arr(x)?, arr(y)?, (Rank::new(xr)?, Rank::new(yr)?))?;
+        println!("g: {c:?} {frames:?}");
         println!();
     }
     Ok(())

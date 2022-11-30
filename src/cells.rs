@@ -28,7 +28,7 @@ pub fn generate_cells(
     x: JArray,
     y: JArray,
     (x_arg_rank, y_arg_rank): (Rank, Rank),
-) -> Result<(Vec<(JArray, JArray)>, Vec<usize>, Vec<usize>)> {
+) -> Result<(Vec<usize>, Vec<(JArray, JArray)>)> {
     let x_shape = x.shape();
     let y_shape = y.shape();
 
@@ -58,9 +58,13 @@ pub fn generate_cells(
 
     assert_eq!(x_macrocells.len(), y_macrocells.len());
 
-    let macrocells = x_macrocells.into_iter().zip(y_macrocells).collect_vec();
-
-    Ok((macrocells, common_frame.to_vec(), surplus_frame.to_vec()))
+    let macrocells = x_macrocells.into_iter().zip(y_macrocells).collect();
+    let frames = common_frame
+        .iter()
+        .chain(surplus_frame.iter())
+        .copied()
+        .collect();
+    Ok((frames, macrocells))
 }
 
 pub fn monad_cells(y: &JArray, arg_rank: Rank) -> Result<(Vec<JArray>, Vec<usize>)> {
@@ -111,11 +115,7 @@ pub fn apply_cells(
         .collect()
 }
 
-pub fn flatten(
-    common_frame: &[usize],
-    surplus_frame: &[usize],
-    macrocell_results: &[JArray],
-) -> Result<JArray> {
+pub fn flatten(frames: &[usize], macrocell_results: &[JArray]) -> Result<JArray> {
     // TODO: this is only true for dyads, the monads re-use this code ignoring the split
     // TODO: I wonder if really this funciton should be talking a pre-flattened answer,
     // TODO: we don't otherwise care
@@ -136,11 +136,10 @@ pub fn flatten(
         .expect("non-empty macrocells");
 
     // common_frame + surplus_frame + max(all results)
-    let target_shape = common_frame
+    let target_shape = frames
         .iter()
+        .chain(target_inner_shape.iter())
         .copied()
-        .chain(surplus_frame.iter().copied())
-        .chain(target_inner_shape.iter().copied())
         .collect_vec();
 
     // flatten
@@ -213,7 +212,7 @@ mod tests {
     fn test_gen_macrocells_plus_one() -> Result<()> {
         let x = arr0d(5i64).into_jarray();
         let y = array![1i64, 2, 3].into_dyn().into_jarray();
-        let (cells, _, _) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![(
@@ -229,7 +228,7 @@ mod tests {
         // I think I'd rather the arrays came out whole in this case?
         let x = array![10i64, 20, 30].into_dyn().into_jarray();
         let y = array![1i64, 2, 3].into_dyn().into_jarray();
-        let (cells, _, _) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
@@ -247,7 +246,7 @@ mod tests {
         let y = array![[10i64, 20, 30], [70, 80, 90]]
             .into_dyn()
             .into_jarray();
-        let (cells, _, _) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
@@ -268,7 +267,7 @@ mod tests {
     fn test_gen_macrocells_plus_i() -> Result<()> {
         let x = array![100i64, 200].into_dyn().into_jarray();
         let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray();
-        let (cells, _, _) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
@@ -289,7 +288,7 @@ mod tests {
     fn test_gen_macrocells_hash() -> Result<()> {
         let x = array![24i64, 60, 61].into_dyn().into_jarray();
         let y = array![1800i64, 7200].into_dyn().into_jarray();
-        let (cells, _, _) = generate_cells(x, y, (Rank::one(), Rank::zero()))?;
+        let (_, cells) = generate_cells(x, y, (Rank::one(), Rank::zero()))?;
         assert_eq!(
             cells,
             vec![(
