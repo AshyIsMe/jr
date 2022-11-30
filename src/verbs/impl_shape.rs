@@ -38,9 +38,9 @@ where
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
     JArray::BoxArray(if y.shape().is_empty() {
-        arr0d(Word::Noun(y.clone()))
+        arr0d(y.clone())
     } else {
-        array![Word::Noun(y.clone())].into_dyn()
+        array![y.clone()].into_dyn()
     })
 }
 
@@ -53,7 +53,7 @@ pub fn v_box(y: &JArray) -> Result<Word> {
 pub fn v_open(y: &JArray) -> Result<Word> {
     match y {
         JArray::BoxArray(y) => match y.len() {
-            1 => Ok(y.iter().next().expect("just checked").clone()),
+            1 => Ok(Word::Noun(y.iter().next().expect("just checked").clone())),
             _ => bail!("todo: unbox BoxArray"),
         },
         y => Ok(Word::Noun(y.clone())),
@@ -120,7 +120,7 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<Word> {
             .context("noun")?),
             _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
         },
-        (x, y) => Ok(Word::noun([Word::Noun(x.clone()), Word::Noun(y.clone())])?),
+        (x, y) => Ok(Word::noun([x.clone(), y.clone()])?),
     }
 }
 

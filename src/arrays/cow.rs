@@ -4,7 +4,7 @@ use ndarray::IntoDimension;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::{JArray, Word};
+use crate::JArray;
 
 pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
 
@@ -17,7 +17,7 @@ pub enum JArrayCow<'a> {
     RationalArray(CowArrayD<'a, BigRational>),
     FloatArray(CowArrayD<'a, f64>),
     ComplexArray(CowArrayD<'a, Complex64>),
-    BoxArray(CowArrayD<'a, Word>),
+    BoxArray(CowArrayD<'a, JArray>),
 }
 
 macro_rules! impl_array {
@@ -139,7 +139,7 @@ impl_from_atom!(BigInt, JArrayCow::ExtIntArray);
 impl_from_atom!(BigRational, JArrayCow::RationalArray);
 impl_from_atom!(f64, JArrayCow::FloatArray);
 impl_from_atom!(Complex64, JArrayCow::ComplexArray);
-impl_from_atom!(Word, JArrayCow::BoxArray);
+impl_from_atom!(JArray, JArrayCow::BoxArray);
 
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {
@@ -158,7 +158,7 @@ impl_from_nd!(BigInt, JArrayCow::ExtIntArray);
 impl_from_nd!(BigRational, JArrayCow::RationalArray);
 impl_from_nd!(f64, JArrayCow::FloatArray);
 impl_from_nd!(Complex64, JArrayCow::ComplexArray);
-impl_from_nd!(Word, JArrayCow::BoxArray);
+impl_from_nd!(JArray, JArrayCow::BoxArray);
 
 macro_rules! impl_from_nd_view {
     ($t:ty, $j:path) => {
@@ -177,4 +177,4 @@ impl_from_nd_view!(BigInt, JArrayCow::ExtIntArray);
 impl_from_nd_view!(BigRational, JArrayCow::RationalArray);
 impl_from_nd_view!(f64, JArrayCow::FloatArray);
 impl_from_nd_view!(Complex64, JArrayCow::ComplexArray);
-impl_from_nd_view!(Word, JArrayCow::BoxArray);
+impl_from_nd_view!(JArray, JArrayCow::BoxArray);

@@ -22,7 +22,7 @@ pub enum JArray {
     RationalArray(ArrayD<BigRational>),
     FloatArray(ArrayD<f64>),
     ComplexArray(ArrayD<Complex64>),
-    BoxArray(ArrayD<Word>),
+    BoxArray(ArrayD<JArray>),
 }
 
 impl fmt::Debug for JArray {
@@ -372,7 +372,7 @@ impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
-impl_into_jarray!(ArrayD<Word>, JArray::BoxArray);
+impl_into_jarray!(ArrayD<JArray>, JArray::BoxArray);
 
 macro_rules! impl_from_atom {
     ($t:ty, $j:path) => {
@@ -390,7 +390,6 @@ impl_from_atom!(BigInt, JArray::ExtIntArray);
 impl_from_atom!(BigRational, JArray::RationalArray);
 impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
-impl_from_atom!(Word, JArray::BoxArray);
 
 macro_rules! impl_from_atom_ref {
     ($t:ty, $j:path) => {
@@ -408,7 +407,7 @@ impl_from_atom_ref!(&BigInt, JArray::ExtIntArray);
 impl_from_atom_ref!(&BigRational, JArray::RationalArray);
 impl_from_atom_ref!(&f64, JArray::FloatArray);
 impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
-impl_from_atom_ref!(&Word, JArray::BoxArray);
+impl_from_atom_ref!(&JArray, JArray::BoxArray);
 
 impl From<Num> for JArray {
     fn from(value: Num) -> Self {
