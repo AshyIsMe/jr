@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use ndarray::prelude::*;
 
 use crate::arrays::JArray::*;
-use crate::arrays::JArrays;
+use crate::arrays::{map_result, JArrays};
 use crate::eval;
 use crate::verbs::{exec_dyad, exec_dyad_inner, exec_monad, exec_monad_inner, Rank, VerbImpl};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
@@ -151,7 +151,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v, y) {
         (Word::Verb(_, u), Word::Verb(_, VerbImpl::Primitive(p)), Word::Noun(y)) => {
             // this is just v.exec() without flatten, isn't it
-            let (frames, r) = match x {
+            let r = match x {
                 Some(Word::Noun(x)) => {
                     let dyad = p
                         .dyad
@@ -164,16 +164,13 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             };
 
             // then apply u
-            let r = r
-                .into_iter()
-                .map(|a| match u.exec(None, &Word::Noun(a.clone()))? {
-                    Word::Noun(arr) => Ok(arr),
-                    _ => Err(JError::NonceError).context("refusing to believe in non-nouns"),
-                })
-                .collect::<Result<Vec<JArray>>>()?;
+            let r = map_result(r, |a| match u.exec(None, &Word::Noun(a.clone()))? {
+                Word::Noun(arr) => Ok(arr),
+                other => bail!("refusing to believe in non-nouns: {other:?}"),
+            })?;
 
             // then flatten (fill)
-            Ok(Word::Noun(flatten(&frames, &r)?))
+            Ok(Word::Noun(flatten(&r)?))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to @ a primitive verb, not {:?}", u)),

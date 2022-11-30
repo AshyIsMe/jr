@@ -4,6 +4,7 @@ use std::ops::Deref;
 use anyhow::{anyhow, bail, Context, Result};
 
 use super::ranks::Rank;
+use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::{JArray, JError, Word};
 
@@ -60,7 +61,7 @@ pub fn exec_monad_inner(
     f: impl Fn(&JArray) -> Result<Word>,
     rank: Rank,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<JArray>)> {
+) -> Result<BoxArray> {
     let (cells, common_frame) = monad_cells(y, rank)?;
 
     let results = monad_apply(&cells, |y| {
@@ -70,7 +71,7 @@ pub fn exec_monad_inner(
         })
     })?;
 
-    Ok((common_frame, results))
+    Ok(BoxArray::from_shape_vec(common_frame, results).expect("monad_apply generated"))
 }
 
 pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
@@ -78,8 +79,8 @@ pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -
         return f(y).context("infinite monad shortcut");
     }
 
-    let (frames, application_result) = exec_monad_inner(f, rank, y)?;
-    let flat = flatten(&frames, &application_result)?;
+    let r = exec_monad_inner(f, rank, y)?;
+    let flat = flatten(&r)?;
     Ok(Word::Noun(flat))
 }
 
@@ -88,11 +89,11 @@ pub fn exec_dyad_inner(
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<JArray>)> {
+) -> Result<BoxArray> {
     let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
     let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
-    Ok((frames, application_result))
+    Ok(BoxArray::from_shape_vec(frames, application_result).expect("apply_cells generated shape"))
 }
 
 pub fn exec_dyad(
@@ -105,8 +106,8 @@ pub fn exec_dyad(
         return (f)(x, y).context("infinite dyad shortcut");
     }
 
-    let (frames, application_result) = exec_dyad_inner(f, rank, x, y)?;
-    let flat = flatten(&frames, &application_result)?;
+    let r = exec_dyad_inner(f, rank, x, y)?;
+    let flat = flatten(&r)?;
     Ok(Word::Noun(flat))
 }
 

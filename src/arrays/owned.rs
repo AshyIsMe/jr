@@ -13,6 +13,8 @@ use crate::arrays::elem::Elem;
 use crate::number::Num;
 use crate::Word;
 
+pub type BoxArray = ArrayD<JArray>;
+
 #[derive(Clone, PartialEq)]
 pub enum JArray {
     BoolArray(ArrayD<u8>),
@@ -22,7 +24,7 @@ pub enum JArray {
     RationalArray(ArrayD<BigRational>),
     FloatArray(ArrayD<f64>),
     ComplexArray(ArrayD<Complex64>),
-    BoxArray(ArrayD<JArray>),
+    BoxArray(BoxArray),
 }
 
 impl fmt::Debug for JArray {

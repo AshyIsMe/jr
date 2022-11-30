@@ -5,6 +5,7 @@ use itertools::Itertools;
 use log::debug;
 use num_traits::Zero;
 
+use crate::arrays::BoxArray;
 use crate::number::{promote_to_array, Num};
 use crate::verbs::{DyadRank, Rank};
 use crate::{Elem, JArray, JError, Word};
@@ -115,7 +116,7 @@ pub fn apply_cells(
         .collect()
 }
 
-pub fn flatten(frames: &[usize], macrocell_results: &[JArray]) -> Result<JArray> {
+pub fn flatten(results: &BoxArray) -> Result<JArray> {
     // TODO: this is only true for dyads, the monads re-use this code ignoring the split
     // TODO: I wonder if really this funciton should be talking a pre-flattened answer,
     // TODO: we don't otherwise care
@@ -129,14 +130,15 @@ pub fn flatten(frames: &[usize], macrocell_results: &[JArray]) -> Result<JArray>
     // }
 
     // max(all results)
-    let target_inner_shape = macrocell_results
+    let target_inner_shape = results
         .iter()
         .map(|x| x.shape())
         .max()
         .expect("non-empty macrocells");
 
     // common_frame + surplus_frame + max(all results)
-    let target_shape = frames
+    let target_shape = results
+        .shape()
         .iter()
         .chain(target_inner_shape.iter())
         .copied()
@@ -144,7 +146,7 @@ pub fn flatten(frames: &[usize], macrocell_results: &[JArray]) -> Result<JArray>
 
     // flatten
     let mut big_daddy: Vec<Elem> = Vec::new();
-    for arr in macrocell_results {
+    for arr in results {
         if arr.shape() == target_inner_shape {
             // TODO: don't clone
 

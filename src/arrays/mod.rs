@@ -3,6 +3,7 @@
 mod arrayable;
 mod cow;
 mod elem;
+mod nd_ext;
 mod owned;
 mod plural;
 mod word;
@@ -10,7 +11,8 @@ mod word;
 pub use arrayable::Arrayable;
 pub use cow::{CowArrayD, JArrayCow};
 pub use elem::Elem;
-pub use owned::{IntoJArray, JArray};
+pub use nd_ext::map_result;
+pub use owned::{BoxArray, IntoJArray, JArray};
 pub use plural::JArrays;
 pub use word::Word;
 
