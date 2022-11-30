@@ -8,7 +8,7 @@ use num::{BigInt, BigRational};
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, JArray, Rank, Word};
+use jr::{arr0d, collect_nouns, resolve_names, JArray, JError, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();
@@ -751,5 +751,31 @@ fn test_ravel() -> Result<()> {
         jr::eval(jr::scan(", i.2 3 4")?, &mut HashMap::new())?,
         jr::eval(jr::scan("i.24")?, &mut HashMap::new())?,
     );
+    Ok(())
+}
+
+#[test]
+fn test_user_defined_dyadic_verb() -> Result<()> {
+    assert_eq!(scan_eval("2 (4 : 'x + y') 2").unwrap(), Word::from(4i64));
+
+    let err = jr::eval(jr::scan("(4 : 'x + y') 2")?, &mut HashMap::new()).unwrap_err();
+    let root = dbg!(err.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(root, JError::DomainError));
+
+    Ok(())
+}
+
+#[test]
+fn test_user_defined_monadic_verb() -> Result<()> {
+    assert_eq!(scan_eval("(3 : '2 * y') 2").unwrap(), Word::from(4i64));
+
+    let err = jr::eval(jr::scan("2 (3 : '2 * y') 2")?, &mut HashMap::new()).unwrap_err();
+    let root = dbg!(err.root_cause())
+        .downcast_ref::<JError>()
+        .expect("caused by jerror");
+    assert!(matches!(root, JError::DomainError));
+
     Ok(())
 }
