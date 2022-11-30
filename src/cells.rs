@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use num_traits::Zero;
@@ -79,18 +79,20 @@ pub fn apply_cells(
     cells: &[(JArray, JArray)],
     f: impl Fn(&JArray, &JArray) -> Result<Word>,
     (x_arg_rank, y_arg_rank): DyadRank,
-) -> Result<Vec<Vec<JArray>>> {
-    let mut cell_results = Vec::new();
+) -> Result<Vec<JArray>> {
+    cells
+        .iter()
+        .flat_map(|(x, y)| {
+            let x_parts = x.rank_iter(x_arg_rank.raw_u8().into());
+            let y_parts = y.rank_iter(y_arg_rank.raw_u8().into());
+            match (x_parts.len(), y_parts.len()) {
+                (1, _) | (_, 1) => (),
+                _ => unreachable!(
+                    "apply_cells can't see multi-lengthonal drifting: {x_parts:?} {y_parts:?}"
+                ),
+            };
+            let limit = max(x_parts.len(), y_parts.len());
 
-    for (x, y) in cells {
-        let x_parts = x.rank_iter(x_arg_rank.raw_u8().into());
-        let y_parts = y.rank_iter(y_arg_rank.raw_u8().into());
-        match (x_parts.len(), y_parts.len()) {
-            (1, _) | (_, 1) => (),
-            _ => bail!("apply_cells can't see multi-lengthonal drifting: {x_parts:?} {y_parts:?}"),
-        };
-        let limit = max(x_parts.len(), y_parts.len());
-        cell_results.push(
             x_parts
                 .into_iter()
                 .cycle()
@@ -105,17 +107,14 @@ pub fn apply_cells(
                         )),
                     })
                 })
-                .collect::<Result<_>>()?,
-        )
-    }
-
-    Ok(cell_results)
+        })
+        .collect()
 }
 
 pub fn flatten(
     common_frame: &[usize],
     surplus_frame: &[usize],
-    macrocell_results: &[Vec<JArray>],
+    macrocell_results: &[JArray],
 ) -> Result<JArray> {
     // TODO: this is only true for dyads, the monads re-use this code ignoring the split
     // TODO: I wonder if really this funciton should be talking a pre-flattened answer,
@@ -132,7 +131,7 @@ pub fn flatten(
     // max(all results)
     let target_inner_shape = macrocell_results
         .iter()
-        .flat_map(|one| one.iter().map(|x| x.shape()))
+        .map(|x| x.shape())
         .max()
         .expect("non-empty macrocells");
 
@@ -146,34 +145,32 @@ pub fn flatten(
 
     // flatten
     let mut big_daddy: Vec<Elem> = Vec::new();
-    for macrocell in macrocell_results {
-        for arr in macrocell {
-            if arr.shape() == target_inner_shape {
-                // TODO: don't clone
+    for arr in macrocell_results {
+        if arr.shape() == target_inner_shape {
+            // TODO: don't clone
 
+            big_daddy.extend(arr.clone().into_elems());
+            continue;
+        }
+
+        match (arr.shape().len(), target_inner_shape.len()) {
+            (1, 1) => {
+                let current = arr.shape()[0];
+                let target = target_inner_shape[0];
+                assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
                 big_daddy.extend(arr.clone().into_elems());
-                continue;
+                for _ in current..target {
+                    big_daddy.push(Elem::Num(Num::zero()));
+                }
             }
-
-            match (arr.shape().len(), target_inner_shape.len()) {
-                (1, 1) => {
-                    let current = arr.shape()[0];
-                    let target = target_inner_shape[0];
-                    assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
-                    big_daddy.extend(arr.clone().into_elems());
-                    for _ in current..target {
-                        big_daddy.push(Elem::Num(Num::zero()));
-                    }
-                }
-                _ => {
-                    return Err(JError::NonceError).with_context(|| {
-                        anyhow!(
-                            "can't framing fill {:?} out to {:?}",
-                            arr.shape(),
-                            target_inner_shape
-                        )
-                    });
-                }
+            _ => {
+                return Err(JError::NonceError).with_context(|| {
+                    anyhow!(
+                        "can't framing fill {:?} out to {:?}",
+                        arr.shape(),
+                        target_inner_shape
+                    )
+                });
             }
         }
     }

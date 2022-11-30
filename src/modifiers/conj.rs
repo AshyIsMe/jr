@@ -166,7 +166,6 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             // then apply u
             let r = r
                 .into_iter()
-                .flat_map(|v| v)
                 .map(|a| match u.exec(None, &Word::Noun(a.clone()))? {
                     Word::Noun(arr) => Ok(arr),
                     _ => Err(JError::NonceError).context("refusing to believe in non-nouns"),
@@ -174,7 +173,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                 .collect::<Result<Vec<JArray>>>()?;
 
             // then flatten (fill)
-            Ok(Word::Noun(flatten(&common_frame, &surplus_frame, &[r])?))
+            Ok(Word::Noun(flatten(&common_frame, &surplus_frame, &r)?))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to @ a primitive verb, not {:?}", u)),

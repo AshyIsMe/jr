@@ -60,7 +60,7 @@ pub fn exec_monad_inner(
     f: impl Fn(&JArray) -> Result<Word>,
     rank: Rank,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<usize>, Vec<Vec<JArray>>)> {
+) -> Result<(Vec<usize>, Vec<usize>, Vec<JArray>)> {
     let (cells, common_frame) = monad_cells(y, rank)?;
 
     let results = monad_apply(&cells, |y| {
@@ -70,9 +70,7 @@ pub fn exec_monad_inner(
         })
     })?;
 
-    // TODO: I really don't understand where this double array nesting is coming from,
-    // TODO: nothing seems to care about it.
-    Ok((common_frame, Vec::new(), vec![results]))
+    Ok((common_frame, Vec::new(), results))
 }
 
 pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
@@ -90,7 +88,7 @@ pub fn exec_dyad_inner(
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<(Vec<usize>, Vec<usize>, Vec<Vec<JArray>>)> {
+) -> Result<(Vec<usize>, Vec<usize>, Vec<JArray>)> {
     let (cells, common_frame, surplus_frame) =
         generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
