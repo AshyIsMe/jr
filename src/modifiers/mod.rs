@@ -6,7 +6,7 @@ mod conj;
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::Word;
+use crate::{Word};
 
 pub use adverb::*;
 pub use conj::*;

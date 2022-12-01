@@ -46,7 +46,7 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     .map(|i| -> Result<_> {
                         let mut t = y.clone();
                         for _ in 0..*i {
-                            t = u.exec(x, &t)?;
+                            t = u.exec(x, &t).map(Word::Noun)?;
                         }
                         Ok(t)
                     })
@@ -130,6 +130,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             match (x, y) {
                 (None, Word::Noun(y)) => {
                     exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
+                        .map(Word::Noun)
                         .context("monadic rank drifting")
                 }
                 (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
@@ -138,6 +139,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     x,
                     y,
                 )
+                .map(Word::Noun)
                 .context("dyadic rank drifting"),
                 _ => Err(JError::NonceError)
                     .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
@@ -164,10 +166,11 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             };
 
             // then apply u
-            let r = map_result(r, |a| match u.exec(None, &Word::Noun(a.clone()))? {
-                Word::Noun(arr) => Ok(arr),
-                other => bail!("refusing to believe in non-nouns: {other:?}"),
-            })?;
+            let r = r
+                .into_iter()
+                .flat_map(|v| v)
+                .map(|a| u.exec(None, &Word::Noun(a.clone())))
+                .collect::<Result<Vec<JArray>>>()?;
 
             // then flatten (fill)
             Ok(Word::Noun(flatten(&r)?))

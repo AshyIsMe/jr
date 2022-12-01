@@ -10,6 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
+use crate::arrays::Arrayable;
 use crate::number::Num;
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
 
@@ -46,35 +47,35 @@ pub fn atom_aware_box(y: &JArray) -> JArray {
 }
 
 /// < (monad)
-pub fn v_box(y: &JArray) -> Result<Word> {
-    Ok(Word::Noun(atom_aware_box(y)))
+pub fn v_box(y: &JArray) -> Result<JArray> {
+    Ok(atom_aware_box(y))
 }
 
 /// > (monad)
-pub fn v_open(y: &JArray) -> Result<Word> {
+pub fn v_open(y: &JArray) -> Result<JArray> {
     match y {
         JArray::BoxArray(y) => match y.len() {
-            1 => Ok(Word::Noun(y.iter().next().expect("just checked").clone())),
+            1 => Ok(y.iter().next().expect("just checked").clone()),
             _ => bail!("todo: unbox BoxArray"),
         },
-        y => Ok(Word::Noun(y.clone())),
+        y => Ok(y.clone()),
     }
 }
 
 /// $ (monad)
-pub fn v_shape_of(y: &JArray) -> Result<Word> {
-    Word::noun(y.shape())
+pub fn v_shape_of(y: &JArray) -> Result<JArray> {
+    Ok(y.shape().into_array()?.into_jarray())
 }
 
 /// $ (dyad)
-pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
     match x.to_i64() {
         Some(x) => {
             if x.product() < 0 {
                 Err(JError::DomainError).context("cannot reshape to negative shapes")
             } else {
                 debug!("v_shape: x: {x}, y: {y}");
-                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into_noun()))
+                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into_jarray()))
             }
         }
         _ => Err(JError::DomainError)
@@ -83,12 +84,12 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// , (dyad)
-pub fn v_append(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_append(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ,. (dyad)
-pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
@@ -103,30 +104,30 @@ pub fn atom_to_singleton<T: Clone>(y: ArrayD<T>) -> ArrayD<T> {
 }
 
 /// ; (dyad)
-pub fn v_link(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
     match (x, y) {
         // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
         // always box x, only box y if not already boxed
         (x, JArray::BoxArray(y)) => match atom_aware_box(x) {
-            JArray::BoxArray(x) => Ok(Word::noun(
-                concatenate(
-                    Axis(0),
-                    &[
-                        atom_to_singleton(x).view(),
-                        atom_to_singleton(y.clone()).view(),
-                    ],
-                )
-                .context("concatenate")?,
+            JArray::BoxArray(x) => Ok(concatenate(
+                Axis(0),
+                &[
+                    atom_to_singleton(x).view(),
+                    atom_to_singleton(y.clone()).view(),
+                ],
             )
-            .context("noun")?),
+            .context("concatenate")?
+            .into_array()
+            .context("noun")?
+            .into_jarray()),
             _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
         },
-        (x, y) => Ok(Word::noun([x.clone(), y.clone()])?),
+        (x, y) => Ok([x.clone(), y.clone()].into_array()?.into_jarray()),
     }
 }
 
 /// # (dyad) (1, _)
-pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
     assert!(x.shape().len() <= 1);
     if x.is_empty() || y.is_empty() {
         return Err(JError::NonceError).context("empty copy");
@@ -179,31 +180,24 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
                     .with_context(|| anyhow!("push: {y:?})"))?;
             }
         }
-        Ok(Word::Noun(output.into_jarray()))
+        Ok(output.into_jarray())
     })
 }
 
 /// {. (monad)
-pub fn v_head(y: &JArray) -> Result<Word> {
-    use Word::Noun;
-
-    let res = v_take(&JArray::from(Num::from(1i64)), y)?;
+pub fn v_head(y: &JArray) -> Result<JArray> {
+    let a = v_take(&JArray::from(Num::from(1i64)), y)?;
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
-    match res {
-        Noun(a) => {
-            if !a.shape().is_empty() {
-                let s = &a.shape()[1..];
-                Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
-            } else {
-                Ok(Noun(a))
-            }
-        }
-        _ => Err(JError::NonceError.into()),
+    if !a.shape().is_empty() {
+        let s = &a.shape()[1..];
+        Ok(JArray::from(a.clone().to_shape(s).unwrap()))
+    } else {
+        Ok(a)
     }
 }
 
 /// {. (dyad)
-pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
     assert!(
         x.shape().len() <= 1,
         "agreement guarantee x: {:?}",
@@ -224,7 +218,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
     match x.len() {
         1 => {
             let x = x[0];
-            Ok(Word::Noun(match x.cmp(&0) {
+            Ok(match x.cmp(&0) {
                 Ordering::Equal => bail!("v_take(): return empty array of type y"),
                 Ordering::Less => {
                     // negative x (take from right)
@@ -256,7 +250,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
                         y.select(Axis(0), &(0..x).collect_vec())
                     }
                 }
-            }))
+            })
         }
         _ => Err(JError::LengthError)
             .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
@@ -264,43 +258,37 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
 }
 
 /// {: (monad)
-pub fn v_tail(y: &JArray) -> Result<Word> {
-    use Word::Noun;
-    let res = v_take(&JArray::from(Num::from(-1i64)), y)?;
+pub fn v_tail(y: &JArray) -> Result<JArray> {
+    let a = v_take(&JArray::from(Num::from(-1i64)), y)?;
     //    ({: 1 2 3) NB. similar to v_head() where it drops the leading shape rank
     // 3  NB. atom not a single element list
-    match res {
-        Noun(a) => {
-            if !a.shape().is_empty() {
-                let s = &a.shape()[1..];
-                Ok(Noun(JArray::from(a.clone().to_shape(s).unwrap())))
-            } else {
-                Ok(Noun(a))
-            }
-        }
-        _ => Err(JError::NonceError.into()),
+    if !a.shape().is_empty() {
+        let s = &a.shape()[1..];
+        Ok(JArray::from(a.clone().to_shape(s).unwrap()))
+    } else {
+        Ok(a)
     }
 }
 
 /// }: (monad)
-pub fn v_curtail(y: &JArray) -> Result<Word> {
+pub fn v_curtail(y: &JArray) -> Result<JArray> {
     v_drop(&JArray::from(Num::from(-1i64)), y)
 }
 
 /// {:: (dyad)
-pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// }. (monad)
-pub fn v_behead(y: &JArray) -> Result<Word> {
+pub fn v_behead(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| Ok(arr
         .slice_axis(Axis(0), Slice::from(1isize..))
         .into_owned()
-        .into_noun()))
+        .into_jarray()))
 }
 /// }. (dyad)
-pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
     use JArray::*;
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
@@ -314,7 +302,7 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
                 0 => impl_array!(y, |arr: &ArrayD<_>| {
                     let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
                     Ok(match x.cmp(&0) {
-                        Ordering::Equal => arr.clone().into_owned().into_noun(),
+                        Ordering::Equal => arr.clone().into_owned().into_jarray(),
                         Ordering::Less => {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4
