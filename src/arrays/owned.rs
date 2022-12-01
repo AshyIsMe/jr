@@ -293,6 +293,13 @@ impl JArray {
         }
     }
 
+    pub fn when_char(&self) -> Option<&ArrayD<char>> {
+        match self {
+            JArray::CharArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
     pub fn when_i64(&self) -> Option<&ArrayD<i64>> {
         match self {
             JArray::IntArray(arr) => Some(arr),
