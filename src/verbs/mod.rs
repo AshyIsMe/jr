@@ -193,17 +193,10 @@ pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("sort only implemented for (1d) lists");
     }
 
-    let mut y = y
-        .clone()
-        .into_nums()
-        .ok_or(JError::NonceError)
-        .context("sort only implemented for numerics")?
-        .into_iter()
-        .enumerate()
-        .collect_vec();
+    let mut y = y.clone().into_elems().into_iter().enumerate().collect_vec();
     y.try_sort_by_key(|(_, n)| Some(n.clone()))
         .map_err(|_| JError::NonceError)
-        .context("sort only implemented for sortable numerics")?;
+        .context("sort only implemented for simple types")?;
     let x = x.clone().into_elems();
     if x.len() < y.len() {
         return Err(JError::IndexError).context("need more xs than ys");

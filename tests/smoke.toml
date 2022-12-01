@@ -1,4 +1,10 @@
 [[runs]]
+expr = "#/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'"
+output = '20 12 17 21'
+datatype = 'integer'
+shape = '4'
+
+[[runs]]
 expr = '% 0'
 output = '_'
 datatype = 'floating'
