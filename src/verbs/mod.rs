@@ -5,7 +5,7 @@ mod maff;
 mod ranks;
 
 use crate::number::{promote_to_array, Num};
-use crate::{impl_array, IntoJArray, JArray, JError, Word};
+use crate::{impl_array, IntoJArray, JArray, JError};
 
 use anyhow::{bail, Context, Result};
 use itertools::Itertools;
@@ -15,26 +15,25 @@ use num_traits::FloatConst;
 use try_partialord::TrySort;
 
 use JArray::*;
-use Word::*;
 
 use maff::*;
 pub use ranks::Rank;
 
-use crate::arrays::JArrayCow;
+use crate::arrays::{Arrayable, JArrayCow};
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
 
-pub fn v_not_implemented_monad(_y: &JArray) -> Result<Word> {
+pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 #[allow(unused_variables)]
-pub fn v_plot(y: &JArray) -> Result<Word> {
+pub fn v_plot(y: &JArray) -> Result<JArray> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "ui")] {
             crate::plot::plot(y)
@@ -44,22 +43,22 @@ pub fn v_plot(y: &JArray) -> Result<Word> {
     }
 }
 
-fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> {
-    Word::noun(
-        y.outer_iter()
-            .map(|i| {
-                x.outer_iter()
-                    .position(|j| j == i)
-                    .unwrap_or(x.len_of(Axis(0))) as i64
-            })
-            .collect::<Vec<i64>>(),
-    )
+fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<JArray> {
+    Ok(y.outer_iter()
+        .map(|i| {
+            x.outer_iter()
+                .position(|j| j == i)
+                .unwrap_or(x.len_of(Axis(0))) as i64
+        })
+        .collect::<Vec<i64>>()
+        .into_array()?
+        .into_jarray())
 }
 
 // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "/// $a (monad)\npub fn v_$b(y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n/// $a (dyad)\npub fn v_$c(x: &Word, y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n\n"'
 
 /// = (monad)
-pub fn v_self_classify(y: &JArray) -> Result<Word> {
+pub fn v_self_classify(y: &JArray) -> Result<JArray> {
     let candidates = y.outer_iter();
     let nubs = nub(&candidates);
     let output_shape = [nubs.len(), candidates.len()];
@@ -71,20 +70,18 @@ pub fn v_self_classify(y: &JArray) -> Result<Word> {
         }
     }
 
-    Ok(Word::Noun(
-        ArrayD::from_shape_vec(&output_shape[..], output)
-            .expect("fixed shape")
-            .into_jarray(),
-    ))
+    Ok(ArrayD::from_shape_vec(&output_shape[..], output)
+        .expect("fixed shape")
+        .into_jarray())
 }
 
 /// -. (dyad)
-pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_less(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// -: (dyad)
-pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_match(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
@@ -104,96 +101,94 @@ fn nub(candidates: &Vec<JArrayCow>) -> Vec<usize> {
 }
 
 /// ~. (monad) (_)
-pub fn v_nub(y: &JArray) -> Result<Word> {
+pub fn v_nub(y: &JArray) -> Result<JArray> {
     // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
     // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
 
     let candidates = y.outer_iter();
     let included = nub(&candidates);
 
-    Ok(Word::Noun(y.select(Axis(0), &included)))
+    Ok(y.select(Axis(0), &included))
 }
 
 /// ~: (monad)
-pub fn v_nub_sieve(_y: &JArray) -> Result<Word> {
+pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// |. (monad)
-pub fn v_reverse(_y: &JArray) -> Result<Word> {
+pub fn v_reverse(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// |. (dyad)
-pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// , (monad)
-pub fn v_ravel(y: &JArray) -> Result<Word> {
+pub fn v_ravel(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| {
-        Word::noun(arr.clone().into_raw_vec())
+        Ok(arr.clone().into_raw_vec().into_array()?.into_jarray())
     })
 }
 
 /// ,. (monad)
-pub fn v_ravel_items(_y: &JArray) -> Result<Word> {
+pub fn v_ravel_items(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ,: (monad)
-pub fn v_itemize(_y: &JArray) -> Result<Word> {
+pub fn v_itemize(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ,: (dyad)
-pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ; (monad)
-pub fn v_raze(_y: &JArray) -> Result<Word> {
+pub fn v_raze(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ;: (monad)
-pub fn v_words(_y: &JArray) -> Result<Word> {
+pub fn v_words(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ;: (dyad)
-pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// # (monad)
-pub fn v_tally(y: &JArray) -> Result<Word> {
-    Ok(Word::from(
-        i64::try_from(y.len()).map_err(|_| JError::LimitError)?,
-    ))
+pub fn v_tally(y: &JArray) -> Result<JArray> {
+    Ok(Num::from(i64::try_from(y.len()).map_err(|_| JError::LimitError)?).into())
 }
 
 /// #. (monad)
-pub fn v_base_(_y: &JArray) -> Result<Word> {
+pub fn v_base_(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// #. (dyad)
-pub fn v_base(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_base(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// #: (monad)
-pub fn v_antibase_(_y: &JArray) -> Result<Word> {
+pub fn v_antibase_(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// #: (dyad)
-pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// /: (monad)
-pub fn v_grade_up(_y: &JArray) -> Result<Word> {
+pub fn v_grade_up(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// /: (dyad)
-pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() != 1 || y.shape().len() != 1 {
         return Err(JError::NonceError).context("sort only implemented for (1d) lists");
     }
@@ -214,98 +209,98 @@ pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<Word> {
         return Err(JError::IndexError).context("need more xs than ys");
     }
     // TODO: unnecessary clones, as usual
-    Ok(Word::Noun(promote_to_array(
+    Ok(promote_to_array(
         y.into_iter()
             .map(|(i, _)| i)
             .map(|i| x[i].clone())
             .collect(),
-    )?))
+    )?)
 }
 
 /// \: (monad)
-pub fn v_grade_down(_y: &JArray) -> Result<Word> {
+pub fn v_grade_down(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// \: (dyad)
-pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// \[ (monad) and ] (monad) apparently
-pub fn v_same(_y: &JArray) -> Result<Word> {
+pub fn v_same(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// [ (dyad)
-pub fn v_left(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_left(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ] (dyad)
-pub fn v_right(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_right(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// { (monad)
-pub fn v_catalogue(_y: &JArray) -> Result<Word> {
+pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// { (dyad)
-pub fn v_from(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_from(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// {:: (monad)
-pub fn v_map(_y: &JArray) -> Result<Word> {
+pub fn v_map(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ". (monad)
-pub fn v_do(_y: &JArray) -> Result<Word> {
+pub fn v_do(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ". (dyad)
-pub fn v_numbers(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_numbers(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// ": (monad)
-pub fn v_default_format(_y: &JArray) -> Result<Word> {
+pub fn v_default_format(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ": (dyad)
-pub fn v_format(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_format(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// A. (monad)
-pub fn v_anagram_index(_y: &JArray) -> Result<Word> {
+pub fn v_anagram_index(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// A. (dyad)
-pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// C. (monad)
-pub fn v_cycledirect(_y: &JArray) -> Result<Word> {
+pub fn v_cycledirect(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// C. (dyad)
-pub fn v_permute(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_permute(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// e. (monad)
-pub fn v_raze_in(_y: &JArray) -> Result<Word> {
+pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// e. (dyad)
-pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// i. (monad)
-pub fn v_integers(y: &JArray) -> Result<Word> {
+pub fn v_integers(y: &JArray) -> Result<JArray> {
     match y {
         // monadic i.
         IntArray(a) => {
@@ -314,7 +309,7 @@ pub fn v_integers(y: &JArray) -> Result<Word> {
                 bail!("todo: monadic i. negative args");
             } else {
                 let ints = Array::from_vec((0..p).collect());
-                Ok(Noun(IntArray(reshape(a, &ints.into_dyn())?)))
+                Ok(IntArray(reshape(a, &ints.into_dyn())?))
             }
         }
         ExtIntArray(_) => {
@@ -324,7 +319,7 @@ pub fn v_integers(y: &JArray) -> Result<Word> {
     }
 }
 /// i. (dyad)
-pub fn v_index_of(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
     match (x, y) {
         // TODO fix for n-dimensional arguments. currently broken
         // dyadic i.
@@ -338,76 +333,76 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<Word> {
             // mismatched array types
             let xl = x.len_of(Axis(0)) as i64;
             let yl = y.len_of(Axis(0));
-            Ok(Word::Noun(IntArray(Array::from_elem(IxDyn(&[yl]), xl))))
+            Ok(IntArray(Array::from_elem(IxDyn(&[yl]), xl)))
         }
     }
 }
 
 /// i: (monad)
-pub fn v_steps(_y: &JArray) -> Result<Word> {
+pub fn v_steps(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// i: (dyad)
-pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// I. (monad)
-pub fn v_indices(_y: &JArray) -> Result<Word> {
+pub fn v_indices(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// I. (dyad)
-pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// j. (monad)
-pub fn v_imaginary(y: &JArray) -> Result<Word> {
+pub fn v_imaginary(y: &JArray) -> Result<JArray> {
     let y = y
         .single_math_num()
         .ok_or(JError::DomainError)
         .context("expecting a single number for 'y'")?;
 
-    Ok(Word::Noun((y * Num::i()).into()))
+    Ok((y * Num::i()).into())
 }
 /// j. (dyad)
-pub fn v_complex(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_complex(x: &JArray, y: &JArray) -> Result<JArray> {
     rank0(x, y, |x, y| Ok(x + (Num::i() * y)))
 }
 
 /// o. (monad)
-pub fn v_pi_times(y: &JArray) -> Result<Word> {
+pub fn v_pi_times(y: &JArray) -> Result<JArray> {
     m0nn(y, |y| y * Num::Float(f64::PI()))
 }
 /// o. (dyad)
-pub fn v_circle_function(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_circle_function(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// p. (monad)
-pub fn v_roots(_y: &JArray) -> Result<Word> {
+pub fn v_roots(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// p. (dyad)
-pub fn v_polynomial(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_polynomial(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// p.. (monad)
-pub fn v_poly_deriv(_y: &JArray) -> Result<Word> {
+pub fn v_poly_deriv(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// p.. (dyad)
-pub fn v_poly_integral(_x: &JArray, _y: &JArray) -> Result<Word> {
+pub fn v_poly_integral(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
 /// x: (monad)
-pub fn v_extend_precision(_y: &JArray) -> Result<Word> {
+pub fn v_extend_precision(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// x: (dyad)
-pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
+pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
     if !x.shape().is_empty() {
         return Err(JError::RankError).context("num denum requires atomic x");
     }
@@ -427,7 +422,7 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<Word> {
                     .iter()
                     .flat_map(|x| [x.numer().clone(), x.denom().clone()])
                     .collect();
-                Ok(ArrayD::from_shape_vec(shape, values)?.into_noun())
+                Ok(ArrayD::from_shape_vec(shape, values)?.into_jarray())
             }
             None => Err(JError::NonceError).context("expecting a rational input"),
         },
