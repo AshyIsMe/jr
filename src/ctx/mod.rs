@@ -1,16 +1,18 @@
-use crate::Word;
+use crate::{arr0d, JArray, Word};
 use std::collections::HashMap;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct Ctx {
     names: HashMap<String, Word>,
 }
 
 impl Ctx {
     pub fn empty() -> Self {
-        Ctx {
+        let mut ctx = Ctx {
             names: Default::default(),
-        }
+        };
+        ctx.alias("LF", Word::Noun(JArray::CharArray(arr0d('\n'))));
+        ctx
     }
 
     pub fn alias(&mut self, n: impl ToString, v: Word) {

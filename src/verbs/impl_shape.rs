@@ -84,8 +84,21 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// , (dyad)
-pub fn v_append(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
+    if !x.shape().is_empty() || !y.shape().is_empty() || x.is_empty() || y.is_empty() {
+        return Err(JError::NonceError).context("can only append atoms");
+    }
+
+    // maybe decay to elements sand just send it?
+    match (x, y) {
+        (JArray::CharArray(l), JArray::CharArray(r)) => Ok(vec![
+            *l.iter().next().expect("checked"),
+            *r.iter().next().expect("checked"),
+        ]
+        .into_array()?
+        .into_jarray()),
+        _ => return Err(JError::NonceError).context("can only append chars"),
+    }
 }
 
 /// ,. (dyad)
