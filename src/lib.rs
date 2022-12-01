@@ -85,6 +85,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "^" => primitive("^", v_exponential, v_power, (0, 0, 0)),
         "^." => primitive("^.", v_natural_log, v_logarithm, (0, 0, 0)),
         "$" => primitive("$", v_shape_of, v_shape, (inf, 1, inf)),
+        "~." => VerbImpl::Primitive(PrimitiveImpl::monad("~.", v_nub)), // inf
         "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
         "|" => primitive("|", v_magnitude, v_residue, (0, 0, 0)),
         "|." => primitive("|.", v_reverse, v_rotate_shift, (inf, inf, inf)),
@@ -99,8 +100,8 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "#." => primitive("#.", v_base_, v_base, (1, 1, 1)),
         "#:" => primitive("#:", v_antibase_, v_antibase, (inf, 1, 0)),
         "!" => primitive("!", v_factorial, v_out_of, (0, 0, 0)),
-        "/:" => primitive("/:", v_grade_up, v_sort, (inf, inf, inf)),
-        "\\:" => primitive("\\:", v_grade_down, v_sort, (inf, inf, inf)),
+        "/:" => primitive("/:", v_grade_up, v_sort_up, (inf, inf, inf)),
+        "\\:" => primitive("\\:", v_grade_down, v_sort_down, (inf, inf, inf)),
 
         "[" => primitive("[", v_same, v_left, (inf, inf, inf)),
         "]" => primitive("]", v_same, v_right, (inf, inf, inf)),
@@ -139,7 +140,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "^!." => not_impl("^!."),
         "$." => not_impl("$."),
         "$:" => not_impl("$:"),
-        "~." => not_impl("~."),
         "|:" => not_impl("|:"),
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
@@ -208,9 +208,9 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
     let adverb = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
     Some(match sentence {
-        "~" => adverb("~", a_not_implemented),
+        "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
-        "/." => adverb("/.", a_not_implemented),
+        "/." => adverb("/.", a_slash_dot),
         "\\" => adverb("\\", a_not_implemented),
         "\\." => adverb("\\.", a_not_implemented),
         "]:" => adverb("]:", a_not_implemented),
@@ -272,7 +272,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "\"" => conj("\"", c_quote),
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
-        "@" => conj("@", c_not_implemented),
+        "@" => conj("@", c_at),
         "@." => conj("@.", c_not_implemented),
         "@:" => conj("@:", c_not_implemented),
         "&" => conj("&", c_not_implemented),

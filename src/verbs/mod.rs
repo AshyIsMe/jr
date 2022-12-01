@@ -4,13 +4,15 @@ mod impl_shape;
 mod maff;
 mod ranks;
 
-use crate::number::Num;
+use crate::number::{promote_to_array, Num};
 use crate::{impl_array, IntoJArray, JArray, JError, Word};
 
 use anyhow::{bail, Context, Result};
+use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
 use num_traits::FloatConst;
+use try_partialord::TrySort;
 
 use JArray::*;
 use Word::*;
@@ -18,6 +20,7 @@ use Word::*;
 use maff::*;
 pub use ranks::Rank;
 
+use crate::arrays::JArrayCow;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -56,8 +59,23 @@ fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<Word> 
 // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "/// $a (monad)\npub fn v_$b(y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n/// $a (dyad)\npub fn v_$c(x: &Word, y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n\n"'
 
 /// = (monad)
-pub fn v_self_classify(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_self_classify(y: &JArray) -> Result<Word> {
+    let candidates = y.outer_iter();
+    let nubs = nub(&candidates);
+    let output_shape = [nubs.len(), candidates.len()];
+    let mut output = Vec::with_capacity(output_shape[0] * output_shape[1]);
+    for nub in &nubs {
+        for cand in &candidates {
+            let nub = &candidates[*nub];
+            output.push(if nub == cand { 1u8 } else { 0u8 });
+        }
+    }
+
+    Ok(Word::Noun(
+        ArrayD::from_shape_vec(&output_shape[..], output)
+            .expect("fixed shape")
+            .into_jarray(),
+    ))
 }
 
 /// -. (dyad)
@@ -68,6 +86,32 @@ pub fn v_less(_x: &JArray, _y: &JArray) -> Result<Word> {
 /// -: (dyad)
 pub fn v_match(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
+}
+
+fn nub(candidates: &Vec<JArrayCow>) -> Vec<usize> {
+    let mut included = Vec::new();
+    'outer: for (i, test) in candidates.iter().enumerate() {
+        // if we've already seen this value, don't add it to the `included` list,
+        // by continuing out of the two loops
+        for seen in &included {
+            if test == &candidates[*seen] {
+                continue 'outer;
+            }
+        }
+        included.push(i);
+    }
+    included
+}
+
+/// ~. (monad) (_)
+pub fn v_nub(y: &JArray) -> Result<Word> {
+    // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
+    // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
+
+    let candidates = y.outer_iter();
+    let included = nub(&candidates);
+
+    Ok(Word::Noun(y.select(Axis(0), &included)))
 }
 
 /// ~: (monad)
@@ -148,13 +192,42 @@ pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<Word> {
 pub fn v_grade_up(_y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
-/// /: (dyad) and \: (dyad)
-pub fn v_sort(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+/// /: (dyad)
+pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<Word> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("sort only implemented for (1d) lists");
+    }
+
+    let mut y = y
+        .clone()
+        .into_nums()
+        .ok_or(JError::NonceError)
+        .context("sort only implemented for numerics")?
+        .into_iter()
+        .enumerate()
+        .collect_vec();
+    y.try_sort_by_key(|(_, n)| Some(n.clone()))
+        .map_err(|_| JError::NonceError)
+        .context("sort only implemented for sortable numerics")?;
+    let x = x.clone().into_elems();
+    if x.len() < y.len() {
+        return Err(JError::IndexError).context("need more xs than ys");
+    }
+    // TODO: unnecessary clones, as usual
+    Ok(Word::Noun(promote_to_array(
+        y.into_iter()
+            .map(|(i, _)| i)
+            .map(|i| x[i].clone())
+            .collect(),
+    )?))
 }
 
 /// \: (monad)
 pub fn v_grade_down(_y: &JArray) -> Result<Word> {
+    Err(JError::NonceError.into())
+}
+/// \: (dyad)
+pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<Word> {
     Err(JError::NonceError.into())
 }
 

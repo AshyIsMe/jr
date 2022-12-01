@@ -207,6 +207,12 @@ datatype = 'integer'
 shape = ''
 
 [[runs]]
+expr = '16 %~ 3.2'
+output = '0.2'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '1r2'
 output = '1r2'
 datatype = 'rational'
@@ -223,6 +229,36 @@ expr = '2'
 output = '2'
 datatype = 'integer'
 shape = ''
+
+[[runs]]
+expr = '2 # 5 6 7'
+output = '5 5 6 6 7 7'
+datatype = 'integer'
+shape = '6'
+
+[[runs]]
+expr = '2 3 # 2'
+output = '2 2 2 2 2'
+datatype = 'integer'
+shape = '5'
+
+[[runs]]
+expr = '2 4 # (2 3 $ 7 8 9 4 5 6)'
+output = '''
+7 8 9
+7 8 9
+4 5 6
+4 5 6
+4 5 6
+4 5 6'''
+datatype = 'integer'
+shape = '6 3'
+
+[[runs]]
+expr = '2 4 # 7j7'
+output = '7j7 7j7 7j7 7j7 7j7 7j7'
+datatype = 'complex'
+shape = '6'
 
 [[runs]]
 expr = '2-0.5'
@@ -291,6 +327,12 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '3.2 %~ 16'
+output = '5'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '3.2 < 5.1'
 output = '1'
 datatype = 'boolean'
@@ -309,10 +351,28 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '32^1r5'
+output = '2'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '3>.4 _4'
 output = '4 3'
 datatype = 'integer'
 shape = '2'
+
+[[runs]]
+expr = '3^2'
+output = '9'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
+expr = '3^3'
+output = '27'
+datatype = 'floating'
+shape = ''
 
 [[runs]]
 expr = '3e1'
@@ -393,6 +453,30 @@ datatype = 'boolean'
 shape = ''
 
 [[runs]]
+expr = '7 8 9 10 /: 4 2'
+output = '8 7'
+datatype = 'integer'
+shape = '2'
+
+[[runs]]
+expr = '7 8 9 10 /: 4 2 3'
+output = '8 9 7'
+datatype = 'integer'
+shape = '3'
+
+[[runs]]
+expr = '7 8 9 10 /: 4 2 3 1'
+output = '10 8 9 7'
+datatype = 'integer'
+shape = '4'
+
+[[runs]]
+expr = '9^0.5'
+output = '3'
+datatype = 'floating'
+shape = ''
+
+[[runs]]
 expr = '<. 4.6 4 _4 _4.6'
 output = '4 4 _4 _5'
 datatype = 'integer'
@@ -417,6 +501,38 @@ datatype = 'integer'
 shape = '2'
 
 [[runs]]
+expr = '= 1'
+output = '1'
+datatype = 'boolean'
+shape = '1 1'
+
+[[runs]]
+expr = '= 3 3 $ i. 6'
+output = '''
+1 0 1
+0 1 0'''
+datatype = 'boolean'
+shape = '2 3'
+
+[[runs]]
+expr = '= 5 4 3 4 5'
+output = '''
+1 0 0 0 1
+0 1 0 1 0
+0 0 1 0 0'''
+datatype = 'boolean'
+shape = '3 5'
+
+[[runs]]
+expr = '= i. 3'
+output = '''
+1 0 0
+0 1 0
+0 0 1'''
+datatype = 'boolean'
+shape = '3 3'
+
+[[runs]]
 expr = '>. 4.6 4 _4 _4.6'
 output = '5 4 _4 _4'
 datatype = 'integer'
@@ -433,6 +549,12 @@ expr = '>: 2 3 5 7'
 output = '3 4 6 8'
 datatype = 'integer'
 shape = '4'
+
+[[runs]]
+expr = '^~ 3'
+output = '27'
+datatype = 'floating'
+shape = ''
 
 [[runs]]
 expr = '_'
@@ -486,4 +608,18 @@ shape = '5'
 expr = 'j. i. 5'
 output = '0 0j1 0j2 0j3 0j4'
 datatype = 'complex'
+shape = '5'
+
+[[runs]]
+expr = '~. (3 3 $ 1 2 3 1 2 3 4 5 6)'
+output = '''
+1 2 3
+4 5 6'''
+datatype = 'integer'
+shape = '2 3'
+
+[[runs]]
+expr = '~. 2 3 4 3 2 5 4 1'
+output = '2 3 4 5 1'
+datatype = 'integer'
 shape = '5'

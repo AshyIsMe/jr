@@ -28,6 +28,21 @@ pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
+pub fn a_tilde(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match x {
+        None => match u {
+            Word::Verb(_, u) => u.exec(Some(y), y),
+            _ => Err(JError::DomainError)
+                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
+        },
+        Some(x) => match u {
+            Word::Verb(_, u) => u.exec(Some(y), x),
+            _ => Err(JError::DomainError)
+                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
+        },
+    }
+}
+
 pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match x {
         None => match u {
@@ -43,5 +58,14 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
             _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
         },
         Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
+    }
+}
+
+pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, y) {
+        // (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+        //
+        // }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     }
 }

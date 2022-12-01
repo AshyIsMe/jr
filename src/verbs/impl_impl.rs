@@ -2,9 +2,9 @@ use std::fmt;
 use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::debug;
 
 use super::ranks::Rank;
+use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::{JArray, JError, Word};
 
@@ -57,11 +57,11 @@ pub enum VerbImpl {
     },
 }
 
-pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
-    if rank.is_infinite() {
-        return f(y).context("infinite monad shortcut");
-    }
-
+pub fn exec_monad_inner(
+    f: impl Fn(&JArray) -> Result<Word>,
+    rank: Rank,
+    y: &JArray,
+) -> Result<BoxArray> {
     let (cells, common_frame) = monad_cells(y, rank)?;
 
     let results = monad_apply(&cells, |y| {
@@ -71,9 +71,29 @@ pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -
         })
     })?;
 
-    let results = flatten(&common_frame, &[], &[results])?;
+    Ok(BoxArray::from_shape_vec(common_frame, results).expect("monad_apply generated"))
+}
 
-    Ok(Word::Noun(results))
+pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
+    if rank.is_infinite() {
+        return f(y).context("infinite monad shortcut");
+    }
+
+    let r = exec_monad_inner(f, rank, y)?;
+    let flat = flatten(&r)?;
+    Ok(Word::Noun(flat))
+}
+
+pub fn exec_dyad_inner(
+    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    rank: DyadRank,
+    x: &JArray,
+    y: &JArray,
+) -> Result<BoxArray> {
+    let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
+
+    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
+    Ok(BoxArray::from_shape_vec(frames, application_result).expect("apply_cells generated shape"))
 }
 
 pub fn exec_dyad(
@@ -85,27 +105,14 @@ pub fn exec_dyad(
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
-    let (cells, common_frame, surplus_frame) =
-        generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
-    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
-    debug!("application_result: {:?}", application_result);
-
-    let flat = flatten(&common_frame, &surplus_frame, &application_result)?;
-
+    let r = exec_dyad_inner(f, rank, x, y)?;
+    let flat = flatten(&r)?;
     Ok(Word::Noun(flat))
 }
 
 impl VerbImpl {
     pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
-        self.exec_ranked(x, y, None)
-    }
-    pub fn exec_ranked(
-        &self,
-        x: Option<&Word>,
-        y: &Word,
-        rank: Option<(Rank, Rank, Rank)>,
-    ) -> Result<Word> {
         use Word::*;
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
@@ -116,10 +123,11 @@ impl VerbImpl {
                         .dyad
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
-                    exec_dyad(dyad.f, rank.map(|r| (r.1, r.2)).unwrap_or(dyad.rank), x, y)
+                    exec_dyad(dyad.f, dyad.rank, x, y)
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
-                _ => Err(JError::DomainError).context("primitive on non-nouns"),
+                other => Err(JError::DomainError)
+                    .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
@@ -148,6 +156,15 @@ impl VerbImpl {
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
+        }
+    }
+
+    /// The dyad rank, if this is a dyad.
+    // TODO: presumably this is implementable for derived verbs
+    pub fn dyad_rank(&self) -> Option<DyadRank> {
+        match self {
+            Self::Primitive(p) => p.dyad.map(|d| d.rank),
+            _ => None,
         }
     }
 }

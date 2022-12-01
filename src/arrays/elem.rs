@@ -1,14 +1,14 @@
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::arrays::Word;
 use crate::number::Num;
+use crate::JArray;
 
 #[derive(Clone, Debug)]
 pub enum Elem {
     Num(Num),
     Char(char),
-    Boxed(Word),
+    Boxed(JArray),
 }
 
 macro_rules! from_num {
@@ -34,8 +34,8 @@ impl From<char> for Elem {
     }
 }
 
-impl From<Word> for Elem {
-    fn from(value: Word) -> Self {
+impl From<JArray> for Elem {
+    fn from(value: JArray) -> Self {
         Elem::Boxed(value)
     }
 }

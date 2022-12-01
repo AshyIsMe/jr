@@ -440,7 +440,7 @@ fn test_box() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun(arr0d(Word::from(42))).unwrap()
+        Word::noun(arr0d(JArray::from(42i64))).unwrap()
     );
 }
 
@@ -477,18 +477,18 @@ fn test_link() {
     assert_eq!(
         jr::eval(jr::scan("1 ; 2 ; 3").unwrap(), &mut names).unwrap(),
         Word::noun([
-            Noun(BoolArray(Array::from_elem(IxDyn(&[]), 1))),
-            Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
-            Noun(IntArray(Array::from_elem(IxDyn(&[]), 3))),
+            BoolArray(Array::from_elem(IxDyn(&[]), 1)),
+            IntArray(Array::from_elem(IxDyn(&[]), 2)),
+            IntArray(Array::from_elem(IxDyn(&[]), 3)),
         ])
         .unwrap()
     );
     assert_eq!(
         jr::eval(jr::scan("1 ; 2 ; <3").unwrap(), &mut names).unwrap(),
         Word::noun([
-            Noun(BoolArray(Array::from_elem(IxDyn(&[]), 1))),
-            Noun(IntArray(Array::from_elem(IxDyn(&[]), 2))),
-            Noun(IntArray(Array::from_elem(IxDyn(&[]), 3))),
+            BoolArray(Array::from_elem(IxDyn(&[]), 1)),
+            IntArray(Array::from_elem(IxDyn(&[]), 2)),
+            IntArray(Array::from_elem(IxDyn(&[]), 3)),
         ])
         .unwrap()
     );
@@ -685,6 +685,19 @@ fn test_take_framingfill() -> Result<()> {
         Word::noun([1i64, 0, 0])?
     );
 
+    Ok(())
+}
+
+#[test]
+fn test_cat() -> Result<()> {
+    assert_eq!(
+        jr::eval(jr::scan("+:@- 7")?, &mut HashMap::new())?,
+        Word::from(-14i64)
+    );
+    assert_eq!(
+        jr::eval(jr::scan("3 +:@- 7")?, &mut HashMap::new())?,
+        Word::from(-8i64)
+    );
     Ok(())
 }
 

@@ -2,14 +2,14 @@
 
 use std::cmp::Ordering;
 use std::fmt::Debug;
+use std::iter;
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::number::promote_to_array;
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
@@ -38,9 +38,9 @@ where
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
     JArray::BoxArray(if y.shape().is_empty() {
-        arr0d(Word::Noun(y.clone()))
+        arr0d(y.clone())
     } else {
-        array![Word::Noun(y.clone())].into_dyn()
+        array![y.clone()].into_dyn()
     })
 }
 
@@ -53,7 +53,7 @@ pub fn v_box(y: &JArray) -> Result<Word> {
 pub fn v_open(y: &JArray) -> Result<Word> {
     match y {
         JArray::BoxArray(y) => match y.len() {
-            1 => Ok(y.iter().next().expect("just checked").clone()),
+            1 => Ok(Word::Noun(y.iter().next().expect("just checked").clone())),
             _ => bail!("todo: unbox BoxArray"),
         },
         y => Ok(Word::Noun(y.clone())),
@@ -120,29 +120,66 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<Word> {
             .context("noun")?),
             _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
         },
-        (x, y) => Ok(Word::noun([Word::Noun(x.clone()), Word::Noun(y.clone())])?),
+        (x, y) => Ok(Word::noun([x.clone(), y.clone()])?),
     }
 }
 
-/// # (dyad)
+/// # (dyad) (1, _)
 pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
-    if x.shape().is_empty() && x.len() == 1 && y.shape().len() == 1 {
-        if let Some(i) = x.to_i64() {
-            let repetitions = i.iter().copied().next().expect("checked");
-            ensure!(repetitions > 0, "unimplemented: {repetitions} repetitions");
-            let mut output = Vec::new();
-            for item in y.clone().into_elems() {
-                for _ in 0..repetitions {
-                    output.push(item.clone());
-                }
-            }
-            Ok(Word::Noun(promote_to_array(output)?))
-        } else {
-            Err(JError::NonceError).context("single-int # list-of-nums only")
-        }
-    } else {
-        Err(JError::NonceError).context("non-atom # non-list")
+    assert!(x.shape().len() <= 1);
+    if x.is_empty() || y.is_empty() {
+        return Err(JError::NonceError).context("empty copy");
     }
+
+    // x is a list of offsets
+    let mut x = x
+        .clone()
+        .into_nums()
+        .ok_or(JError::DomainError)
+        .context("non-numerics as indexes")?
+        .into_iter()
+        .map(|x| x.value_len())
+        .collect::<Option<Vec<usize>>>()
+        .ok_or(JError::DomainError)
+        .context("non-sizes as indexes")?;
+
+    impl_array!(y, |y: &ArrayBase<_, _>| {
+        // y is a list of items
+        let mut y = match y.shape().len() {
+            0 => vec![y.view()],
+            _ => y.outer_iter().collect(),
+        };
+
+        // TODO: treats single-item lists as atoms, like other code, but not like this function, apparently
+        //    (1$1) # 'abc'
+        // |length error
+        match (x.len(), y.len()) {
+            (1, y) => {
+                x = x.into_iter().cycle().take(y).collect();
+            }
+            (x, 1) => {
+                y = y.into_iter().cycle().take(x).collect();
+            }
+            (x, y) if x == y => (),
+            _ => return Err(JError::LengthError).context("unmatched copy arguments"),
+        }
+
+        assert_eq!(x.len(), y.len());
+        let shape = iter::once(0usize)
+            .chain(y[0].shape().iter().copied())
+            .collect_vec();
+
+        let mut output: ArrayD<_> =
+            ArrayD::from_shape_vec(IxDyn(&shape), vec![]).context("template array")?;
+        for (x, y) in x.into_iter().zip(y.into_iter()) {
+            for _ in 0..x {
+                output
+                    .push(Axis(0), y.view())
+                    .with_context(|| anyhow!("push: {y:?})"))?;
+            }
+        }
+        Ok(Word::Noun(output.into_jarray()))
+    })
 }
 
 /// {. (monad)

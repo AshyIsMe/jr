@@ -98,6 +98,12 @@ __*3j3
 * 0 1
 * 1 2
 
+NB. copy
+2 4 # (2 3 $ 7 8 9 4 5 6)
+2 # 5 6 7
+2 3 # 2
+2 4 # 7j7
+
 NB. length angle
 NB. test framework fails for float comparison: *. 3j4
 NB. test framework fails for float comparison: *. 3j4 5r2
@@ -153,3 +159,30 @@ NB. sqrt
 %:4 9 16
 NB. incorrect precision: %: 625r100
 NB. nonce: %: 5j2
+
+NB. exponential / power
+3^2
+3^3
+9^0.5
+32^1r5
+
+NB. reflexive / passive
+^~ 3
+3.2 %~ 16
+16 %~ 3.2
+
+NB. sort
+NB. test framework can't handle alphabetic output: 'abcd' /: 4 2 3 1
+7 8 9 10 /: 4 2 3 1
+7 8 9 10 /: 4 2 3
+7 8 9 10 /: 4 2
+
+NB. self classify
+= i. 3
+= 5 4 3 4 5
+= 3 3 $ i. 6
+= 1
+
+NB. nub
+~. (3 3 $ 1 2 3 1 2 3 4 5 6)
+~. 2 3 4 3 2 5 4 1

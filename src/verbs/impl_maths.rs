@@ -11,7 +11,7 @@ use crate::{IntoJArray, JArray, JError, Word};
 use anyhow::{Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
-use num_traits::Zero;
+use num_traits::{FloatConst, Zero};
 use rand::prelude::*;
 
 use super::maff::*;
@@ -285,13 +285,25 @@ pub fn v_root(_x: &JArray, _y: &JArray) -> Result<Word> {
 }
 
 /// ^ (monad)
-pub fn v_exponential(_y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_exponential(y: &JArray) -> Result<Word> {
+    m0nrn(y, |y| {
+        let y = y
+            .approx_f64()
+            .ok_or(JError::NonceError)
+            .context("unable to exponential complexes")?;
+        Ok(f64::E().powf(y).into())
+    })
 }
 
 /// ^ (dyad)
-pub fn v_power(_x: &JArray, _y: &JArray) -> Result<Word> {
-    Err(JError::NonceError.into())
+pub fn v_power(x: &JArray, y: &JArray) -> Result<Word> {
+    rank0(x, y, |x, y| {
+        // TODO: incomplete around complex and return types
+        match (x.approx_f64(), y.approx_f64()) {
+            (Some(x), Some(y)) => Ok(x.powf(y).into()),
+            _ => Err(JError::NonceError).context("unable to power complexes"),
+        }
+    })
 }
 
 /// ^. (monad)
