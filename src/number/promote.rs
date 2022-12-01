@@ -22,6 +22,14 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
             Elem::Char(c) => Ok(c),
             _ => Err(JError::NonceError).context("TODO: unable to arrayise partially char content"),
         }))
+    } else if parts.iter().any(|n| matches!(n, Elem::Literal(_))) {
+        arrayise(parts.into_iter().map(|v| {
+            match v {
+                Elem::Literal(c) => Ok(c),
+                _ => Err(JError::NonceError)
+                    .context("TODO: unable to arrayise partially literal content"),
+            }
+        }))
     } else if parts
         .iter()
         .any(|n| matches!(n, Elem::Num(Num::Complex(_))))
