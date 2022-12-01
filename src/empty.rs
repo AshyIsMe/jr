@@ -2,8 +2,8 @@ use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational, Zero};
 
-use crate::JArray;
 use crate::verbs::VerbImpl;
+use crate::JArray;
 
 pub trait HasEmpty {
     fn empty() -> Self;
@@ -27,7 +27,4 @@ impl_empty!(BigRational, BigRational::zero());
 impl_empty!(f64, 0.);
 impl_empty!(Complex64, Complex64::zero());
 impl_empty!(JArray, JArray::BoolArray(Array::from_elem(IxDyn(&[0]), 0)));
-impl_empty!(
-    VerbImpl,
-    VerbImpl::Null
-);
+impl_empty!(VerbImpl, VerbImpl::Null);

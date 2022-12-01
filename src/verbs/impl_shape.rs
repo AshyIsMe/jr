@@ -10,6 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
+use crate::number::Num;
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
@@ -186,7 +187,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<Word> {
 pub fn v_head(y: &JArray) -> Result<Word> {
     use Word::Noun;
 
-    let res = v_take(&JArray::from(1i64), y)?;
+    let res = v_take(&JArray::from(Num::from(1i64)), y)?;
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
     match res {
         Noun(a) => {
@@ -265,7 +266,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<Word> {
 /// {: (monad)
 pub fn v_tail(y: &JArray) -> Result<Word> {
     use Word::Noun;
-    let res = v_take(&JArray::from(-1i64), y)?;
+    let res = v_take(&JArray::from(Num::from(-1i64)), y)?;
     //    ({: 1 2 3) NB. similar to v_head() where it drops the leading shape rank
     // 3  NB. atom not a single element list
     match res {
@@ -283,7 +284,7 @@ pub fn v_tail(y: &JArray) -> Result<Word> {
 
 /// }: (monad)
 pub fn v_curtail(y: &JArray) -> Result<Word> {
-    v_drop(&JArray::from(-1i64), y)
+    v_drop(&JArray::from(Num::from(-1i64)), y)
 }
 
 /// {:: (dyad)
@@ -318,14 +319,14 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<Word> {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4
                             let new_x = y.len_of(Axis(0)) as i64 - x.abs();
-                            v_take(&JArray::from(new_x), y)?
+                            v_take(&JArray::from(Num::from(new_x)), y)?
                         }
                         Ordering::Greater => {
                             let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
                             if new_x < 0 {
                                 todo!("return empty array of type arr")
                             } else {
-                                v_take(&JArray::from(-new_x), y)?
+                                v_take(&JArray::from(Num::from(-new_x)), y)?
                             }
                         }
                     })

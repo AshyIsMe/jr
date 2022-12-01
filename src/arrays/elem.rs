@@ -20,6 +20,12 @@ macro_rules! from_num {
                 Self::Num(value.into())
             }
         }
+
+        impl From<&$t> for Elem {
+            fn from(value: &$t) -> Self {
+                Self::Num(value.clone().into())
+            }
+        }
     };
 }
 
@@ -36,15 +42,32 @@ impl From<char> for Elem {
     }
 }
 
+impl From<&char> for Elem {
+    fn from(value: &char) -> Self {
+        Elem::Char(*value)
+    }
+}
+
 impl From<JArray> for Elem {
     fn from(value: JArray) -> Self {
         Elem::Boxed(value)
+    }
+}
+impl From<&JArray> for Elem {
+    fn from(value: &JArray) -> Self {
+        Elem::Boxed(value.clone())
     }
 }
 
 impl From<VerbImpl> for Elem {
     fn from(value: VerbImpl) -> Self {
         Elem::Literal(value)
+    }
+}
+
+impl From<&VerbImpl> for Elem {
+    fn from(value: &VerbImpl) -> Self {
+        Elem::Literal(value.clone())
     }
 }
 

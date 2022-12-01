@@ -353,8 +353,8 @@ pub fn v_roll(y: &JArray) -> Result<Word> {
         .context("must fit in an int")?;
     let mut rng = thread_rng();
     Ok(Word::Noun(match y {
-        0 => JArray::from(rng.gen::<f64>()),
-        limit => JArray::from(rng.gen_range(0..limit)),
+        0 => JArray::from(Num::from(rng.gen::<f64>())),
+        limit => JArray::from(Num::from(rng.gen_range(0..limit))),
     }))
 }
 

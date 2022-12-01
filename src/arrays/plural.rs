@@ -3,8 +3,8 @@ use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::{JArray, JError};
 use crate::verbs::VerbImpl;
+use crate::{JArray, JError};
 
 #[derive(Debug)]
 pub enum JArrays<'v> {
