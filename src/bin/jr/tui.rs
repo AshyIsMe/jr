@@ -32,7 +32,7 @@ pub fn drive() -> Result<()> {
     }
     rl.set_auto_add_history(true);
 
-    let mut ctx = Ctx::default();
+    let mut ctx = Ctx::empty();
 
     loop {
         let line = match rl.readline("   ") {
