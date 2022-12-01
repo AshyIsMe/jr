@@ -184,7 +184,6 @@ impl VerbImpl {
 fn must_be_box(v: Word) -> Result<BoxArray> {
     match v {
         Word::Noun(arr) => Ok(arr0d(arr)),
-        Word::Verb(_, imp) => Ok(arr0d(JArray::LiteralArray(arr0d(imp)))),
         _ => Err(JError::DomainError).context("unexpected non-noun in noun context"),
     }
 }
