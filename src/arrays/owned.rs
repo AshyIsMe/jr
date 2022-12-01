@@ -11,6 +11,7 @@ use num_traits::ToPrimitive;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
+use crate::verbs::VerbImpl;
 use crate::Word;
 
 pub type BoxArray = ArrayD<JArray>;
@@ -25,6 +26,7 @@ pub enum JArray {
     FloatArray(ArrayD<f64>),
     ComplexArray(ArrayD<Complex64>),
     BoxArray(BoxArray),
+    LiteralArray(ArrayD<VerbImpl>),
 }
 
 impl fmt::Debug for JArray {
@@ -39,6 +41,7 @@ impl fmt::Debug for JArray {
             FloatArray(a) => write!(f, "FloatArray({a})"),
             ComplexArray(a) => write!(f, "ComplexArray({a})"),
             BoxArray(a) => write!(f, "BoxArray({a})"),
+            LiteralArray(a) => write!(f, "LiteralArray({a})"),
         }
     }
 }
@@ -56,6 +59,7 @@ macro_rules! impl_array {
             JArray::FloatArray(a) => $func(a),
             JArray::ComplexArray(a) => $func(a),
             JArray::BoxArray(a) => $func(a),
+            JArray::LiteralArray(a) => $func(a),
         }
     };
 }
@@ -71,6 +75,7 @@ macro_rules! map_array {
             JArray::FloatArray(a) => JArray::FloatArray($func(a)),
             JArray::ComplexArray(a) => JArray::ComplexArray($func(a)),
             JArray::BoxArray(a) => JArray::BoxArray($func(a)),
+            JArray::LiteralArray(a) => JArray::LiteralArray($func(a)),
         }
     };
 }
@@ -119,6 +124,7 @@ impl JArray {
             FloatArray(a) => JArrayCow::FloatArray(a.to_shape(shape)?),
             ComplexArray(a) => JArrayCow::ComplexArray(a.to_shape(shape)?),
             BoxArray(a) => JArrayCow::BoxArray(a.to_shape(shape)?),
+            LiteralArray(a) => JArrayCow::LiteralArray(a.to_shape(shape)?),
         })
     }
 
@@ -204,6 +210,7 @@ impl JArray {
             ComplexArray(a) => a.into_iter().map(|v| v.into()).collect(),
             CharArray(_) => return None,
             BoxArray(_) => return None,
+            LiteralArray(_) => return None,
         })
     }
 
@@ -280,8 +287,8 @@ impl JArray {
                 .into(),
             FloatArray(a) => a.map(|&v| Complex64::new(v, 0.)).into(),
             ComplexArray(a) => a.into(),
-            // ??
             BoxArray(_) => return None,
+            LiteralArray(_) => return None,
         })
     }
 
@@ -374,7 +381,7 @@ impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
 impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
-impl_into_jarray!(ArrayD<JArray>, JArray::BoxArray);
+impl_into_jarray!(ArrayD<VerbImpl>, JArray::LiteralArray);
 
 macro_rules! impl_from_atom {
     ($t:ty, $j:path) => {
@@ -392,6 +399,7 @@ impl_from_atom!(BigInt, JArray::ExtIntArray);
 impl_from_atom!(BigRational, JArray::RationalArray);
 impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
+impl_from_atom!(VerbImpl, JArray::LiteralArray);
 
 macro_rules! impl_from_atom_ref {
     ($t:ty, $j:path) => {
@@ -410,6 +418,7 @@ impl_from_atom_ref!(&BigRational, JArray::RationalArray);
 impl_from_atom_ref!(&f64, JArray::FloatArray);
 impl_from_atom_ref!(&Complex64, JArray::ComplexArray);
 impl_from_atom_ref!(&JArray, JArray::BoxArray);
+impl_from_atom_ref!(&VerbImpl, JArray::LiteralArray);
 
 impl From<Num> for JArray {
     fn from(value: Num) -> Self {
@@ -430,6 +439,7 @@ impl From<Elem> for JArray {
             Elem::Char(a) => JArray::from(a),
             Elem::Boxed(a) => JArray::from(a),
             Elem::Num(a) => JArray::from(a),
+            Elem::Literal(a) => JArray::from(a),
         }
     }
 }

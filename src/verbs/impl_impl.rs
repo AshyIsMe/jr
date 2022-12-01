@@ -55,6 +55,20 @@ pub enum VerbImpl {
         l: Box<Word>,
         r: Box<Word>,
     },
+
+    // TODO: I didn't even check what J does here
+    Null,
+}
+
+impl fmt::Display for VerbImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use VerbImpl::*;
+        match self {
+            Primitive(imp) => write!(f, "{}", imp.name),
+            // TODO: remember names of other verbs
+            other => write!(f, "{:?}", other),
+        }
+    }
 }
 
 pub fn exec_monad_inner(
@@ -156,6 +170,7 @@ impl VerbImpl {
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
+            VerbImpl::Null => bail!("please don't try and execute nothing"),
         }
     }
 

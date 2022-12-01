@@ -2,6 +2,7 @@ use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
 use crate::number::Num;
+use crate::verbs::VerbImpl;
 use crate::JArray;
 
 #[derive(Clone, Debug)]
@@ -9,6 +10,7 @@ pub enum Elem {
     Num(Num),
     Char(char),
     Boxed(JArray),
+    Literal(VerbImpl),
 }
 
 macro_rules! from_num {
@@ -37,6 +39,12 @@ impl From<char> for Elem {
 impl From<JArray> for Elem {
     fn from(value: JArray) -> Self {
         Elem::Boxed(value)
+    }
+}
+
+impl From<VerbImpl> for Elem {
+    fn from(value: VerbImpl) -> Self {
+        Elem::Literal(value)
     }
 }
 

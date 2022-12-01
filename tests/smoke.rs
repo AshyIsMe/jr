@@ -50,6 +50,7 @@ fn exec(run: &Run) -> Result<()> {
         JArray::FloatArray(_) => "floating",
         JArray::ComplexArray(_) => "complex",
         JArray::BoxArray(_) => "box",
+        JArray::LiteralArray(_) => "literal",
     };
 
     if our_type != run.datatype {
