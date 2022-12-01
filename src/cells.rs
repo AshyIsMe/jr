@@ -147,6 +147,13 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         }
 
         match (arr.shape().len(), target_inner_shape.len()) {
+            (0, 1) => {
+                // atom
+                big_daddy.extend(arr.clone().into_elems());
+                for _ in 1..target_inner_shape[0] {
+                    big_daddy.push(Elem::Num(Num::zero()));
+                }
+            }
             (1, 1) => {
                 let current = arr.shape()[0];
                 let target = target_inner_shape[0];
