@@ -8,7 +8,7 @@ use num::{BigInt, BigRational};
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, JArray, Num, Rank, Word};
+use jr::{arr0d, collect_nouns, resolve_names, JArray, JError, Num, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();

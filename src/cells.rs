@@ -104,9 +104,8 @@ pub fn apply_cells(
                 .take(limit)
                 .zip(y_parts.into_iter().cycle().take(limit))
                 .map(|(x, y)| f(&x, &y))
-                .collect::<Result<_>>()?,
-        )
-    }
+        })
+        .collect()
 }
 
 pub fn flatten(results: &BoxArray) -> Result<JArray> {

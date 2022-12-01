@@ -12,7 +12,7 @@ use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::Arrayable;
 use crate::number::Num;
-use crate::{arr0d, impl_array, IntoJArray, JArray, JError, Word};
+use crate::{arr0d, impl_array, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where

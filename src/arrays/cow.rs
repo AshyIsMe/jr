@@ -4,8 +4,8 @@ use ndarray::IntoDimension;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::JArray;
 use crate::verbs::VerbImpl;
+use crate::JArray;
 
 pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
 

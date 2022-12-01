@@ -5,7 +5,7 @@ mod maff;
 mod ranks;
 
 use crate::number::{promote_to_array, Num};
-use crate::{impl_array, IntoJArray, JArray, JError,};
+use crate::{impl_array, IntoJArray, JArray, JError};
 
 use anyhow::{bail, Context, Result};
 use itertools::Itertools;

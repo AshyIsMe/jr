@@ -166,11 +166,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             };
 
             // then apply u
-            let r = r
-                .into_iter()
-                .flat_map(|v| v)
-                .map(|a| u.exec(None, &Word::Noun(a.clone())))
-                .collect::<Result<Vec<JArray>>>()?;
+            let r = map_result(r, |a| u.exec(None, &Word::Noun(a.clone())))?;
 
             // then flatten (fill)
             Ok(Word::Noun(flatten(&r)?))
