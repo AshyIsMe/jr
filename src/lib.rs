@@ -1,5 +1,6 @@
 mod arrays;
 mod cells;
+mod ctx;
 mod empty;
 mod error;
 mod eval;
@@ -19,6 +20,7 @@ pub use cells::flatten;
 pub use empty::HasEmpty;
 
 // public API
+pub use crate::ctx::Ctx;
 pub use crate::error::JError;
 pub use crate::eval::eval;
 

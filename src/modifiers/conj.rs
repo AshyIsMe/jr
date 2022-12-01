@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 use std::iter;
 
@@ -7,8 +6,8 @@ use ndarray::prelude::*;
 
 use crate::arrays::JArray::*;
 use crate::arrays::{map_result, JArrays};
-use crate::eval;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
+use crate::{eval, Ctx};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -169,12 +168,12 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        let mut env: HashMap<String, Word> = HashMap::new();
-                        env.insert("x".to_string(), x.clone());
-                        env.insert("y".to_string(), y.clone());
+                        let mut ctx = Ctx::empty();
+                        ctx.alias("x", x.clone());
+                        ctx.alias("y", y.clone());
                         eval(
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut env,
+                            &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }
@@ -182,11 +181,11 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
                 match x {
                     None => {
-                        let mut env: HashMap<String, Word> = HashMap::new();
-                        env.insert("y".to_string(), y.clone());
+                        let mut ctx = Ctx::empty();
+                        ctx.alias("y", y.clone());
                         eval(
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut env,
+                            &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }

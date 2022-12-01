@@ -1,8 +1,8 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
-use jr::Word;
+use jr::{Ctx, Word};
 use log::{debug, warn};
 
 #[cfg(feature = "tui")]
@@ -47,13 +47,13 @@ fn plain_drive() -> Result<()> {
     Ok(())
 }
 
-fn eval(buffer: &str, names: &mut HashMap<String, Word>) -> Result<bool> {
+fn eval(buffer: &str, ctx: &mut Ctx) -> Result<bool> {
     let buffer = buffer.trim();
     if "exit" == buffer || buffer.is_empty() {
         return Ok(true);
     }
 
-    match scan_eval(buffer, names) {
+    match scan_eval(buffer, ctx) {
         //Ok(output) => println!("{:?}", output),
         Ok(output) => println!("{}", output),
         Err(e) => {
@@ -76,7 +76,7 @@ fn eval(buffer: &str, names: &mut HashMap<String, Word>) -> Result<bool> {
     Ok(false)
 }
 
-fn scan_eval(sentence: &str, names: &mut HashMap<String, Word>) -> Result<Word> {
+fn scan_eval(sentence: &str, names: &mut Ctx) -> Result<Word> {
     let tokens = jr::scan(sentence)?;
     debug!("tokens: {:?}", tokens);
     jr::eval(tokens, names).with_context(|| anyhow!("evaluating {:?}", sentence))

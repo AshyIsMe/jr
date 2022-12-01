@@ -1,14 +1,13 @@
 mod jsoft_binary;
 mod jsoft_runs;
 
-use std::collections::HashMap;
 use std::io::Write;
 use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, Context, Result};
 use log::debug;
 
-use crate::Word;
+use crate::{Ctx, Word};
 
 pub use jsoft_runs::{Run, RunList};
 
@@ -37,5 +36,5 @@ fn run_j_inner(expr: &str) -> Result<String> {
 pub fn scan_eval(sentence: &str) -> Result<Word> {
     let tokens = crate::scan(sentence)?;
     debug!("tokens: {:?}", tokens);
-    crate::eval(tokens, &mut HashMap::new()).with_context(|| anyhow!("evaluating {:?}", sentence))
+    crate::eval(tokens, &mut Ctx::empty()).with_context(|| anyhow!("evaluating {:?}", sentence))
 }
