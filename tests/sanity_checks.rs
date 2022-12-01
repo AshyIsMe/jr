@@ -8,7 +8,7 @@ use num::{BigInt, BigRational};
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, JArray, JError, Rank, Word};
+use jr::{arr0d, collect_nouns, resolve_names, JArray, JError, Num, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();
@@ -440,7 +440,7 @@ fn test_box() {
     let mut names = HashMap::new();
     assert_eq!(
         jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun(arr0d(JArray::from(42i64))).unwrap()
+        Word::noun(arr0d(JArray::from(Num::from(42i64)))).unwrap()
     );
 }
 
