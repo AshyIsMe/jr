@@ -1,14 +1,13 @@
 use std::iter;
 use std::{fmt, fs};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::JArray::*;
-use crate::arrays::{map_result, Arrayable, JArrays};
+use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{eval, Ctx, IntoJArray};
+use crate::{arr0d, eval, Ctx, IntoJArray};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -163,6 +162,7 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 }
 
 pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    use crate::arrays::JArray::*;
     match (n, m) {
         (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
             if n == Array::from_elem(IxDyn(&[]), 4) {
@@ -197,6 +197,51 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             }
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
+    }
+}
+
+fn empty_box_array() -> BoxArray {
+    ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")
+}
+
+pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    use Word::*;
+    match (x, n, m, y) {
+        (None, Verb(_, v), Noun(m), Noun(y)) => {
+            let m = m
+                .single_math_num()
+                .ok_or(JError::DomainError)
+                .context("mathematical modes")?
+                .value_i64()
+                .ok_or(JError::DomainError)
+                .context("integer modes")?;
+            let parts = y.outer_iter();
+            ensure!(!parts.is_empty());
+            match m {
+                -2 => (),
+                _ => return Err(JError::NonceError).context("only mode -2 is supported"),
+            }
+
+            let key = &parts[parts.len() - 1];
+            let mut stack = empty_box_array();
+            let mut out = empty_box_array();
+            for part in &parts {
+                if part == key {
+                    out.push(
+                        Axis(0),
+                        arr0d(v.exec(None, &Noun(flatten(&stack)?))?).view(),
+                    )?;
+                    stack = empty_box_array();
+                } else {
+                    stack
+                        .push(Axis(0), arr0d(JArray::from(part.clone())).view())
+                        .context("push")?;
+                }
+            }
+
+            flatten(&out).map(Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }
 }
 
