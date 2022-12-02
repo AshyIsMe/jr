@@ -5,6 +5,12 @@ datatype = 'integer'
 shape = '4'
 
 [[runs]]
+expr = '#;._2 (1 2 3 0 1 2 0)'
+output = '3 2'
+datatype = 'integer'
+shape = '2'
+
+[[runs]]
 expr = '% 0'
 output = '_'
 datatype = 'floating'
@@ -555,6 +561,32 @@ expr = '>: 2 3 5 7'
 output = '3 4 6 8'
 datatype = 'integer'
 shape = '4'
+
+[[runs]]
+expr = '><0'
+output = '0'
+datatype = 'boolean'
+shape = ''
+
+[[runs]]
+expr = '><0 1'
+output = '0 1'
+datatype = 'boolean'
+shape = '2'
+
+[[runs]]
+expr = '><0 1 2'
+output = '0 1 2'
+datatype = 'integer'
+shape = '3'
+
+[[runs]]
+expr = '><i. 2 3'
+output = '''
+0 1 2
+3 4 5'''
+datatype = 'integer'
+shape = '2 3'
 
 [[runs]]
 expr = '^~ 3'

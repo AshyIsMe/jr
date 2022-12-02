@@ -50,6 +50,12 @@ NB. decrement
 <: 3 2
 NB. this outputs floating somehow: <: 3.0 2.0
 
+NB. box
+><0
+><0 1
+><0 1 2
+><i. 2 3
+
 NB. larger than
 1 2 3 4 5  >  5 4 3 2 1
 

@@ -39,11 +39,7 @@ where
 }
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
-    JArray::BoxArray(if y.shape().is_empty() {
-        arr0d(y.clone())
-    } else {
-        array![y.clone()].into_dyn()
-    })
+    JArray::BoxArray(arr0d(y.clone()))
 }
 
 /// < (monad)

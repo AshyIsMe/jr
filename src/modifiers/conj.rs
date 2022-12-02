@@ -227,9 +227,18 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             let mut out = empty_box_array();
             for part in &parts {
                 if part == key {
+                    if stack.is_empty() {
+                        out.push(Axis(0), arr0d(JArray::BoxArray(empty_box_array())).view())?;
+                        continue;
+                    }
+                    let arg = flatten(&stack).context("flattening intermediate")?;
                     out.push(
                         Axis(0),
-                        arr0d(v.exec(None, &Noun(flatten(&stack)?))?).view(),
+                        arr0d(
+                            v.exec(None, &Noun(arg))
+                                .context("evaluating intermediate")?,
+                        )
+                        .view(),
                     )?;
                     stack = empty_box_array();
                 } else {
