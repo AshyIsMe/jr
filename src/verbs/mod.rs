@@ -252,8 +252,20 @@ pub fn v_do(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ". (dyad)
-pub fn v_numbers(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
+    match (x.shape().len(), y.shape().len()) {
+        (0, 2) => {
+            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
+            let mut nums = Vec::new();
+            for line in arr.outer_iter() {
+                let s: String = line.iter().collect();
+                // TODO: assumes x is 0
+                nums.push(s.trim().parse::<f64>().unwrap_or(0.));
+            }
+            Ok(nums.into_array()?.into_jarray())
+        }
+        _ => Err(JError::NonceError).context("atomic x, table y only"),
+    }
 }
 
 /// ": (monad)

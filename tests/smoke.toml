@@ -583,6 +583,28 @@ output = '3 4 6 8'
 encoded = 'e3,04,04,01,04,03,04,06,08'
 
 [[runs]]
+expr = '><0'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
+expr = '><0 1'
+output = '0 1'
+encoded = 'e3,01,02,01,02,0001'
+
+[[runs]]
+expr = '><0 1 2'
+output = '0 1 2'
+encoded = 'e3,04,03,01,03,,01,02'
+
+[[runs]]
+expr = '><i. 2 3'
+output = '''
+0 1 2
+3 4 5'''
+encoded = 'e3,04,06,02,02,03,,01,02,03,04,05'
+
+[[runs]]
 expr = '^~ 3'
 output = '27'
 encoded = 'e3,08,01,,0000000000003b4'

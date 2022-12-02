@@ -270,7 +270,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         ":" => conj(":", c_cor),
         ":." => conj(":.", c_not_implemented),
         "::" => conj("::", c_not_implemented),
-        ";." => conj(";.", c_not_implemented),
+        ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
         "!:" => conj("!:", c_foreign),
         "[." => conj("[.", c_not_implemented),

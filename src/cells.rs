@@ -126,7 +126,8 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         .iter()
         .map(|x| x.shape())
         .max()
-        .expect("non-empty macrocells");
+        .ok_or(JError::NonceError)
+        .context("non-empty macrocells")?;
 
     // common_frame + surplus_frame + max(all results)
     let target_shape = results
