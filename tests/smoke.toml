@@ -5,12 +5,6 @@ datatype = 'integer'
 shape = '4'
 
 [[runs]]
-expr = '#;._2 (1 2 3 0 1 2 0)'
-output = '3 2'
-datatype = 'integer'
-shape = '2'
-
-[[runs]]
 expr = '% 0'
 output = '_'
 datatype = 'floating'

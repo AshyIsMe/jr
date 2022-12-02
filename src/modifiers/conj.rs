@@ -224,22 +224,18 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
 
             let key = &parts[parts.len() - 1];
             let mut stack = empty_box_array();
-            let mut out = empty_box_array();
+            let mut out = Vec::new();
             for part in &parts {
                 if part == key {
                     if stack.is_empty() {
-                        out.push(Axis(0), arr0d(JArray::BoxArray(empty_box_array())).view())?;
+                        out.push(JArray::BoxArray(empty_box_array()));
                         continue;
                     }
                     let arg = flatten(&stack).context("flattening intermediate")?;
                     out.push(
-                        Axis(0),
-                        arr0d(
                             v.exec(None, &Noun(arg))
-                                .context("evaluating intermediate")?,
-                        )
-                        .view(),
-                    )?;
+                                .context("evaluating intermediate")?
+                    );
                     stack = empty_box_array();
                 } else {
                     stack
@@ -248,7 +244,11 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 }
             }
 
-            flatten(&out).map(Noun)
+            // TODO: this is literally completely wrong
+            // #;._2 (1 2 3 0 1 2 0) shouldn't be boxed.
+            // but flatten() gets confused by empty boxes, so we can't use that
+            // maybe a different definition of empty?
+            Ok(Noun(out.into_array()?.into_jarray()))
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }

@@ -259,7 +259,8 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
             let mut nums = Vec::new();
             for line in arr.outer_iter() {
                 let s: String = line.iter().collect();
-                nums.push(s.parse::<f64>()?);
+                // TODO: assumes x is 0
+                nums.push(s.trim().parse::<f64>().unwrap_or(0.));
             }
             Ok(nums.into_array()?.into_jarray())
         }
