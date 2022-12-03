@@ -208,6 +208,11 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. cut
+$;._2 (1 2 0 0 1 0)
+#;._2 (1 2 0 0 1 0)
+><;._2 (1 2 0 0 1 0)
+
 NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
