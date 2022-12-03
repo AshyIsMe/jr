@@ -120,7 +120,7 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
             .into_array()
             .context("noun")?
             .into_jarray()),
-            _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
+            _ => bail!("invalid types v_link({:?}, {:?})", x, y),
         },
         (x, y) => Ok([x.clone(), y.clone()].into_array()?.into_jarray()),
     }
