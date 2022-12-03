@@ -5,6 +5,21 @@ datatype = 'integer'
 shape = '4'
 
 [[runs]]
+expr = '#;._2 (1 2 0 0 1 0)'
+output = '2 0 1'
+datatype = 'integer'
+shape = '3'
+
+[[runs]]
+expr = '$;._2 (1 2 0 0 1 0)'
+output = '''
+2
+0
+1'''
+datatype = 'integer'
+shape = '3 1'
+
+[[runs]]
 expr = '% 0'
 output = '_'
 datatype = 'floating'
@@ -573,6 +588,15 @@ expr = '><0 1 2'
 output = '0 1 2'
 datatype = 'integer'
 shape = '3'
+
+[[runs]]
+expr = '><;._2 (1 2 0 0 1 0)'
+output = '''
+1 2
+0 0
+1 0'''
+datatype = 'integer'
+shape = '3 2'
 
 [[runs]]
 expr = '><i. 2 3'
