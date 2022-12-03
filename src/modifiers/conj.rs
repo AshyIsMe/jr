@@ -259,13 +259,22 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 1 | -1 => false,
                 _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
             };
+
+            let is_inclusive = match m {
+                -2 | -1 => false,
+                2 | 1 => true,
+                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+            };
+
             if !is_end {
                 return Err(JError::NonceError).context("only end mode supported right now");
             }
             let mut stack = empty_box_array();
             let mut out = empty_box_array();
             for (&x, part) in x.iter().zip(y.outer_iter().into_iter()) {
-                stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                if is_inclusive || x == 0 {
+                    stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                }
                 if x != 1 {
                     continue;
                 }
@@ -281,7 +290,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                         v.exec(None, &Noun(arg))
                             .context("evaluating intermediate")?,
                     )
-                        .view(),
+                    .view(),
                 )?;
                 stack = empty_box_array();
             }
