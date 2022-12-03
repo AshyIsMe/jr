@@ -6,6 +6,21 @@ NB. So, edit this file, run `just`, then run `cargo test`, then come back here a
 NB. literal conversions
 0
 1
+0 0
+0 1
+0 1 0
+0 1 0 1
+0 1 0 1 0
+0 1 0 1 0 1
+0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1
+0 1 0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1 0 1
+0 1 0 1 0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1 0 1 0 1
+0 1 0 1 0 1 0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1 0 1 0 1 0 1
+0 1 0 1 0 1 0 1 0 1 0 1 0 1 0
 2
 0.5
 1r2
@@ -59,6 +74,8 @@ NB. box
 ><0 1
 ><0 1 2
 ><i. 2 3
+<i. 2 3
+<(<3 <4)
 
 NB. larger than
 1 2 3 4 5  >  5 4 3 2 1
@@ -192,6 +209,7 @@ NB. self classify
 = 5 4 3 4 5
 = 3 3 $ i. 6
 = 1
+= 'do what you want because a pirate is free, yar har diddledee dee'
 
 NB. link
 5;3

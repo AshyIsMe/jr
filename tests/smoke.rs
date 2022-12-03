@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::mem::transmute;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use jr::test_impls::{scan_eval, Run, RunList};
-use jr::{Arrayable, IntoJArray, JArray, Word};
+use jr::{JArray, Word};
 use ndarray::{ArrayD, IxDyn};
 use num::complex::Complex64;
+use num::{BigInt, BigRational};
 
 #[test]
 fn smoke() -> Result<()> {
@@ -45,7 +46,7 @@ fn exec(run: &Run) -> Result<()> {
         JArray::RationalArray(_) => "rational",
         JArray::FloatArray(_) => "floating",
         JArray::ComplexArray(_) => "complex",
-        JArray::BoxArray(_) => "box",
+        JArray::BoxArray(_) => "boxed",
         JArray::LiteralArray(_) => "literal",
     };
 
@@ -102,7 +103,7 @@ impl JKind {
     fn element_slots(&self, elements: usize) -> Result<usize> {
         use JKind::*;
         Ok(match self {
-            Bool => elements.saturating_sub(1) / 8 + 1,
+            Bool => elements / 8 + 1,
             Complex => elements * 2,
             Int | Float => elements * 1,
             Boxed => elements * 1,
@@ -163,41 +164,18 @@ fn decode(j: &str) -> Result<JArray> {
         .get(&0)
         .ok_or_else(|| anyhow!("empty output isn't allowed"))?;
 
-    reconstitute(zero, &blocks)
+    reconstitute(zero, 0, &blocks)
 }
 
-fn reconstitute(block: &Block, blocks: &HashMap<usize, Block>) -> Result<JArray> {
-    Ok(if block.kind.stored_by_ref()? {
-        let mut parts = Vec::new();
-        for sub in &block.data {
-            let off = usize::try_from(sub / 8)?;
-            let sub = blocks
-                .get(&off)
-                .ok_or_else(|| anyhow!("invalid block references: {sub}"))?;
-            parts.push(reconstitute(sub, blocks).context("pulling sub block")?);
-        }
-        parts.into_array()?.into_jarray()
-    } else {
-        match block.kind {
+fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -> Result<JArray> {
+    if !(block.kind.stored_by_ref()?) {
+        return Ok(match block.kind {
             JKind::Bool => JArray::BoolArray(ArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
                     .iter()
-                    .flat_map(|v| {
-                        println!("{v}");
-                        let v = u8::try_from(*v).unwrap_or(0);
-                        [
-                            (((v & 0b1000_0000) != 0) as u8),
-                            (((v & 0b0100_0000) != 0) as u8),
-                            (((v & 0b0010_0000) != 0) as u8),
-                            (((v & 0b0001_0000) != 0) as u8),
-                            (((v & 0b0000_1000) != 0) as u8),
-                            (((v & 0b0000_0100) != 0) as u8),
-                            (((v & 0b0000_0010) != 0) as u8),
-                            (((v & 0b0000_0001) != 0) as u8),
-                        ]
-                    })
+                    .flat_map(|v| v.to_le_bytes())
                     .take(block.elements)
                     .collect(),
             )?),
@@ -226,9 +204,60 @@ fn reconstitute(block: &Block, blocks: &HashMap<usize, Block>) -> Result<JArray>
                     .map(|(&r, &i)| unsafe { Complex64::new(transmute(r), transmute(i)) })
                     .collect(),
             )?),
-            other => bail!("{other:?}"),
+            other => bail!("unsupported plain type: {other:?}"),
+        });
+    }
+    let mut parts = Vec::new();
+    for sub in &block.data {
+        let off = usize::try_from(sub / 8)? + our_off;
+        let sub = blocks
+            .get(&off)
+            .ok_or_else(|| anyhow!("invalid block references: {sub}"))?;
+        parts.push(reconstitute(sub, off, blocks).context("pulling sub block")?);
+    }
+    Ok(match block.kind {
+        JKind::Boxed => JArray::BoxArray(ArrayD::from_shape_vec(IxDyn(&block.shape), parts)?),
+        JKind::ExtInt => {
+            let parts = parts
+                .into_iter()
+                .map(|p| match p {
+                    JArray::IntArray(x) if x.shape().len() == 1 => Ok(x),
+                    other => bail!("unexpected non-linear part in extint: {other:?}"),
+                })
+                .collect::<Result<Vec<_>>>()?;
+            JArray::ExtIntArray(ArrayD::from_shape_vec(
+                IxDyn(&block.shape),
+                parts.into_iter().map(big).collect::<Result<Vec<_>>>()?,
+            )?)
         }
+        JKind::Rational => {
+            let parts = parts
+                .into_iter()
+                .map(|p| match p {
+                    JArray::IntArray(x) if x.shape().len() == 1 => Ok(x),
+                    other => bail!("unexpected non-linear part in extint: {other:?}"),
+                })
+                .collect::<Result<Vec<_>>>()?;
+            JArray::RationalArray(ArrayD::from_shape_vec(
+                IxDyn(&block.shape),
+                parts
+                    .into_iter()
+                    .tuples()
+                    .map(|(up, down)| Ok(BigRational::new(big(up)?, big(down)?)))
+                    .collect::<Result<Vec<_>>>()?,
+            )?)
+        }
+        other => bail!("unsupported ref type: {other:?}"),
     })
+}
+
+fn big(words: ArrayD<i64>) -> Result<BigInt> {
+    ensure!(words.shape().len() == 1);
+    if words.len() == 1 {
+        Ok(words[0].into())
+    } else {
+        bail!("don't know how to unpack {words:?} into bigint")
+    }
 }
 
 fn parse_block(lines: &mut impl Iterator<Item = (usize, u64)>) -> Result<Block> {
