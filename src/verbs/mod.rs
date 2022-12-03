@@ -5,9 +5,9 @@ mod maff;
 mod ranks;
 
 use crate::number::{promote_to_array, Num};
-use crate::{impl_array, IntoJArray, JArray, JError};
+use crate::{impl_array, Elem, IntoJArray, JArray, JError};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
@@ -41,18 +41,6 @@ pub fn v_plot(y: &JArray) -> Result<JArray> {
             Err(JError::NonceError.into())
         }
     }
-}
-
-fn v_idot_positions<T: PartialEq>(x: &ArrayD<T>, y: &ArrayD<T>) -> Result<JArray> {
-    Ok(y.outer_iter()
-        .map(|i| {
-            x.outer_iter()
-                .position(|j| j == i)
-                .unwrap_or(x.len_of(Axis(0))) as i64
-        })
-        .collect::<Vec<i64>>()
-        .into_array()?
-        .into_jarray())
 }
 
 // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "/// $a (monad)\npub fn v_$b(y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n/// $a (dyad)\npub fn v_$c(x: &Word, y: &Word) -> Result<Word> { Err(JError::NonceError.into()) }\n\n"'
@@ -220,8 +208,8 @@ pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// \[ (monad) and ] (monad) apparently
-pub fn v_same(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_same(y: &JArray) -> Result<JArray> {
+    Ok(y.clone())
 }
 /// [ (dyad)
 pub fn v_left(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -238,8 +226,27 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// { (dyad)
-pub fn v_from(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
+    let x = x
+        .single_math_num()
+        .ok_or(JError::NonceError)
+        .context("from single numbers only")?
+        .value_i64()
+        .ok_or(JError::NonceError)
+        .context("from integers only")?;
+
+    if let Ok(x) = usize::try_from(x) {
+        let outer = y.outer_iter();
+        outer
+            .get(x)
+            // TODO: pointless (but cheap for once) clone
+            .cloned()
+            .map(JArray::from)
+            .ok_or(JError::IndexError)
+            .with_context(|| anyhow!("out of bounds read, {x} is past the end of {y:?}"))
+    } else {
+        Err(JError::NonceError).context("negative indexes")
+    }
 }
 
 /// {:: (monad)
@@ -325,22 +332,19 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
 }
 /// i. (dyad)
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
-    match (x, y) {
-        // TODO fix for n-dimensional arguments. currently broken
-        // dyadic i.
-        // TODO remove code duplication: impl_array_pair!? impl_array_binary!?
-        (BoolArray(x), BoolArray(y)) => v_idot_positions(x, y),
-        (CharArray(x), CharArray(y)) => v_idot_positions(x, y),
-        (IntArray(x), IntArray(y)) => v_idot_positions(x, y),
-        (ExtIntArray(x), ExtIntArray(y)) => v_idot_positions(x, y),
-        (FloatArray(x), FloatArray(y)) => v_idot_positions(x, y),
-        _ => {
-            // mismatched array types
-            let xl = x.len_of(Axis(0)) as i64;
-            let yl = y.len_of(Axis(0));
-            Ok(IntArray(Array::from_elem(IxDyn(&[yl]), xl)))
-        }
+    if x.shape().len() != 1 {
+        return Err(JError::NonceError).context("input x must be a list");
     }
+    let x = x.clone().into_elems();
+    let output_shape = y.shape();
+    let y = y
+        .clone()
+        .into_elems()
+        .into_iter()
+        .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
+        .map(|o| Elem::from(i64::try_from(o).expect("arrays thhat fit in memory")))
+        .collect_vec();
+    Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
 }
 
 /// i: (monad)
