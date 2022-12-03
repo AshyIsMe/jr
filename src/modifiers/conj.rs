@@ -206,15 +206,17 @@ fn empty_box_array() -> BoxArray {
 
 pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
-    match (x, n, m, y) {
-        (None, Verb(_, v), Noun(m), Noun(y)) => {
-            let m = m
-                .single_math_num()
-                .ok_or(JError::DomainError)
-                .context("mathematical modes")?
-                .value_i64()
-                .ok_or(JError::DomainError)
-                .context("integer modes")?;
+    let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
+    let m = m
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("mathematical modes")?
+        .value_i64()
+        .ok_or(JError::DomainError)
+        .context("integer modes")?;
+
+    match (x, n, y) {
+        (None, Verb(_, v), Noun(y)) => {
             let parts = y.outer_iter();
             ensure!(!parts.is_empty());
             match m {
@@ -227,6 +229,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             let mut out = empty_box_array();
             for part in &parts {
                 if part == key {
+                    // copy-paste of below
                     let arg = if stack.is_empty() {
                         JArray::BoxArray(empty_box_array())
                     } else {
@@ -248,6 +251,40 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 }
             }
 
+            flatten(&out).map(Noun)
+        }
+        (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
+            let is_end = match m {
+                2 | -2 => true,
+                1 | -1 => false,
+                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+            };
+            if !is_end {
+                return Err(JError::NonceError).context("only end mode supported right now");
+            }
+            let mut stack = empty_box_array();
+            let mut out = empty_box_array();
+            for (&x, part) in x.iter().zip(y.outer_iter().into_iter()) {
+                stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                if x != 1 {
+                    continue;
+                }
+                // copy-paste of above
+                let arg = if stack.is_empty() {
+                    JArray::BoxArray(empty_box_array())
+                } else {
+                    flatten(&stack).context("flattening intermediate")?
+                };
+                out.push(
+                    Axis(0),
+                    arr0d(
+                        v.exec(None, &Noun(arg))
+                            .context("evaluating intermediate")?,
+                    )
+                        .view(),
+                )?;
+                stack = empty_box_array();
+            }
             flatten(&out).map(Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
