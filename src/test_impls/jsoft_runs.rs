@@ -16,6 +16,7 @@ pub struct RunList {
 pub struct Run {
     pub expr: String,
     pub output: String,
+    pub encoded: String,
     pub datatype: String,
     pub shape: String,
 }
@@ -25,6 +26,7 @@ fn capture(expr: impl AsRef<str>) -> Result<Run> {
     Ok(Run {
         expr: expr.to_string(),
         output: run_j(expr)?,
+        encoded: run_j(format!("3!:3 ] {expr}"))?,
         datatype: run_j(format!("datatype {expr}"))?,
         shape: run_j(format!("$ {expr}"))?,
     })

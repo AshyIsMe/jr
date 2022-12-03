@@ -28,6 +28,7 @@ pub use crate::eval::eval;
 pub use scan::{scan, scan_with_locations};
 
 // TODO: helper function for tests, not really public
+pub use crate::arrays::Arrayable;
 pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;

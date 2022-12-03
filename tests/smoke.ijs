@@ -18,6 +18,10 @@ __j__
 _j_
 _3j_3.3
 3e1
+0x 1x
+<1
+<1 2
+<2
 
 NB. literal promotions
 1 0.5 2j3
@@ -147,7 +151,7 @@ NB. reciprocal
 NB. incorrect datatype: % 1
 % 0.25
 % 0
-% 6j2
+NB. test framework can't cope with float maths: % 0.2j0.4
 
 NB. incorrect datatype: 3 % 5
 3.2 % 1.6
@@ -188,6 +192,9 @@ NB. self classify
 = 5 4 3 4 5
 = 3 3 $ i. 6
 = 1
+
+NB. link
+5;3
 
 NB. cut
 $;._2 (1 2 0 0 1 0)

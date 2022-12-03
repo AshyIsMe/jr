@@ -117,6 +117,7 @@ pub fn atom_to_singleton<T: Clone>(y: ArrayD<T>) -> ArrayD<T> {
 
 /// ; (dyad)
 pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
+    println!("{x:?} {y:?}");
     match (x, y) {
         // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
         // always box x, only box y if not already boxed
@@ -132,7 +133,7 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
             .into_array()
             .context("noun")?
             .into_jarray()),
-            _ => bail!("invalid types v_semi({:?}, {:?})", x, y),
+            _ => bail!("invalid types v_link({:?}, {:?})", x, y),
         },
         (x, y) => Ok([x.clone(), y.clone()].into_array()?.into_jarray()),
     }
