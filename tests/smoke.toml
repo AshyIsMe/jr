@@ -192,6 +192,15 @@ datatype = 'boolean'
 shape = ''
 
 [[runs]]
+expr = '0 0 1 0 1 1 0 ,;.2 i. 7'
+output = '''
+0 1 2
+3 4 0
+5 0 0'''
+datatype = 'integer'
+shape = '3 3'
+
+[[runs]]
 expr = '0.5'
 output = '0.5'
 datatype = 'floating'
@@ -226,6 +235,24 @@ expr = '1 0.5 2j3'
 output = '1 0.5 2j3'
 datatype = 'complex'
 shape = '3'
+
+[[runs]]
+expr = '1 1 0 0 0 0 1 ,;.2 i. 7'
+output = '''
+0 0 0 0 0
+1 0 0 0 0
+2 3 4 5 6'''
+datatype = 'integer'
+shape = '3 5'
+
+[[runs]]
+expr = '1 1 0 0 1 0 0 ,;.2 i. 7'
+output = '''
+0 0 0
+1 0 0
+2 3 4'''
+datatype = 'integer'
+shape = '3 3'
 
 [[runs]]
 expr = '1 2 3 4 5  >  5 4 3 2 1'
