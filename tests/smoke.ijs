@@ -37,6 +37,8 @@ _3j_3.3
 <1
 <1 2
 <2
+0 $ 0
+(0$0) $ 17
 
 NB. literal promotions
 1 0.5 2j3
@@ -213,6 +215,13 @@ NB. self classify
 
 NB. link
 5;3
+6;7;8
+'good' ; 'morning'
+5 ; 12 ; 1995
+2 2 $ 1;2;3;4
+'abc' ; 1 2 3 ; (i. 2 2)
+NB. link bug: (<'abc');(<'def');(<'ghi')
+NB. link bug: (<'abc');(<'def');<(<'ghi')
 
 NB. cut
 $;._2 (1 2 0 0 1 0)

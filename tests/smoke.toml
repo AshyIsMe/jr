@@ -174,6 +174,80 @@ datatype = 'integer'
 shape = '3 2'
 
 [[runs]]
+expr = ''''abc' ; 1 2 3 ; (i. 2 2)'''
+output = '''
+┌───┬─────┬───┐
+│abc│1 2 3│0 1│
+│   │     │2 3│
+└───┴─────┴───┘'''
+encoded = [
+    227,
+    32,
+    3,
+    1,
+    3,
+    64,
+    112,
+    176,
+    227,
+    2,
+    3,
+    1,
+    3,
+    6513249,
+    227,
+    4,
+    3,
+    1,
+    3,
+    1,
+    2,
+    3,
+    227,
+    4,
+    4,
+    2,
+    2,
+    2,
+    0,
+    1,
+    2,
+    3,
+]
+datatype = 'boxed'
+shape = '3'
+
+[[runs]]
+expr = "'good' ; 'morning'"
+output = '''
+┌────┬───────┐
+│good│morning│
+└────┴───────┘'''
+encoded = [
+    227,
+    32,
+    2,
+    1,
+    2,
+    56,
+    104,
+    227,
+    2,
+    4,
+    1,
+    4,
+    1685024615,
+    227,
+    2,
+    7,
+    1,
+    7,
+    29113321704812397,
+]
+datatype = 'boxed'
+shape = '2'
+
+[[runs]]
 expr = '(0 1j2 2j4 3j6 4j8) * (+(0 1j2 2j4 3j6 4j8))'
 output = '0 5 20 45 80'
 encoded = [
@@ -195,6 +269,19 @@ encoded = [
 ]
 datatype = 'complex'
 shape = '5'
+
+[[runs]]
+expr = '(0$0) $ 17'
+output = '17'
+encoded = [
+    227,
+    4,
+    1,
+    0,
+    17,
+]
+datatype = 'integer'
+shape = ''
 
 [[runs]]
 expr = '(i. 5) + 2 * j. (i. 5)'
@@ -485,6 +572,20 @@ encoded = [
 ]
 datatype = 'boolean'
 shape = ''
+
+[[runs]]
+expr = '0 $ 0'
+output = ''
+encoded = [
+    227,
+    1,
+    0,
+    1,
+    0,
+    0,
+]
+datatype = 'boolean'
+shape = '0'
 
 [[runs]]
 expr = '0 *: 0'
@@ -1093,6 +1194,49 @@ datatype = 'integer'
 shape = '6'
 
 [[runs]]
+expr = '2 2 $ 1;2;3;4'
+output = '''
+┌─┬─┐
+│1│2│
+├─┼─┤
+│3│4│
+└─┴─┘'''
+encoded = [
+    227,
+    32,
+    4,
+    2,
+    2,
+    2,
+    80,
+    120,
+    160,
+    200,
+    227,
+    1,
+    1,
+    0,
+    1,
+    227,
+    4,
+    1,
+    0,
+    2,
+    227,
+    4,
+    1,
+    0,
+    3,
+    227,
+    4,
+    1,
+    0,
+    4,
+]
+datatype = 'boxed'
+shape = '2 2'
+
+[[runs]]
 expr = '2 3 # 2'
 output = '2 2 2 2 2'
 encoded = [
@@ -1525,6 +1669,40 @@ datatype = 'floating'
 shape = ''
 
 [[runs]]
+expr = '5 ; 12 ; 1995'
+output = '''
+┌─┬──┬────┐
+│5│12│1995│
+└─┴──┴────┘'''
+encoded = [
+    227,
+    32,
+    3,
+    1,
+    3,
+    64,
+    104,
+    144,
+    227,
+    4,
+    1,
+    0,
+    5,
+    227,
+    4,
+    1,
+    0,
+    12,
+    227,
+    4,
+    1,
+    0,
+    1995,
+]
+datatype = 'boxed'
+shape = '3'
+
+[[runs]]
 expr = '5 < 37r2'
 output = '1'
 encoded = [
@@ -1655,6 +1833,40 @@ encoded = [
 ]
 datatype = 'boolean'
 shape = ''
+
+[[runs]]
+expr = '6;7;8'
+output = '''
+┌─┬─┬─┐
+│6│7│8│
+└─┴─┴─┘'''
+encoded = [
+    227,
+    32,
+    3,
+    1,
+    3,
+    64,
+    104,
+    144,
+    227,
+    4,
+    1,
+    0,
+    6,
+    227,
+    4,
+    1,
+    0,
+    7,
+    227,
+    4,
+    1,
+    0,
+    8,
+]
+datatype = 'boxed'
+shape = '3'
 
 [[runs]]
 expr = '7 8 9 10 /: 4 2'
