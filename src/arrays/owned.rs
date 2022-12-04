@@ -153,7 +153,7 @@ impl JArray {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
         // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
         debug!("rank_iter rank: {}", rank);
-        if rank > self.shape().len() as i16 {
+        if rank > self.shape().len() as i16 || self.is_empty() {
             vec![self.clone()]
         } else if rank == 0 {
             impl_array!(self, |x: &ArrayBase<_, _>| x
