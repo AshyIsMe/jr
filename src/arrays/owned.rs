@@ -401,7 +401,7 @@ impl From<Elem> for JArray {
     fn from(value: Elem) -> Self {
         match value {
             Elem::Char(a) => JArray::CharArray(arr0d(a)),
-            Elem::Boxed(a) => a,
+            Elem::Boxed(a) => JArray::BoxArray(arr0d(a)),
             Elem::Num(a) => JArray::from(a),
         }
     }
