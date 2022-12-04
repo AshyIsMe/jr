@@ -2,7 +2,10 @@ use std::str::FromStr;
 
 use crate::number::Num;
 use crate::scan::scan_num_token;
+use crate::test_impls::jsoft_binary;
+use crate::JArray;
 use anyhow::Result;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use super::run_j;
@@ -16,7 +19,7 @@ pub struct RunList {
 pub struct Run {
     pub expr: String,
     pub output: String,
-    pub encoded: String,
+    pub encoded: Vec<i64>,
     pub datatype: String,
     pub shape: String,
 }
@@ -26,7 +29,11 @@ fn capture(expr: impl AsRef<str>) -> Result<Run> {
     Ok(Run {
         expr: expr.to_string(),
         output: run_j(expr)?,
-        encoded: run_j(format!("3!:3 ] {expr}"))?,
+        encoded: run_j(format!("3!:3 ] {expr}"))?
+            .lines()
+            .map(jsoft_binary::parse_hex)
+            .map_ok(|i| i as i64)
+            .collect::<Result<_>>()?,
         datatype: run_j(format!("datatype {expr}"))?,
         shape: run_j(format!("$ {expr}"))?,
     })
@@ -71,5 +78,16 @@ impl Run {
 
     pub fn parse_data(&self) -> Result<Vec<Num>> {
         self.output.split_whitespace().map(scan_num_token).collect()
+    }
+
+    pub fn parse_encoded(&self) -> Result<JArray> {
+        jsoft_binary::decode(
+            &self
+                .encoded
+                .iter()
+                .copied()
+                .map(|i: i64| i as u64)
+                .collect_vec(),
+        )
     }
 }
