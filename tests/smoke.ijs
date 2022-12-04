@@ -216,12 +216,17 @@ NB. self classify
 NB. link
 5;3
 6;7;8
+0 2 ; 4 2 5 7
 'good' ; 'morning'
+'alpha' ; 'bravo' ; 'charlie'
+'Gauss';100
+'Fred';30;40
 5 ; 12 ; 1995
 2 2 $ 1;2;3;4
 'abc' ; 1 2 3 ; (i. 2 2)
-NB. link bug: (<'abc');(<'def');(<'ghi')
-NB. link bug: (<'abc');(<'def');<(<'ghi')
+(<'abc');(<'def');(<'ghi')
+(<'abc');(<'def');<(<'ghi')
+
 
 NB. cut
 $;._2 (1 2 0 0 1 0)

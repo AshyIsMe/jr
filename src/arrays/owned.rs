@@ -33,15 +33,15 @@ impl fmt::Debug for JArray {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use JArray::*;
         match self {
-            BoolArray(a) => write!(f, "BoolArray({a})"),
-            CharArray(a) => write!(f, "CharArray({a})"),
-            IntArray(a) => write!(f, "IntArray({a})"),
-            ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
-            RationalArray(a) => write!(f, "RationalArray({a})"),
-            FloatArray(a) => write!(f, "FloatArray({a})"),
-            ComplexArray(a) => write!(f, "ComplexArray({a})"),
-            BoxArray(a) => write!(f, "BoxArray({a})"),
-            LiteralArray(a) => write!(f, "LiteralArray({a})"),
+            BoolArray(a) => write!(f, "BoolArray({:?} {a})", a.shape()),
+            CharArray(a) => write!(f, "CharArray({:?} {a})", a.shape()),
+            IntArray(a) => write!(f, "IntArray({:?} {a})", a.shape()),
+            ExtIntArray(a) => write!(f, "ExtIntArray({:?} {a})", a.shape()),
+            RationalArray(a) => write!(f, "RationalArray({:?} {a})", a.shape()),
+            FloatArray(a) => write!(f, "FloatArray({:?} {a})", a.shape()),
+            ComplexArray(a) => write!(f, "ComplexArray({:?} {a})", a.shape()),
+            BoxArray(a) => write!(f, "BoxArray({:?} {a})", a.shape()),
+            LiteralArray(a) => write!(f, "LiteralArray({:?} {a})", a.shape()),
         }
     }
 }
@@ -409,7 +409,7 @@ impl From<Elem> for JArray {
     fn from(value: Elem) -> Self {
         match value {
             Elem::Char(a) => JArray::CharArray(arr0d(a)),
-            Elem::Boxed(a) => a,
+            Elem::Boxed(a) => JArray::BoxArray(arr0d(a)),
             Elem::Num(a) => JArray::from(a),
             Elem::Literal(a) => JArray::from(Elem::from(a)),
         }
