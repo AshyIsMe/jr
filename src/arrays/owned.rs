@@ -97,6 +97,11 @@ impl JArray {
         impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
     }
 
+    // TODO: CoW
+    pub fn transpose<'s>(&'s self) -> JArray {
+        map_array!(self, |a: &'s ArrayBase<_, _>| a.t().to_owned())
+    }
+
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
         map_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix))
     }
