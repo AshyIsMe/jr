@@ -57,6 +57,16 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
     }
 }
 
+/// |: (monad) (_)
+pub fn v_transpose(y: &JArray) -> Result<JArray> {
+    Ok(y.transpose())
+}
+
+/// |: (dyad) (1, _)
+pub fn v_transpose_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError).context("transpose dyad")
+}
+
 /// $ (monad)
 pub fn v_shape_of(y: &JArray) -> Result<JArray> {
     Ok(y.shape().into_array()?.into_jarray())

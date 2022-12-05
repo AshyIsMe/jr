@@ -241,6 +241,11 @@ NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
 
+NB. transpose
+|: (0 $ 0)
+|: 2 3
+|: i. 2 4
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
