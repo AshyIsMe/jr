@@ -296,16 +296,26 @@ pub fn v_do(y: &JArray) -> Result<JArray> {
 }
 /// ". (dyad)
 pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
-    match (x.shape().len(), y.shape().len()) {
-        (0, 2) => {
+    let x = x
+        .single_math_num()
+        .ok_or(JError::NonceError)
+        .context("atomic x")?;
+    match y.shape().len() {
+        2 => {
             let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
             let mut nums = Vec::new();
             for line in arr.outer_iter() {
                 let s: String = line.iter().collect();
                 // TODO: assumes x is 0
-                nums.push(s.trim().parse::<f64>().unwrap_or(0.));
+                nums.push(Elem::Num(
+                    s.trim()
+                        .parse::<f64>()
+                        .map(Num::Float)
+                        .unwrap_or_else(|_| x.clone())
+                        .demote(),
+                ));
             }
-            Ok(nums.into_array()?.into_jarray())
+            promote_to_array(nums)
         }
         _ => Err(JError::NonceError).context("atomic x, table y only"),
     }
@@ -378,7 +388,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .into_elems()
         .into_iter()
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
-        .map(|o| Elem::from(i64::try_from(o).expect("arrays thhat fit in memory")))
+        .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
         .collect_vec();
     Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
 }
