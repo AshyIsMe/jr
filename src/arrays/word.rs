@@ -51,6 +51,9 @@ impl Word {
             Word::Noun(ja) => ja,
             _ => return Err(JError::DomainError.into()),
         };
+        if ja.shape().is_empty() {
+            return Ok(vec![Word::Noun(ja.clone())]);
+        }
         Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
             .outer_iter()
             .map(|a| Word::Noun(a.into_owned().into_jarray()))

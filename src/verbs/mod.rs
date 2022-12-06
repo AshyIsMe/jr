@@ -203,8 +203,27 @@ pub fn v_grade_down(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// \: (dyad)
-pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_sort_down(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("sort only implemented for (1d) lists");
+    }
+
+    let mut y = y.clone().into_elems().into_iter().enumerate().collect_vec();
+    y.try_sort_by_key(|(_, n)| Some(n.clone()))
+        .map_err(|_| JError::NonceError)
+        .context("sort only implemented for simple types")?;
+    let x = x.clone().into_elems();
+    if x.len() < y.len() {
+        return Err(JError::IndexError).context("need more xs than ys");
+    }
+    // TODO: unnecessary clones, as usual
+    Ok(promote_to_array(
+        y.into_iter()
+            .rev()
+            .map(|(i, _)| i)
+            .map(|i| x[i].clone())
+            .collect(),
+    )?)
 }
 
 /// \[ (monad) and ] (monad) apparently
@@ -212,13 +231,13 @@ pub fn v_same(y: &JArray) -> Result<JArray> {
     Ok(y.clone())
 }
 /// [ (dyad)
-pub fn v_left(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_left(x: &JArray, _y: &JArray) -> Result<JArray> {
+    Ok(x.clone())
 }
 
 /// ] (dyad)
-pub fn v_right(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_right(_x: &JArray, y: &JArray) -> Result<JArray> {
+    Ok(y.clone())
 }
 
 /// { (monad)
