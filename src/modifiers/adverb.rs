@@ -66,7 +66,7 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, y) {
         (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
-            let classification = v_self_classify(y).context("classify")?;
+            let classification = v_self_classify(x).context("classify")?;
             c_at(
                 Some(&Word::Noun(classification)),
                 u,

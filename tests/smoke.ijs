@@ -243,6 +243,10 @@ NB. transpose
 |: 2 3
 |: i. 2 4
 
+NB. oblique / key
+1 2 3 1 3 2 1 </. 'abcdefg'
+1 2 3 1 3 2 1 #/. 'abcdefg'
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
