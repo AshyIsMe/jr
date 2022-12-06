@@ -198,10 +198,12 @@ NB. reflexive / passive
 16 %~ 3.2
 
 NB. sort
-NB. test framework can't handle alphabetic output: 'abcd' /: 4 2 3 1
+'abcd' /: 4 2 3 1
 7 8 9 10 /: 4 2 3 1
 7 8 9 10 /: 4 2 3
 7 8 9 10 /: 4 2
+\:~ 'abecedarian'
+NB. nonce: laminate: \:~"1 'dozen',:'disk'
 
 NB. self classify
 = i. 3
@@ -209,6 +211,12 @@ NB. self classify
 = 3 3 $ i. 6
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
+
+NB. same / left / right
+] i. 2 3
+[ 'abcde'
+(i. 2 3) [ 'abcde'
+(i. 2 3) ] 'abcde'
 
 NB. link
 5;3
@@ -252,9 +260,21 @@ NB. do
 ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. bondo
+1&+ 5
+(+&1) 5
+*:&+: 3 4 5
++/&+: 3 4 5
+NB. dyad: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
+NB. some of [] not working right? 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
+
+NB. AoC
+>./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
++/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'

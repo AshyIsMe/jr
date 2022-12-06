@@ -352,3 +352,18 @@ fn f_read_file(y: &Word) -> Result<Word> {
             .context("can't read non-paths (hint: pointless box required 1!:1 <'a')"),
     }
 }
+
+pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (x, n, m) {
+        (None, Word::Verb(_, n), Word::Noun(m)) => n
+            .exec(Some(&Word::Noun(m.clone())), y)
+            .context("monad bondo VN")
+            .map(Word::Noun),
+        (None, Word::Noun(n), Word::Verb(_, m)) => m
+            .exec(Some(&Word::Noun(n.clone())), y)
+            .context("monad bondo NV")
+            .map(Word::Noun),
+        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_at(None, n, m, y),
+        _ => Err(JError::NonceError).with_context(|| anyhow!("x:{x:?} n:{n:?} m:{m:?}")),
+    }
+}
