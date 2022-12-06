@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-use std::fmt;
 use std::iter;
+use std::{fmt, fs};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
+use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::JArray::*;
-use crate::arrays::{map_result, JArrays};
-use crate::eval;
-use crate::verbs::{exec_dyad, exec_dyad_inner, exec_monad, exec_monad_inner, Rank, VerbImpl};
+use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
+use crate::verbs::{exec_dyad, exec_monad, Rank};
+use crate::{arr0d, eval, Ctx, IntoJArray};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -46,7 +45,7 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     .map(|i| -> Result<_> {
                         let mut t = y.clone();
                         for _ in 0..*i {
-                            t = u.exec(x, &t)?;
+                            t = u.exec(x, &t).map(Word::Noun)?;
                         }
                         Ok(t)
                     })
@@ -130,6 +129,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             match (x, y) {
                 (None, Word::Noun(y)) => {
                     exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
+                        .map(Word::Noun)
                         .context("monadic rank drifting")
                 }
                 (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
@@ -138,6 +138,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     x,
                     y,
                 )
+                .map(Word::Noun)
                 .context("dyadic rank drifting"),
                 _ => Err(JError::NonceError)
                     .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
@@ -148,48 +149,32 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 }
 
 pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-    match (u, v, y) {
-        (Word::Verb(_, u), Word::Verb(_, VerbImpl::Primitive(p)), Word::Noun(y)) => {
-            // this is just v.exec() without flatten, isn't it
-            let r = match x {
-                Some(Word::Noun(x)) => {
-                    let dyad = p
-                        .dyad
-                        .ok_or(JError::DomainError)
-                        .context("expecting a dyadic v")?;
-                    exec_dyad_inner(dyad.f, dyad.rank, x, y)?
-                }
-                None => exec_monad_inner(p.monad.f, p.monad.rank, y)?,
-                _ => return Err(JError::NonceError).context("non-word noun"),
-            };
-
-            // then apply u
-            let r = map_result(r, |a| match u.exec(None, &Word::Noun(a.clone()))? {
-                Word::Noun(arr) => Ok(arr),
-                other => bail!("refusing to believe in non-nouns: {other:?}"),
-            })?;
-
-            // then flatten (fill)
-            Ok(Word::Noun(flatten(&r)?))
+    match (u, v) {
+        (Word::Verb(_, u), Word::Verb(_, v)) => {
+            let r = v.partial_exec(x, y).context("right half of c_at")?;
+            let r = map_result(r, |a| u.exec(None, &Word::Noun(a.clone())))
+                .context("left half of c_at")?;
+            Ok(Word::Noun(flatten(&r).context("expanding result of c_at")?))
         }
         _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("expected to @ a primitive verb, not {:?}", u)),
+            .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
     }
 }
 
 pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    use crate::arrays::JArray::*;
     match (n, m) {
         (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
             if n == Array::from_elem(IxDyn(&[]), 4) {
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        let mut env: HashMap<String, Word> = HashMap::new();
-                        env.insert("x".to_string(), x.clone());
-                        env.insert("y".to_string(), y.clone());
+                        let mut ctx = Ctx::empty();
+                        ctx.alias("x", x.clone());
+                        ctx.alias("y", y.clone());
                         eval(
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut env,
+                            &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }
@@ -197,11 +182,11 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
                 match x {
                     None => {
-                        let mut env: HashMap<String, Word> = HashMap::new();
-                        env.insert("y".to_string(), y.clone());
+                        let mut ctx = Ctx::empty();
+                        ctx.alias("y", y.clone());
                         eval(
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut env,
+                            &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }
@@ -212,5 +197,173 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             }
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
+    }
+}
+
+fn empty_box_array() -> BoxArray {
+    ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")
+}
+
+pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    use Word::*;
+    let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
+    let m = m
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("mathematical modes")?
+        .value_i64()
+        .ok_or(JError::DomainError)
+        .context("integer modes")?;
+
+    match (x, n, y) {
+        (None, Verb(_, v), Noun(y)) => {
+            let parts = y.outer_iter();
+            ensure!(!parts.is_empty());
+            match m {
+                -2 => (),
+                _ => return Err(JError::NonceError).context("only mode -2 is supported"),
+            }
+
+            let key = &parts[parts.len() - 1];
+            let mut stack = empty_box_array();
+            let mut out = empty_box_array();
+            for part in &parts {
+                if part == key {
+                    // copy-paste of below
+                    let arg = if stack.is_empty() {
+                        JArray::BoxArray(empty_box_array())
+                    } else {
+                        flatten(&stack).context("flattening intermediate")?
+                    };
+                    out.push(
+                        Axis(0),
+                        arr0d(
+                            v.exec(None, &Noun(arg))
+                                .context("evaluating intermediate")?,
+                        )
+                        .view(),
+                    )?;
+                    stack = empty_box_array();
+                } else {
+                    stack
+                        .push(Axis(0), arr0d(JArray::from(part.clone())).view())
+                        .context("push")?;
+                }
+            }
+
+            flatten(&out).map(Noun)
+        }
+        (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
+            let is_end = match m {
+                2 | -2 => true,
+                1 | -1 => false,
+                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+            };
+
+            let is_inclusive = match m {
+                -2 | -1 => false,
+                2 | 1 => true,
+                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+            };
+
+            if !is_end {
+                return Err(JError::NonceError).context("only end mode supported right now");
+            }
+            let mut stack = empty_box_array();
+            let mut out = empty_box_array();
+            for (&x, part) in x.iter().zip(y.outer_iter().into_iter()) {
+                if is_inclusive || x == 0 {
+                    stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                }
+                if x != 1 {
+                    continue;
+                }
+                // copy-paste of above
+                let arg = if stack.is_empty() {
+                    JArray::BoxArray(empty_box_array())
+                } else {
+                    flatten(&stack).context("flattening intermediate")?
+                };
+                out.push(
+                    Axis(0),
+                    arr0d(
+                        v.exec(None, &Noun(arg))
+                            .context("evaluating intermediate")?,
+                    )
+                    .view(),
+                )?;
+                stack = empty_box_array();
+            }
+            flatten(&out).map(Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
+    }
+}
+
+pub fn c_foreign(_x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (n, m) {
+        (Word::Noun(n), Word::Noun(m)) => {
+            let n = n
+                .single_math_num()
+                .and_then(|n| n.value_len())
+                .ok_or(JError::DomainError)
+                .context("left foreign takes numerics")?;
+            let m = m
+                .single_math_num()
+                .and_then(|m| m.value_len())
+                .ok_or(JError::DomainError)
+                .context("right foreign takes numerics")?;
+            match (m, n) {
+                (1, 1) => f_read_file(y).context("reading file"),
+                _ => Err(JError::NonceError)
+                    .with_context(|| anyhow!("unsupported foreign: {m}!:{n}")),
+            }
+        }
+        _ => Err(JError::NonceError).context("unsupported foreign syntax"),
+    }
+}
+
+fn f_read_file(y: &Word) -> Result<Word> {
+    match y {
+        Word::Noun(JArray::BoxArray(arr)) if arr.len() == 1 => {
+            let arr = arr
+                .iter()
+                .next()
+                .ok_or(JError::DomainError)
+                .context("empty box?")?;
+            let arr = arr
+                .when_char()
+                .ok_or(JError::NonceError)
+                .context("can't read boxed non-paths")?;
+
+            if arr.shape().len() > 1 {
+                return Err(JError::NonceError).context("multi-dimensional path");
+            }
+
+            let path: String = arr.iter().copied().collect();
+            match fs::read_to_string(&path) {
+                Ok(s) => Ok(s.chars().collect_vec().into_array()?.into_noun()),
+                Err(e) => Err(JError::FileNameError)
+                    .context(e)
+                    .with_context(|| anyhow!("reading {path:?}")),
+            }
+        }
+        _ => Err(JError::NonceError)
+            .context("can't read non-paths (hint: pointless box required 1!:1 <'a')"),
+    }
+}
+
+pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (x, n, m) {
+        (None, Word::Verb(_, n), Word::Noun(m)) => n
+            .exec(Some(&Word::Noun(m.clone())), y)
+            .context("monad bondo VN")
+            .map(Word::Noun),
+        (None, Word::Noun(n), Word::Verb(_, m)) => m
+            .exec(Some(&Word::Noun(n.clone())), y)
+            .context("monad bondo NV")
+            .map(Word::Noun),
+        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_at(None, n, m, y),
+        _ => Err(JError::NonceError).with_context(|| anyhow!("x:{x:?} n:{n:?} m:{m:?}")),
     }
 }

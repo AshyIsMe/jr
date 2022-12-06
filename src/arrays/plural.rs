@@ -3,6 +3,7 @@ use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use crate::verbs::VerbImpl;
 use crate::{JArray, JError};
 
 #[derive(Debug)]
@@ -15,6 +16,7 @@ pub enum JArrays<'v> {
     FloatArrays(Vec<ArrayViewD<'v, f64>>),
     ComplexArrays(Vec<ArrayViewD<'v, Complex64>>),
     BoxArrays(Vec<ArrayViewD<'v, JArray>>),
+    LiteralArrays(Vec<ArrayViewD<'v, VerbImpl>>),
 }
 
 macro_rules! homo_array {
@@ -42,6 +44,7 @@ impl<'a> JArrays<'a> {
             FloatArray(_) => FloatArrays(homo!(FloatArray, arrs.iter())),
             ComplexArray(_) => ComplexArrays(homo!(ComplexArray, arrs.iter())),
             BoxArray(_) => BoxArrays(homo!(BoxArray, arrs.iter())),
+            LiteralArray(_) => LiteralArrays(homo!(LiteralArray, arrs.iter())),
         })
     }
 }

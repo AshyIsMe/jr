@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
 use ndarray::prelude::*;
 use num::complex::Complex64;
@@ -8,7 +6,7 @@ use num::{BigInt, BigRational};
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, JArray, JError, Rank, Word};
+use jr::{arr0d, collect_nouns, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();
@@ -53,7 +51,7 @@ fn test_parse_basics() {
         Word::noun([1i64, 2, 3]).unwrap(),
     ];
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         Word::noun([3i64, 4, 5]).unwrap(),
     );
 }
@@ -220,7 +218,7 @@ fn test_collect_char_nouns() {
 fn test_fork() {
     let words = jr::scan("(+/ % #) 1 2 3 4 5").unwrap();
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         Word::from(3i64)
     );
 }
@@ -228,23 +226,23 @@ fn test_fork() {
 #[test]
 fn test_fork_noun() {
     let words = jr::scan("(15 % #) 1 2 3 4 5").unwrap();
-    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(3));
+    assert_eq!(jr::eval(words, &mut Ctx::empty()).unwrap(), Word::from(3));
 }
 
 #[test]
 fn test_fork_average() {
     let words = jr::scan("(+/ % #) 1 2 3").unwrap();
-    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(2));
+    assert_eq!(jr::eval(words, &mut Ctx::empty()).unwrap(), Word::from(2));
 }
 
 #[test]
 fn test_idot() {
     assert_eq!(
-        jr::eval(jr::scan("i. 4").unwrap(), &mut HashMap::new()).unwrap(),
+        jr::eval(jr::scan("i. 4").unwrap(), &mut Ctx::empty()).unwrap(),
         Noun(idot(&[4]))
     );
     assert_eq!(
-        jr::eval(jr::scan("i. 2 3").unwrap(), &mut HashMap::new()).unwrap(),
+        jr::eval(jr::scan("i. 2 3").unwrap(), &mut Ctx::empty()).unwrap(),
         Noun(idot(&[2, 3]))
     );
 }
@@ -256,7 +254,7 @@ fn test_idot() {
 #[ignore]
 fn test_hook() {
     let words = jr::scan("(i. #) 3 1 4 1 5 9").unwrap();
-    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(6));
+    assert_eq!(jr::eval(words, &mut Ctx::empty()).unwrap(), Word::from(6));
 }
 
 // TODO fix dyadic i.
@@ -264,13 +262,13 @@ fn test_hook() {
 #[ignore]
 fn test_idot_negative_args() {
     assert_eq!(
-        jr::eval(jr::scan("i. _4").unwrap(), &mut HashMap::new()).unwrap(),
+        jr::eval(jr::scan("i. _4").unwrap(), &mut Ctx::empty()).unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[4]), vec![3, 2, 1, 0]).unwrap(),
         ))
     );
     assert_eq!(
-        jr::eval(jr::scan("i. _2 _3").unwrap(), &mut HashMap::new()).unwrap(),
+        jr::eval(jr::scan("i. _2 _3").unwrap(), &mut Ctx::empty()).unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![5, 4, 3, 2, 1, 0]).unwrap(),
         ))
@@ -282,34 +280,31 @@ fn test_idot_negative_args() {
 #[ignore]
 fn test_idot_dyadic() {
     assert_eq!(
-        jr::eval(jr::scan("0 1 2 3 i. 4").unwrap(), &mut HashMap::new()).unwrap(),
+        jr::eval(jr::scan("0 1 2 3 i. 4").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::from(4)
     );
 
     let words = jr::scan("(i.2 3) i. 3 4 5").unwrap();
-    assert_eq!(jr::eval(words, &mut HashMap::new()).unwrap(), Word::from(1));
+    assert_eq!(jr::eval(words, &mut Ctx::empty()).unwrap(), Word::from(1));
 }
 
 #[test]
 fn test_assignment() {
-    let mut names = HashMap::new();
+    let mut ctx = Ctx::empty();
     assert_eq!(
-        jr::eval(jr::scan("a =: 42").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("a =: 42").unwrap(), &mut ctx).unwrap(),
         Word::from(42)
     );
     assert_eq!(
-        jr::eval(jr::scan("a").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("a").unwrap(), &mut ctx).unwrap(),
         Word::from(42)
     );
 }
 
 #[test]
 fn test_resolve_names() {
-    let mut names = HashMap::new();
-    names.insert(
-        String::from("a"),
-        Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
-    );
+    let mut ctx = Ctx::empty();
+    ctx.alias("a", Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap());
 
     let words = (
         Name(String::from("a")),
@@ -317,7 +312,7 @@ fn test_resolve_names() {
         Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
         Nothing,
     );
-    assert_eq!(resolve_names(words.clone(), names.clone()), words);
+    assert_eq!(resolve_names(words.clone(), &ctx), words);
 
     let words2 = (
         Name(String::from("b")),
@@ -326,7 +321,7 @@ fn test_resolve_names() {
         Nothing,
     );
     assert_eq!(
-        resolve_names(words2.clone(), names.clone()),
+        resolve_names(words2.clone(), &ctx),
         (
             Name(String::from("b")),
             IsLocal,
@@ -339,7 +334,7 @@ fn test_resolve_names() {
 #[test]
 fn test_real_imaginary() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("+. 5j1 6 7")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("+. 5j1 6 7")?, &mut Ctx::empty())?,
         Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
             IxDyn(&[3, 2]),
             vec![5., 1., 6., 0., 7., 0.]
@@ -349,7 +344,7 @@ fn test_real_imaginary() -> Result<()> {
     assert_eq!(
         jr::eval(
             jr::scan("+. 2 3 $ 5j1 6 7j2 8j4 9 10j6")?,
-            &mut HashMap::new()
+            &mut Ctx::empty()
         )?,
         Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
             IxDyn(&[2, 3, 2]),
@@ -361,13 +356,12 @@ fn test_real_imaginary() -> Result<()> {
 
 #[test]
 fn test_parens() {
-    let mut names = HashMap::new();
     assert_eq!(
-        jr::eval(jr::scan("(2 * 2) + 4").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("(2 * 2) + 4").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::from(8)
     );
     assert_eq!(
-        jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("2 * 2 + 4").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::from(12)
     );
 }
@@ -375,7 +369,7 @@ fn test_parens() {
 #[test]
 fn test_num_dom() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("2 x: 6r2 4r3 1")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 x: 6r2 4r3 1")?, &mut Ctx::empty())?,
         Word::Noun(JArray::ExtIntArray(ArrayD::from_shape_vec(
             IxDyn(&[3, 2]),
             vec![3.into(), 1.into(), 4.into(), 3.into(), 1.into(), 1.into()]
@@ -387,12 +381,12 @@ fn test_num_dom() -> Result<()> {
 #[test]
 fn test_behead() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("}. 5 6 7")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}. 5 6 7")?, &mut Ctx::empty())?,
         Word::noun([6i64, 7])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("}. 3 2 $ i. 10")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}. 3 2 $ i. 10")?, &mut Ctx::empty())?,
         Word::Noun(JArray::IntArray(Array::from_shape_vec(
             IxDyn(&[2, 2]),
             [2, 3, 4, 5].to_vec()
@@ -400,7 +394,7 @@ fn test_behead() -> Result<()> {
     );
 
     assert_eq!(
-        jr::eval(jr::scan("}. 3 3 3 $ i. 30")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}. 3 3 3 $ i. 30")?, &mut Ctx::empty())?,
         Word::Noun(JArray::IntArray(Array::from_shape_vec(
             IxDyn(&[2, 3, 3]),
             (9..27).collect()
@@ -414,12 +408,12 @@ fn test_drop() -> Result<()> {
     //    2 }. 5 6 7
     // 7
     assert_eq!(
-        jr::eval(jr::scan("2 }. 5 6 7")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 }. 5 6 7")?, &mut Ctx::empty())?,
         Word::noun([7i64])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("2 }. i.3 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 }. i.3 3")?, &mut Ctx::empty())?,
         Word::Noun(JArray::IntArray(Array::from_shape_vec(
             IxDyn(&[1, 3]),
             [6, 7, 8].to_vec()
@@ -427,7 +421,7 @@ fn test_drop() -> Result<()> {
     );
 
     assert_eq!(
-        jr::eval(jr::scan("_1 }. 'abc'")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("_1 }. 'abc'")?, &mut Ctx::empty())?,
         Word::noun(['a', 'b'])?
     );
 
@@ -437,18 +431,16 @@ fn test_drop() -> Result<()> {
 #[test]
 fn test_box() {
     // "$ < 42" == []
-    let mut names = HashMap::new();
     assert_eq!(
-        jr::eval(jr::scan("< 42").unwrap(), &mut names).unwrap(),
-        Word::noun(arr0d(JArray::from(42i64))).unwrap()
+        jr::eval(jr::scan("< 42").unwrap(), &mut Ctx::empty()).unwrap(),
+        Word::noun(arr0d(JArray::from(Num::from(42i64)))).unwrap()
     );
 }
 
 #[test]
 fn test_unbox() {
-    let mut names = HashMap::new();
     assert_eq!(
-        jr::eval(jr::scan("> < 42").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("> < 42").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::from(42)
     );
 }
@@ -473,9 +465,8 @@ fn test_increment() {
 
 #[test]
 fn test_link() {
-    let mut names = HashMap::new();
     assert_eq!(
-        jr::eval(jr::scan("1 ; 2 ; 3").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("1 ; 2 ; 3").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::noun([
             BoolArray(Array::from_elem(IxDyn(&[]), 1)),
             IntArray(Array::from_elem(IxDyn(&[]), 2)),
@@ -484,7 +475,7 @@ fn test_link() {
         .unwrap()
     );
     assert_eq!(
-        jr::eval(jr::scan("1 ; 2 ; <3").unwrap(), &mut names).unwrap(),
+        jr::eval(jr::scan("1 ; 2 ; <3").unwrap(), &mut Ctx::empty()).unwrap(),
         Word::noun([
             BoolArray(Array::from_elem(IxDyn(&[]), 1)),
             IntArray(Array::from_elem(IxDyn(&[]), 2)),
@@ -583,7 +574,7 @@ fn test_agreement_plus_rank_0_1() {
     // Add each atom of x to each vector of y (same as test_rank_conjunction_0_1() but without the rank conjunction)
     let words = jr::scan("1 2 (+\"0 1) 1 2 3").unwrap();
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
         ))
@@ -601,7 +592,7 @@ fn test_rank_conjunction_1_0() {
     println!("words: {:?}", words);
 
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[3, 2]), vec![2, 3, 3, 4, 4, 5]).unwrap(),
         ))
@@ -611,22 +602,22 @@ fn test_rank_conjunction_1_0() {
 #[test]
 fn test_head() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("{. 'abc'")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{. 'abc'")?, &mut Ctx::empty())?,
         Word::from('a')
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{. 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{. 1 2 3")?, &mut Ctx::empty())?,
         Word::from(1i64)
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{. i.2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{. i.2 3")?, &mut Ctx::empty())?,
         Word::noun([0i64, 1, 2])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{. i.3 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{. i.3 3")?, &mut Ctx::empty())?,
         Word::noun([0i64, 1, 2])?
     );
     Ok(())
@@ -635,29 +626,29 @@ fn test_head() -> Result<()> {
 #[test]
 fn test_take() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("1 {. 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("1 {. 1 2 3")?, &mut Ctx::empty())?,
         Word::noun([1i64])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("1 {. 1")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("1 {. 1")?, &mut Ctx::empty())?,
         Word::noun([1u8])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("2 {. 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 {. 1 2 3")?, &mut Ctx::empty())?,
         Word::noun([1i64, 2])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("2 {. i.3 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("2 {. i.3 3")?, &mut Ctx::empty())?,
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
     );
 
     assert_eq!(
-        jr::eval(jr::scan("_2 {. 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("_2 {. 1 2 3")?, &mut Ctx::empty())?,
         Word::noun([2i64, 3])?
     );
 
@@ -667,7 +658,7 @@ fn test_take() -> Result<()> {
 #[test]
 fn test_take_agreement() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("(2 1 $ 2) {. 'abcdef'")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("(2 1 $ 2) {. 'abcdef'")?, &mut Ctx::empty())?,
         Noun(CharArray(
             Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'a', 'b']).unwrap(),
         ))
@@ -681,7 +672,7 @@ fn test_take_agreement() -> Result<()> {
 fn test_take_framingfill() -> Result<()> {
     // TODO Fix Framing Fill here
     assert_eq!(
-        jr::eval(jr::scan("3 {. 1")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("3 {. 1")?, &mut Ctx::empty())?,
         Word::noun([1i64, 0, 0])?
     );
 
@@ -691,11 +682,11 @@ fn test_take_framingfill() -> Result<()> {
 #[test]
 fn test_cat() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("+:@- 7")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("+:@- 7")?, &mut Ctx::empty())?,
         Word::from(-14i64)
     );
     assert_eq!(
-        jr::eval(jr::scan("3 +:@- 7")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("3 +:@- 7")?, &mut Ctx::empty())?,
         Word::from(-8i64)
     );
     Ok(())
@@ -704,22 +695,22 @@ fn test_cat() -> Result<()> {
 #[test]
 fn test_tail() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("{: 'abc'")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{: 'abc'")?, &mut Ctx::empty())?,
         Word::from('c')
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{: 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{: 1 2 3")?, &mut Ctx::empty())?,
         Word::from(3i64)
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{: i.2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{: i.2 3")?, &mut Ctx::empty())?,
         Word::noun([3i64, 4, 5])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("{: i.3 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("{: i.3 3")?, &mut Ctx::empty())?,
         Word::noun([6i64, 7, 8])?
     );
     Ok(())
@@ -728,24 +719,24 @@ fn test_tail() -> Result<()> {
 #[test]
 fn test_curtail() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan("}: 'abc'")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}: 'abc'")?, &mut Ctx::empty())?,
         Word::noun(['a', 'b'])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("}: 1 2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}: 1 2 3")?, &mut Ctx::empty())?,
         Word::noun([1i64, 2])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan("}: i.2 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}: i.2 3")?, &mut Ctx::empty())?,
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[1, 3]), vec![0, 1, 2]).unwrap(),
         ))
     );
 
     assert_eq!(
-        jr::eval(jr::scan("}: i.3 3")?, &mut HashMap::new())?,
+        jr::eval(jr::scan("}: i.3 3")?, &mut Ctx::empty())?,
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
@@ -756,13 +747,13 @@ fn test_curtail() -> Result<()> {
 #[test]
 fn test_ravel() -> Result<()> {
     assert_eq!(
-        jr::eval(jr::scan(", i.2 2")?, &mut HashMap::new())?,
+        jr::eval(jr::scan(", i.2 2")?, &mut Ctx::empty())?,
         Word::noun([0i64, 1, 2, 3])?
     );
 
     assert_eq!(
-        jr::eval(jr::scan(", i.2 3 4")?, &mut HashMap::new())?,
-        jr::eval(jr::scan("i.24")?, &mut HashMap::new())?,
+        jr::eval(jr::scan(", i.2 3 4")?, &mut Ctx::empty())?,
+        jr::eval(jr::scan("i.24")?, &mut Ctx::empty())?,
     );
     Ok(())
 }
@@ -771,7 +762,7 @@ fn test_ravel() -> Result<()> {
 fn test_user_defined_dyadic_verb() -> Result<()> {
     assert_eq!(scan_eval("2 (4 : 'x + y') 2").unwrap(), Word::from(4i64));
 
-    let err = jr::eval(jr::scan("(4 : 'x + y') 2")?, &mut HashMap::new()).unwrap_err();
+    let err = jr::eval(jr::scan("(4 : 'x + y') 2")?, &mut Ctx::empty()).unwrap_err();
     let root = dbg!(err.root_cause())
         .downcast_ref::<JError>()
         .expect("caused by jerror");
@@ -784,7 +775,7 @@ fn test_user_defined_dyadic_verb() -> Result<()> {
 fn test_user_defined_monadic_verb() -> Result<()> {
     assert_eq!(scan_eval("(3 : '2 * y') 2").unwrap(), Word::from(4i64));
 
-    let err = jr::eval(jr::scan("2 (3 : '2 * y') 2")?, &mut HashMap::new()).unwrap_err();
+    let err = jr::eval(jr::scan("2 (3 : '2 * y') 2")?, &mut Ctx::empty()).unwrap_err();
     let root = dbg!(err.root_cause())
         .downcast_ref::<JError>()
         .expect("caused by jerror");

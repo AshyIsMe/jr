@@ -2,6 +2,8 @@ use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::modifiers::c_at;
+use crate::verbs::v_self_classify;
 use crate::{JError, Word};
 
 pub type AdverbFn = fn(Option<&Word>, &Word, &Word) -> Result<Word>;
@@ -31,12 +33,12 @@ pub fn a_not_implemented(_x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word
 pub fn a_tilde(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match x {
         None => match u {
-            Word::Verb(_, u) => u.exec(Some(y), y),
+            Word::Verb(_, u) => u.exec(Some(y), y).map(Word::Noun),
             _ => Err(JError::DomainError)
                 .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
         },
         Some(x) => match u {
-            Word::Verb(_, u) => u.exec(Some(y), x),
+            Word::Verb(_, u) => u.exec(Some(y), x).map(Word::Noun),
             _ => Err(JError::DomainError)
                 .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
         },
@@ -51,7 +53,7 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                     .to_cells()?
                     .into_iter()
                     .map(Ok)
-                    .reduce(|x, y| u.exec(Some(&x?), &y?))
+                    .reduce(|x, y| u.exec(Some(&x?), &y?).map(Word::Noun))
                     .ok_or(JError::DomainError)?,
                 _ => Err(JError::custom("noun expected")),
             },
@@ -63,9 +65,15 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 
 pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, y) {
-        // (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
-        //
-        // }
+        (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+            let classification = v_self_classify(x).context("classify")?;
+            c_at(
+                Some(&Word::Noun(classification)),
+                u,
+                &Word::static_verb("#"),
+                &Word::Noun(y.clone()),
+            )
+        }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     }
 }

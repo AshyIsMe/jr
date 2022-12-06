@@ -1,5 +1,6 @@
 mod arrays;
 mod cells;
+mod ctx;
 mod empty;
 mod error;
 mod eval;
@@ -19,6 +20,7 @@ pub use cells::flatten;
 pub use empty::HasEmpty;
 
 // public API
+pub use crate::ctx::Ctx;
 pub use crate::error::JError;
 pub use crate::eval::eval;
 
@@ -26,11 +28,15 @@ pub use crate::eval::eval;
 pub use scan::{scan, scan_with_locations};
 
 // TODO: helper function for tests, not really public
+pub use crate::arrays::Arrayable;
 pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
 pub use crate::verbs::Rank;
+
+// TODO: is this too much? it's necessary to construct atoms atm
+pub use crate::number::Num;
 
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
@@ -89,6 +95,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
         "|" => primitive("|", v_magnitude, v_residue, (0, 0, 0)),
         "|." => primitive("|.", v_reverse, v_rotate_shift, (inf, inf, inf)),
+        "|:" => primitive("|:", v_transpose, v_transpose_dyad, (inf, inf, inf)),
 
         "," => primitive(",", v_ravel, v_append, (inf, inf, inf)),
         ",." => primitive(",.", v_ravel_items, v_stitch, (inf, inf, inf)),
@@ -140,7 +147,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "^!." => not_impl("^!."),
         "$." => not_impl("$."),
         "$:" => not_impl("$:"),
-        "|:" => not_impl("|:"),
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
         "[:" => not_impl("[:"),
@@ -264,9 +270,9 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         ":" => conj(":", c_cor),
         ":." => conj(":.", c_not_implemented),
         "::" => conj("::", c_not_implemented),
-        ";." => conj(";.", c_not_implemented),
+        ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
-        "!:" => conj("!:", c_not_implemented),
+        "!:" => conj("!:", c_foreign),
         "[." => conj("[.", c_not_implemented),
         "]." => conj("].", c_not_implemented),
         "\"" => conj("\"", c_quote),
@@ -275,7 +281,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "@" => conj("@", c_at),
         "@." => conj("@.", c_not_implemented),
         "@:" => conj("@:", c_not_implemented),
-        "&" => conj("&", c_not_implemented),
+        "&" => conj("&", c_bondo),
         "&." => conj("&.", c_not_implemented),
         "&:" => conj("&:", c_not_implemented),
         "&.:" => conj("&.:", c_not_implemented),

@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -13,7 +13,7 @@ use rustyline::hint::{Hint, Hinter};
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
 
-use jr::{scan_with_locations, Word};
+use jr::{scan_with_locations, Ctx, Word};
 
 pub fn drive() -> Result<()> {
     let data_dir = match directories::ProjectDirs::from("github", "AshyIsMe", "jr") {
@@ -32,7 +32,7 @@ pub fn drive() -> Result<()> {
     }
     rl.set_auto_add_history(true);
 
-    let mut names = HashMap::new();
+    let mut ctx = Ctx::empty();
 
     loop {
         let line = match rl.readline("   ") {
@@ -40,7 +40,7 @@ pub fn drive() -> Result<()> {
             Err(ReadlineError::Eof) | Err(ReadlineError::Interrupted) => break,
             Err(other) => Err(other)?,
         };
-        if super::eval(&line, &mut names)? {
+        if super::eval(&line, &mut ctx)? {
             break;
         }
     }

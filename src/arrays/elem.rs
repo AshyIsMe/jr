@@ -1,7 +1,9 @@
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
+use std::cmp::Ordering;
 
 use crate::number::Num;
+use crate::verbs::VerbImpl;
 use crate::JArray;
 
 #[derive(Clone, Debug)]
@@ -9,6 +11,7 @@ pub enum Elem {
     Num(Num),
     Char(char),
     Boxed(JArray),
+    Literal(VerbImpl),
 }
 
 macro_rules! from_num {
@@ -16,6 +19,12 @@ macro_rules! from_num {
         impl From<$t> for Elem {
             fn from(value: $t) -> Self {
                 Self::Num(value.into())
+            }
+        }
+
+        impl From<&$t> for Elem {
+            fn from(value: &$t) -> Self {
+                Self::Num(value.clone().into())
             }
         }
     };
@@ -34,9 +43,32 @@ impl From<char> for Elem {
     }
 }
 
+impl From<&char> for Elem {
+    fn from(value: &char) -> Self {
+        Elem::Char(*value)
+    }
+}
+
 impl From<JArray> for Elem {
     fn from(value: JArray) -> Self {
         Elem::Boxed(value)
+    }
+}
+impl From<&JArray> for Elem {
+    fn from(value: &JArray) -> Self {
+        Elem::Boxed(value.clone())
+    }
+}
+
+impl From<VerbImpl> for Elem {
+    fn from(value: VerbImpl) -> Self {
+        Elem::Literal(value)
+    }
+}
+
+impl From<&VerbImpl> for Elem {
+    fn from(value: &VerbImpl) -> Self {
+        Elem::Literal(value.clone())
     }
 }
 
@@ -47,6 +79,36 @@ impl PartialEq for Elem {
             (Elem::Boxed(l), Elem::Boxed(r)) => l == r,
             (Elem::Char(l), Elem::Char(r)) => l == r,
             _ => false,
+        }
+    }
+}
+
+impl PartialOrd for Elem {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use Elem::*;
+        // > The types: numeric or empty, symbol, literal (1 byte or 2 byte characters), and boxed, are so ordered
+        // imagine if they could use the same name for types at any juncture
+        // I think "symbol" means what we're calling "literal", and "literal" means "char"? (???)
+        match (self, other) {
+            (Num(l), Num(r)) => l.partial_cmp(r),
+            (Num(_), _) => Some(Ordering::Less),
+            (_, Num(_)) => Some(Ordering::Greater),
+
+            (Literal(VerbImpl::Primitive(l)), Literal(VerbImpl::Primitive(r))) => {
+                l.name.partial_cmp(r.name)
+            }
+            (Literal(_), o) if !matches!(o, Literal(VerbImpl::Primitive(_))) => {
+                Some(Ordering::Less)
+            }
+            (o, Literal(_)) if !matches!(o, Literal(VerbImpl::Primitive(_))) => {
+                Some(Ordering::Greater)
+            }
+
+            (Char(l), Char(r)) => l.partial_cmp(r),
+            (Char(_), _) => Some(Ordering::Less),
+            (_, Char(_)) => Some(Ordering::Greater),
+
+            _ => None,
         }
     }
 }

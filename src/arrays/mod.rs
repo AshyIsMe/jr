@@ -31,6 +31,7 @@ macro_rules! reduce_arrays {
             JArrays::FloatArrays(ref a) => JArray::FloatArray($func(a)?),
             JArrays::ComplexArrays(ref a) => JArray::ComplexArray($func(a)?),
             JArrays::BoxArrays(ref a) => JArray::BoxArray($func(a)?),
+            JArrays::LiteralArrays(ref a) => JArray::LiteralArray($func(a)?),
         }
     };
 }

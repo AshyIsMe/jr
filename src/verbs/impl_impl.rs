@@ -6,16 +6,16 @@ use anyhow::{anyhow, bail, Context, Result};
 use super::ranks::Rank;
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
-use crate::{JArray, JError, Word};
+use crate::{arr0d, JArray, JError, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
     // TODO: NOT public
-    pub f: fn(&JArray) -> Result<Word>,
+    pub f: fn(&JArray) -> Result<JArray>,
     pub rank: Rank,
 }
 
-pub type DyadF = fn(&JArray, &JArray) -> Result<Word>;
+pub type DyadF = fn(&JArray, &JArray) -> Result<JArray>;
 pub type DyadRank = (Rank, Rank);
 
 #[derive(Copy, Clone)]
@@ -55,37 +55,45 @@ pub enum VerbImpl {
         l: Box<Word>,
         r: Box<Word>,
     },
+
+    // TODO: I didn't even check what J does here
+    Null,
 }
 
-pub fn exec_monad_inner(
-    f: impl Fn(&JArray) -> Result<Word>,
+impl fmt::Display for VerbImpl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use VerbImpl::*;
+        match self {
+            Primitive(imp) => write!(f, "{}", imp.name),
+            // TODO: remember names of other verbs
+            other => write!(f, "{:?}", other),
+        }
+    }
+}
+
+fn exec_monad_inner(
+    f: impl Fn(&JArray) -> Result<JArray>,
     rank: Rank,
     y: &JArray,
 ) -> Result<BoxArray> {
     let (cells, common_frame) = monad_cells(y, rank)?;
 
-    let results = monad_apply(&cells, |y| {
-        Ok(match f(y)? {
-            Word::Noun(arr) => arr,
-            other => bail!("not handling non-noun outputs {other:?}"),
-        })
-    })?;
+    let results = monad_apply(&cells, f)?;
 
     Ok(BoxArray::from_shape_vec(common_frame, results).expect("monad_apply generated"))
 }
 
-pub fn exec_monad(f: impl Fn(&JArray) -> Result<Word>, rank: Rank, y: &JArray) -> Result<Word> {
+pub fn exec_monad(f: impl Fn(&JArray) -> Result<JArray>, rank: Rank, y: &JArray) -> Result<JArray> {
     if rank.is_infinite() {
         return f(y).context("infinite monad shortcut");
     }
 
     let r = exec_monad_inner(f, rank, y)?;
-    let flat = flatten(&r)?;
-    Ok(Word::Noun(flat))
+    flatten(&r)
 }
 
 pub fn exec_dyad_inner(
-    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    f: impl Fn(&JArray, &JArray) -> Result<JArray>,
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
@@ -97,45 +105,52 @@ pub fn exec_dyad_inner(
 }
 
 pub fn exec_dyad(
-    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    f: impl Fn(&JArray, &JArray) -> Result<JArray>,
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<Word> {
+) -> Result<JArray> {
     if Rank::infinite_infinite() == rank {
         return (f)(x, y).context("infinite dyad shortcut");
     }
 
     let r = exec_dyad_inner(f, rank, x, y)?;
-    let flat = flatten(&r)?;
-    Ok(Word::Noun(flat))
+    flatten(&r)
 }
 
 impl VerbImpl {
-    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<Word> {
+    pub fn exec(&self, x: Option<&Word>, y: &Word) -> Result<JArray> {
+        flatten(&self.partial_exec(x, y)?)
+    }
+
+    pub fn partial_exec(&self, x: Option<&Word>, y: &Word) -> Result<BoxArray> {
         use Word::*;
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
-                (None, Noun(y)) => exec_monad(imp.monad.f, imp.monad.rank, y)
+                (None, Noun(y)) => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
                     .with_context(|| anyhow!("monadic {:?}", imp.name)),
                 (Some(Noun(x)), Noun(y)) => {
                     let dyad = imp
                         .dyad
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
-                    exec_dyad(dyad.f, dyad.rank, x, y)
+                    exec_dyad_inner(dyad.f, dyad.rank, x, y)
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
-                (u @ Verb(_, _), Nothing, Adverb(_, a)) => a.exec(x, u, &Nothing, y),
-                (m @ Noun(_), Nothing, Adverb(_, a)) => a.exec(x, m, &Nothing, y),
+                (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
+                    a.exec(x, u, &Nothing, y).and_then(must_be_box)
+                }
+                (m @ Noun(_), Nothing, Adverb(_, a)) => {
+                    a.exec(x, m, &Nothing, y).and_then(must_be_box)
+                }
                 (l, r, Conjunction(_, c))
                     if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
                 {
-                    c.exec(x, l, r, y)
+                    c.exec(x, l, r, y).and_then(must_be_box)
                 }
                 _ => panic!("invalid DerivedVerb {:?}", self),
             },
@@ -144,18 +159,30 @@ impl VerbImpl {
                     log::warn!("Fork {:?} {:?} {:?}", f, g, h);
                     log::warn!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(x, y));
                     log::warn!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(x, y));
-                    g.exec(Some(&f.exec(x, y)?), &h.exec(x, y)?)
+                    // TODO: it's very unclear to me that this should be a recursive call,
+                    // TODO: and not exec() with some mapping like elsewhere
+                    g.partial_exec(
+                        Some(&f.exec(x, y).map(Word::Noun)?),
+                        &h.exec(x, y).map(Word::Noun)?,
+                    )
                 }
-                (Noun(m), Verb(_, g), Verb(_, h)) => g.exec(Some(&Noun(m.clone())), &h.exec(x, y)?),
+                (Noun(m), Verb(_, g), Verb(_, h)) => {
+                    // TODO: it's very unclear to me that this should be a recursive call,
+                    // TODO: and not exec() with some mapping like elsewhere
+                    g.partial_exec(Some(&Noun(m.clone())), &h.exec(x, y).map(Word::Noun)?)
+                }
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => match x {
-                    None => u.exec(Some(y), &v.exec(None, y)?),
-                    Some(x) => u.exec(Some(x), &v.exec(None, y)?),
+                    // TODO: it's very unclear to me that this should be a recursive call,
+                    // TODO: and not exec() with some mapping like elsewhere
+                    None => u.partial_exec(Some(y), &v.exec(None, y).map(Word::Noun)?),
+                    Some(x) => u.partial_exec(Some(x), &v.exec(None, y).map(Word::Noun)?),
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
+            VerbImpl::Null => bail!("please don't try and execute nothing"),
         }
     }
 
@@ -169,8 +196,16 @@ impl VerbImpl {
     }
 }
 
+fn must_be_box(v: Word) -> Result<BoxArray> {
+    match v {
+        Word::Noun(arr) => Ok(arr0d(arr)),
+        Word::Verb(_, imp) => Ok(arr0d(JArray::LiteralArray(arr0d(imp)))),
+        _ => Err(JError::DomainError).context("unexpected non-noun in noun context"),
+    }
+}
+
 impl PrimitiveImpl {
-    pub fn monad(name: &'static str, f: fn(&JArray) -> Result<Word>) -> Self {
+    pub fn monad(name: &'static str, f: fn(&JArray) -> Result<JArray>) -> Self {
         Self {
             name,
             monad: Monad {
@@ -183,8 +218,8 @@ impl PrimitiveImpl {
 
     pub const fn new(
         name: &'static str,
-        monad: fn(&JArray) -> Result<Word>,
-        dyad: fn(&JArray, &JArray) -> Result<Word>,
+        monad: fn(&JArray) -> Result<JArray>,
+        dyad: fn(&JArray, &JArray) -> Result<JArray>,
         ranks: (Rank, Rank, Rank),
     ) -> Self {
         Self {

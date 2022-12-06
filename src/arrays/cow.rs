@@ -4,6 +4,7 @@ use ndarray::IntoDimension;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use crate::verbs::VerbImpl;
 use crate::JArray;
 
 pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
@@ -18,6 +19,7 @@ pub enum JArrayCow<'a> {
     FloatArray(CowArrayD<'a, f64>),
     ComplexArray(CowArrayD<'a, Complex64>),
     BoxArray(CowArrayD<'a, JArray>),
+    LiteralArray(CowArrayD<'a, VerbImpl>),
 }
 
 macro_rules! impl_array {
@@ -31,6 +33,7 @@ macro_rules! impl_array {
             JArrayCow::FloatArray(a) => $func(a),
             JArrayCow::ComplexArray(a) => $func(a),
             JArrayCow::BoxArray(a) => $func(a),
+            JArrayCow::LiteralArray(a) => $func(a),
         }
     };
 }
@@ -61,6 +64,7 @@ impl<'v> JArrayCow<'v> {
             FloatArray(a) => FloatArray(a.to_shape(shape)?),
             ComplexArray(a) => ComplexArray(a.to_shape(shape)?),
             BoxArray(a) => BoxArray(a.to_shape(shape)?),
+            LiteralArray(a) => LiteralArray(a.to_shape(shape)?),
         })
     }
 
@@ -89,6 +93,7 @@ impl<'v> JArrayCow<'v> {
             FloatArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
             ComplexArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
             BoxArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+            LiteralArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
         }
     }
 }
@@ -104,6 +109,7 @@ impl<'v> From<JArrayCow<'v>> for JArray {
             JArrayCow::FloatArray(v) => JArray::FloatArray(v.into_owned()),
             JArrayCow::ComplexArray(v) => JArray::ComplexArray(v.into_owned()),
             JArrayCow::BoxArray(v) => JArray::BoxArray(v.into_owned()),
+            JArrayCow::LiteralArray(v) => JArray::LiteralArray(v.into_owned()),
         }
     }
 }
@@ -119,6 +125,7 @@ impl<'v> From<&'v JArray> for JArrayCow<'v> {
             JArray::FloatArray(v) => JArrayCow::FloatArray(v.into()),
             JArray::ComplexArray(v) => JArrayCow::ComplexArray(v.into()),
             JArray::BoxArray(v) => JArrayCow::BoxArray(v.into()),
+            JArray::LiteralArray(v) => JArrayCow::LiteralArray(v.into()),
         }
     }
 }
@@ -140,6 +147,7 @@ impl_from_atom!(BigRational, JArrayCow::RationalArray);
 impl_from_atom!(f64, JArrayCow::FloatArray);
 impl_from_atom!(Complex64, JArrayCow::ComplexArray);
 impl_from_atom!(JArray, JArrayCow::BoxArray);
+impl_from_atom!(VerbImpl, JArrayCow::LiteralArray);
 
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {
@@ -159,6 +167,7 @@ impl_from_nd!(BigRational, JArrayCow::RationalArray);
 impl_from_nd!(f64, JArrayCow::FloatArray);
 impl_from_nd!(Complex64, JArrayCow::ComplexArray);
 impl_from_nd!(JArray, JArrayCow::BoxArray);
+impl_from_nd!(VerbImpl, JArrayCow::LiteralArray);
 
 macro_rules! impl_from_nd_view {
     ($t:ty, $j:path) => {
@@ -178,3 +187,4 @@ impl_from_nd_view!(BigRational, JArrayCow::RationalArray);
 impl_from_nd_view!(f64, JArrayCow::FloatArray);
 impl_from_nd_view!(Complex64, JArrayCow::ComplexArray);
 impl_from_nd_view!(JArray, JArrayCow::BoxArray);
+impl_from_nd_view!(VerbImpl, JArrayCow::LiteralArray);
