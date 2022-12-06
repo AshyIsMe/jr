@@ -5,7 +5,7 @@ mod maff;
 mod ranks;
 
 use crate::number::{promote_to_array, Num};
-use crate::{impl_array, Elem, IntoJArray, JArray, JError};
+use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
@@ -255,8 +255,25 @@ pub fn v_map(_y: &JArray) -> Result<JArray> {
 }
 
 /// ". (monad)
-pub fn v_do(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_do(y: &JArray) -> Result<JArray> {
+    match y {
+        JArray::CharArray(jcode) if jcode.shape().len() == 1 => {
+            let mut ctx = Ctx::empty();
+            let word = crate::eval(
+                crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                &mut ctx,
+            )
+            .with_context(|| anyhow!("evaluating {:?}", jcode))?;
+            Ok(match word {
+                Word::Noun(arr) => arr,
+                _ => JArray::empty(),
+            })
+        }
+        JArray::CharArray(_) => {
+            return Err(JError::NonceError).context("unable to handle atomic or multi-line strings")
+        }
+        _ => Err(JError::DomainError).context("do() expects a string"),
+    }
 }
 /// ". (dyad)
 pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {

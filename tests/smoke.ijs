@@ -250,6 +250,11 @@ NB. oblique / key
 1 2 3 1 3 2 1 </. 'abcdefg'
 1 2 3 1 3 2 1 #/. 'abcdefg'
 
+NB. do
+". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
+". '{{ x }}'
+NB. we still don't understand gerunds: ". '+`*'
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')

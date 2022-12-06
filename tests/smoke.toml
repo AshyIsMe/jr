@@ -1,4 +1,68 @@
 [[runs]]
+expr = "\". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'"
+output = '''
+┌──────────────┬────┬─────────┬──────────────┬─────┐
+│1000 2000 3000│4000│5000 6000│7000 8000 9000│10000│
+└──────────────┴────┴─────────┴──────────────┴─────┘'''
+encoded = [
+    227,
+    32,
+    5,
+    1,
+    5,
+    80,
+    144,
+    184,
+    240,
+    304,
+    227,
+    4,
+    3,
+    1,
+    3,
+    1000,
+    2000,
+    3000,
+    227,
+    4,
+    1,
+    0,
+    4000,
+    227,
+    4,
+    2,
+    1,
+    2,
+    5000,
+    6000,
+    227,
+    4,
+    3,
+    1,
+    3,
+    7000,
+    8000,
+    9000,
+    227,
+    4,
+    1,
+    0,
+    10000,
+]
+
+[[runs]]
+expr = "\". '{{ x }}'"
+output = ''
+encoded = [
+    227,
+    1,
+    0,
+    1,
+    0,
+    0,
+]
+
+[[runs]]
 expr = "#/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'"
 output = '20 12 17 21'
 encoded = [
@@ -12,8 +76,6 @@ encoded = [
     17,
     21,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '#;._2 (1 2 0 0 1 0)'
@@ -28,8 +90,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '$;._2 (1 2 0 0 1 0)'
@@ -48,8 +108,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'integer'
-shape = '3 1'
 
 [[runs]]
 expr = '% 0'
@@ -61,8 +119,6 @@ encoded = [
     0,
     9218868437227405312,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '% 0.25'
@@ -74,8 +130,6 @@ encoded = [
     0,
     4616189618054758400,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '%:-1'
@@ -88,8 +142,6 @@ encoded = [
     0,
     4607182418800017408,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '%:-4'
@@ -102,8 +154,6 @@ encoded = [
     0,
     4611686018427387904,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '%:4 9 16'
@@ -118,8 +168,6 @@ encoded = [
     4613937818241073152,
     4616189618054758400,
 ]
-datatype = 'floating'
-shape = '3'
 
 [[runs]]
 expr = ''''ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')'''
@@ -147,8 +195,6 @@ encoded = [
     2,
     0,
 ]
-datatype = 'integer'
-shape = '3 4'
 
 [[runs]]
 expr = ''''ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')'''
@@ -170,8 +216,6 @@ encoded = [
     2,
     5,
 ]
-datatype = 'integer'
-shape = '3 2'
 
 [[runs]]
 expr = ''''Fred';30;40'''
@@ -205,8 +249,6 @@ encoded = [
     0,
     40,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = ''''Gauss';100'''
@@ -234,8 +276,6 @@ encoded = [
     0,
     100,
 ]
-datatype = 'boxed'
-shape = '2'
 
 [[runs]]
 expr = ''''abc' ; 1 2 3 ; (i. 2 2)'''
@@ -278,8 +318,6 @@ encoded = [
     2,
     3,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = "'alpha' ; 'bravo' ; 'charlie'"
@@ -315,8 +353,6 @@ encoded = [
     7,
     28544887144147043,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = "'good' ; 'morning'"
@@ -345,8 +381,6 @@ encoded = [
     7,
     29113321704812397,
 ]
-datatype = 'boxed'
-shape = '2'
 
 [[runs]]
 expr = '(0 1j2 2j4 3j6 4j8) * (+(0 1j2 2j4 3j6 4j8))'
@@ -368,8 +402,6 @@ encoded = [
     4635329916471083008,
     0,
 ]
-datatype = 'complex'
-shape = '5'
 
 [[runs]]
 expr = '(0$0) $ 17'
@@ -381,8 +413,6 @@ encoded = [
     0,
     17,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '''(<'abc');(<'def');(<'ghi')'''
@@ -430,8 +460,6 @@ encoded = [
     3,
     6908007,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = '''(<'abc');(<'def');<(<'ghi')'''
@@ -484,8 +512,6 @@ encoded = [
     3,
     6908007,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = '(i. 5) + 2 * j. (i. 5)'
@@ -507,8 +533,6 @@ encoded = [
     4616189618054758400,
     4620693217682128896,
 ]
-datatype = 'complex'
-shape = '5'
 
 [[runs]]
 expr = '* 0 1'
@@ -521,8 +545,6 @@ encoded = [
     2,
     256,
 ]
-datatype = 'boolean'
-shape = '2'
 
 [[runs]]
 expr = '* 1 2'
@@ -536,8 +558,6 @@ encoded = [
     1,
     1,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '* _4 0 4'
@@ -552,8 +572,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '*: 2 3 4'
@@ -568,8 +586,6 @@ encoded = [
     9,
     16,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '*: 2.1 4.3'
@@ -583,8 +599,6 @@ encoded = [
     4616651237016563876,
     4625897690001508925,
 ]
-datatype = 'floating'
-shape = '2'
 
 [[runs]]
 expr = '+ (i. 5) + 2 * j. (i. 5)'
@@ -606,8 +620,6 @@ encoded = [
     4616189618054758400,
     -4602678819172646912,
 ]
-datatype = 'complex'
-shape = '5'
 
 [[runs]]
 expr = '+. 0 1j2 2j4 3j6'
@@ -632,8 +644,6 @@ encoded = [
     4613937818241073152,
     4618441417868443648,
 ]
-datatype = 'floating'
-shape = '4 2'
 
 [[runs]]
 expr = '+: 3 0 _2'
@@ -648,8 +658,6 @@ encoded = [
     0,
     -4,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '-. 0'
@@ -661,8 +669,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '-. 1'
@@ -674,8 +680,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '-. 2'
@@ -687,8 +691,6 @@ encoded = [
     0,
     -1,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '-. 3j5 1'
@@ -704,8 +706,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'complex'
-shape = '2'
 
 [[runs]]
 expr = '-. 3r2 7'
@@ -745,8 +745,6 @@ encoded = [
     1,
     1,
 ]
-datatype = 'rational'
-shape = '2'
 
 [[runs]]
 expr = '-2 0 _2'
@@ -761,8 +759,6 @@ encoded = [
     0,
     2,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '0'
@@ -774,8 +770,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '0 $ 0'
@@ -788,8 +782,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = '0'
 
 [[runs]]
 expr = '0 *: 0'
@@ -801,8 +793,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '0 *: 1'
@@ -814,8 +804,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '0 0'
@@ -828,8 +816,6 @@ encoded = [
     2,
     0,
 ]
-datatype = 'boolean'
-shape = '2'
 
 [[runs]]
 expr = '0 0 1 0 1 1 0 ,;.2 i. 7'
@@ -854,8 +840,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'integer'
-shape = '3 3'
 
 [[runs]]
 expr = '0 0 1 0 1 1 0 ,;._2 i. 7'
@@ -877,8 +861,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'integer'
-shape = '3 2'
 
 [[runs]]
 expr = '0 1'
@@ -891,8 +873,6 @@ encoded = [
     2,
     256,
 ]
-datatype = 'boolean'
-shape = '2'
 
 [[runs]]
 expr = '0 1 0'
@@ -905,8 +885,6 @@ encoded = [
     3,
     256,
 ]
-datatype = 'boolean'
-shape = '3'
 
 [[runs]]
 expr = '0 1 0 1'
@@ -919,8 +897,6 @@ encoded = [
     4,
     16777472,
 ]
-datatype = 'boolean'
-shape = '4'
 
 [[runs]]
 expr = '0 1 0 1 0'
@@ -933,8 +909,6 @@ encoded = [
     5,
     16777472,
 ]
-datatype = 'boolean'
-shape = '5'
 
 [[runs]]
 expr = '0 1 0 1 0 1'
@@ -947,8 +921,6 @@ encoded = [
     6,
     1099528405248,
 ]
-datatype = 'boolean'
-shape = '6'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0'
@@ -961,8 +933,6 @@ encoded = [
     7,
     1099528405248,
 ]
-datatype = 'boolean'
-shape = '7'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1'
@@ -976,8 +946,6 @@ encoded = [
     72058693566333184,
     0,
 ]
-datatype = 'boolean'
-shape = '8'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0'
@@ -991,8 +959,6 @@ encoded = [
     72058693566333184,
     0,
 ]
-datatype = 'boolean'
-shape = '9'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1'
@@ -1006,8 +972,6 @@ encoded = [
     72058693566333184,
     256,
 ]
-datatype = 'boolean'
-shape = '10'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1 0'
@@ -1021,8 +985,6 @@ encoded = [
     72058693566333184,
     256,
 ]
-datatype = 'boolean'
-shape = '11'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1 0 1'
@@ -1036,8 +998,6 @@ encoded = [
     72058693566333184,
     16777472,
 ]
-datatype = 'boolean'
-shape = '12'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1 0 1 0'
@@ -1051,8 +1011,6 @@ encoded = [
     72058693566333184,
     16777472,
 ]
-datatype = 'boolean'
-shape = '13'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1 0 1 0 1'
@@ -1066,8 +1024,6 @@ encoded = [
     72058693566333184,
     1099528405248,
 ]
-datatype = 'boolean'
-shape = '14'
 
 [[runs]]
 expr = '0 1 0 1 0 1 0 1 0 1 0 1 0 1 0'
@@ -1081,8 +1037,6 @@ encoded = [
     72058693566333184,
     1099528405248,
 ]
-datatype = 'boolean'
-shape = '15'
 
 [[runs]]
 expr = '0 2 ; 4 2 5 7'
@@ -1115,8 +1069,6 @@ encoded = [
     5,
     7,
 ]
-datatype = 'boxed'
-shape = '2'
 
 [[runs]]
 expr = '0.5'
@@ -1128,8 +1080,6 @@ encoded = [
     0,
     4602678819172646912,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '0x'
@@ -1147,8 +1097,6 @@ encoded = [
     1,
     0,
 ]
-datatype = 'extended'
-shape = ''
 
 [[runs]]
 expr = '0x 1x'
@@ -1174,8 +1122,6 @@ encoded = [
     1,
     1,
 ]
-datatype = 'extended'
-shape = '2'
 
 [[runs]]
 expr = '1'
@@ -1187,8 +1133,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '1 *: 0'
@@ -1200,8 +1144,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '1 *: 1'
@@ -1213,8 +1155,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '1 0.5 2j3'
@@ -1232,8 +1172,6 @@ encoded = [
     4611686018427387904,
     4613937818241073152,
 ]
-datatype = 'complex'
-shape = '3'
 
 [[runs]]
 expr = '1 1 0 0 0 0 1 ,;.2 i. 7'
@@ -1264,8 +1202,6 @@ encoded = [
     5,
     6,
 ]
-datatype = 'integer'
-shape = '3 5'
 
 [[runs]]
 expr = '1 1 0 0 1 0 0 ,;.2 i. 7'
@@ -1290,8 +1226,6 @@ encoded = [
     3,
     4,
 ]
-datatype = 'integer'
-shape = '3 3'
 
 [[runs]]
 expr = "1 2 3 1 3 2 1 #/. 'abcdefg'"
@@ -1306,8 +1240,6 @@ encoded = [
     2,
     2,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = "1 2 3 1 3 2 1 </. 'abcdefg'"
@@ -1343,8 +1275,6 @@ encoded = [
     2,
     25955,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = '1 2 3 4 5  >  5 4 3 2 1'
@@ -1357,8 +1287,6 @@ encoded = [
     5,
     4311744512,
 ]
-datatype = 'boolean'
-shape = '5'
 
 [[runs]]
 expr = '1 4j2 3j3 2.00'
@@ -1378,8 +1306,6 @@ encoded = [
     4611686018427387904,
     0,
 ]
-datatype = 'complex'
-shape = '4'
 
 [[runs]]
 expr = '1-0'
@@ -1391,8 +1317,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '16 %~ 3.2'
@@ -1404,8 +1328,6 @@ encoded = [
     0,
     4596373779694328218,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '1r2'
@@ -1430,8 +1352,6 @@ encoded = [
     1,
     2,
 ]
-datatype = 'rational'
-shape = ''
 
 [[runs]]
 expr = '1x'
@@ -1449,8 +1369,6 @@ encoded = [
     1,
     1,
 ]
-datatype = 'extended'
-shape = ''
 
 [[runs]]
 expr = '2'
@@ -1462,8 +1380,6 @@ encoded = [
     0,
     2,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '2 # 5 6 7'
@@ -1481,8 +1397,6 @@ encoded = [
     7,
     7,
 ]
-datatype = 'integer'
-shape = '6'
 
 [[runs]]
 expr = '2 2 $ 1;2;3;4'
@@ -1524,8 +1438,6 @@ encoded = [
     0,
     4,
 ]
-datatype = 'boxed'
-shape = '2 2'
 
 [[runs]]
 expr = '2 3 # 2'
@@ -1542,8 +1454,6 @@ encoded = [
     2,
     2,
 ]
-datatype = 'integer'
-shape = '5'
 
 [[runs]]
 expr = '2 4 # (2 3 $ 7 8 9 4 5 6)'
@@ -1580,8 +1490,6 @@ encoded = [
     5,
     6,
 ]
-datatype = 'integer'
-shape = '6 3'
 
 [[runs]]
 expr = '2 4 # 7j7'
@@ -1605,8 +1513,6 @@ encoded = [
     4619567317775286272,
     4619567317775286272,
 ]
-datatype = 'complex'
-shape = '6'
 
 [[runs]]
 expr = '2-0.5'
@@ -1618,8 +1524,6 @@ encoded = [
     0,
     4609434218613702656,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '2-2'
@@ -1631,8 +1535,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '2-3'
@@ -1644,8 +1546,6 @@ encoded = [
     0,
     -1,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '2.1j3.1'
@@ -1658,8 +1558,6 @@ encoded = [
     4611911198408756429,
     4614162998222441677,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '2j3'
@@ -1672,8 +1570,6 @@ encoded = [
     4611686018427387904,
     4613937818241073152,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '2x'
@@ -1691,8 +1587,6 @@ encoded = [
     1,
     2,
 ]
-datatype = 'extended'
-shape = ''
 
 [[runs]]
 expr = '3 < 5'
@@ -1704,8 +1598,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '3 <. 4 _4'
@@ -1719,8 +1611,6 @@ encoded = [
     3,
     -4,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '3 = 5'
@@ -1732,8 +1622,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '3*5'
@@ -1745,8 +1633,6 @@ encoded = [
     0,
     15,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '3.2 % 1.6'
@@ -1758,8 +1644,6 @@ encoded = [
     0,
     4611686018427387904,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3.2 %~ 16'
@@ -1771,8 +1655,6 @@ encoded = [
     0,
     4617315517961601024,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3.2 < 5.1'
@@ -1784,8 +1666,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '3.2*5'
@@ -1797,8 +1677,6 @@ encoded = [
     0,
     4625196817309499392,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3.2*5r2'
@@ -1810,8 +1688,6 @@ encoded = [
     0,
     4620693217682128896,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '32^1r5'
@@ -1823,8 +1699,6 @@ encoded = [
     0,
     4611686018427387904,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3>.4 _4'
@@ -1838,8 +1712,6 @@ encoded = [
     4,
     3,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '3^2'
@@ -1851,8 +1723,6 @@ encoded = [
     0,
     4621256167635550208,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3^3'
@@ -1864,8 +1734,6 @@ encoded = [
     0,
     4628293042053316608,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '3e1'
@@ -1877,8 +1745,6 @@ encoded = [
     0,
     30,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '3j4 * 3j_4'
@@ -1891,8 +1757,6 @@ encoded = [
     4627730092099895296,
     0,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '3r4 % 2'
@@ -1917,8 +1781,6 @@ encoded = [
     1,
     8,
 ]
-datatype = 'rational'
-shape = ''
 
 [[runs]]
 expr = '3r4 % 5r12'
@@ -1943,8 +1805,6 @@ encoded = [
     1,
     5,
 ]
-datatype = 'rational'
-shape = ''
 
 [[runs]]
 expr = '3r4 % 7.5'
@@ -1956,8 +1816,6 @@ encoded = [
     0,
     4591870180066957722,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '5 ; 12 ; 1995'
@@ -1990,8 +1848,6 @@ encoded = [
     0,
     1995,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = '5 < 37r2'
@@ -2003,8 +1859,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5 < 5r2'
@@ -2016,8 +1870,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5 = 5'
@@ -2029,8 +1881,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5.1 = 5.1'
@@ -2042,8 +1892,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5;3'
@@ -2070,8 +1918,6 @@ encoded = [
     0,
     3,
 ]
-datatype = 'boxed'
-shape = '2'
 
 [[runs]]
 expr = '5j0 = 5'
@@ -2083,8 +1929,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5j5 = 5j5'
@@ -2096,8 +1940,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5r2 = 2.5'
@@ -2109,8 +1951,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '5r3 = 2'
@@ -2122,8 +1962,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '6;7;8'
@@ -2156,8 +1994,6 @@ encoded = [
     0,
     8,
 ]
-datatype = 'boxed'
-shape = '3'
 
 [[runs]]
 expr = '7 8 9 10 /: 4 2'
@@ -2171,8 +2007,6 @@ encoded = [
     8,
     7,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '7 8 9 10 /: 4 2 3'
@@ -2187,8 +2021,6 @@ encoded = [
     9,
     7,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '7 8 9 10 /: 4 2 3 1'
@@ -2204,8 +2036,6 @@ encoded = [
     9,
     7,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '9^0.5'
@@ -2217,8 +2047,6 @@ encoded = [
     0,
     4613937818241073152,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '<(<3 <4)'
@@ -2245,8 +2073,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boxed'
-shape = ''
 
 [[runs]]
 expr = '<. 4.6 4 _4 _4.6'
@@ -2262,8 +2088,6 @@ encoded = [
     -4,
     -5,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '<./7 8 5 9 2'
@@ -2275,8 +2099,6 @@ encoded = [
     0,
     2,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '<1'
@@ -2296,8 +2118,6 @@ encoded = [
     0,
     1,
 ]
-datatype = 'boxed'
-shape = ''
 
 [[runs]]
 expr = '<1 2'
@@ -2319,8 +2139,6 @@ encoded = [
     1,
     2,
 ]
-datatype = 'boxed'
-shape = ''
 
 [[runs]]
 expr = '<2'
@@ -2340,8 +2158,6 @@ encoded = [
     0,
     2,
 ]
-datatype = 'boxed'
-shape = ''
 
 [[runs]]
 expr = '<: 2 3 5 7'
@@ -2357,8 +2173,6 @@ encoded = [
     4,
     6,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '<: 3 2'
@@ -2372,8 +2186,6 @@ encoded = [
     2,
     1,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '<i. 2 3'
@@ -2401,8 +2213,6 @@ encoded = [
     4,
     5,
 ]
-datatype = 'boxed'
-shape = ''
 
 [[runs]]
 expr = "= 'do what you want because a pirate is free, yar har diddledee dee'"
@@ -2596,8 +2406,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = '20 64'
 
 [[runs]]
 expr = '= 1'
@@ -2611,8 +2419,6 @@ encoded = [
     1,
     1,
 ]
-datatype = 'boolean'
-shape = '1 1'
 
 [[runs]]
 expr = '= 3 3 $ i. 6'
@@ -2628,8 +2434,6 @@ encoded = [
     3,
     4295032833,
 ]
-datatype = 'boolean'
-shape = '2 3'
 
 [[runs]]
 expr = '= 5 4 3 4 5'
@@ -2647,8 +2451,6 @@ encoded = [
     281479271677953,
     4294967297,
 ]
-datatype = 'boolean'
-shape = '3 5'
 
 [[runs]]
 expr = '= i. 3'
@@ -2666,8 +2468,6 @@ encoded = [
     4294967297,
     1,
 ]
-datatype = 'boolean'
-shape = '3 3'
 
 [[runs]]
 expr = '>. 4.6 4 _4 _4.6'
@@ -2683,8 +2483,6 @@ encoded = [
     -4,
     -4,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '>./7 8 5 9 2'
@@ -2696,8 +2494,6 @@ encoded = [
     0,
     9,
 ]
-datatype = 'integer'
-shape = ''
 
 [[runs]]
 expr = '>: 2 3 5 7'
@@ -2713,8 +2509,6 @@ encoded = [
     6,
     8,
 ]
-datatype = 'integer'
-shape = '4'
 
 [[runs]]
 expr = '><0'
@@ -2726,8 +2520,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = ''
 
 [[runs]]
 expr = '><0 1'
@@ -2740,8 +2532,6 @@ encoded = [
     2,
     256,
 ]
-datatype = 'boolean'
-shape = '2'
 
 [[runs]]
 expr = '><0 1 2'
@@ -2756,8 +2546,6 @@ encoded = [
     1,
     2,
 ]
-datatype = 'integer'
-shape = '3'
 
 [[runs]]
 expr = '><;._2 (1 2 0 0 1 0)'
@@ -2779,8 +2567,6 @@ encoded = [
     1,
     0,
 ]
-datatype = 'integer'
-shape = '3 2'
 
 [[runs]]
 expr = '><i. 2 3'
@@ -2801,8 +2587,6 @@ encoded = [
     4,
     5,
 ]
-datatype = 'integer'
-shape = '2 3'
 
 [[runs]]
 expr = '^~ 3'
@@ -2814,8 +2598,6 @@ encoded = [
     0,
     4628293042053316608,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '_'
@@ -2827,8 +2609,6 @@ encoded = [
     0,
     9218868437227405312,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '_2 _ 3 + 5'
@@ -2843,8 +2623,6 @@ encoded = [
     9218868437227405312,
     4620693217682128896,
 ]
-datatype = 'floating'
-shape = '3'
 
 [[runs]]
 expr = '_3j_3.3'
@@ -2857,8 +2635,6 @@ encoded = [
     -4609434218613702656,
     -4608758678669597082,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '__'
@@ -2870,8 +2646,6 @@ encoded = [
     0,
     -4503599627370496,
 ]
-datatype = 'floating'
-shape = ''
 
 [[runs]]
 expr = '__*3j3'
@@ -2884,8 +2658,6 @@ encoded = [
     -4503599627370496,
     -4503599627370496,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '__j__'
@@ -2898,8 +2670,6 @@ encoded = [
     -4503599627370496,
     -4503599627370496,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = '_j_'
@@ -2912,8 +2682,6 @@ encoded = [
     9218868437227405312,
     9218868437227405312,
 ]
-datatype = 'complex'
-shape = ''
 
 [[runs]]
 expr = 'j. 0 1 2 3 4'
@@ -2935,8 +2703,6 @@ encoded = [
     0,
     4616189618054758400,
 ]
-datatype = 'complex'
-shape = '5'
 
 [[runs]]
 expr = 'j. i. 5'
@@ -2958,8 +2724,6 @@ encoded = [
     0,
     4616189618054758400,
 ]
-datatype = 'complex'
-shape = '5'
 
 [[runs]]
 expr = '|: (0 $ 0)'
@@ -2972,8 +2736,6 @@ encoded = [
     0,
     0,
 ]
-datatype = 'boolean'
-shape = '0'
 
 [[runs]]
 expr = '|: 2 3'
@@ -2987,8 +2749,6 @@ encoded = [
     2,
     3,
 ]
-datatype = 'integer'
-shape = '2'
 
 [[runs]]
 expr = '|: i. 2 4'
@@ -3013,8 +2773,6 @@ encoded = [
     3,
     7,
 ]
-datatype = 'integer'
-shape = '4 2'
 
 [[runs]]
 expr = '~. (3 3 $ 1 2 3 1 2 3 4 5 6)'
@@ -3035,8 +2793,6 @@ encoded = [
     5,
     6,
 ]
-datatype = 'integer'
-shape = '2 3'
 
 [[runs]]
 expr = '~. 2 3 4 3 2 5 4 1'
@@ -3053,5 +2809,3 @@ encoded = [
     5,
     1,
 ]
-datatype = 'integer'
-shape = '5'
