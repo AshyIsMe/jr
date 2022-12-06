@@ -11,7 +11,7 @@ use ndarray::prelude::*;
 use ndarray::{Axis, Slice};
 
 use crate::arrays::Arrayable;
-use crate::number::Num;
+use crate::number::{promote_to_array, Num};
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
@@ -90,20 +90,18 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// , (dyad)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
-    if !x.shape().is_empty() || !y.shape().is_empty() || x.is_empty() || y.is_empty() {
-        return Err(JError::NonceError).context("can only append atoms");
+    if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
+        return Err(JError::NonceError).context("can only append atoms or lists");
     }
 
-    // maybe decay to elements sand just send it?
-    match (x, y) {
-        (JArray::CharArray(l), JArray::CharArray(r)) => Ok(vec![
-            *l.iter().next().expect("checked"),
-            *r.iter().next().expect("checked"),
-        ]
-        .into_array()?
-        .into_jarray()),
-        _ => return Err(JError::NonceError).context("can only append chars"),
-    }
+    // TODO: jsoft rejects (DomainError) a bunch of cases promote_to_array accepts
+    promote_to_array(
+        x.clone()
+            .into_elems()
+            .into_iter()
+            .chain(y.clone().into_elems().into_iter())
+            .collect(),
+    )
 }
 
 /// ,. (dyad)

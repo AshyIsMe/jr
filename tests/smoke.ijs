@@ -218,6 +218,12 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. append
+5,3
+5,3 6
+2 5,3
+'abc','d'
+
 NB. link
 5;3
 6;7;8
@@ -255,6 +261,12 @@ NB. oblique / key
 1 2 3 1 3 2 1 </. 'abcdefg'
 1 2 3 1 3 2 1 #/. 'abcdefg'
 
+NB. numbers
+0". 4 1 $ '1001'
+0". 2 2 $ '0101'
+0". 2 3 $ '1.5101'
+NB. we compute an atom 'cos we just guessed the reshape: 0". 1 4 $ '1001'
+
 NB. do
 ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 ". '{{ x }}'
@@ -276,5 +288,7 @@ NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 
 NB. AoC
+><;._2 (0".><;._2 ('1000',LF,'2000',LF,'3000',LF,LF,'4000',LF,LF,'5000',LF,'6000',LF,LF,'7000',LF,'8000',LF,'9000',LF,LF,'10000',LF,LF))
+>./ +/ "1 >        ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 >./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 +/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
