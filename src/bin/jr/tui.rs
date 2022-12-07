@@ -13,6 +13,7 @@ use rustyline::hint::{Hint, Hinter};
 use rustyline::Context;
 use rustyline_derive::{Completer, Helper, Highlighter, Validator};
 
+use crate::EvalState;
 use jr::{scan_with_locations, Ctx, Word};
 
 pub fn drive() -> Result<()> {
@@ -34,13 +35,21 @@ pub fn drive() -> Result<()> {
 
     let mut ctx = Ctx::empty();
 
+    let mut state = EvalState::Regular;
+
     loop {
-        let line = match rl.readline("   ") {
+        let line = match rl.readline(if state == EvalState::Regular {
+            "   "
+        } else {
+            ""
+        }) {
             Ok(line) => line,
             Err(ReadlineError::Eof) | Err(ReadlineError::Interrupted) => break,
             Err(other) => Err(other)?,
         };
-        if super::eval(&line, &mut ctx)? {
+
+        state = super::eval(&line, &mut ctx)?;
+        if state == EvalState::Done {
             break;
         }
     }

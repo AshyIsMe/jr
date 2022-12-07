@@ -7,7 +7,7 @@ use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{arr0d, eval, Ctx, IntoJArray};
+use crate::{arr0d, eval, Ctx, IntoJArray, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -16,6 +16,7 @@ pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 pub struct SimpleConjunction {
     pub name: &'static str,
     pub f: ConjunctionFn,
+    pub farcical: fn(&JArray, &JArray) -> Result<bool>,
 }
 
 impl PartialEq for SimpleConjunction {
@@ -28,6 +29,10 @@ impl fmt::Debug for SimpleConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SimpleAdverb({:?})", self.name)
     }
+}
+
+pub fn not_farcical(_n: &JArray, _m: &JArray) -> Result<bool> {
+    Ok(false)
 }
 
 pub fn c_not_implemented(_x: Option<&Word>, _u: &Word, _v: &Word, _y: &Word) -> Result<Word> {
@@ -159,6 +164,13 @@ pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
     }
+}
+
+pub fn c_cor_farcical(n: &JArray, m: &JArray) -> Result<bool> {
+    Ok(match (n.single_math_num(), m.single_math_num()) {
+        (Some(_n), Some(m)) => m == Num::Bool(0),
+        _ => false,
+    })
 }
 
 pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {

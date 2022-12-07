@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use anyhow::{anyhow, Context, Result};
 use cfg_if::cfg_if;
-use jr::{Ctx, Word};
+use jr::{Ctx, JError, Word};
 use log::{debug, warn};
 
 #[cfg(feature = "tui")]
@@ -47,15 +47,25 @@ fn plain_drive() -> Result<()> {
     Ok(())
 }
 
-fn eval(buffer: &str, ctx: &mut Ctx) -> Result<bool> {
+#[derive(Eq, PartialEq)]
+enum EvalState {
+    Regular,
+    Done,
+    MoreInput,
+}
+
+fn eval(buffer: &str, ctx: &mut Ctx) -> Result<EvalState> {
     let buffer = buffer.trim();
     if "exit" == buffer || buffer.is_empty() {
-        return Ok(true);
+        return Ok(EvalState::Done);
     }
 
     match scan_eval(buffer, ctx) {
         //Ok(output) => println!("{:?}", output),
         Ok(output) => println!("{}", output),
+        Err(e) if matches!(JError::extract(&e), Some(JError::StackSuspension)) => {
+            return Ok(EvalState::MoreInput)
+        }
         Err(e) => {
             warn!("{:?}", e);
             let mut stack: VecDeque<_> = e.chain().rev().collect();
@@ -73,11 +83,19 @@ fn eval(buffer: &str, ctx: &mut Ctx) -> Result<bool> {
         }
     }
 
-    Ok(false)
+    Ok(EvalState::Regular)
 }
 
-fn scan_eval(sentence: &str, names: &mut Ctx) -> Result<Word> {
+fn scan_eval(sentence: &str, ctx: &mut Ctx) -> Result<Word> {
+    if ctx.input_wanted() {
+        if sentence != ")" {
+            ctx.input_push(sentence)?;
+            return Err(JError::StackSuspension).context("scan_eval");
+        }
+        ctx.input_done()?;
+        return jr::eval(Vec::new(), ctx);
+    }
     let tokens = jr::scan(sentence)?;
     debug!("tokens: {:?}", tokens);
-    jr::eval(tokens, names).with_context(|| anyhow!("evaluating {:?}", sentence))
+    jr::eval(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", sentence))
 }

@@ -71,6 +71,9 @@ pub enum JError {
     #[error("shape error: {0}")]
     ShapeError(#[from] ndarray::ShapeError),
 
+    #[error("the program has called for extra input, but it is not available")]
+    StackSuspension,
+
     #[error("{0} (legacy)")]
     Legacy(String),
 }
@@ -78,5 +81,9 @@ pub enum JError {
 impl JError {
     pub(crate) fn custom(message: impl ToString) -> anyhow::Error {
         anyhow::Error::from(JError::Legacy(message.to_string()))
+    }
+
+    pub fn extract(err: &anyhow::Error) -> Option<&JError> {
+        err.root_cause().downcast_ref::<JError>()
     }
 }

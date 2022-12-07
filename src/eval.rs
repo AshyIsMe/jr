@@ -16,9 +16,21 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
 
-    let mut queue = VecDeque::from(sentence);
-    queue.push_front(Word::StartOfLine);
-    let mut stack: VecDeque<Word> = [].into();
+    let (mut queue, mut stack) = if ctx.is_suspended() {
+        if ctx.input_wanted() {
+            return Err(JError::DomainError).context("input requested but not provided");
+        }
+
+        let mut sus = ctx.pop_suspension()?;
+        debug!("restoring onto {:?}", sus.stack);
+        sus.stack
+            .push_front(Word::noun(sus.data.chars().collect_vec())?);
+        (sus.queue, sus.stack)
+    } else {
+        let mut queue = VecDeque::from(sentence);
+        queue.push_front(Word::StartOfLine);
+        (queue, VecDeque::new())
+    };
 
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
@@ -151,6 +163,12 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
                 ) =>
             {
                 debug!("4 Conj N C N");
+                if c.farcical(&m, &n)? {
+                    queue.push_back(fragment.0);
+                    debug!("suspending {queue:?} {stack:?}");
+                    ctx.suspend(queue, stack)?;
+                    return Err(JError::StackSuspension).context("4 Conj: farcical");
+                }
                 let verb_str = format!("m {} n", sc);
                 let dv = VerbImpl::DerivedVerb {
                     l: Box::new(Noun(m)),

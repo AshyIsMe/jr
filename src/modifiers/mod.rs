@@ -6,7 +6,7 @@ mod conj;
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::Word;
+use crate::{JArray, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -28,6 +28,13 @@ impl ModifierImpl {
                 (c.f)(x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
             ModifierImpl::DerivedAdverb { l: _l, r: _r } => bail!("TODO: DerivedAdverb"),
+        }
+    }
+
+    pub fn farcical(&self, m: &JArray, n: &JArray) -> Result<bool> {
+        match self {
+            ModifierImpl::Conjunction(c) => (c.farcical)(m, n),
+            _ => Ok(false),
         }
     }
 }

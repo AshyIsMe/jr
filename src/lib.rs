@@ -262,12 +262,22 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
 
 fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
-    let conj = |name, f| ModifierImpl::Conjunction(SimpleConjunction { name, f });
+    let conj = |name, f| {
+        ModifierImpl::Conjunction(SimpleConjunction {
+            name,
+            f,
+            farcical: not_farcical,
+        })
+    };
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
         "^:" => conj("^:", c_hatco),
         "." => conj(".", c_not_implemented),
-        ":" => conj(":", c_cor),
+        ":" => ModifierImpl::Conjunction(SimpleConjunction {
+            name: ":",
+            f: c_cor,
+            farcical: c_cor_farcical,
+        }),
         ":." => conj(":.", c_not_implemented),
         "::" => conj("::", c_not_implemented),
         ";." => conj(";.", c_cut),
