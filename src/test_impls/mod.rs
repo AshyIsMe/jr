@@ -1,3 +1,4 @@
+mod jsoft_binary;
 mod jsoft_runs;
 
 use std::collections::HashMap;

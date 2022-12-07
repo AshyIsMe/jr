@@ -1,8 +1,7 @@
-use std::str::FromStr;
-
-use crate::number::Num;
-use crate::scan::scan_num_token;
+use crate::test_impls::jsoft_binary;
+use crate::JArray;
 use anyhow::Result;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 
 use super::run_j;
@@ -16,8 +15,7 @@ pub struct RunList {
 pub struct Run {
     pub expr: String,
     pub output: String,
-    pub datatype: String,
-    pub shape: String,
+    pub encoded: String,
 }
 
 fn capture(expr: impl AsRef<str>) -> Result<Run> {
@@ -25,8 +23,12 @@ fn capture(expr: impl AsRef<str>) -> Result<Run> {
     Ok(Run {
         expr: expr.to_string(),
         output: run_j(expr)?,
-        datatype: run_j(format!("datatype {expr}"))?,
-        shape: run_j(format!("$ {expr}"))?,
+        encoded: run_j(format!("3!:3 ] {expr}"))?
+            .lines()
+            // most of the values are like "e800000000000000". toml lists are very verbose.
+            // strip the trailing zeros and just join them with a comma
+            .map(|s| s.trim_end_matches('0'))
+            .join(","),
     })
 }
 
@@ -60,14 +62,13 @@ impl RunList {
 }
 
 impl Run {
-    pub fn parse_shape(&self) -> Result<Vec<usize>> {
-        self.shape
-            .split_whitespace()
-            .map(|x| Ok(usize::from_str(x)?))
-            .collect()
-    }
-
-    pub fn parse_data(&self) -> Result<Vec<Num>> {
-        self.output.split_whitespace().map(scan_num_token).collect()
+    pub fn parse_encoded(&self) -> Result<JArray> {
+        jsoft_binary::decode(
+            &self
+                .encoded
+                .split(',')
+                .map(|s| jsoft_binary::parse_hex(&format!("{s:0<16}")))
+                .collect::<Result<Vec<u64>>>()?,
+        )
     }
 }
