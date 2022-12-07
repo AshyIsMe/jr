@@ -1,8 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::rational::BigRational;
+use num_traits::Zero;
 
 use super::Num;
 use crate::arrays::{Elem, IntoJArray, JArray};
@@ -13,14 +14,19 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
     if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
         arrayise(parts.into_iter().map(|v| match v {
             Elem::Boxed(b) => Ok(b),
-            _ => {
-                Err(JError::NonceError).context("TODO: unable to arrayise partially boxed content")
-            }
+            Elem::Num(n) => Ok(n.into()),
+            other => Err(JError::NonceError).with_context(|| {
+                anyhow!("TODO: unable to arrayise partially boxed content: {other:?}")
+            }),
         }))
     } else if parts.iter().any(|n| matches!(n, Elem::Char(_))) {
         arrayise(parts.into_iter().map(|v| match v {
             Elem::Char(c) => Ok(c),
-            _ => Err(JError::NonceError).context("TODO: unable to arrayise partially char content"),
+            // we get here 'cos fill fills us with zeros, instead of with spaces, as it doesn't know?
+            Elem::Num(n) if n.is_zero() => Ok(' '),
+            other => Err(JError::NonceError).with_context(|| {
+                anyhow!("TODO: unable to arrayise partially char content: {other:?}")
+            }),
         }))
     } else if parts
         .iter()

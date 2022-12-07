@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
-use jr::{IntoJArray, JError, Word};
+use jr::{Ctx, IntoJArray, JError, Word};
 
 #[test]
 fn array_iter_2_3() {
@@ -51,14 +49,14 @@ fn array_iter_2_3_2() -> Result<()> {
 fn test_agreement() {
     let words = jr::scan("10 20 + i.2 3").unwrap();
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         array![[10i64, 11, 12], [23, 24, 25]].into_dyn().into_noun()
     );
 }
 
 #[test]
 fn test_agreement_2() -> Result<()> {
-    let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut HashMap::new()).unwrap_err();
+    let err = jr::eval(jr::scan("1 2 3 + i. 2 3")?, &mut Ctx::empty()).unwrap_err();
     let root = dbg!(err.root_cause())
         .downcast_ref::<JError>()
         .expect("caused by jerror");
@@ -68,7 +66,7 @@ fn test_agreement_2() -> Result<()> {
 
 #[test]
 fn test_agreement_3() -> Result<()> {
-    let err = jr::eval(jr::scan("(2 2 $ 2 3) * i.2 3")?, &mut HashMap::new()).unwrap_err();
+    let err = jr::eval(jr::scan("(2 2 $ 2 3) * i.2 3")?, &mut Ctx::empty()).unwrap_err();
     let root = dbg!(err.root_cause())
         .downcast_ref::<JError>()
         .expect("caused by jerror");
@@ -80,7 +78,7 @@ fn test_agreement_3() -> Result<()> {
 fn test_agreement_4() -> Result<()> {
     let words = jr::scan("$ (i.2 2) + i.2 2 2")?;
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         array![2i64, 2, 2].into_dyn().into_noun()
     );
     Ok(())
@@ -90,7 +88,7 @@ fn test_agreement_4() -> Result<()> {
 fn test_agreement_plus_rank1() {
     let words = jr::scan("1 2 3 +\"1 i.2 3").unwrap();
     assert_eq!(
-        jr::eval(words, &mut HashMap::new()).unwrap(),
+        jr::eval(words, &mut Ctx::empty()).unwrap(),
         Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8])
             .unwrap()
             .into_noun()
@@ -99,8 +97,8 @@ fn test_agreement_plus_rank1() {
 
 #[test]
 fn test_agreement_reshape() -> Result<()> {
-    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut HashMap::new()).unwrap();
-    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("(2 2 $ 3) $ 1")?, &mut Ctx::empty()).unwrap();
+    let r2 = jr::eval(jr::scan("2 3 3 $ 1")?, &mut Ctx::empty()).unwrap();
 
     let correct_result = Word::noun(Array::from_elem(IxDyn(&[2, 3, 3]), 1u8)).unwrap();
 
@@ -114,9 +112,9 @@ fn test_agreement_reshape() -> Result<()> {
 #[test]
 #[ignore] // pretty sure this is wrong, r1 != r3 (even in shape) in j
 fn test_agreement_reshape_2() -> Result<()> {
-    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut HashMap::new()).unwrap();
-    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
-    let r3 = jr::eval(jr::scan("2 2 $ i.2 3 4")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("i.2 3 4")?, &mut Ctx::empty()).unwrap();
+    let r2 = jr::eval(jr::scan("2 $ i.2 3 4")?, &mut Ctx::empty()).unwrap();
+    let r3 = jr::eval(jr::scan("2 2 $ i.2 3 4")?, &mut Ctx::empty()).unwrap();
 
     assert_eq!(r1, r2);
     assert_eq!(r1, r3);
@@ -126,7 +124,7 @@ fn test_agreement_reshape_2() -> Result<()> {
 
 #[test]
 fn test_agreement_reshape_3() -> Result<()> {
-    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("6 $ i.2 3")?, &mut Ctx::empty()).unwrap();
     // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
     let a = Array::from_shape_vec(
         IxDyn(&[6, 3]),
@@ -140,7 +138,7 @@ fn test_agreement_reshape_3() -> Result<()> {
 
 #[test]
 fn test_reshape_atoms() -> Result<()> {
-    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("1 $ 1")?, &mut Ctx::empty()).unwrap();
     // Should be an array of length 1 containing 1
     assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[1]), 1u8)).unwrap());
     Ok(())
@@ -148,21 +146,21 @@ fn test_reshape_atoms() -> Result<()> {
 
 #[test]
 fn test_reshape_truncate() -> Result<()> {
-    let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("1 $ 1 2 3")?, &mut Ctx::empty()).unwrap();
     assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[1]), 1i64)).unwrap());
     Ok(())
 }
 
 #[test]
 fn test_reshape_cycle() -> Result<()> {
-    let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("6 $ 1 2 3")?, &mut Ctx::empty()).unwrap();
     assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
     Ok(())
 }
 
 #[test]
 fn test_idot_rank() -> Result<()> {
-    let r1 = jr::eval(jr::scan("i.\"0 (2 2 2)")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("i.\"0 (2 2 2)")?, &mut Ctx::empty()).unwrap();
     assert_eq!(
         r1,
         Word::noun(array![[0i64, 1], [0, 1], [0, 1]].into_dyn()).unwrap()
@@ -172,7 +170,7 @@ fn test_idot_rank() -> Result<()> {
 
 #[test]
 fn framing_fill_miro() -> Result<()> {
-    let r1 = jr::eval(jr::scan("(3 1 $ 2 3 4) $ 0 1 2 3")?, &mut HashMap::new()).unwrap();
+    let r1 = jr::eval(jr::scan("(3 1 $ 2 3 4) $ 0 1 2 3")?, &mut Ctx::empty()).unwrap();
     assert_eq!(
         r1,
         Word::noun(array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()).unwrap()

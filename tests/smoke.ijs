@@ -68,6 +68,12 @@ NB. decrement
 <: 3 2
 NB. this outputs floating somehow: <: 3.0 2.0
 
+NB. box
+><0
+><0 1
+><0 1 2
+><i. 2 3
+
 NB. larger than
 1 2 3 4 5  >  5 4 3 2 1
 
@@ -202,9 +208,22 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. cut
+$;._2 (1 2 0 0 1 0)
+#;._2 (1 2 0 0 1 0)
+><;._2 (1 2 0 0 1 0)
+1 1 0 0 0 0 1 ,;.2 i. 7
+1 1 0 0 1 0 0 ,;.2 i. 7
+0 0 1 0 1 1 0 ,;.2 i. 7
+0 0 1 0 1 1 0 ,;._2 i. 7
+
 NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
+
+NB. index of
+'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
+'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'

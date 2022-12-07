@@ -1,6 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::iter::repeat;
 
+use crate::Ctx;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
@@ -10,7 +11,7 @@ use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::Word::{self, *};
 
-pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Word> {
+pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
@@ -26,7 +27,7 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
 
         let fragment = get_fragment(&mut stack);
         trace!("fragment: {:?}", fragment);
-        let fragment = resolve_names(fragment, names.clone());
+        let fragment = resolve_names(fragment, ctx);
 
         let result: Result<Vec<Word>> = match fragment {
             (ref w, Verb(_, v), Noun(y), any)
@@ -254,14 +255,14 @@ pub fn eval(sentence: Vec<Word>, names: &mut HashMap<String, Word>) -> Result<Wo
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
-                names.insert(n, w.clone());
+                ctx.alias(n, w.clone());
                 Ok(vec![w.clone(), any])
             }
             (Name(n), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
-                names.insert(n, w.clone());
+                ctx.alias(n, w.clone());
                 Ok(vec![w.clone(), any])
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
@@ -306,10 +307,7 @@ fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
         .expect("infinite iterator can't be empty")
 }
 
-pub fn resolve_names(
-    fragment: (Word, Word, Word, Word),
-    names: HashMap<String, Word>,
-) -> (Word, Word, Word, Word) {
+pub fn resolve_names(fragment: (Word, Word, Word, Word), ctx: &Ctx) -> (Word, Word, Word, Word) {
     let words = vec![
         fragment.0.clone(),
         fragment.1.clone(),
@@ -323,7 +321,7 @@ pub fn resolve_names(
         match w {
             IsGlobal => break,
             IsLocal => break,
-            Name(ref n) => resolved_words.push(names.get(n).unwrap_or(&fragment.0).clone()),
+            Name(ref n) => resolved_words.push(ctx.resolve(n).unwrap_or(&fragment.0).clone()),
             _ => resolved_words.push(w.clone()),
         }
     }

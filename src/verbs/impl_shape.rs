@@ -39,11 +39,7 @@ where
 }
 
 pub fn atom_aware_box(y: &JArray) -> JArray {
-    JArray::BoxArray(if y.shape().is_empty() {
-        arr0d(y.clone())
-    } else {
-        array![y.clone()].into_dyn()
-    })
+    JArray::BoxArray(arr0d(y.clone()))
 }
 
 /// < (monad)
@@ -55,8 +51,11 @@ pub fn v_box(y: &JArray) -> Result<JArray> {
 pub fn v_open(y: &JArray) -> Result<JArray> {
     match y {
         JArray::BoxArray(y) => match y.len() {
+            0 => Ok(JArray::BoolArray(
+                ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape"),
+            )),
             1 => Ok(y.iter().next().expect("just checked").clone()),
-            _ => bail!("todo: unbox BoxArray"),
+            _ => bail!("todo: unbox BoxArray: {y:?}"),
         },
         y => Ok(y.clone()),
     }
@@ -84,8 +83,21 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// , (dyad)
-pub fn v_append(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
+    if !x.shape().is_empty() || !y.shape().is_empty() || x.is_empty() || y.is_empty() {
+        return Err(JError::NonceError).context("can only append atoms");
+    }
+
+    // maybe decay to elements sand just send it?
+    match (x, y) {
+        (JArray::CharArray(l), JArray::CharArray(r)) => Ok(vec![
+            *l.iter().next().expect("checked"),
+            *r.iter().next().expect("checked"),
+        ]
+        .into_array()?
+        .into_jarray()),
+        _ => return Err(JError::NonceError).context("can only append chars"),
+    }
 }
 
 /// ,. (dyad)
