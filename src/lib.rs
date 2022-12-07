@@ -32,6 +32,9 @@ pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
 pub use crate::verbs::Rank;
 
+// TODO: is this too much? it's necessary to construct atoms atm
+pub use crate::number::Num;
+
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 

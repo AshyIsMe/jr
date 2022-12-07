@@ -13,7 +13,7 @@ use winit::platform::run_return::EventLoopExtRunReturn as _;
 #[cfg(feature = "glutin-x11")]
 use winit::platform::unix::{WindowBuilderExtUnix, XWindowType};
 
-use crate::{JArray, JError, Word};
+use crate::{arr0d, IntoJArray, JArray, JError};
 
 #[derive(Copy, Clone, Debug)]
 struct Rect {
@@ -39,7 +39,7 @@ impl Rect {
     }
 }
 
-pub fn plot(arr: &JArray) -> Result<Word> {
+pub fn plot(arr: &JArray) -> Result<JArray> {
     let arr = arr.approx().ok_or_else(|| JError::DomainError)?;
     let (min, max) = arr
         .iter()
@@ -104,7 +104,7 @@ pub fn plot(arr: &JArray) -> Result<Word> {
         Ok(())
     })?;
 
-    Word::noun([69i64])
+    Ok(arr0d(69i64).into_jarray())
 }
 
 fn black_line(canvas: &mut Canvas<OpenGl>, (sx, sy): (f32, f32), (ex, ey): (f32, f32)) {

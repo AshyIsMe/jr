@@ -8,7 +8,7 @@ use num_traits::Zero;
 use crate::arrays::BoxArray;
 use crate::number::{promote_to_array, Num};
 use crate::verbs::{DyadRank, Rank};
-use crate::{Elem, JArray, JError, Word};
+use crate::{Elem, JArray, JError};
 
 pub fn common_dims(x: &[usize], y: &[usize]) -> usize {
     x.iter()
@@ -82,7 +82,7 @@ pub fn monad_apply(
 
 pub fn apply_cells(
     cells: &[(JArray, JArray)],
-    f: impl Fn(&JArray, &JArray) -> Result<Word>,
+    f: impl Fn(&JArray, &JArray) -> Result<JArray>,
     (x_arg_rank, y_arg_rank): DyadRank,
 ) -> Result<Vec<JArray>> {
     cells
@@ -104,14 +104,6 @@ pub fn apply_cells(
                 .take(limit)
                 .zip(y_parts.into_iter().cycle().take(limit))
                 .map(|(x, y)| f(&x, &y))
-                .map(|r| {
-                    r.and_then(|v| match v {
-                        Word::Noun(arr) => Ok(arr),
-                        other => Err(anyhow!(
-                            "refusing to believe there's a {other:?} in an array of arrays"
-                        )),
-                    })
-                })
         })
         .collect()
 }
