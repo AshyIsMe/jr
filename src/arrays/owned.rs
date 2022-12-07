@@ -97,6 +97,11 @@ impl JArray {
         impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
     }
 
+    // TODO: CoW
+    pub fn transpose<'s>(&'s self) -> JArray {
+        map_array!(self, |a: &'s ArrayBase<_, _>| a.t().to_owned())
+    }
+
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
         map_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix))
     }
@@ -153,7 +158,7 @@ impl JArray {
         // Similar to ndarray::axis_chunks_iter but j style ranks.
         // ndarray Axis(0) is the largest axis whereas for j 0 is atoms, 1 is lists etc
         debug!("rank_iter rank: {}", rank);
-        if rank > self.shape().len() as i16 {
+        if rank > self.shape().len() as i16 || self.is_empty() {
             vec![self.clone()]
         } else if rank == 0 {
             impl_array!(self, |x: &ArrayBase<_, _>| x
@@ -401,7 +406,7 @@ impl From<Elem> for JArray {
     fn from(value: Elem) -> Self {
         match value {
             Elem::Char(a) => JArray::CharArray(arr0d(a)),
-            Elem::Boxed(a) => a,
+            Elem::Boxed(a) => JArray::BoxArray(arr0d(a)),
             Elem::Num(a) => JArray::from(a),
         }
     }

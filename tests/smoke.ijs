@@ -36,6 +36,8 @@ _3j_3.3
 0x 1x
 <1
 <2
+0 $ 0
+(0$0) $ 17
 
 NB. literal promotions
 1 0.5 2j3
@@ -196,10 +198,12 @@ NB. reflexive / passive
 16 %~ 3.2
 
 NB. sort
-NB. test framework can't handle alphabetic output: 'abcd' /: 4 2 3 1
+'abcd' /: 4 2 3 1
 7 8 9 10 /: 4 2 3 1
 7 8 9 10 /: 4 2 3
 7 8 9 10 /: 4 2
+\:~ 'abecedarian'
+NB. nonce: laminate: \:~"1 'dozen',:'disk'
 
 NB. self classify
 = i. 3
@@ -207,6 +211,33 @@ NB. self classify
 = 3 3 $ i. 6
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
+
+NB. same / left / right
+] i. 2 3
+[ 'abcde'
+(i. 2 3) [ 'abcde'
+(i. 2 3) ] 'abcde'
+
+NB. append
+5,3
+5,3 6
+2 5,3
+'abc','d'
+
+NB. link
+5;3
+6;7;8
+0 2 ; 4 2 5 7
+'good' ; 'morning'
+'alpha' ; 'bravo' ; 'charlie'
+'Gauss';100
+'Fred';30;40
+5 ; 12 ; 1995
+2 2 $ 1;2;3;4
+'abc' ; 1 2 3 ; (i. 2 2)
+(<'abc');(<'def');(<'ghi')
+(<'abc');(<'def');<(<'ghi')
+
 
 NB. cut
 $;._2 (1 2 0 0 1 0)
@@ -221,9 +252,43 @@ NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
 
+NB. transpose
+|: (0 $ 0)
+|: 2 3
+|: i. 2 4
+
+NB. oblique / key
+1 2 3 1 3 2 1 </. 'abcdefg'
+1 2 3 1 3 2 1 #/. 'abcdefg'
+
+NB. numbers
+0". 4 1 $ '1001'
+0". 2 2 $ '0101'
+0". 2 3 $ '1.5101'
+NB. we compute an atom 'cos we just guessed the reshape: 0". 1 4 $ '1001'
+
+NB. do
+". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
+". '{{ x }}'
+NB. we still don't understand gerunds: ". '+`*'
+
+NB. bondo
+1&+ 5
+(+&1) 5
+*:&+: 3 4 5
++/&+: 3 4 5
+NB. dyad: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
+NB. some of [] not working right? 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
+
+NB. AoC
+><;._2 (0".><;._2 ('1000',LF,'2000',LF,'3000',LF,LF,'4000',LF,LF,'5000',LF,'6000',LF,LF,'7000',LF,'8000',LF,'9000',LF,LF,'10000',LF,LF))
+>./ +/ "1 >        ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
+>./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
++/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'

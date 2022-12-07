@@ -51,6 +51,7 @@ impl JKind {
         use JKind::*;
         Ok(match self {
             Bool => elements / 8 + 1,
+            Lit => elements / 8 + 1,
             Complex => elements * 2,
             Int | Float => elements * 1,
             Boxed => elements * 1,
@@ -63,7 +64,7 @@ impl JKind {
     fn stored_by_ref(&self) -> Result<bool> {
         use JKind::*;
         Ok(match self {
-            Bool | Int | Float | Complex => false,
+            Bool | Int | Float | Complex | Lit => false,
             Boxed | ExtInt | Rational => true,
             other => bail!("unknown ref: {other:?}"),
         })
@@ -121,6 +122,16 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     .data
                     .iter()
                     .flat_map(|v| v.to_le_bytes())
+                    .take(block.elements)
+                    .collect(),
+            )?),
+            JKind::Lit => JArray::CharArray(ArrayD::from_shape_vec(
+                IxDyn(&block.shape),
+                block
+                    .data
+                    .iter()
+                    .flat_map(|v| v.to_le_bytes())
+                    .map(|c| char::from(c))
                     .take(block.elements)
                     .collect(),
             )?),

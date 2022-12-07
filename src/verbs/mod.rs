@@ -5,7 +5,7 @@ mod maff;
 mod ranks;
 
 use crate::number::{promote_to_array, Num};
-use crate::{impl_array, Elem, IntoJArray, JArray, JError};
+use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
@@ -203,8 +203,27 @@ pub fn v_grade_down(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// \: (dyad)
-pub fn v_sort_down(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_sort_down(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("sort only implemented for (1d) lists");
+    }
+
+    let mut y = y.clone().into_elems().into_iter().enumerate().collect_vec();
+    y.try_sort_by_key(|(_, n)| Some(n.clone()))
+        .map_err(|_| JError::NonceError)
+        .context("sort only implemented for simple types")?;
+    let x = x.clone().into_elems();
+    if x.len() < y.len() {
+        return Err(JError::IndexError).context("need more xs than ys");
+    }
+    // TODO: unnecessary clones, as usual
+    Ok(promote_to_array(
+        y.into_iter()
+            .rev()
+            .map(|(i, _)| i)
+            .map(|i| x[i].clone())
+            .collect(),
+    )?)
 }
 
 /// \[ (monad) and ] (monad) apparently
@@ -212,13 +231,13 @@ pub fn v_same(y: &JArray) -> Result<JArray> {
     Ok(y.clone())
 }
 /// [ (dyad)
-pub fn v_left(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_left(x: &JArray, _y: &JArray) -> Result<JArray> {
+    Ok(x.clone())
 }
 
 /// ] (dyad)
-pub fn v_right(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_right(_x: &JArray, y: &JArray) -> Result<JArray> {
+    Ok(y.clone())
 }
 
 /// { (monad)
@@ -255,21 +274,48 @@ pub fn v_map(_y: &JArray) -> Result<JArray> {
 }
 
 /// ". (monad)
-pub fn v_do(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_do(y: &JArray) -> Result<JArray> {
+    match y {
+        JArray::CharArray(jcode) if jcode.shape().len() == 1 => {
+            let mut ctx = Ctx::empty();
+            let word = crate::eval(
+                crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                &mut ctx,
+            )
+            .with_context(|| anyhow!("evaluating {:?}", jcode))?;
+            Ok(match word {
+                Word::Noun(arr) => arr,
+                _ => JArray::empty(),
+            })
+        }
+        JArray::CharArray(_) => {
+            return Err(JError::NonceError).context("unable to handle atomic or multi-line strings")
+        }
+        _ => Err(JError::DomainError).context("do() expects a string"),
+    }
 }
 /// ". (dyad)
 pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
-    match (x.shape().len(), y.shape().len()) {
-        (0, 2) => {
+    let x = x
+        .single_math_num()
+        .ok_or(JError::NonceError)
+        .context("atomic x")?;
+    match y.shape().len() {
+        2 => {
             let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
             let mut nums = Vec::new();
             for line in arr.outer_iter() {
                 let s: String = line.iter().collect();
                 // TODO: assumes x is 0
-                nums.push(s.trim().parse::<f64>().unwrap_or(0.));
+                nums.push(Elem::Num(
+                    s.trim()
+                        .parse::<f64>()
+                        .map(Num::Float)
+                        .unwrap_or_else(|_| x.clone())
+                        .demote(),
+                ));
             }
-            Ok(nums.into_array()?.into_jarray())
+            promote_to_array(nums)
         }
         _ => Err(JError::NonceError).context("atomic x, table y only"),
     }
@@ -342,7 +388,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .into_elems()
         .into_iter()
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
-        .map(|o| Elem::from(i64::try_from(o).expect("arrays thhat fit in memory")))
+        .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
         .collect_vec();
     Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
 }

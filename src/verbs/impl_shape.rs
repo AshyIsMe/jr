@@ -8,10 +8,10 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
-use ndarray::{concatenate, Axis, Slice};
+use ndarray::{Axis, Slice};
 
 use crate::arrays::Arrayable;
-use crate::number::Num;
+use crate::number::{promote_to_array, Num};
 use crate::{arr0d, impl_array, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
@@ -38,13 +38,9 @@ where
     }
 }
 
-pub fn atom_aware_box(y: &JArray) -> JArray {
-    JArray::BoxArray(arr0d(y.clone()))
-}
-
 /// < (monad)
 pub fn v_box(y: &JArray) -> Result<JArray> {
-    Ok(atom_aware_box(y))
+    Ok(JArray::BoxArray(arr0d(y.clone())))
 }
 
 /// > (monad)
@@ -59,6 +55,16 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
         },
         y => Ok(y.clone()),
     }
+}
+
+/// |: (monad) (_)
+pub fn v_transpose(y: &JArray) -> Result<JArray> {
+    Ok(y.transpose())
+}
+
+/// |: (dyad) (1, _)
+pub fn v_transpose_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError).context("transpose dyad")
 }
 
 /// $ (monad)
@@ -84,20 +90,18 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// , (dyad)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
-    if !x.shape().is_empty() || !y.shape().is_empty() || x.is_empty() || y.is_empty() {
-        return Err(JError::NonceError).context("can only append atoms");
+    if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
+        return Err(JError::NonceError).context("can only append atoms or lists");
     }
 
-    // maybe decay to elements sand just send it?
-    match (x, y) {
-        (JArray::CharArray(l), JArray::CharArray(r)) => Ok(vec![
-            *l.iter().next().expect("checked"),
-            *r.iter().next().expect("checked"),
-        ]
-        .into_array()?
-        .into_jarray()),
-        _ => return Err(JError::NonceError).context("can only append chars"),
-    }
+    // TODO: jsoft rejects (DomainError) a bunch of cases promote_to_array accepts
+    promote_to_array(
+        x.clone()
+            .into_elems()
+            .into_iter()
+            .chain(y.clone().into_elems().into_iter())
+            .collect(),
+    )
 }
 
 /// ,. (dyad)
@@ -105,35 +109,26 @@ pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-pub fn atom_to_singleton<T: Clone>(y: ArrayD<T>) -> ArrayD<T> {
-    if !y.shape().is_empty() {
-        y
-    } else {
-        y.to_shape(IxDyn(&[1]))
-            .expect("checked it was an atom")
-            .to_owned()
-    }
-}
-
-/// ; (dyad)
+/// ; (dyad) (_, _)
 pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
     match (x, y) {
         // link: https://code.jsoftware.com/wiki/Vocabulary/semi#dyadic
         // always box x, only box y if not already boxed
-        (x, JArray::BoxArray(y)) => match atom_aware_box(x) {
-            JArray::BoxArray(x) => Ok(concatenate(
-                Axis(0),
-                &[
-                    atom_to_singleton(x).view(),
-                    atom_to_singleton(y.clone()).view(),
-                ],
-            )
-            .context("concatenate")?
-            .into_array()
-            .context("noun")?
-            .into_jarray()),
-            _ => bail!("invalid types v_link({:?}, {:?})", x, y),
-        },
+        (x, JArray::BoxArray(y)) if y.shape().is_empty() && !y.is_empty() => {
+            Ok(vec![x.clone(), y.iter().cloned().next().expect("len == 1")]
+                .into_array()?
+                .into_jarray())
+        }
+        (x, JArray::BoxArray(y)) => {
+            let parts = iter::once(x.clone())
+                .chain(
+                    y.outer_iter()
+                        .into_iter()
+                        .map(|x| x.iter().next().expect("non-empty").clone()),
+                )
+                .collect_vec();
+            Ok(parts.into_array().context("noun")?.into_jarray())
+        }
         (x, y) => Ok([x.clone(), y.clone()].into_array()?.into_jarray()),
     }
 }
