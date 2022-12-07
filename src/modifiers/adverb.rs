@@ -2,6 +2,8 @@ use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::modifiers::c_at;
+use crate::verbs::v_self_classify;
 use crate::{JError, Word};
 
 pub type AdverbFn = fn(Option<&Word>, &Word, &Word) -> Result<Word>;
@@ -63,9 +65,15 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 
 pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, y) {
-        // (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
-        //
-        // }
+        (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+            let classification = v_self_classify(y).context("classify")?;
+            c_at(
+                Some(&Word::Noun(classification)),
+                u,
+                &Word::static_verb("#"),
+                &Word::Noun(y.clone()),
+            )
+        }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     }
 }
