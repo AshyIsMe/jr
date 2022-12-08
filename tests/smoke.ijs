@@ -1,7 +1,7 @@
 NB. This file generates `smoke.toml` if you run `gen-runlist` right.
 NB. Or, if you have `just` installed, just `just`.
 NB. Then, you can run the smoke test, with `cargo test`.
-NB. So, edit this file, run `just`, then run `cargo test`, then come back here and edit out what doensn't work.
+NB. So, edit this file, run `just`, then run `cargo test`, then come back here and edit out what doesn't work.
 
 NB. literal conversions
 0

@@ -481,6 +481,11 @@ output = '1'
 encoded = 'e3,04,01,,01'
 
 [[runs]]
+expr = '1.00 0.00'
+output = '1 0'
+encoded = 'e3,08,02,01,02,000000000000f03f,'
+
+[[runs]]
 expr = '16 %~ 3.2'
 output = '0.2'
 encoded = 'e3,08,01,,9a9999999999c93f'

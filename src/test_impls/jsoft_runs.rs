@@ -1,8 +1,9 @@
 use crate::test_impls::jsoft_binary;
 use crate::JArray;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use super::run_j;
 
@@ -58,6 +59,27 @@ impl RunList {
         let run = capture(expr)?;
         self.runs.push(run.clone());
         Ok(run)
+    }
+
+    pub fn into_lookup(self) -> Result<HashMap<String, (JArray, String)>> {
+        self.runs
+            .into_iter()
+            .map(|run| {
+                let arr = run.parse_encoded()?;
+                Ok((run.expr, (arr, run.output)))
+            })
+            .collect()
+    }
+}
+
+pub trait Lookup {
+    fn get_cached(&self, val: &str) -> Result<&(JArray, String)>;
+}
+
+impl Lookup for HashMap<String, (JArray, String)> {
+    fn get_cached(&self, expr: &str) -> Result<&(JArray, String)> {
+        self.get(expr)
+            .ok_or_else(|| anyhow!("no cached result for {expr:?}, re-generate the toml?"))
     }
 }
 
