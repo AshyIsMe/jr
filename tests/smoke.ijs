@@ -308,3 +308,4 @@ NB. AoC
 (<'helico'),(<'pter')
 'helico' ,&< 'pter'
 6 ({. ,&< }.) 'helicopter'
+'cat' e. 'abcd'

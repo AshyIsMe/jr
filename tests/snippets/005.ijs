@@ -9,5 +9,6 @@ CrZsJsPPZsGzwwsLwLmpwMDw
 )
 s =: (LF=s) < ;._2 s
 rucksacks =: (-:@# (split) ]) &> s
-NB. dups =: ([: ([: ~. e./ # {.) [: > -:@# (split) ]) &> s
-rucksacks
+dups =: ([: ([: ~. e./ # {.) [: > -:@# (split) ]) &> s
+alphabet =: a. {~ (96+i.27),(65+i.26)
++/ alphabet i. dups
