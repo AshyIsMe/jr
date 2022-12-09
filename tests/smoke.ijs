@@ -272,6 +272,12 @@ NB. do
 ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. atop / at
+#@> 'Newton';'Einstein'
+2 3 <@, 4 5
+(1 2 3 4) */ @  + (7 5 3 2)
+(1 2 3 4) */ @: + (7 5 3 2)
+
 NB. bondo
 1&+ 5
 (+&1) 5

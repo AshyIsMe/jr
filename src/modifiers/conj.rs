@@ -153,16 +153,34 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     }
 }
 
+// https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
+pub fn c_atop(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    match (u, v) {
+        (Word::Verb(_, u), Word::Verb(_, v)) => {
+            let r = v.partial_exec(x, y).context("right half of c_atop")?;
+            let r = map_result(r, |a| u.exec(None, &Word::Noun(a.clone())))
+                .context("left half of c_at")?;
+            Ok(Word::Noun(
+                flatten(&r).context("expanding result of c_atop")?,
+            ))
+        }
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
+    }
+}
+
+// https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
 pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
             let r = v.partial_exec(x, y).context("right half of c_at")?;
-            let r = map_result(r, |a| u.exec(None, &Word::Noun(a.clone())))
-                .context("left half of c_at")?;
-            Ok(Word::Noun(flatten(&r).context("expanding result of c_at")?))
+            let r = flatten(&r).context("expanding result of c_atop")?;
+            u.exec(None, &Word::Noun(r))
+                .context("left half of c_at")
+                .map(Word::Noun)
         }
         _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
+            .with_context(|| anyhow!("expected to verb @: verb, not {u:?} @: {v:?}")),
     }
 }
 
@@ -375,7 +393,7 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             .exec(Some(&Word::Noun(n.clone())), y)
             .context("monad bondo NV")
             .map(Word::Noun),
-        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_at(None, n, m, y),
+        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(None, n, m, y),
         _ => Err(JError::NonceError).with_context(|| anyhow!("x:{x:?} n:{n:?} m:{m:?}")),
     }
 }

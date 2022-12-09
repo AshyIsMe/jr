@@ -2,7 +2,7 @@ use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::modifiers::c_at;
+use crate::modifiers::c_atop;
 use crate::verbs::v_self_classify;
 use crate::{JError, Word};
 
@@ -67,7 +67,7 @@ pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, y) {
         (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
             let classification = v_self_classify(x).context("classify")?;
-            c_at(
+            c_atop(
                 Some(&Word::Noun(classification)),
                 u,
                 &Word::static_verb("#"),
