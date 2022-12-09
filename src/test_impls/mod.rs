@@ -1,7 +1,9 @@
 mod jsoft_binary;
 mod jsoft_runs;
 
+use std::fs;
 use std::io::Write;
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -34,9 +36,14 @@ fn run_j_inner(expr: &str) -> Result<String> {
 }
 
 pub fn scan_eval(sentence: &str) -> Result<Word> {
-    let tokens = crate::scan(sentence)?;
-    debug!("tokens: {:?}", tokens);
-    crate::eval(tokens, &mut Ctx::empty()).with_context(|| anyhow!("evaluating {:?}", sentence))
+    let mut ctx = Ctx::empty();
+    let mut last = Word::StartOfLine;
+    for line in sentence.trim().split('\n') {
+        let tokens = crate::scan(line)?;
+        debug!("tokens: {:?}", tokens);
+        last = crate::eval(tokens, &mut ctx).with_context(|| anyhow!("evaluating {:?}", line))?;
+    }
+    Ok(last)
 }
 
 pub fn read_ijs_lines(lines: &str) -> Vec<String> {
@@ -45,6 +52,17 @@ pub fn read_ijs_lines(lines: &str) -> Vec<String> {
         .map(|line| line.trim())
         .filter(|line| !line.is_empty() && !line.starts_with("NB. "))
         .map(ToString::to_string)
+        .collect()
+}
+
+pub fn read_ijs_dir(dir: impl AsRef<Path>) -> Result<Vec<String>> {
+    let dir = dir.as_ref();
+    fs::read_dir(dir)
+        .with_context(|| anyhow!("listing {dir:?}"))?
+        .map(|entry| {
+            let path = entry?.path();
+            fs::read_to_string(&path).with_context(|| anyhow!("reading {path:?}"))
+        })
         .collect()
 }
 

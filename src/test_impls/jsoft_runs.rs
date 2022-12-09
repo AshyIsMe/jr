@@ -1,6 +1,6 @@
 use crate::test_impls::jsoft_binary;
 use crate::JArray;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -21,15 +21,19 @@ pub struct Run {
 
 fn capture(expr: impl AsRef<str>) -> Result<Run> {
     let expr = expr.as_ref();
+    let debug_expr = insert_debug(expr)?;
     Ok(Run {
         expr: expr.to_string(),
-        output: run_j(expr)?,
-        encoded: run_j(format!("3!:3 ] {expr}"))?
+        output: run_j(expr).with_context(|| anyhow!("{expr}"))?,
+        encoded: run_j(&debug_expr)
+            .context(debug_expr)?
             .lines()
             // most of the values are like "e800000000000000". toml lists are very verbose.
             // strip the trailing zeros and just join them with a comma
             .map(|s| s.trim_end_matches('0'))
-            .join(","),
+            .join(",")
+            // e3 is the object marker; this doesn't matter, but makes diffs a little nicer
+            .replace(",e3", ",\ne3"),
     })
 }
 
@@ -88,9 +92,25 @@ impl Run {
         jsoft_binary::decode(
             &self
                 .encoded
+                .replace('\n', "")
                 .split(',')
                 .map(|s| jsoft_binary::parse_hex(&format!("{s:0<16}")))
                 .collect::<Result<Vec<u64>>>()?,
         )
     }
+}
+
+// replaces the last \n in a trimmed string with `\n3!:3 ]`, which generates the hex stuff
+fn insert_debug(expr: impl AsRef<str>) -> Result<String> {
+    let mut content = expr
+        .as_ref()
+        .trim()
+        .lines()
+        .map(ToString::to_string)
+        .collect_vec();
+    let last_line = content
+        .last_mut()
+        .ok_or(anyhow!("non-empty files please"))?;
+    *last_line = format!("3!:3 ] {last_line}");
+    Ok(content.join("\n"))
 }

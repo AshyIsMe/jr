@@ -1,0 +1,7 @@
+[[runs]]
+expr = '''
+s =: 5
+s
+'''
+output = '5'
+encoded = 'e3,04,01,,05'
