@@ -55,6 +55,7 @@ pub enum VerbImpl {
         l: Box<Word>,
         r: Box<Word>,
     },
+    Cap,
 }
 
 fn exec_monad_inner(
@@ -145,12 +146,17 @@ impl VerbImpl {
                     log::warn!("Fork {:?} {:?} {:?}", f, g, h);
                     log::warn!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(x, y));
                     log::warn!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(x, y));
+                    let f = match f {
+                        VerbImpl::Cap => None,
+                        _ => Some(f.exec(x, y).map(Word::Noun).context("fork impl (f)")?),
+                    };
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
                     g.partial_exec(
-                        Some(&f.exec(x, y).map(Word::Noun)?),
-                        &h.exec(x, y).map(Word::Noun)?,
+                        f.as_ref(),
+                        &h.exec(x, y).map(Word::Noun).context("fork impl (h)")?,
                     )
+                    .context("fork impl (g)")
                 }
                 (Noun(m), Verb(_, g), Verb(_, h)) => {
                     // TODO: it's very unclear to me that this should be a recursive call,
@@ -168,6 +174,8 @@ impl VerbImpl {
                 },
                 _ => panic!("invalid Hook {:?}", self),
             },
+            VerbImpl::Cap => Err(JError::DomainError)
+                .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
         }
     }
 

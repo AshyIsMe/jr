@@ -149,7 +149,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "$:" => not_impl("$:"),
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
-        "[:" => not_impl("[:"),
+        "[:" => VerbImpl::Cap,
         "C.!.2" => not_impl("C.!.2"),
         "E." => not_impl("E."),
         "L." => not_impl("L."),

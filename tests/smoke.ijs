@@ -218,6 +218,9 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. cap
+2 (>. % [: <. + * -) 2
+
 NB. append
 5,3
 5,3 6
