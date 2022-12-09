@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::Ctx;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 
@@ -17,9 +17,19 @@ pub struct Qs {
     stack: VecDeque<Word>,
 }
 
+#[derive(Debug)]
 pub enum EvalOutput {
     Regular(Word),
     Suspension,
+}
+
+impl EvalOutput {
+    pub fn when_word(self) -> Result<Word> {
+        match self {
+            EvalOutput::Regular(word) => Ok(word),
+            other => bail!("expecting a word but found {other:?}"),
+        }
+    }
 }
 
 pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {

@@ -22,6 +22,19 @@ e3,01,01,02,01,01,01'''
 
 [[runs]]
 expr = '''
+s =: 0 : 0
+hello world
+I love horses
+)
+s
+'''
+output = '''
+hello world
+I love horses'''
+encoded = 'e3,02,1a,01,1a,68656c6c6f20776f,726c640a49206c6f,766520686f727365,730a'
+
+[[runs]]
+expr = '''
 s =: 5
 s
 '''

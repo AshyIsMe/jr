@@ -7,9 +7,8 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::debug;
 
-use crate::{Ctx, JArray, Word};
+use crate::{Ctx, EvalOutput, JArray, Word};
 
 pub use jsoft_runs::{Lookup, Run, RunList};
 
@@ -37,13 +36,12 @@ fn run_j_inner(expr: &str) -> Result<String> {
 
 pub fn scan_eval(sentence: &str) -> Result<Word> {
     let mut ctx = Ctx::empty();
-    let mut last = Word::StartOfLine;
+    // always overwritten?
+    let mut last = EvalOutput::Regular(Word::StartOfLine);
     for line in sentence.trim().split('\n') {
-        let tokens = crate::scan(line)?;
-        debug!("tokens: {:?}", tokens);
-        last = crate::eval(tokens, &mut ctx).with_context(|| anyhow!("evaluating {:?}", line))?;
+        last = crate::feed(line, &mut ctx).with_context(|| anyhow!("evaluating {:?}", line))?;
     }
-    Ok(last)
+    last.when_word()
 }
 
 pub fn read_ijs_lines(lines: &str) -> Vec<String> {
