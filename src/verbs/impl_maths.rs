@@ -23,10 +23,10 @@ pub fn v_equal(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match x.partial_cmp(&y) {
-        Some(Ordering::Less) => Ok(Num::Bool(1)),
+    d00erb(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) => Ok(true),
         None => Err(JError::DomainError).context("non-comparable number"),
-        _ => Ok(Num::Bool(0)),
+        _ => Ok(false),
     })
 }
 
