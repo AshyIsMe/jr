@@ -393,7 +393,14 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             .exec(Some(&Word::Noun(n.clone())), y)
             .context("monad bondo NV")
             .map(Word::Noun),
-        (x, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(x, n, m, y),
+        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(x, n, m, y),
+        (Some(x), Word::Verb(_, u), Word::Verb(_, v)) => {
+            let l = v.exec(None, x).context("left bondo NVV")?;
+            let r = v.exec(None, y).context("right bondo NVV")?;
+            u.exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                .map(Word::Noun)
+                .context("central bondo NVV")
+        }
         _ => Err(JError::NonceError).with_context(|| anyhow!("bondo x:{x:?} n:{n:?} m:{m:?}")),
     }
 }

@@ -286,8 +286,10 @@ NB. bondo
 (+&1) 5
 *:&+: 3 4 5
 +/&+: 3 4 5
-NB. dyad: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
-NB. some of [] not working right? 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
+!5
+3 +&! 4
+NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
+'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
 
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
@@ -301,3 +303,8 @@ NB. AoC
 >./ +/ "1 >        ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 >./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 +/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
+6 }. 'helicopter'
+6 {. 'helicopter'
+(<'helico'),(<'pter')
+'helico' ,&< 'pter'
+6 ({. ,&< }.) 'helicopter'

@@ -353,8 +353,11 @@ pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// e. (dyad)
-pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.len() == 1 && y.len() == 1 {
+        return Ok(Num::bool(x == y).into());
+    }
+    Err(JError::NonceError).with_context(|| anyhow!("{x:?} {y:?}"))
 }
 
 /// i. (monad)

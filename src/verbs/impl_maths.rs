@@ -331,9 +331,17 @@ pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-/// ! (monad)
-pub fn v_factorial(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+/// ! (monad) (0)
+pub fn v_factorial(y: &JArray) -> Result<JArray> {
+    m0nrn(y, |y| {
+        let y = i64::try_from(
+            y.value_len()
+                .ok_or(JError::NonceError)
+                .context("integers only")?,
+        )
+        .context("oh you poor soul")?;
+        Ok((1..=y).map(|x| x as f64).product::<f64>().into())
+    })
 }
 
 /// ! (dyad)
