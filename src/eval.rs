@@ -11,26 +11,65 @@ use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::Word::{self, *};
 
+#[derive(Clone, Debug)]
+pub struct Qs {
+    queue: VecDeque<Word>,
+    stack: VecDeque<Word>,
+}
+
+pub enum EvalOutput {
+    Regular(Word),
+    Suspension,
+}
+
+pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
+    if ctx.is_suspended() {
+        if line != ")" {
+            ctx.input_push(line)?;
+            return Ok(EvalOutput::Suspension);
+        }
+        return eval_suspendable(vec![], ctx);
+    }
+    let tokens = crate::scan(line)?;
+    debug!("tokens: {:?}", tokens);
+    eval_suspendable(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", line))
+}
+
 pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
+    match eval_suspendable(sentence, ctx)? {
+        EvalOutput::Regular(word) => Ok(word),
+        EvalOutput::Suspension => Err(JError::StackSuspension)
+            .context("suspended in a context which doesn't support suspension"),
+    }
+}
+
+pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
 
-    let (mut queue, mut stack) = if ctx.is_suspended() {
-        if ctx.input_wanted() {
-            return Err(JError::DomainError).context("input requested but not provided");
-        }
+    let qs = if let Some(mut sus) = ctx.take_suspension() {
+        assert!(
+            sentence.is_empty(),
+            "this function is called either with a suspended ctx *xor* a sentence"
+        );
 
-        let mut sus = ctx.pop_suspension()?;
-        debug!("restoring onto {:?}", sus.stack);
-        sus.stack
+        debug!("restoring onto {:?}", sus.qs.stack);
+        sus.qs
+            .stack
             .push_front(Word::noun(sus.data.chars().collect_vec())?);
-        (sus.queue, sus.stack)
+        sus.qs
     } else {
         let mut queue = VecDeque::from(sentence);
         queue.push_front(Word::StartOfLine);
-        (queue, VecDeque::new())
+        Qs {
+            queue,
+            stack: VecDeque::new(),
+        }
     };
+
+    let mut stack = qs.stack;
+    let mut queue = qs.queue;
 
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
@@ -166,8 +205,8 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
                 if c.farcical(&m, &n)? {
                     queue.push_back(fragment.0);
                     debug!("suspending {queue:?} {stack:?}");
-                    ctx.suspend(queue, stack)?;
-                    return Err(JError::StackSuspension).context("4 Conj: farcical");
+                    ctx.suspend(Qs { queue, stack })?;
+                    return Ok(EvalOutput::Suspension);
                 }
                 let verb_str = format!("m {} n", sc);
                 let dv = VerbImpl::DerivedVerb {
@@ -311,7 +350,7 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
         .into();
     trace!("DEBUG new_stack: {:?}", new_stack);
     match new_stack.pop_front() {
-        Some(val) if new_stack.is_empty() => Ok(val),
+        Some(val) if new_stack.is_empty() => Ok(EvalOutput::Regular(val)),
         _ => Err(JError::SyntaxError)
             .with_context(|| anyhow!("expected an empty stack but found {new_stack:?}")),
     }

@@ -1,20 +1,19 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 
+use crate::eval::Qs;
 use crate::{arr0d, JArray, JError, Word};
 
 #[derive(Clone, Debug)]
 pub struct Ctx {
     names: HashMap<String, Word>,
-    suspension: Vec<Suspense>,
+    suspension: Option<Suspense>,
 }
 
 #[derive(Clone, Debug)]
 pub struct Suspense {
-    pub queue: VecDeque<Word>,
-    pub stack: VecDeque<Word>,
-    done: bool,
+    pub qs: Qs,
     pub data: String,
 }
 
@@ -22,7 +21,7 @@ impl Ctx {
     pub fn empty() -> Self {
         let mut ctx = Ctx {
             names: Default::default(),
-            suspension: Vec::new(),
+            suspension: None,
         };
         ctx.alias("LF", Word::Noun(JArray::CharArray(arr0d('\n'))));
         ctx
@@ -38,51 +37,31 @@ impl Ctx {
     }
 
     pub fn is_suspended(&self) -> bool {
-        !self.suspension.is_empty()
+        self.suspension.is_some()
     }
 
-    pub fn suspend(&mut self, queue: VecDeque<Word>, stack: VecDeque<Word>) -> Result<()> {
-        self.suspension.push(Suspense {
-            queue,
-            stack,
-            done: false,
+    pub fn suspend(&mut self, qs: Qs) -> Result<()> {
+        ensure!(self.suspension.is_none());
+        self.suspension = Some(Suspense {
+            qs,
             data: String::new(),
         });
         Ok(())
     }
 
-    pub fn pop_suspension(&mut self) -> Result<Suspense> {
-        self.suspension
-            .pop()
-            .ok_or(JError::DomainError)
-            .context("no suspensions")
-    }
-
-    pub fn input_wanted(&self) -> bool {
-        self.suspension.last().map(|s| !s.done).unwrap_or_default()
+    pub fn take_suspension(&mut self) -> Option<Suspense> {
+        self.suspension.take()
     }
 
     pub fn input_push(&mut self, data: &str) -> Result<()> {
         let suspension = self
             .suspension
-            .last_mut()
+            .as_mut()
             .ok_or(JError::DomainError)
             .context("not suspended")?;
-        if suspension.done {
-            return Err(JError::DomainError).context("data complete");
-        }
 
         suspension.data.push_str(data);
         suspension.data.push('\n');
-        Ok(())
-    }
-
-    pub fn input_done(&mut self) -> Result<()> {
-        self.suspension
-            .last_mut()
-            .ok_or(JError::DomainError)
-            .context("not suspended")?
-            .done = true;
         Ok(())
     }
 }

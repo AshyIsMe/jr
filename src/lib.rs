@@ -22,7 +22,7 @@ pub use empty::HasEmpty;
 // public API
 pub use crate::ctx::Ctx;
 pub use crate::error::JError;
-pub use crate::eval::eval;
+pub use crate::eval::{eval, feed, EvalOutput};
 
 // e.g. cli syntax highlighting
 pub use scan::{scan, scan_with_locations};
