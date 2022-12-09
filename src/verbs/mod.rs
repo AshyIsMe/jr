@@ -422,7 +422,7 @@ pub fn v_imaginary(y: &JArray) -> Result<JArray> {
 }
 /// j. (dyad)
 pub fn v_complex(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x + (Num::i() * y)))
+    d00nrn(x, y, |x, y| Ok(x + (Num::i() * y)))
 }
 
 /// o. (monad)
