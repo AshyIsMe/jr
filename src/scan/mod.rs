@@ -170,7 +170,7 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
             .chars()
             .next()
             .ok_or_else(|| anyhow!("unexpected empty type in kinded direct definition"))?;
-        return Ok((3 + mode.len_utf8(), Word::DirectDef(mode)))
+        return Ok((3 + mode.len_utf8(), Word::DirectDef(mode)));
     }
 
     let l = identify_primitive(sentence);
