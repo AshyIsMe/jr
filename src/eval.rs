@@ -40,10 +40,6 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
         }
         return eval_suspendable(vec![], ctx);
     }
-    // quick hack for start-of-line comments as they're not handled by the parser yet
-    if line.starts_with("NB. ") {
-        return Ok(EvalOutput::Regular(Word::Nothing));
-    }
     let tokens = crate::scan(line)?;
     debug!("tokens: {:?}", tokens);
     eval_suspendable(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", line))

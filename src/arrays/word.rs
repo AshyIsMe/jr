@@ -28,8 +28,9 @@ pub enum Word {
     Conjunction(String, ModifierImpl),
 
     Comment,
-    DirectDef,    // {{
-    DirectDefEnd, // }}
+    DirectDefUnknown, // {{
+    DirectDef(char),  // {{)n
+    DirectDefEnd,     // }}
 }
 
 impl Word {
