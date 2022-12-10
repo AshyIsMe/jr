@@ -26,6 +26,10 @@ pub enum Word {
     Verb(String, VerbImpl),
     Adverb(String, ModifierImpl),
     Conjunction(String, ModifierImpl),
+
+    Comment,
+    DirectDef,    // {{
+    DirectDefEnd, // }}
 }
 
 impl Word {

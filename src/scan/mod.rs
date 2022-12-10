@@ -55,6 +55,9 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
+                if matches!(t, Word::Comment) {
+                    break;
+                }
                 words.push(((i, i + l), t));
                 skip = l;
                 continue;
@@ -195,6 +198,9 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
         match sentence {
             "=:" => Word::IsGlobal,
             "=." => Word::IsLocal,
+            "{{" => Word::DirectDef,
+            "}}" => Word::DirectDefEnd,
+            "NB." => Word::Comment,
             _ => return Ok(None),
         }
     }))
