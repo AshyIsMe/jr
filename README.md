@@ -34,9 +34,11 @@ Also to get better at rust and j.
 
 ## What's left to do?
 
+_CURRENT STATUS:_ [STATUS.md](./STATUS.md)
+
 _TODO:_
 
-* Implement the rest of the primitives (see: `src/lib.rs`)
+* Implement the rest of the primitives (see: (STATUS.md) and `src/lib.rs`)
 * Tests, lots more tests needed
 * [J compatible display](https://www.jsoftware.com/ioj/iojDisp.htm) of nouns
 * [Foreigns](https://code.jsoftware.com/wiki/Vocabulary/Foreigns)
