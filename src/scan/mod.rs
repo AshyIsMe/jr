@@ -1,4 +1,6 @@
 mod litnum;
+#[cfg(test)]
+mod test_weird;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
