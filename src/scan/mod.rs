@@ -164,6 +164,15 @@ fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
     if sentence.is_empty() {
         return Err(JError::custom("Empty primitive"));
     }
+
+    if let Some(kinded) = sentence.strip_prefix("{{)") {
+        let mode = kinded
+            .chars()
+            .next()
+            .ok_or_else(|| anyhow!("unexpected empty type in kinded direct definition"))?;
+        return Ok((3 + mode.len_utf8(), Word::DirectDef(mode)))
+    }
+
     let l = identify_primitive(sentence);
     let term = sentence.chars().take(l + 1).collect::<String>();
     Ok((
@@ -198,7 +207,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
         match sentence {
             "=:" => Word::IsGlobal,
             "=." => Word::IsLocal,
-            "{{" => Word::DirectDef,
+            "{{" => Word::DirectDefUnknown,
             "}}" => Word::DirectDefEnd,
             "NB." => Word::Comment,
             _ => return Ok(None),
