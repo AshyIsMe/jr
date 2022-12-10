@@ -17,3 +17,5 @@ gen-impl-status:
 
   echo "\n## Not Implemented Yet" >> STATUS.md
   grep 'not_impl(' src/lib.rs >> STATUS.md
+  grep 'a_not_implemented' src/lib.rs >> STATUS.md
+  grep 'c_not_implemented' src/lib.rs >> STATUS.md

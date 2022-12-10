@@ -34,7 +34,7 @@ Also to get better at rust and j.
 
 ## What's left to do?
 
-_CURRENT STATUS:_ (STATUS.md)
+_CURRENT STATUS:_ [STATUS.md](./STATUS.md)
 
 _TODO:_
 
