@@ -1,6 +1,6 @@
 mod litnum;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
@@ -72,7 +72,7 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
     if sentence.len() < 2 {
-        return Err(JError::custom("Empty literal string"));
+        return Err(JError::OpenQuote).context("quote followed by nothing");
     }
 
     let mut l: usize = usize::MAX;
@@ -91,11 +91,12 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
                 false => prev_c_is_quote = true,
             },
             '\n' => {
+                // this parser doesn't see new lines, I don't think?
                 if prev_c_is_quote {
                     l -= 1;
                     break;
                 } else {
-                    return Err(JError::custom("open quote"));
+                    return Err(JError::OpenQuote).context("new line byte in string");
                 }
             }
             _ => match prev_c_is_quote {
@@ -107,6 +108,9 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
                 false => (), //still valid keep iterating
             },
         }
+    }
+    if !prev_c_is_quote {
+        return Err(JError::OpenQuote).context("finished parsing while in a string");
     }
 
     assert!(l <= sentence.chars().count(), "l past end of string: {}", l);
@@ -199,7 +203,8 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 #[cfg(test)]
 mod tests {
     use super::{scan, Word};
-    use crate::scan::identify_primitive;
+    use crate::scan::{identify_primitive, scan_litstring};
+    use crate::JError;
 
     fn ident(sentence: &str) -> usize {
         // oh god please
@@ -230,6 +235,18 @@ mod tests {
         assert_eq!(1, ident("}a"));
         assert_eq!(1, ident("a{{"));
         assert_eq!(1, ident("a}}"));
+    }
+
+    #[test]
+    fn unclosed_string() {
+        assert!(matches!(
+            JError::extract(&scan_litstring("' 123").unwrap_err()),
+            Some(JError::OpenQuote)
+        ));
+        assert!(matches!(
+            JError::extract(&scan_litstring("'").unwrap_err()),
+            Some(JError::OpenQuote)
+        ));
     }
 
     #[test]

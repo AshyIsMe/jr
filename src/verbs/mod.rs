@@ -7,7 +7,7 @@ mod ranks;
 use crate::number::{promote_to_array, Num};
 use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
-use anyhow::{anyhow, bail, Context, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
@@ -359,10 +359,14 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     ensure!(ido.shape().len() == 1);
 
     // promote is laziness, it's a list of bools already
-    promote_to_array(ido.into_nums().ok_or(JError::NonceError).context("v_index_of returns numbers")?
-        .into_iter()
-        .map(|n| Elem::Num(Num::bool(n < tally)))
-        .collect())
+    promote_to_array(
+        ido.into_nums()
+            .ok_or(JError::NonceError)
+            .context("v_index_of returns numbers")?
+            .into_iter()
+            .map(|n| Elem::Num(Num::bool(n < tally)))
+            .collect(),
+    )
 }
 
 /// i. (monad)
