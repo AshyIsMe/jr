@@ -272,7 +272,7 @@ NB. we compute an atom 'cos we just guessed the reshape: 0". 1 4 $ '1001'
 
 NB. do
 ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
-". '{{ x }}'
+NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
 NB. atop / at
@@ -294,6 +294,11 @@ NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Ivers
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
+
+NB. NB.
+NB. NB. at the start of a line is handled by the test framework today.
+5 NB. 6
+5 NB. it's a boy!
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'

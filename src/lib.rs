@@ -179,33 +179,9 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "9" => not_impl("9"),
         "u." => not_impl("u."),
         "v." => not_impl("v."),
-        // TODO Controls need to be handled differently
-        "NB." => not_impl("NB."),
-        "{{" => not_impl("{{"),
-        "}}" => not_impl("}}"),
-        "plot." => VerbImpl::Primitive(PrimitiveImpl::monad("plot.", v_plot)),
-        "assert." => not_impl("assert."),
-        "break." => not_impl("break."),
-        "continue." => not_impl("continue."),
-        "else." => not_impl("else."),
-        "elseif." => not_impl("elseif."),
-        "for." => not_impl("for."),
-        "for_ijk." => not_impl("for_ijk."), // TODO handle ijk label properly
-        "goto_lbl." => not_impl("goto_lbl."), // TODO handle lbl properly
-        "label_lbl." => not_impl("label_lbl."), // TODO handle lbl properly
-        "if." => not_impl("if."),
-        "return." => not_impl("return."),
-        "select." => not_impl("select."),
-        "case." => not_impl("case."),
-        "fcase." => not_impl("fcase."),
-        "throw." => not_impl("throw."),
-        "try." => not_impl("try."),
-        "catch." => not_impl("catch."),
-        "catchd." => not_impl("catchd."),
-        "catcht." => not_impl("catcht."),
-        "while." => not_impl("while."),
-        "whilst." => not_impl("whilst."),
 
+        // this is spelt "plot", with no ".", in jsoft's documentation
+        "plot." => VerbImpl::Primitive(PrimitiveImpl::monad("plot.", v_plot)),
         _ => return None,
     })
 }
