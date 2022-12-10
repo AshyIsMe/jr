@@ -175,3 +175,75 @@ This file auto-generated: just get-impl-status
         "L:" => conj("L:", c_not_implemented),
         "S:" => conj("S:", c_not_implemented),
         "t." => conj("t.", c_not_implemented),
+
+```
+pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_gcd_or(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_lcm_and(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_matrix_inverse(_y: &JArray) -> Result<JArray> {
+pub fn v_matrix_divide(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_root(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_natural_log(_y: &JArray) -> Result<JArray> {
+pub fn v_logarithm(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_magnitude(_y: &JArray) -> Result<JArray> {
+pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_factorial(_y: &JArray) -> Result<JArray> {
+pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_deal_fixed_seed(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_prime_factors(_y: &JArray) -> Result<JArray> {
+pub fn v_prime_exponents(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_angle(_y: &JArray) -> Result<JArray> {
+pub fn v_polar(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_transpose_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
+pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_self_classify(y: &JArray) -> Result<JArray> {
+pub fn v_less(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_match(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
+pub fn v_reverse(_y: &JArray) -> Result<JArray> {
+pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_ravel_items(_y: &JArray) -> Result<JArray> {
+pub fn v_itemize(_y: &JArray) -> Result<JArray> {
+pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_raze(_y: &JArray) -> Result<JArray> {
+pub fn v_words(_y: &JArray) -> Result<JArray> {
+pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_base_(_y: &JArray) -> Result<JArray> {
+pub fn v_base(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_antibase_(_y: &JArray) -> Result<JArray> {
+pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_grade_up(_y: &JArray) -> Result<JArray> {
+pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_grade_down(_y: &JArray) -> Result<JArray> {
+pub fn v_sort_down(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
+pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_map(_y: &JArray) -> Result<JArray> {
+pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_default_format(_y: &JArray) -> Result<JArray> {
+pub fn v_format(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_anagram_index(_y: &JArray) -> Result<JArray> {
+pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_cycledirect(_y: &JArray) -> Result<JArray> {
+pub fn v_permute(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
+pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_steps(_y: &JArray) -> Result<JArray> {
+pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_indices(_y: &JArray) -> Result<JArray> {
+pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_circle_function(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_roots(_y: &JArray) -> Result<JArray> {
+pub fn v_polynomial(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_poly_deriv(_y: &JArray) -> Result<JArray> {
+pub fn v_poly_integral(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_extend_precision(_y: &JArray) -> Result<JArray> {
+pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
+```

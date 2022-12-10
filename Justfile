@@ -19,3 +19,7 @@ gen-impl-status:
   grep 'not_impl(' src/lib.rs >> STATUS.md
   grep 'a_not_implemented' src/lib.rs >> STATUS.md
   grep 'c_not_implemented' src/lib.rs >> STATUS.md
+
+  echo "\n\`\`\`" >> STATUS.md
+  grep -h -R -C 3 NonceError src/verbs/*.rs | grep 'pub fn' | grep -v 'Vocabulary.html' >> STATUS.md
+  echo "\`\`\`" >> STATUS.md
