@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use super::ranks::Rank;
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
-use crate::{arr0d, JArray, JError, Word};
+use crate::{arr0d, Ctx, JArray, JError, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
@@ -37,6 +37,8 @@ pub struct PrimitiveImpl {
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
     Primitive(PrimitiveImpl),
+
+    Anonymous(Vec<Word>),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -127,6 +129,15 @@ impl VerbImpl {
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
+            VerbImpl::Anonymous(words) => {
+                // TODO: wrong, should have access to the global context
+                let mut ctx = Ctx::empty();
+                if let Some(x) = x {
+                    ctx.alias("x", x.clone());
+                }
+                ctx.alias("y", y.clone());
+                crate::eval(words.clone(), &mut ctx).and_then(must_be_box)
+            }
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
                     a.exec(x, u, &Nothing, y).and_then(must_be_box)
