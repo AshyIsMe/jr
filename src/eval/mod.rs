@@ -1,3 +1,5 @@
+mod controls;
+
 use std::collections::VecDeque;
 use std::iter::repeat;
 
@@ -7,6 +9,7 @@ use itertools::Itertools;
 use log::{debug, trace};
 
 use crate::error::JError;
+use crate::eval::controls::resolve_controls;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::Word::{self, *};
@@ -30,11 +33,6 @@ impl EvalOutput {
             other => bail!("expecting a word but found {other:?}"),
         }
     }
-}
-
-fn resolve_controls(words: Vec<Word>) -> Result<Option<Vec<Word>>> {
-    assert!(words.iter().all(|w| !w.is_control_symbol()));
-    Ok(Some(words))
 }
 
 pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {

@@ -300,6 +300,9 @@ NB. NB. at the start of a line is handled by the test framework today.
 5 NB. 6
 5 NB. it's a boy!
 
+NB. controls
+3 {{ x + y }} 5
+
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 

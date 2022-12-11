@@ -729,6 +729,11 @@ output = '0'
 encoded = 'e3,01,01,,'
 
 [[runs]]
+expr = '3 {{ x + y }} 5'
+output = '8'
+encoded = 'e3,04,01,,08'
+
+[[runs]]
 expr = '3*5'
 output = '15'
 encoded = 'e3,04,01,,0f'
