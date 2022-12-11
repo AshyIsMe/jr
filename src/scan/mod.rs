@@ -26,18 +26,29 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>> {
 
 pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
     let mut words: Vec<(Pos, Word)> = Vec::new();
+    let mut loc_off = 0;
+    for line in sentence.split('\n') {
+        words.extend(
+            scan_one_line(line)?
+                .into_iter()
+                .map(|((ps, pe), word)| ((ps + loc_off, pe + loc_off), word)),
+        );
+        loc_off += line.len();
+        words.push(((loc_off, loc_off), Word::NewLine));
+    }
+    let _ = words.pop();
+    Ok(words)
+}
 
+fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
+    let mut words: Vec<(Pos, Word)> = Vec::new();
     let mut skip: usize = 0;
-
     for (i, c) in sentence.chars().enumerate() {
         if skip > 0 {
             skip -= 1;
             continue;
         }
         match c {
-            '\n' => {
-                words.push(((i, i), Word::NewLine));
-            }
             '(' => {
                 words.push(((i, i), Word::LP));
             }
@@ -78,6 +89,7 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     if sentence.len() < 2 {
         return Err(JError::OpenQuote).context("quote followed by nothing");
     }
@@ -146,6 +158,7 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     let mut it = sentence.chars().peekable();
     let base: String = it
         .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
@@ -165,6 +178,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     if sentence.is_empty() {
         return Err(JError::custom("Empty primitive"));
     }

@@ -9,6 +9,7 @@ use crate::{arr0d, JArray, JError, Word};
 pub struct Ctx {
     names: HashMap<String, Word>,
     suspension: Option<Suspense>,
+    pub other_input_buffer: String,
 }
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ impl Ctx {
         let mut ctx = Ctx {
             names: Default::default(),
             suspension: None,
+            other_input_buffer: String::new(),
         };
         ctx.alias("LF", Word::Noun(JArray::CharArray(arr0d('\n'))));
         ctx

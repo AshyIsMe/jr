@@ -11,16 +11,17 @@ enum Resolution {
     StepTaken,
 }
 
-pub fn resolve_controls(mut words: Vec<Word>) -> Result<Option<Vec<Word>>> {
-    while match resolve_one_direct_def(&mut words)? {
+/// true iff resolution completed
+pub fn resolve_controls(words: &mut Vec<Word>) -> Result<bool> {
+    while match resolve_one_direct_def(words)? {
         Resolution::StepTaken => true,
         Resolution::Complete => false,
-        Resolution::InsufficientInput => return Ok(None),
+        Resolution::InsufficientInput => return Ok(false),
     } {}
     if let Some((pos, remaining)) = words.iter().find_position(|w| w.is_control_symbol()) {
         bail!("control resolution failed: didn't eliminate {remaining:?} at {pos}");
     }
-    Ok(Some(words))
+    Ok(true)
 }
 
 fn resolve_one_direct_def(words: &mut Vec<Word>) -> Result<Resolution> {

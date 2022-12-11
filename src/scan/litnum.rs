@@ -11,6 +11,7 @@ use crate::number::{promote_to_array, Num};
 use crate::{Elem, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     lazy_static! {
         static ref LITNUM: Regex = Regex::new(
             r#"(?x)     # allow comments and ignore whitespace
@@ -27,7 +28,7 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     }
     let m: Match = LITNUM
         .find(sentence)
-        .expect("at least the first number should match");
+        .ok_or_else(|| anyhow!("at least the first number should match"))?;
     let sentence = m.as_str();
 
     let l = sentence.len() - 1;
