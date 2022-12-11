@@ -104,7 +104,7 @@ pub fn decode(lines: &[u64]) -> Result<JArray> {
         );
     }
 
-    println!("{blocks:?}");
+    // println!("{blocks:?}");
 
     let zero = blocks
         .get(&0)
