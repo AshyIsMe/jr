@@ -2,7 +2,7 @@ use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
 use jr::test_impls::scan_eval;
-use jr::{Ctx, IntoJArray, JError, Word};
+use jr::{IntoJArray, JError, Word};
 
 #[test]
 fn array_iter_2_3() {

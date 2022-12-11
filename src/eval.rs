@@ -32,6 +32,11 @@ impl EvalOutput {
     }
 }
 
+fn resolve_controls(words: Vec<Word>) -> Result<Option<Vec<Word>>> {
+    assert!(words.iter().all(|w| !w.is_control_symbol()));
+    Ok(Some(words))
+}
+
 pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
     if ctx.is_suspended() {
         if line != ")" {
@@ -41,6 +46,7 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
         return eval_suspendable(vec![], ctx);
     }
     let tokens = crate::scan(line)?;
+    let tokens = resolve_controls(tokens)?.ok_or_else(|| anyhow!("unresolved control"))?;
     debug!("tokens: {:?}", tokens);
     eval_suspendable(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", line))
 }

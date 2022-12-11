@@ -29,7 +29,7 @@ fn invalid_prime() {
 
 #[test]
 fn test_scan_num() -> Result<()> {
-    let words = scan("1 2 _3\n")?;
+    let words = scan("1 2 _3")?;
     assert_eq!(
         words,
         [Word::Noun(JArray::IntArray(ArrayD::from_shape_vec(
@@ -42,7 +42,7 @@ fn test_scan_num() -> Result<()> {
 
 #[test]
 fn test_scan_atoms() -> Result<()> {
-    let words = scan("1\n")?;
+    let words = scan("1")?;
     assert_eq!(
         words,
         [Word::Noun(JArray::BoolArray(ArrayD::from_elem(
@@ -50,7 +50,7 @@ fn test_scan_atoms() -> Result<()> {
             1
         )))]
     );
-    let words = scan("42\n")?;
+    let words = scan("42")?;
     assert_eq!(
         words,
         [Word::Noun(JArray::IntArray(ArrayD::from_elem(
@@ -58,7 +58,7 @@ fn test_scan_atoms() -> Result<()> {
             42
         )))]
     );
-    let words = scan("3.14\n")?;
+    let words = scan("3.14")?;
     assert_eq!(
         words,
         [Word::Noun(JArray::FloatArray(ArrayD::from_elem(
@@ -66,7 +66,7 @@ fn test_scan_atoms() -> Result<()> {
             3.14
         )))]
     );
-    let words = scan("'a'\n")?;
+    let words = scan("'a'")?;
     assert_eq!(
         words,
         [Word::Noun(JArray::CharArray(ArrayD::from_elem(
@@ -87,14 +87,14 @@ fn test_scan_string() -> Result<()> {
 
 #[test]
 fn test_scan_name() -> Result<()> {
-    let words = scan("abc\n")?;
+    let words = scan("abc")?;
     assert_eq!(words, [Word::Name(String::from("abc"))]);
     Ok(())
 }
 
 #[test]
 fn test_scan_name_verb_name() -> Result<()> {
-    let words = scan("foo + bar\n")?;
+    let words = scan("foo + bar")?;
     assert_eq!(
         words,
         [
@@ -128,7 +128,7 @@ fn test_scan_string_verb_string() -> Result<()> {
 
 #[test]
 fn test_scan_name_verb_name_not_spaced() -> Result<()> {
-    let words = scan("foo+bar\n")?;
+    let words = scan("foo+bar")?;
     assert_eq!(
         words,
         [
@@ -142,7 +142,7 @@ fn test_scan_name_verb_name_not_spaced() -> Result<()> {
 
 #[test]
 fn test_scan_primitives() -> Result<()> {
-    let words = scan("a. I. 'A' \n")?;
+    let words = scan("a. I. 'A' ")?;
     assert_eq!(
         words,
         [
@@ -156,7 +156,7 @@ fn test_scan_primitives() -> Result<()> {
 
 #[test]
 fn test_scan_primitives_not_spaced() -> Result<()> {
-    let words = scan("a.I.'A' \n")?;
+    let words = scan("a.I.'A' ")?;
     assert_eq!(
         words,
         [
