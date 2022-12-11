@@ -20,6 +20,8 @@ pub enum Word {
     Nothing,     // used as placeholder when parsing
     Name(String),
 
+    NewLine,
+
     IsLocal,
     IsGlobal,
     Noun(JArray),
@@ -47,6 +49,19 @@ impl Word {
             v.to_string(),
             primitive_verbs(v).expect("static verbs should be valid"),
         )
+    }
+
+    pub fn is_control_symbol(&self) -> bool {
+        use Word::*;
+        match self {
+            DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
+
+            LP | RP | Name(_) | IsLocal | IsGlobal => false,
+            Verb(_, _) | Noun(_) | Adverb(_, _) | Conjunction(_, _) => false,
+            NewLine => false,
+            StartOfLine | Nothing => false,
+            Comment => unreachable!("should have been removed from the stream by now"),
+        }
     }
 }
 

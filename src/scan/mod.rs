@@ -29,13 +29,15 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 
     let mut skip: usize = 0;
 
-    //TODO support multiline definitions.
     for (i, c) in sentence.chars().enumerate() {
         if skip > 0 {
             skip -= 1;
             continue;
         }
         match c {
+            '\n' => {
+                words.push(((i, i), Word::NewLine));
+            }
             '(' => {
                 words.push(((i, i), Word::LP));
             }
