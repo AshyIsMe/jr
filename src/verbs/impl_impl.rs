@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use super::ranks::Rank;
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
+use crate::eval::eval_lines;
 use crate::{arr0d, Ctx, JArray, JError, Word};
 
 #[derive(Copy, Clone)]
@@ -136,7 +137,9 @@ impl VerbImpl {
                     ctx.alias("x", x.clone());
                 }
                 ctx.alias("y", y.clone());
-                crate::eval(words.clone(), &mut ctx).and_then(must_be_box)
+                eval_lines(words, &mut ctx)
+                    .and_then(must_be_box)
+                    .context("anonymous")
             }
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => {

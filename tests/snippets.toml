@@ -1,5 +1,16 @@
 [[runs]]
 expr = '''
+a =: {{
+b =: 6
+x + b
+}}
+5 a 7
+'''
+output = '11'
+encoded = 'e3,04,01,,0b'
+
+[[runs]]
+expr = '''
 a=: <;._2 ] 'Try and try and try again '
 (~. a); (=a); (= <'and')
 '''

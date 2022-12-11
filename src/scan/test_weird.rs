@@ -1,4 +1,4 @@
-use crate::Word;
+use crate::{arr0d, Word};
 use crate::{char_array, primitive_nouns, JArray};
 use anyhow::Result;
 use ndarray::prelude::*;
@@ -163,6 +163,29 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
             primitive_nouns("a.").unwrap(),
             Word::static_verb("I."),
             Word::Noun(JArray::CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn test_scan_newlines() -> Result<()> {
+    let words = scan("a =: {{\nb =: 5\na\n}}")?;
+    use Word::*;
+    assert_eq!(
+        words,
+        [
+            Name("a".to_string()),
+            IsGlobal,
+            DirectDefUnknown,
+            NewLine,
+            Name("b".to_string()),
+            IsGlobal,
+            Word::Noun(JArray::IntArray(arr0d(5i64))),
+            NewLine,
+            Name("a".to_string()),
+            NewLine,
+            DirectDefEnd
         ]
     );
     Ok(())

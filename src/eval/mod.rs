@@ -24,6 +24,7 @@ pub struct Qs {
 pub enum EvalOutput {
     Regular(Word),
     Suspension,
+    InDefinition,
 }
 
 impl EvalOutput {
@@ -43,8 +44,13 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
         }
         return eval_suspendable(vec![], ctx);
     }
-    let tokens = crate::scan(line)?;
-    let tokens = resolve_controls(tokens)?.ok_or_else(|| anyhow!("unresolved control"))?;
+    let mut tokens = crate::scan(&format!("{}{line}", ctx.other_input_buffer))?;
+    if !resolve_controls(&mut tokens)? {
+        ctx.other_input_buffer.push_str(line);
+        ctx.other_input_buffer.push('\n');
+        return Ok(EvalOutput::InDefinition);
+    }
+    ctx.other_input_buffer.clear();
     debug!("tokens: {:?}", tokens);
     eval_suspendable(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", line))
 }
@@ -52,12 +58,27 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
 pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
     match eval_suspendable(sentence, ctx)? {
         EvalOutput::Regular(word) => Ok(word),
-        EvalOutput::Suspension => Err(JError::StackSuspension)
+        EvalOutput::InDefinition | EvalOutput::Suspension => Err(JError::StackSuspension)
             .context("suspended in a context which doesn't support suspension"),
     }
 }
 
+pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
+    // should not be returned?
+    let mut word = Word::Nothing;
+    for sentence in sentence
+        .split(|w| matches!(w, Word::NewLine))
+        .filter(|sub| !sub.is_empty())
+    {
+        word = eval(sentence.to_vec(), ctx)?;
+    }
+    Ok(word)
+}
+
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
+    if sentence.iter().any(|w| w.is_control_symbol() || matches!(w, Word::NewLine)) {
+        bail!("invalid eval invocation: controls and newlines must have been eliminated: {sentence:?}");
+    }
     // Attempt to parse j properly as per the documentation here:
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
