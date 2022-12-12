@@ -44,7 +44,7 @@ use verbs::VerbImpl;
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
     let inf = u32::MAX;
-    let primitive = |op, monad, dyad, ranks: (u32, u32, u32)| {
+    let prim = |op, monad, dyad, ranks: (u32, u32, u32), inverse| {
         VerbImpl::Primitive(PrimitiveImpl::new(
             op,
             monad,
@@ -54,8 +54,10 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
                 Rank::new(ranks.1).unwrap(),
                 Rank::new(ranks.2).unwrap(),
             ),
+            inverse,
         ))
     };
+    let primitive = |op, monad, dyad, ranks: (u32, u32, u32)| prim(op, monad, dyad, ranks, None);
     let not_impl = |op| {
         primitive(
             op,
@@ -68,10 +70,10 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     Some(match sentence {
         // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "simple(\"$a\", v_$b, v_$c);\n"'
         "=" => primitive("=", v_self_classify, v_equal, (inf, 0, 0)),
-        "<" => primitive("<", v_box, v_less_than, (inf, 0, 0)),
+        "<" => prim("<", v_box, v_less_than, (inf, 0, 0), Some(">")),
         "<." => primitive("<.", v_floor, v_lesser_of_min, (0, 0, 0)),
         "<:" => primitive("<:", v_decrement, v_less_or_equal, (0, 0, 0)),
-        ">" => primitive(">", v_open, v_larger_than, (0, 0, 0)),
+        ">" => prim(">", v_open, v_larger_than, (0, 0, 0), Some("<")),
         ">." => primitive(">.", v_ceiling, v_larger_of_max, (0, 0, 0)),
         ">:" => primitive(">:", v_increment, v_larger_or_equal, (0, 0, 0)),
 
@@ -89,7 +91,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "%:" => primitive("%:", v_square_root, v_root, (0, 0, 0)),
 
         "^" => primitive("^", v_exponential, v_power, (0, 0, 0)),
-        "^." => primitive("^.", v_natural_log, v_logarithm, (0, 0, 0)),
+        "^." => prim("^.", v_natural_log, v_logarithm, (0, 0, 0), Some("^")),
         "$" => primitive("$", v_shape_of, v_shape, (inf, 1, inf)),
         "~." => VerbImpl::Primitive(PrimitiveImpl::monad("~.", v_nub)), // inf
         "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
@@ -265,7 +267,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "@." => conj("@.", c_not_implemented),
         "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),
-        "&." => conj("&.", c_not_implemented),
+        "&." => conj("&.", c_under),
         "&:" => conj("&:", c_not_implemented),
         "&.:" => conj("&.:", c_not_implemented),
         "d." => conj("d.", c_not_implemented),

@@ -9,9 +9,8 @@ pub enum JError {
     Break,
     #[error("While loading script: bad use of if. else. end. etc")]
     ControlError,
-    #[error(
-        "Invalid valence: The verb doesn't have a definition for the valence it was executed with"
-    )]
+    #[error("Kitchen sink error, you probably did something wrong")]
+    // #[error(""Invalid valence: The verb doesn't have a definition for the valence it was executed with"")] ,
     // #[error("Invalid value: An argument or operand has an invalid value")] ,
     // #[error("Invalid public assignment: You've used both (z=:) and (z=.) for some name z")] ,
     // #[error("Pun in definitions: A name was referred to as one part of speech, but the definition was later changed to another part of speech")] ,
