@@ -4,6 +4,8 @@ mod impl_shape;
 mod maff;
 mod ranks;
 
+use std::iter::repeat;
+
 use crate::number::{promote_to_array, Num};
 use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
@@ -26,6 +28,10 @@ pub use impl_shape::*;
 
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
+}
+
+pub fn v_not_exist_monad(_y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError).context("this verb lacks a monad")
 }
 
 pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -403,6 +409,22 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
         .collect_vec();
     Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
+}
+
+/// E. (dyad) (_, _)
+pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("inputs must be lists");
+    }
+    let x = x.clone().into_elems();
+    let y = y.clone().into_elems();
+    ensure!(!x.is_empty());
+    promote_to_array(
+        y.windows(x.len())
+            .map(|win| Elem::Num(Num::bool(x == win)))
+            .chain(repeat(Elem::Num(Num::bool(false))).take(x.len() - 1))
+            .collect(),
+    )
 }
 
 /// i: (monad)

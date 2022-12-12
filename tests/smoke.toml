@@ -159,6 +159,11 @@ output = '1 1 0'
 encoded = 'e3,01,03,01,03,0101'
 
 [[runs]]
+expr = "'co' E. 'cocoa'"
+output = '1 0 1 0 0'
+encoded = 'e3,01,05,01,05,010001'
+
+[[runs]]
 expr = "'good' ; 'morning'"
 output = '''
 ┌────┬───────┐
