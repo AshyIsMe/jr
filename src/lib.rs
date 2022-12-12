@@ -140,9 +140,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "r." => primitive("r.", v_angle, v_polar, (0, 0, 0)),
         "x:" => primitive("x:", v_extend_precision, v_num_denom, (inf, inf, inf)),
 
-        //"=." => not_impl("=."), IsLocal
-        //"=:" => not_impl("=:"), IsGlobal
-        // ("<", VerbImpl::Primitive(PrimitiveImpl::new("<", verbs::v_box, verbs::v_lt))),
         "_:" => not_impl("_:"),
         "^!." => not_impl("^!."),
         "$." => not_impl("$."),
@@ -151,7 +148,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ".." => not_impl(".."),
         "[:" => VerbImpl::Cap,
         "C.!.2" => not_impl("C.!.2"),
-        "E." => not_impl("E."),
+        "E." => primitive("E.", v_not_exist_monad, v_member_interval, (inf, inf, inf)),
         "L." => not_impl("L."),
         "p:" => not_impl("p:"),
         "s:" => not_impl("s:"),

@@ -307,6 +307,9 @@ NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
 
+NB. member interval
+'co' E. 'cocoa'
+
 NB. NB.
 NB. NB. at the start of a line is handled by the test framework today.
 5 NB. 6
