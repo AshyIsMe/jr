@@ -134,6 +134,14 @@ NB. length angle
 NB. test framework fails for float comparison: *. 3j4
 NB. test framework fails for float comparison: *. 3j4 5r2
 
+NB. lcm / and
+3 *. 1
+1 *. 0
+0 *. 1
+0 *. 0
+1 *. 1
+64 *. 2
+
 NB. square
 *: 2 3 4
 *: 2.1 4.3

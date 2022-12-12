@@ -371,6 +371,16 @@ output = ''
 encoded = 'e3,01,,01,,'
 
 [[runs]]
+expr = '0 *. 0'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
+expr = '0 *. 1'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
 expr = '0 *: 0'
 output = '1'
 encoded = 'e3,01,01,,01'
@@ -519,6 +529,16 @@ e3,04,01,01,01,01'''
 
 [[runs]]
 expr = '1'
+output = '1'
+encoded = 'e3,01,01,,01'
+
+[[runs]]
+expr = '1 *. 0'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
+expr = '1 *. 1'
 output = '1'
 encoded = 'e3,01,01,,01'
 
@@ -707,6 +727,11 @@ output = '2'
 encoded = '''
 e3,4,01,,28,
 e3,04,01,01,01,02'''
+
+[[runs]]
+expr = '3 *. 1'
+output = '3'
+encoded = 'e3,04,01,,03'
 
 [[runs]]
 expr = '3 +&! 4'
@@ -917,6 +942,11 @@ encoded = 'e3,02,06,01,06,68656c69636f'
 expr = "6 }. 'helicopter'"
 output = 'pter'
 encoded = 'e3,02,04,01,04,70746572'
+
+[[runs]]
+expr = '64 *. 2'
+output = '64'
+encoded = 'e3,04,01,,4'
 
 [[runs]]
 expr = '6;7;8'

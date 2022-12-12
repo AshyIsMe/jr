@@ -11,6 +11,7 @@ use crate::{IntoJArray, JArray, JError};
 use anyhow::{Context, Result};
 use ndarray::prelude::*;
 use num::complex::Complex64;
+use num::integer::lcm;
 use num_traits::{FloatConst, Zero};
 use rand::prelude::*;
 
@@ -196,9 +197,14 @@ pub fn v_length_angle(y: &JArray) -> Result<JArray> {
             .into_jarray()
     })
 }
-/// *. (dyad)
-pub fn v_lcm_and(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+/// *. (dyad) (0 0)
+pub fn v_lcm_and(x: &JArray, y: &JArray) -> Result<JArray> {
+    d00nrn(x, y, |x, y| {
+        Ok(match (x.value_i64(), y.value_i64()) {
+            (Some(x), Some(y)) => Num::Int(lcm(x, y)).demote(),
+            _ => return Err(JError::NonceError).context("lcm on non-integers"),
+        })
+    })
 }
 
 /// *: (monad)
