@@ -1,5 +1,5 @@
 use crate::verbs::VerbImpl;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use std::collections::HashSet;
 
@@ -14,6 +14,12 @@ enum Resolution {
 /// true iff resolution completed
 pub fn resolve_controls(words: &mut Vec<Word>) -> Result<bool> {
     while match resolve_one_direct_def(words)? {
+        Resolution::StepTaken => true,
+        Resolution::Complete => false,
+        Resolution::InsufficientInput => return Ok(false),
+    } {}
+
+    while match resolve_one_stat(words)? {
         Resolution::StepTaken => true,
         Resolution::Complete => false,
         Resolution::InsufficientInput => return Ok(false),
@@ -48,13 +54,51 @@ fn resolve_one_direct_def(words: &mut Vec<Word>) -> Result<Resolution> {
     let kind = def.remove(0); // start
     assert!(matches!(def.pop(), Some(Word::DirectDefEnd)));
 
+    ensure!(
+        resolve_controls(&mut def)?,
+        "controls inside a direct def must all be terminated"
+    );
+
     let def = match kind {
         Word::DirectDefUnknown => create_def(infer_type(&def)?, def)?,
         Word::DirectDef(c) => create_def(c, def)?,
         other => unreachable!("matches! above excludes {other:?}"),
     };
     words.insert(last_dd_start, def);
-    println!("{words:?}");
+    Ok(Resolution::StepTaken)
+}
+
+// yes, I am fully aware that this is what parser frameworks were invented to avoid
+fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
+    let last_start = match words
+        .iter()
+        .rposition(|w| matches!(w, Word::If | Word::For(_)))
+    {
+        Some(x) => x,
+        None => return Ok(Resolution::Complete),
+    };
+    let end = match words
+        .iter()
+        .skip(last_start)
+        .position(|w| matches!(w, Word::End))
+    {
+        Some(x) => last_start + x + 1,
+        None => return Ok(Resolution::InsufficientInput),
+    };
+
+    // (last_if_start..if_end) includes the start and end, which we want to remove from the words
+    let mut def = words.drain(last_start..end).collect_vec();
+
+    // ... but not include in the definition
+    let kind = def.remove(0); // start
+    assert!(matches!(def.pop(), Some(Word::End)));
+
+    let def = match kind {
+        Word::If => Word::IfBlock(def),
+        Word::For(ident) => Word::ForBlock(ident, def),
+        other => unreachable!("matches! above excludes {other:?}"),
+    };
+    words.insert(last_start, def);
     Ok(Resolution::StepTaken)
 }
 

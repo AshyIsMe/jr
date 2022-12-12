@@ -3,10 +3,11 @@ mod controls;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::Ctx;
+use crate::{Ctx, Elem, Num};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
+use num_traits::Zero;
 
 use crate::error::JError;
 use crate::eval::controls::resolve_controls;
@@ -75,8 +76,18 @@ pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
     Ok(word)
 }
 
+fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
+    words
+        .iter()
+        .position(f)
+        .map(|p| (&words[..p], &words[p + 1..]))
+}
+
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
-    if sentence.iter().any(|w| w.is_control_symbol() || matches!(w, Word::NewLine)) {
+    if sentence
+        .iter()
+        .any(|w| w.is_control_symbol() || matches!(w, Word::NewLine))
+    {
         bail!("invalid eval invocation: controls and newlines must have been eliminated: {sentence:?}");
     }
     // Attempt to parse j properly as per the documentation here:
@@ -105,6 +116,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
     let mut stack = qs.stack;
     let mut queue = qs.queue;
+    debug!("starting eval: {stack:?} {queue:?}");
 
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
@@ -116,6 +128,37 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         let fragment = resolve_names(fragment, ctx);
 
         let result: Result<Vec<Word>> = match fragment {
+            (IfBlock(def), b, c, d) => {
+                debug!("control if.");
+                if def.iter().any(|w| matches!(w, Word::ElseIf)) {
+                    return Err(JError::NonceError).context("no elsif.");
+                }
+                let (cond, follow) = split_once(&def, |w| matches!(w, Word::Do))
+                    .ok_or(JError::SyntaxError)
+                    .context("no do. in if.")?;
+                let (tru, fal) = match split_once(follow, |w| matches!(w, Word::Else)) {
+                    Some(x) => x,
+                    None => (follow, [].as_slice()),
+                };
+                let cond = match eval(cond.to_vec(), ctx).context("if statement conditional")? {
+                    Word::Noun(arr) => arr
+                        .into_elems()
+                        .into_iter()
+                        .next()
+                        .map(|e| e != Elem::Num(Num::zero()))
+                        .unwrap_or_default(),
+                    _ => {
+                        return Err(JError::NounResultWasRequired)
+                            .context("evaluating if conditional")
+                    }
+                };
+                if cond {
+                    let _ = eval_lines(tru, ctx).context("true block")?;
+                } else if !fal.is_empty() {
+                    let _ = eval_lines(fal, ctx).context("false block")?;
+                }
+                Ok(vec![b, c, d])
+            }
             (ref w, Verb(_, v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
@@ -355,7 +398,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             {
                 debug!("7 Is Local Name w");
                 ctx.alias(n, w.clone());
-                Ok(vec![w.clone(), any])
+                Ok(vec![any])
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
             (LP, w, RP, any)
@@ -383,11 +426,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         .filter(|w| !matches!(w, Nothing))
         .collect::<Vec<Word>>()
         .into();
-    trace!("DEBUG new_stack: {:?}", new_stack);
+    debug!("finish eval: {:?}", new_stack);
+    if new_stack.is_empty() {
+        return Ok(EvalOutput::Regular(Word::Nothing));
+    }
     match new_stack.pop_front() {
         Some(val) if new_stack.is_empty() => Ok(EvalOutput::Regular(val)),
         _ => Err(JError::SyntaxError)
-            .with_context(|| anyhow!("expected an empty stack but found {new_stack:?}")),
+            .with_context(|| anyhow!("expected a single output value but found {new_stack:?}")),
     }
 }
 
