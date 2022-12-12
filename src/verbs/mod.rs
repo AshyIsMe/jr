@@ -9,7 +9,7 @@ use std::iter::repeat;
 use crate::number::{promote_to_array, Num};
 use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
@@ -375,23 +375,30 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     )
 }
 
-/// i. (monad)
+/// i. (monad) (1)
 pub fn v_integers(y: &JArray) -> Result<JArray> {
     match y {
         // monadic i.
         IntArray(a) => {
             let p = a.product();
             if p < 0 {
-                bail!("todo: monadic i. negative args");
+                return Err(JError::NonceError).context("i. negatives");
             } else {
                 let ints = Array::from_vec((0..p).collect());
                 Ok(IntArray(reshape(a, &ints.into_dyn())?))
             }
         }
-        ExtIntArray(_) => {
-            bail!("todo: monadic i. ExtIntArray")
+        BoolArray(a) => {
+            let is = a.iter().copied().map(usize::from).collect_vec();
+            let p = is.iter().product::<usize>();
+            Ok(
+                IntArray(Array::from_vec((0..p).map(|x| x as i64).collect()).into_dyn())
+                    .to_shape(IxDyn(&is))?
+                    .into(),
+            )
         }
-        _ => Err(JError::DomainError.into()),
+        ExtIntArray(_) => return Err(JError::NonceError).context("i. ExtInt"),
+        _ => Err(JError::DomainError).with_context(|| anyhow!("unsupported arg type: {y:?}")),
     }
 }
 /// i. (dyad)

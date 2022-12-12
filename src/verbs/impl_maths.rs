@@ -313,13 +313,21 @@ pub fn v_power(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// ^. (monad)
-pub fn v_natural_log(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_natural_log(y: &JArray) -> Result<JArray> {
+    m0nrn(y, |y| {
+        y.approx_f64()
+            .map(|y| Num::Float(y.ln()))
+            .ok_or(JError::NonceError)
+            .context("ln defined only on floaties")
+    })
 }
 
 /// ^. (dyad)
-pub fn v_logarithm(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_logarithm(x: &JArray, y: &JArray) -> Result<JArray> {
+    d00nrn(x, y, |x, y| match (x.approx_f64(), y.approx_f64()) {
+        (Some(x), Some(y)) => Ok(Num::Float(y.log(x))),
+        _ => Err(JError::NonceError).context("logn defined only on floaties"),
+    })
 }
 
 /// ~: (dyad)

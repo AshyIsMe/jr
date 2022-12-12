@@ -7,7 +7,7 @@ use super::ranks::Rank;
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::eval::eval_lines;
-use crate::{arr0d, Ctx, JArray, JError, Word};
+use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
@@ -33,6 +33,7 @@ pub struct PrimitiveImpl {
     pub monad: Monad,
     // TODO: NOT public
     pub dyad: Option<Dyad>,
+    pub inverse: Option<&'static str>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -193,11 +194,25 @@ impl VerbImpl {
         }
     }
 
+    // TODO: presumably this is implementable for derived verbs
+    pub fn monad_rank(&self) -> Option<Rank> {
+        match self {
+            Self::Primitive(p) => Some(p.monad.rank),
+            _ => None,
+        }
+    }
     /// The dyad rank, if this is a dyad.
     // TODO: presumably this is implementable for derived verbs
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
             Self::Primitive(p) => p.dyad.map(|d| d.rank),
+            _ => None,
+        }
+    }
+
+    pub fn obverse(&self) -> Option<VerbImpl> {
+        match self {
+            VerbImpl::Primitive(imp) => imp.inverse.and_then(primitive_verbs),
             _ => None,
         }
     }
@@ -219,6 +234,7 @@ impl PrimitiveImpl {
                 rank: Rank::infinite(),
             },
             dyad: None,
+            inverse: None,
         }
     }
 
@@ -227,6 +243,7 @@ impl PrimitiveImpl {
         monad: fn(&JArray) -> Result<JArray>,
         dyad: fn(&JArray, &JArray) -> Result<JArray>,
         ranks: (Rank, Rank, Rank),
+        inverse: Option<&'static str>,
     ) -> Self {
         Self {
             name,
@@ -238,6 +255,7 @@ impl PrimitiveImpl {
                 f: dyad,
                 rank: (ranks.1, ranks.2),
             }),
+            inverse,
         }
     }
 }
