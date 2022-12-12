@@ -212,6 +212,10 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. infix
+_2 [\ ('aba';'XYZT';'ba';'+')
+_3 <\ 'abcdefg'
+
 NB. same / left / right
 ] i. 2 3
 [ 'abcde'

@@ -235,8 +235,10 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "if." => Word::If,
             "do." => Word::Do,
             "else." => Word::Else,
+            "elseif." => Word::ElseIf,
             "end." => Word::End,
-            "for_i." => Word::End,
+            "for." => Word::For(None),
+            "while." => Word::While,
             "NB." => Word::Comment,
             _ => return Ok(None),
         }
