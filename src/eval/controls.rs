@@ -72,7 +72,7 @@ fn resolve_one_direct_def(words: &mut Vec<Word>) -> Result<Resolution> {
 fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
     let last_start = match words
         .iter()
-        .rposition(|w| matches!(w, Word::If | Word::For(_)))
+        .rposition(|w| matches!(w, Word::If | Word::For(_) | Word::While))
     {
         Some(x) => x,
         None => return Ok(Resolution::Complete),
@@ -96,6 +96,7 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
     let def = match kind {
         Word::If => Word::IfBlock(def),
         Word::For(ident) => Word::ForBlock(ident, def),
+        Word::While => Word::WhileBlock(def),
         other => unreachable!("matches! above excludes {other:?}"),
     };
     words.insert(last_start, def);

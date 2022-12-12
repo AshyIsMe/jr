@@ -2,6 +2,11 @@ gen-smoke:
   PATH=$PATH:~/ins/j903 cargo run -q --example gen-runlist tests/smoke.ijs tests/smoke.toml
   PATH=$PATH:~/ins/j903 cargo run -q --example gen-runlist tests/snippets/ tests/snippets.toml
 
+regen: clean-smoke gen-smoke
+
+clean-smoke:
+  rm -f tests/smoke.toml tests/snippets.toml
+
 gen-impl-status:
   echo "# Implementation Status" > STATUS.md
   echo "This file auto-generated: just get-impl-status\n" >> STATUS.md

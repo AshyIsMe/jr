@@ -193,7 +193,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
         "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
         "/." => adverb("/.", a_slash_dot),
-        "\\" => adverb("\\", a_not_implemented),
+        "\\" => adverb("\\", a_backslash),
         "\\." => adverb("\\.", a_not_implemented),
         "]:" => adverb("]:", a_not_implemented),
         "}" => adverb("}", a_not_implemented),

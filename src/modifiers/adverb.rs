@@ -1,10 +1,11 @@
 use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
 
 use crate::modifiers::c_atop;
 use crate::verbs::v_self_classify;
-use crate::{JError, Word};
+use crate::{flatten, Arrayable, JArray, JError, Word};
 
 pub type AdverbFn = fn(Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -75,5 +76,36 @@ pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
             )
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
+    }
+}
+
+/// (0 _)
+pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, u, y) {
+        (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
+            let x = x
+                .single_math_num()
+                .ok_or(JError::DomainError)
+                .context("infix needs a number")?
+                .value_i64()
+                .ok_or(JError::DomainError)
+                .context("infix needs an int")?;
+            if x >= 0 {
+                return Err(JError::NonceError).context("negative x only");
+            }
+            let x = usize::try_from(x.abs())?;
+            let mut piece = Vec::new();
+            for chunk in y.outer_iter().chunks(x) {
+                let chunk = chunk
+                    .iter()
+                    .map(|arr| JArray::from(arr.clone()))
+                    .collect_vec();
+                let chunk = flatten(&chunk.into_array()?)?;
+                piece.push(u.exec(None, &Word::Noun(chunk))?);
+            }
+
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
 }
