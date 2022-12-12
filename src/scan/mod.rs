@@ -222,11 +222,21 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     } else if let Some(c) = primitive_conjunctions(sentence) {
         Word::Conjunction(sentence.to_string(), c)
     } else {
+        if let Some(x) = sentence.strip_prefix("for_") {
+            if let Some(x) = x.strip_suffix(".") {
+                return Ok(Some(Word::For(Some(x.to_string()))));
+            }
+        }
         match sentence {
             "=:" => Word::IsGlobal,
             "=." => Word::IsLocal,
             "{{" => Word::DirectDefUnknown,
             "}}" => Word::DirectDefEnd,
+            "if." => Word::If,
+            "do." => Word::Do,
+            "else." => Word::Else,
+            "end." => Word::End,
+            "for_i." => Word::End,
             "NB." => Word::Comment,
             _ => return Ok(None),
         }

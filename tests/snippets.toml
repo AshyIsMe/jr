@@ -33,6 +33,28 @@ e3,01,01,02,01,01,01'''
 
 [[runs]]
 expr = '''
+double_greater =: {{
+  hack =: x
+  if. x > y do.
+    b =: x
+  else.
+    b =: y
+  end.
+  b * 2
+}}
+(6 double_greater 5); (4 double_greater 3)
+'''
+output = '''
+┌──┬─┐
+│12│8│
+└──┴─┘'''
+encoded = '''
+e3,2,02,01,02,38,6,
+e3,04,01,,0c,
+e3,04,01,,08'''
+
+[[runs]]
+expr = '''
 s =: 0 : 0
 hello world
 I love horses

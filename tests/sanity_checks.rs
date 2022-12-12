@@ -274,10 +274,7 @@ fn test_idot_dyadic() {
 #[test]
 fn test_assignment() {
     let mut ctx = Ctx::empty();
-    assert_eq!(
-        jr::eval(jr::scan("a =: 42").unwrap(), &mut ctx).unwrap(),
-        Word::from(42)
-    );
+    jr::eval(jr::scan("a =: 42").unwrap(), &mut ctx).unwrap();
     assert_eq!(
         jr::eval(jr::scan("a").unwrap(), &mut ctx).unwrap(),
         Word::from(42)
