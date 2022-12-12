@@ -76,7 +76,8 @@ This file auto-generated: just get-impl-status
         ";." => conj(";.", c_cut),
         "!:" => conj("!:", c_foreign),
         "\"" => conj("\"", c_quote),
-        "@" => conj("@", c_at),
+        "@" => conj("@", c_atop),
+        "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),
 
 ## Not Implemented Yet
@@ -88,7 +89,6 @@ This file auto-generated: just get-impl-status
         "$:" => not_impl("$:"),
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
-        "[:" => not_impl("[:"),
         "C.!.2" => not_impl("C.!.2"),
         "E." => not_impl("E."),
         "L." => not_impl("L."),
@@ -118,30 +118,6 @@ This file auto-generated: just get-impl-status
         "9" => not_impl("9"),
         "u." => not_impl("u."),
         "v." => not_impl("v."),
-        "NB." => not_impl("NB."),
-        "{{" => not_impl("{{"),
-        "}}" => not_impl("}}"),
-        "assert." => not_impl("assert."),
-        "break." => not_impl("break."),
-        "continue." => not_impl("continue."),
-        "else." => not_impl("else."),
-        "elseif." => not_impl("elseif."),
-        "for." => not_impl("for."),
-        "for_ijk." => not_impl("for_ijk."), // TODO handle ijk label properly
-        "goto_lbl." => not_impl("goto_lbl."), // TODO handle lbl properly
-        "label_lbl." => not_impl("label_lbl."), // TODO handle lbl properly
-        "if." => not_impl("if."),
-        "return." => not_impl("return."),
-        "select." => not_impl("select."),
-        "case." => not_impl("case."),
-        "fcase." => not_impl("fcase."),
-        "throw." => not_impl("throw."),
-        "try." => not_impl("try."),
-        "catch." => not_impl("catch."),
-        "catchd." => not_impl("catchd."),
-        "catcht." => not_impl("catcht."),
-        "while." => not_impl("while."),
-        "whilst." => not_impl("whilst."),
         "\\" => adverb("\\", a_not_implemented),
         "\\." => adverb("\\.", a_not_implemented),
         "]:" => adverb("]:", a_not_implemented),
@@ -158,7 +134,6 @@ This file auto-generated: just get-impl-status
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
         "@." => conj("@.", c_not_implemented),
-        "@:" => conj("@:", c_not_implemented),
         "&." => conj("&.", c_not_implemented),
         "&:" => conj("&:", c_not_implemented),
         "&.:" => conj("&.:", c_not_implemented),
@@ -188,7 +163,6 @@ pub fn v_natural_log(_y: &JArray) -> Result<JArray> {
 pub fn v_logarithm(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_magnitude(_y: &JArray) -> Result<JArray> {
 pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_factorial(_y: &JArray) -> Result<JArray> {
 pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_deal_fixed_seed(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_prime_factors(_y: &JArray) -> Result<JArray> {
@@ -233,7 +207,7 @@ pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_cycledirect(_y: &JArray) -> Result<JArray> {
 pub fn v_permute(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
-pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_steps(_y: &JArray) -> Result<JArray> {
 pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
