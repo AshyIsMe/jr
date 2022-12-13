@@ -324,25 +324,51 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
         .single_math_num()
         .ok_or(JError::NonceError)
         .context("atomic x")?;
-    match y.shape().len() {
-        2 => {
-            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
-            let mut nums = Vec::new();
-            for line in arr.outer_iter() {
-                let s: String = line.iter().collect();
-                // TODO: assumes x is 0
-                nums.push(Elem::Num(
-                    s.trim()
-                        .parse::<f64>()
+    let mut rows = Vec::new();
+    let mut push_row = |arr: ArrayViewD<char>| {
+        rows.push(
+            arr.iter()
+                .collect::<String>()
+                .split_whitespace()
+                .map(|s| {
+                    s.parse::<f64>()
                         .map(Num::Float)
                         .unwrap_or_else(|_| x.clone())
-                        .demote(),
-                ));
-            }
-            promote_to_array(nums)
+                })
+                .collect_vec(),
+        )
+    };
+
+    match y.shape().len() {
+        1 => {
+            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
+            push_row(arr.view());
         }
-        _ => Err(JError::NonceError).context("atomic x, table y only"),
+        2 => {
+            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
+            for line in arr.outer_iter() {
+                push_row(line);
+            }
+        }
+        _ => {
+            return Err(JError::NonceError)
+                .with_context(|| anyhow!("atomic x ({x:?}), table y ({y:?}) only"))
+        }
     }
+    if rows.is_empty() {
+        return Err(JError::NonceError).context("empty input?");
+    }
+    let width = rows.iter().map(|r| r.len()).max().expect("non-empty");
+    let mut nums = Vec::new();
+    for row in rows {
+        let gap = width - row.len();
+        nums.extend(row.into_iter().map(Num::demote).map(Elem::Num));
+        for _ in 0..gap {
+            nums.push(Elem::Num(x.clone()));
+        }
+    }
+
+    promote_to_array(nums)
 }
 
 /// ": (monad)
