@@ -128,7 +128,8 @@ fn infer_type(def: &[Word]) -> Result<char> {
 fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
-        'd' => Word::Verb("anon".to_string(), VerbImpl::Anonymous(def)),
+        'm' => Word::Verb("anon".to_string(), VerbImpl::Anonymous(false, def)),
+        'd' => Word::Verb("anon".to_string(), VerbImpl::Anonymous(true, def)),
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))

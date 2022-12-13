@@ -1,5 +1,50 @@
 [[runs]]
 expr = '''
+NB. should be pulled in from stdlib.ijs
+split =: ({. ,&< }.)
+
+s3 =: 0 : 0
+vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw
+)
+s3 =: (LF=s3) < ;._2 s3
+
+rucksacks =: (-:@# split ]) &> s3
+dups =: ([: ([: ~. e./ # {.) [: > -:@# split ]) &> s3
+alphabet =: a. {~ (96+i.27),(65+i.26)
+
+d3p1=: +/ alphabet i. dups
+
+NB. day 3 part 2
+
+groups =: _3 ]\ s3
+
+badge =: {{
+'s1 s2 s3'=. y
+~. s1 #~ (s1 e. s2) *. (s1 e. s3)
+}}
+
+badges =: badge"1 groups
+
+d3p2 =: +/ alphabet i. badges
+
+d3p1; d3p2
+'''
+output = '''
+┌───┬──┐
+│157│70│
+└───┴──┘'''
+encoded = '''
+e3,2,02,01,02,38,68,
+e3,04,01,01,01,9d,
+e3,04,01,01,01,46'''
+
+[[runs]]
+expr = '''
 a =: {{
 b =: 6
 x + b
@@ -73,26 +118,6 @@ s
 '''
 output = '5'
 encoded = 'e3,04,01,,05'
-
-[[runs]]
-expr = '''
-split =: ({. ,&< }.)
-s =: 0 : 0
-vJrwpWtwJgWrhcsFMMfFFhFp
-jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
-PmmdzqPrVvPwwTWBwg
-wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
-ttgJtRGJQctTZtZT
-CrZsJsPPZsGzwwsLwLmpwMDw
-)
-s =: (LF=s) < ;._2 s
-rucksacks =: (-:@# (split) ]) &> s
-dups =: ([: ([: ~. e./ # {.) [: > -:@# (split) ]) &> s
-alphabet =: a. {~ (96+i.27),(65+i.26)
-+/ alphabet i. dups
-'''
-output = '157'
-encoded = 'e3,04,01,01,01,9d'
 
 [[runs]]
 expr = '''

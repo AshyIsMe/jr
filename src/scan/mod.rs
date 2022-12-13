@@ -161,7 +161,7 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
     assert!(!sentence.contains('\n'));
     let mut it = sentence.chars().peekable();
     let base: String = it
-        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))
         .collect();
     let suffix = it.peek().filter(|c| matches!(c, '.' | ':')).copied();
 

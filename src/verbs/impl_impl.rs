@@ -40,7 +40,8 @@ pub struct PrimitiveImpl {
 pub enum VerbImpl {
     Primitive(PrimitiveImpl),
 
-    Anonymous(Vec<Word>),
+    // dyadic
+    Anonymous(bool, Vec<Word>),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -131,11 +132,20 @@ impl VerbImpl {
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
-            VerbImpl::Anonymous(words) => {
+            VerbImpl::Anonymous(dyadic, words) => {
                 // TODO: wrong, should have access to the global context
                 let mut ctx = Ctx::empty();
                 if let Some(x) = x {
+                    if !dyadic {
+                        return Err(JError::DomainError)
+                            .context("x provided for a monad-only verb");
+                    }
                     ctx.alias("x", x.clone());
+                } else {
+                    if *dyadic {
+                        return Err(JError::DomainError)
+                            .context("no x provided for a dyad-only verb");
+                    }
                 }
                 ctx.alias("y", y.clone());
                 eval_lines(words, &mut ctx)

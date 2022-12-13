@@ -436,13 +436,11 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             let (_frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
             let mut parts = Vec::new();
             for (x, y) in cells {
-                let l = v
-                    .exec(None, &Word::Noun(x))
-                    .context("under dual l")?;
-                let r = v
-                    .exec(None, &Word::Noun(y))
-                    .context("under dual r")?;
-                let u = u.exec(Some(&Word::Noun(l)), &Word::Noun(r)).context("under dual u")?;
+                let l = v.exec(None, &Word::Noun(x)).context("under dual l")?;
+                let r = v.exec(None, &Word::Noun(y)).context("under dual r")?;
+                let u = u
+                    .exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                    .context("under dual u")?;
                 let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
                 parts.push(vi);
             }
