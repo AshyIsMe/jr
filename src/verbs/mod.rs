@@ -141,8 +141,26 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// ; (monad)
-pub fn v_raze(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_raze(y: &JArray) -> Result<JArray> {
+    match y {
+        JArray::BoxArray(arr) if arr.shape().len() == 1 => {
+            let mut parts = Vec::new();
+            for arr in arr {
+                if arr.shape().len() > 1 {
+                    return Err(JError::NonceError).context("non-list inside a box");
+                }
+                parts.extend(arr.clone().into_elems());
+            }
+            let arr = promote_to_array(parts)?;
+            // hee hee hee, unatoming
+            Ok(if !arr.shape().is_empty() {
+                arr
+            } else {
+                JArray::from(arr.to_shape(IxDyn(&[1usize]))?)
+            })
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
+    }
 }
 
 /// ;: (monad)

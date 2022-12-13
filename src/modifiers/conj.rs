@@ -421,7 +421,6 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
                 parts.push(vi);
             }
-
             flatten(&parts.into_array()?).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {

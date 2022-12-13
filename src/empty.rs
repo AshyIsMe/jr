@@ -25,4 +25,7 @@ impl_empty!(BigInt, BigInt::zero());
 impl_empty!(BigRational, BigRational::zero());
 impl_empty!(f64, 0.);
 impl_empty!(Complex64, Complex64::zero());
-impl_empty!(JArray, JArray::BoolArray(Array::from_elem(IxDyn(&[0]), 0)));
+impl_empty!(
+    JArray,
+    JArray::BoolArray(Array::from_shape_vec(IxDyn(&[]), vec![0]).expect("static"))
+);

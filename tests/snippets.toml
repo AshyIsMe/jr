@@ -113,6 +113,27 @@ encoded = 'e3,02,1a,01,1a,68656c6c6f20776f,726c640a49206c6f,766520686f727365,730
 
 [[runs]]
 expr = '''
+s =: 0 : 0
+nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg
+)
+
+parse =: <
+general =: [: ; {{ x + 1 i.~ (x = [: #@:~. x {. ])\. y }} &.>
+a =: 4 general ]
+b =: 14 general ]
+(a parse s); (b parse s)
+'''
+output = '''
+┌──┬──┐
+│10│29│
+└──┴──┘'''
+encoded = '''
+e3,2,02,01,02,38,68,
+e3,04,01,01,01,0a,
+e3,04,01,01,01,1d'''
+
+[[runs]]
+expr = '''
 s =: 5
 s
 '''
