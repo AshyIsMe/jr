@@ -3,7 +3,7 @@ mod controls;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::{Ctx, Elem, Num};
+use crate::{Ctx, Elem, JArray, Num};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
@@ -12,7 +12,7 @@ use num_traits::Zero;
 use crate::error::JError;
 use crate::eval::controls::resolve_controls;
 use crate::modifiers::ModifierImpl;
-use crate::verbs::VerbImpl;
+use crate::verbs::{v_open, VerbImpl};
 use crate::Word::{self, *};
 
 #[derive(Clone, Debug)]
@@ -392,6 +392,27 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("7 Is Local Name w");
                 ctx.alias(n, w.clone());
                 Ok(vec![w.clone(), any])
+            }
+            (Noun(names), IsLocal, w, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                let Noun(arr) = w else { return Err(JError::NonceError).context("non-noun on the right of noun assignment"); };
+                let JArray::CharArray(names) = names else { return Err(JError::NonceError).context("assigning to char arrays only please"); };
+                if names.shape().len() != 1 {
+                    return Err(JError::NonceError)
+                        .context("lists of chars (strings), not multi-dimensional char arrays");
+                }
+                // presumably this is supposed to be "words"
+                let names = names.iter().collect::<String>();
+                let names = names.split_whitespace().collect_vec();
+                if arr.shape()[0] != names.len() {
+                    return Err(JError::LengthError).context("wrong number of names for an array");
+                }
+
+                for (name, val) in names.into_iter().zip(arr.outer_iter()) {
+                    ctx.alias(name, Noun(v_open(&JArray::from(val))?));
+                }
+                Ok(vec![any])
             }
             (Name(n), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
