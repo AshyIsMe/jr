@@ -382,6 +382,11 @@ output = '0'
 encoded = 'e3,01,01,,'
 
 [[runs]]
+expr = "0 \". 'addx 15 '"
+output = '0 15'
+encoded = 'e3,04,02,01,02,,0f'
+
+[[runs]]
 expr = '0 $ 0'
 output = ''
 encoded = 'e3,01,,01,,'

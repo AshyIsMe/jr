@@ -289,6 +289,7 @@ NB. numbers
 0". 4 1 $ '1001'
 0". 2 2 $ '0101'
 0". 2 3 $ '1.5101'
+0 ". 'addx 15 '
 NB. we compute an atom 'cos we just guessed the reshape: 0". 1 4 $ '1001'
 
 NB. do
