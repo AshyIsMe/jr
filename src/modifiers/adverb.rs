@@ -80,6 +80,16 @@ pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     }
 }
 
+fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
+    flatten(
+        &chunk
+            .iter()
+            .map(|arr| JArray::from(arr.clone()))
+            .collect_vec()
+            .into_array()?,
+    )
+}
+
 /// (0 _)
 pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, u, y) {
@@ -93,12 +103,7 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                 .context("infix needs an int")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                let chunk = chunk
-                    .iter()
-                    .map(|arr| JArray::from(arr.clone()))
-                    .collect_vec();
-                let chunk = flatten(&chunk.into_array()?)?;
-                piece.push(u.exec(None, &Word::Noun(chunk))?);
+                piece.push(u.exec(None, &Word::Noun(flatten_partial(chunk)?))?);
                 Ok(())
             };
 
@@ -113,6 +118,21 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                 }
             }
 
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
+    }
+}
+
+/// (_ 0 _)
+pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, u, y) {
+        (None, Word::Verb(_, u), Word::Noun(y)) => {
+            let y = y.outer_iter();
+            let mut piece = Vec::new();
+            for i in 0..y.len() {
+                piece.push(u.exec(None, &Word::Noun(flatten_partial(&y[i..])?))?);
+            }
             flatten(&piece.into_array()?).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),

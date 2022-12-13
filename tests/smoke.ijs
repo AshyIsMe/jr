@@ -225,6 +225,11 @@ _2 [\ ('aba';'XYZT';'ba';'+')
 _3 <\ 'abcdefg'
  3 <\ 'abcdefgh'
 
+NB. suffix / outfix
+<\. (1 2 3 4 5)
+(4&{.)\. 'potato'
+
+
 NB. same / left / right
 ] i. 2 3
 [ 'abcde'
@@ -254,6 +259,9 @@ NB. link
 (<'abc');(<'def');(<'ghi')
 (<'abc');(<'def');<(<'ghi')
 
+NB. raze
+; 1 2 3; 4 5 6; 7 8 9
+; (1 $ < (1 $ 1))
 
 NB. cut
 $;._2 (1 2 0 0 1 0)
