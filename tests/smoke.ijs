@@ -223,6 +223,7 @@ NB. self classify
 NB. infix
 _2 [\ ('aba';'XYZT';'ba';'+')
 _3 <\ 'abcdefg'
+ 3 <\ 'abcdefgh'
 
 NB. same / left / right
 ] i. 2 3
