@@ -18,15 +18,15 @@ use super::maff::*;
 
 /// = (dyad)
 pub fn v_equal(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0eb(x, y, |x, y| x == y)
+    d00eb(x, y, |x, y| x == y)
 }
 
 /// < (dyad)
 pub fn v_less_than(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match x.partial_cmp(&y) {
-        Some(Ordering::Less) => Ok(Num::Bool(1)),
+    d00erb(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Less) => Ok(true),
         None => Err(JError::DomainError).context("non-comparable number"),
-        _ => Ok(Num::Bool(0)),
+        _ => Ok(false),
     })
 }
 
@@ -49,7 +49,7 @@ pub fn v_floor(y: &JArray) -> Result<JArray> {
 }
 /// <. (dyad)
 pub fn v_lesser_of_min(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+    d00ere(x, y, |x, y| match x.partial_cmp(&y) {
         Some(Ordering::Less) | Some(Ordering::Equal) => Ok(x),
         Some(Ordering::Greater) => Ok(y),
         None => Err(JError::DomainError).context("non-comparable number"),
@@ -68,10 +68,10 @@ pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// > (dyad)
 pub fn v_larger_than(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match x.partial_cmp(&y) {
-        Some(Ordering::Greater) => Ok(Num::Bool(1)),
+    d00erb(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) => Ok(true),
         None => Err(JError::DomainError).context("non-comparable number"),
-        _ => Ok(Num::Bool(0)),
+        _ => Ok(false),
     })
 }
 
@@ -95,7 +95,7 @@ pub fn v_ceiling(y: &JArray) -> Result<JArray> {
 
 /// >. (dyad)
 pub fn v_larger_of_max(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match x.partial_cmp(&y) {
+    d00ere(x, y, |x, y| match x.partial_cmp(&y) {
         Some(Ordering::Greater) | Some(Ordering::Equal) => Ok(x),
         Some(Ordering::Less) => Ok(y),
         None => Err(JError::DomainError).context("non-comparable number"),
@@ -122,7 +122,7 @@ pub fn v_conjugate(y: &JArray) -> Result<JArray> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x + y))
+    d00nrn(x, y, |x, y| Ok(x + y))
 }
 
 /// +. (monad)
@@ -149,7 +149,7 @@ pub fn v_double(y: &JArray) -> Result<JArray> {
 }
 /// +: (dyad)
 pub fn v_not_or(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+    d00nrn(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
         (Some(x), Some(y)) => Ok(Num::bool(!(x || y))),
         _ => Err(JError::DomainError).context("boolean operators only accept zeros and ones"),
     })
@@ -175,7 +175,7 @@ pub fn v_signum(y: &JArray) -> Result<JArray> {
 }
 /// * (dyad)
 pub fn v_times(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x * y))
+    d00nrn(x, y, |x, y| Ok(x * y))
 }
 
 /// *. (monad)
@@ -208,7 +208,7 @@ pub fn v_square(y: &JArray) -> Result<JArray> {
 }
 /// *: (dyad)
 pub fn v_not_and(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+    d00nrn(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
         (Some(x), Some(y)) => Ok(Num::bool(!(x && y))),
         _ => Err(JError::DomainError).context("boolean operators only accept zeros and ones"),
     })
@@ -220,7 +220,7 @@ pub fn v_negate(y: &JArray) -> Result<JArray> {
 }
 /// - (dyad)
 pub fn v_minus(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x - y))
+    d00nrn(x, y, |x, y| Ok(x - y))
 }
 
 /// -. (monad)
@@ -249,7 +249,7 @@ pub fn v_reciprocal(y: &JArray) -> Result<JArray> {
 
 /// % (dyad)
 pub fn v_divide(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x / y))
+    d00nrn(x, y, |x, y| Ok(x / y))
 }
 
 /// %. (monad)
@@ -297,7 +297,7 @@ pub fn v_exponential(y: &JArray) -> Result<JArray> {
 
 /// ^ (dyad)
 pub fn v_power(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| {
+    d00nrn(x, y, |x, y| {
         // TODO: incomplete around complex and return types
         match (x.approx_f64(), y.approx_f64()) {
             (Some(x), Some(y)) => Ok(x.powf(y).into()),
@@ -318,7 +318,7 @@ pub fn v_logarithm(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// ~: (dyad)
 pub fn v_not_equal(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0eb(x, y, |x, y| x != y)
+    d00eb(x, y, |x, y| x != y)
 }
 
 /// | (monad)
@@ -331,9 +331,17 @@ pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-/// ! (monad)
-pub fn v_factorial(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+/// ! (monad) (0)
+pub fn v_factorial(y: &JArray) -> Result<JArray> {
+    m0nrn(y, |y| {
+        let y = i64::try_from(
+            y.value_len()
+                .ok_or(JError::NonceError)
+                .context("integers only")?,
+        )
+        .context("oh you poor soul")?;
+        Ok((1..=y).map(|x| x as f64).product::<f64>().into())
+    })
 }
 
 /// ! (dyad)

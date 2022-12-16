@@ -91,7 +91,8 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 /// , (dyad)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
-        return Err(JError::NonceError).context("can only append atoms or lists");
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));
     }
 
     // TODO: jsoft rejects (DomainError) a bunch of cases promote_to_array accepts

@@ -1,6 +1,7 @@
 use crate::test_impls::jsoft_binary;
+use crate::test_impls::jsoft_binary::parse_hex;
 use crate::JArray;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -22,18 +23,22 @@ pub struct Run {
 fn capture(expr: impl AsRef<str>) -> Result<Run> {
     let expr = expr.as_ref();
     let debug_expr = insert_debug(expr)?;
+    let output = run_j(expr).with_context(|| anyhow!("{expr}"))?;
     Ok(Run {
         expr: expr.to_string(),
-        output: run_j(expr).with_context(|| anyhow!("{expr}"))?,
         encoded: run_j(&debug_expr)
             .context(debug_expr)?
             .lines()
             // most of the values are like "e800000000000000". toml lists are very verbose.
             // strip the trailing zeros and just join them with a comma
+            .map(|x| if parse_hex(x).is_ok() { Ok(x) } else { bail!("invalid value in j output, {x:?}, normally this means the program failed to end with an expression, or returns an error. J said:\n{output}")})
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
             .map(|s| s.trim_end_matches('0'))
             .join(",")
             // e3 is the object marker; this doesn't matter, but makes diffs a little nicer
             .replace(",e3", ",\ne3"),
+        output,
     })
 }
 

@@ -7,7 +7,7 @@ mod ranks;
 use crate::number::{promote_to_array, Num};
 use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Context, ensure, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
@@ -353,8 +353,16 @@ pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// e. (dyad)
-pub fn v_member_in(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
+    let ido = v_index_of(y, x).context("member in idot")?;
+    let tally = Num::Int(i64::try_from(y.len())?);
+    ensure!(ido.shape().len() == 1);
+
+    // promote is laziness, it's a list of bools already
+    promote_to_array(ido.into_nums().ok_or(JError::NonceError).context("v_index_of returns numbers")?
+        .into_iter()
+        .map(|n| Elem::Num(Num::bool(n < tally)))
+        .collect())
 }
 
 /// i. (monad)
@@ -422,7 +430,7 @@ pub fn v_imaginary(y: &JArray) -> Result<JArray> {
 }
 /// j. (dyad)
 pub fn v_complex(x: &JArray, y: &JArray) -> Result<JArray> {
-    rank0(x, y, |x, y| Ok(x + (Num::i() * y)))
+    d00nrn(x, y, |x, y| Ok(x + (Num::i() * y)))
 }
 
 /// o. (monad)

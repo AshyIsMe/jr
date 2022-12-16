@@ -147,21 +147,39 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
             continue;
         }
 
-        match (arr.shape().len(), target_inner_shape.len()) {
-            (0, 1) => {
-                // atom
-                big_daddy.extend(arr.clone().into_elems());
-                for _ in 1..target_inner_shape[0] {
-                    big_daddy.push(Elem::Num(Num::zero()));
-                }
-            }
-            (1, 1) => {
-                let current = arr.shape()[0];
+        let rank_extended_shape = (0..(target_inner_shape.len() - arr.shape().len()))
+            .map(|_| &1)
+            .chain(arr.shape())
+            .copied()
+            .collect_vec();
+
+        // TODO: guess what, more clones
+        let arr: JArray = arr
+            .to_shape(rank_extended_shape)
+            .context("rank extension")?
+            .into();
+        let shape = arr.shape();
+        assert_eq!(shape.len(), target_inner_shape.len());
+
+        match shape.len() {
+            1 => {
+                let current = shape[0];
                 let target = target_inner_shape[0];
                 assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
                 big_daddy.extend(arr.clone().into_elems());
                 for _ in current..target {
                     big_daddy.push(Elem::Num(Num::zero()));
+                }
+            }
+            2 if shape[0] < target_inner_shape[0] && shape[1] == target_inner_shape[1] => {
+                for sub in arr.outer_iter() {
+                    big_daddy.extend(JArray::from(sub).into_elems());
+                }
+                for _ in shape[0]..target_inner_shape[0] {
+                    // only tested this for shape[1] == 1 lolol
+                    for _ in 0..shape[1] {
+                        big_daddy.push(Elem::Num(Num::zero()));
+                    }
                 }
             }
             _ => {

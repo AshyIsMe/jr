@@ -43,6 +43,26 @@ encoded = 'e3,04,01,,05'
 
 [[runs]]
 expr = '''
+split =: ({. ,&< }.)
+s =: 0 : 0
+vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw
+)
+s =: (LF=s) < ;._2 s
+rucksacks =: (-:@# (split) ]) &> s
+dups =: ([: ([: ~. e./ # {.) [: > -:@# (split) ]) &> s
+alphabet =: a. {~ (96+i.27),(65+i.26)
++/ alphabet i. dups
+'''
+output = '157'
+encoded = 'e3,04,01,01,01,9d'
+
+[[runs]]
+expr = '''
 y=: 3 3 $ 'abcdef'
 y ; (~.y) ; (=y)
 '''

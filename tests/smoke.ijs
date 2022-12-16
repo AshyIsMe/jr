@@ -218,6 +218,9 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. cap
+2 (>. % [: <. + * -) 2
+
 NB. append
 5,3
 5,3 6
@@ -272,13 +275,21 @@ NB. do
 ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. atop / at
+#@> 'Newton';'Einstein'
+2 3 <@, 4 5
+(1 2 3 4) */ @  + (7 5 3 2)
+(1 2 3 4) */ @: + (7 5 3 2)
+
 NB. bondo
 1&+ 5
 (+&1) 5
 *:&+: 3 4 5
 +/&+: 3 4 5
-NB. dyad: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
-NB. some of [] not working right? 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
+!5
+3 +&! 4
+NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
+'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
 
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
@@ -292,3 +303,9 @@ NB. AoC
 >./ +/ "1 >        ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 >./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 +/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
+6 }. 'helicopter'
+6 {. 'helicopter'
+(<'helico'),(<'pter')
+'helico' ,&< 'pter'
+6 ({. ,&< }.) 'helicopter'
+'cat' e. 'abcd'
