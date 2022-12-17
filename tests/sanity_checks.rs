@@ -443,6 +443,10 @@ fn test_link() {
         .unwrap()
     );
 }
+#[test]
+fn test_link_insert() {
+    assert_eq!(scan_eval(";/i.5").unwrap(), scan_eval("0;1;2;3;4").unwrap());
+}
 
 #[test]
 fn test_jarray_rank_iter() {
