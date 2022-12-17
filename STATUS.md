@@ -4,10 +4,8 @@ This file auto-generated: just get-impl-status
 
 ## Implemented Verbs
         "=" => primitive("=", v_self_classify, v_equal, (inf, 0, 0)),
-        "<" => primitive("<", v_box, v_less_than, (inf, 0, 0)),
         "<." => primitive("<.", v_floor, v_lesser_of_min, (0, 0, 0)),
         "<:" => primitive("<:", v_decrement, v_less_or_equal, (0, 0, 0)),
-        ">" => primitive(">", v_open, v_larger_than, (0, 0, 0)),
         ">." => primitive(">.", v_ceiling, v_larger_of_max, (0, 0, 0)),
         ">:" => primitive(">:", v_increment, v_larger_or_equal, (0, 0, 0)),
         "+" => primitive("+", v_conjugate, v_plus, (0, 0, 0)),
@@ -23,7 +21,6 @@ This file auto-generated: just get-impl-status
         "%." => primitive("%.", v_matrix_inverse, v_matrix_divide, (2, inf, 2)),
         "%:" => primitive("%:", v_square_root, v_root, (0, 0, 0)),
         "^" => primitive("^", v_exponential, v_power, (0, 0, 0)),
-        "^." => primitive("^.", v_natural_log, v_logarithm, (0, 0, 0)),
         "$" => primitive("$", v_shape_of, v_shape, (inf, 1, inf)),
         "~:" => primitive("~:", v_nub_sieve, v_not_equal, (inf, 0, 0)),
         "|" => primitive("|", v_magnitude, v_residue, (0, 0, 0)),
@@ -65,11 +62,14 @@ This file auto-generated: just get-impl-status
         "q:" => primitive("q:", v_prime_factors, v_prime_exponents, (0, 0, 0)),
         "r." => primitive("r.", v_angle, v_polar, (0, 0, 0)),
         "x:" => primitive("x:", v_extend_precision, v_num_denom, (inf, inf, inf)),
+        "E." => primitive("E.", v_not_exist_monad, v_member_interval, (inf, inf, inf)),
 
 ## Implemented Adverbs
         "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
         "/." => adverb("/.", a_slash_dot),
+        "\\" => adverb("\\", a_backslash),
+        "\\." => adverb("\\.", a_suffix_outfix),
 
 ## Implemented Conjunctions
         "^:" => conj("^:", c_hatco),
@@ -79,10 +79,9 @@ This file auto-generated: just get-impl-status
         "@" => conj("@", c_atop),
         "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),
+        "&." => conj("&.", c_under),
 
 ## Not Implemented Yet
-        //"=." => not_impl("=."), IsLocal
-        //"=:" => not_impl("=:"), IsGlobal
         "_:" => not_impl("_:"),
         "^!." => not_impl("^!."),
         "$." => not_impl("$."),
@@ -90,7 +89,6 @@ This file auto-generated: just get-impl-status
         ".:" => not_impl(".:"),
         ".." => not_impl(".."),
         "C.!.2" => not_impl("C.!.2"),
-        "E." => not_impl("E."),
         "L." => not_impl("L."),
         "p:" => not_impl("p:"),
         "s:" => not_impl("s:"),
@@ -118,8 +116,6 @@ This file auto-generated: just get-impl-status
         "9" => not_impl("9"),
         "u." => not_impl("u."),
         "v." => not_impl("v."),
-        "\\" => adverb("\\", a_not_implemented),
-        "\\." => adverb("\\.", a_not_implemented),
         "]:" => adverb("]:", a_not_implemented),
         "}" => adverb("}", a_not_implemented),
         "b." => adverb("b.", a_not_implemented),
@@ -134,7 +130,6 @@ This file auto-generated: just get-impl-status
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
         "@." => conj("@.", c_not_implemented),
-        "&." => conj("&.", c_not_implemented),
         "&:" => conj("&:", c_not_implemented),
         "&.:" => conj("&.:", c_not_implemented),
         "d." => conj("d.", c_not_implemented),
@@ -155,12 +150,10 @@ This file auto-generated: just get-impl-status
 pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_gcd_or(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_lcm_and(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_matrix_inverse(_y: &JArray) -> Result<JArray> {
 pub fn v_matrix_divide(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_root(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_natural_log(_y: &JArray) -> Result<JArray> {
-pub fn v_logarithm(_x: &JArray, _y: &JArray) -> Result<JArray> {
+pub fn v_logarithm(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_magnitude(_y: &JArray) -> Result<JArray> {
 pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -175,6 +168,7 @@ pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
+pub fn v_not_exist_monad(_y: &JArray) -> Result<JArray> {
 pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_self_classify(y: &JArray) -> Result<JArray> {
 pub fn v_less(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -185,7 +179,6 @@ pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_ravel_items(_y: &JArray) -> Result<JArray> {
 pub fn v_itemize(_y: &JArray) -> Result<JArray> {
 pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_raze(_y: &JArray) -> Result<JArray> {
 pub fn v_words(_y: &JArray) -> Result<JArray> {
 pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_base_(_y: &JArray) -> Result<JArray> {
@@ -209,6 +202,7 @@ pub fn v_permute(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
 pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_steps(_y: &JArray) -> Result<JArray> {
 pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_indices(_y: &JArray) -> Result<JArray> {
