@@ -15,7 +15,7 @@ use crate::{arr0d, Word};
 
 pub type BoxArray = ArrayD<JArray>;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub enum JArray {
     BoolArray(ArrayD<u8>),
     CharArray(ArrayD<char>),
@@ -40,6 +40,16 @@ impl fmt::Debug for JArray {
             ComplexArray(a) => write!(f, "ComplexArray({a})"),
             BoxArray(a) => write!(f, "BoxArray({a})"),
         }
+    }
+}
+
+impl PartialEq for JArray {
+    fn eq(&self, other: &Self) -> bool {
+        if self.shape() != other.shape() || self.len() != other.len() {
+            return false;
+        }
+
+        self.clone().into_elems() == other.clone().into_elems()
     }
 }
 
