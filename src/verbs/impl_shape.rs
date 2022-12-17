@@ -12,7 +12,7 @@ use ndarray::{Axis, Slice};
 
 use crate::arrays::Arrayable;
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, impl_array, IntoJArray, JArray, JError};
+use crate::{arr0d, flatten, impl_array, HasEmpty, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -255,7 +255,20 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                             _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
                         }
                     } else {
-                        y.select(Axis(0), &(0..x).collect_vec())
+                        let y_len_zero = y.len_of(Axis(0));
+                        if x <= y_len_zero {
+                            y.select(Axis(0), &(0..x).collect_vec())
+                        } else {
+                            flatten(
+                                &y.outer_iter()
+                                    .into_iter()
+                                    .map(JArray::from)
+                                    .chain(iter::repeat(JArray::empty()))
+                                    .take(x)
+                                    .collect_vec()
+                                    .into_array()?,
+                            )?
+                        }
                     }
                 }
             })

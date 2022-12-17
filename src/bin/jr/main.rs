@@ -63,7 +63,9 @@ fn eval(buffer: &str, ctx: &mut Ctx) -> Result<EvalState> {
     match feed(buffer, ctx) {
         //Ok(output) => println!("{:?}", output),
         Ok(EvalOutput::Regular(output)) => println!("{}", output),
-        Ok(EvalOutput::Suspension) => return Ok(EvalState::MoreInput),
+        Ok(EvalOutput::Suspension) | Ok(EvalOutput::InDefinition) => {
+            return Ok(EvalState::MoreInput)
+        }
         Err(e) => {
             warn!("{:?}", e);
             let mut stack: VecDeque<_> = e.chain().rev().collect();

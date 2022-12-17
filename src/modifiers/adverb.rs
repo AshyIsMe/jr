@@ -1,10 +1,12 @@
 use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
 
+use crate::arrays::JArrayCow;
 use crate::modifiers::c_atop;
 use crate::verbs::v_self_classify;
-use crate::{JError, Word};
+use crate::{flatten, Arrayable, JArray, JError, Word};
 
 pub type AdverbFn = fn(Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -75,5 +77,64 @@ pub fn a_slash_dot(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
             )
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
+    }
+}
+
+fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
+    flatten(
+        &chunk
+            .iter()
+            .map(|arr| JArray::from(arr.clone()))
+            .collect_vec()
+            .into_array()?,
+    )
+}
+
+/// (0 _)
+pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, u, y) {
+        (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
+            let x = x
+                .single_math_num()
+                .ok_or(JError::DomainError)
+                .context("infix needs a number")?
+                .value_i64()
+                .ok_or(JError::DomainError)
+                .context("infix needs an int")?;
+            let mut piece = Vec::new();
+            let mut f = |chunk: &[JArrayCow]| -> Result<()> {
+                piece.push(u.exec(None, &Word::Noun(flatten_partial(chunk)?))?);
+                Ok(())
+            };
+
+            let size = usize::try_from(x.abs())?;
+            if x < 0 {
+                for chunk in y.outer_iter().chunks(size) {
+                    f(chunk)?;
+                }
+            } else {
+                for chunk in y.outer_iter().windows(size) {
+                    f(chunk)?;
+                }
+            }
+
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
+    }
+}
+
+/// (_ 0 _)
+pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    match (x, u, y) {
+        (None, Word::Verb(_, u), Word::Noun(y)) => {
+            let y = y.outer_iter();
+            let mut piece = Vec::new();
+            for i in 0..y.len() {
+                piece.push(u.exec(None, &Word::Noun(flatten_partial(&y[i..])?))?);
+            }
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
 }

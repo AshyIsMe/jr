@@ -122,6 +122,7 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
     // }
 
     // max(all results)
+    // TODO: max isn't sufficient here, we need to max each dimension after creating dimensions via. rank extension, I think
     let target_inner_shape = results
         .iter()
         .map(|x| x.shape())

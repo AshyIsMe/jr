@@ -134,6 +134,14 @@ NB. length angle
 NB. test framework fails for float comparison: *. 3j4
 NB. test framework fails for float comparison: *. 3j4 5r2
 
+NB. lcm / and
+3 *. 1
+1 *. 0
+0 *. 1
+0 *. 0
+1 *. 1
+64 *. 2
+
 NB. square
 *: 2 3 4
 *: 2.1 4.3
@@ -212,6 +220,16 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. infix
+_2 [\ ('aba';'XYZT';'ba';'+')
+_3 <\ 'abcdefg'
+ 3 <\ 'abcdefgh'
+
+NB. suffix / outfix
+<\. (1 2 3 4 5)
+(4&{.)\. 'potato'
+
+
 NB. same / left / right
 ] i. 2 3
 [ 'abcde'
@@ -241,6 +259,9 @@ NB. link
 (<'abc');(<'def');(<'ghi')
 (<'abc');(<'def');<(<'ghi')
 
+NB. raze
+; 1 2 3; 4 5 6; 7 8 9
+; (1 $ < (1 $ 1))
 
 NB. cut
 $;._2 (1 2 0 0 1 0)
@@ -268,11 +289,12 @@ NB. numbers
 0". 4 1 $ '1001'
 0". 2 2 $ '0101'
 0". 2 3 $ '1.5101'
+0 ". 'addx 15 '
 NB. we compute an atom 'cos we just guessed the reshape: 0". 1 4 $ '1001'
 
 NB. do
 ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
-". '{{ x }}'
+NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
 NB. atop / at
@@ -291,9 +313,24 @@ NB. bondo
 NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
 
+NB. ampdot
+NB. floats: 3 +&.^. 4
+i.&.> (1;2;2 3)
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
+
+NB. member interval
+'co' E. 'cocoa'
+
+NB. NB.
+NB. NB. at the start of a line is handled by the test framework today.
+5 NB. 6
+5 NB. it's a boy!
+
+NB. controls
+3 {{ x + y }} 5
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'

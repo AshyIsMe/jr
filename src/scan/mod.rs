@@ -1,6 +1,8 @@
 mod litnum;
+#[cfg(test)]
+mod test_weird;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
@@ -24,10 +26,23 @@ pub fn scan(sentence: &str) -> Result<Vec<Word>> {
 
 pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
     let mut words: Vec<(Pos, Word)> = Vec::new();
+    let mut loc_off = 0;
+    for line in sentence.split('\n') {
+        words.extend(
+            scan_one_line(line)?
+                .into_iter()
+                .map(|((ps, pe), word)| ((ps + loc_off, pe + loc_off), word)),
+        );
+        loc_off += line.len();
+        words.push(((loc_off, loc_off), Word::NewLine));
+    }
+    let _ = words.pop();
+    Ok(words)
+}
 
+fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
+    let mut words: Vec<(Pos, Word)> = Vec::new();
     let mut skip: usize = 0;
-
-    //TODO support multiline definitions.
     for (i, c) in sentence.chars().enumerate() {
         if skip > 0 {
             skip -= 1;
@@ -55,6 +70,9 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
+                if matches!(t, Word::Comment) {
+                    break;
+                }
                 words.push(((i, i + l), t));
                 skip = l;
                 continue;
@@ -71,8 +89,9 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 }
 
 fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     if sentence.len() < 2 {
-        return Err(JError::custom("Empty literal string"));
+        return Err(JError::OpenQuote).context("quote followed by nothing");
     }
 
     let mut l: usize = usize::MAX;
@@ -91,11 +110,12 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
                 false => prev_c_is_quote = true,
             },
             '\n' => {
+                // this parser doesn't see new lines, I don't think?
                 if prev_c_is_quote {
                     l -= 1;
                     break;
                 } else {
-                    return Err(JError::custom("open quote"));
+                    return Err(JError::OpenQuote).context("new line byte in string");
                 }
             }
             _ => match prev_c_is_quote {
@@ -107,6 +127,9 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
                 false => (), //still valid keep iterating
             },
         }
+    }
+    if !prev_c_is_quote {
+        return Err(JError::OpenQuote).context("finished parsing while in a string");
     }
 
     assert!(l <= sentence.chars().count(), "l past end of string: {}", l);
@@ -135,9 +158,10 @@ pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     let mut it = sentence.chars().peekable();
     let base: String = it
-        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '_'))
+        .peeking_take_while(|c| matches!(c, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_'))
         .collect();
     let suffix = it.peek().filter(|c| matches!(c, '.' | ':')).copied();
 
@@ -154,9 +178,19 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
 }
 
 fn scan_primitive(sentence: &str) -> Result<(usize, Word)> {
+    assert!(!sentence.contains('\n'));
     if sentence.is_empty() {
         return Err(JError::custom("Empty primitive"));
     }
+
+    if let Some(kinded) = sentence.strip_prefix("{{)") {
+        let mode = kinded
+            .chars()
+            .next()
+            .ok_or_else(|| anyhow!("unexpected empty type in kinded direct definition"))?;
+        return Ok((3 + mode.len_utf8(), Word::DirectDef(mode)));
+    }
+
     let l = identify_primitive(sentence);
     let term = sentence.chars().take(l + 1).collect::<String>();
     Ok((
@@ -188,9 +222,24 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     } else if let Some(c) = primitive_conjunctions(sentence) {
         Word::Conjunction(sentence.to_string(), c)
     } else {
+        if let Some(x) = sentence.strip_prefix("for_") {
+            if let Some(x) = x.strip_suffix(".") {
+                return Ok(Some(Word::For(Some(x.to_string()))));
+            }
+        }
         match sentence {
             "=:" => Word::IsGlobal,
             "=." => Word::IsLocal,
+            "{{" => Word::DirectDefUnknown,
+            "}}" => Word::DirectDefEnd,
+            "if." => Word::If,
+            "do." => Word::Do,
+            "else." => Word::Else,
+            "elseif." => Word::ElseIf,
+            "end." => Word::End,
+            "for." => Word::For(None),
+            "while." => Word::While,
+            "NB." => Word::Comment,
             _ => return Ok(None),
         }
     }))
@@ -199,7 +248,8 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 #[cfg(test)]
 mod tests {
     use super::{scan, Word};
-    use crate::scan::identify_primitive;
+    use crate::scan::{identify_primitive, scan_litstring};
+    use crate::JError;
 
     fn ident(sentence: &str) -> usize {
         // oh god please
@@ -230,6 +280,18 @@ mod tests {
         assert_eq!(1, ident("}a"));
         assert_eq!(1, ident("a{{"));
         assert_eq!(1, ident("a}}"));
+    }
+
+    #[test]
+    fn unclosed_string() {
+        assert!(matches!(
+            JError::extract(&scan_litstring("' 123").unwrap_err()),
+            Some(JError::OpenQuote)
+        ));
+        assert!(matches!(
+            JError::extract(&scan_litstring("'").unwrap_err()),
+            Some(JError::OpenQuote)
+        ));
     }
 
     #[test]

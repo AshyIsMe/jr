@@ -20,12 +20,31 @@ pub enum Word {
     Nothing,     // used as placeholder when parsing
     Name(String),
 
+    NewLine,
+
     IsLocal,
     IsGlobal,
     Noun(JArray),
     Verb(String, VerbImpl),
     Adverb(String, ModifierImpl),
     Conjunction(String, ModifierImpl),
+    IfBlock(Vec<Word>),
+    ForBlock(Option<String>, Vec<Word>),
+    WhileBlock(Vec<Word>),
+
+    Comment,
+    DirectDefUnknown, // {{
+    DirectDef(char),  // {{)n
+    DirectDefEnd,     // }}
+
+    If,
+    Do,
+    Else,
+    ElseIf,
+    End,
+
+    For(Option<String>),
+    While,
 }
 
 impl Word {
@@ -42,6 +61,21 @@ impl Word {
             v.to_string(),
             primitive_verbs(v).expect("static verbs should be valid"),
         )
+    }
+
+    pub fn is_control_symbol(&self) -> bool {
+        use Word::*;
+        match self {
+            DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
+            If | Do | Else | ElseIf | End => true,
+            For(_) | While => true,
+            LP | RP | Name(_) | IsLocal | IsGlobal => false,
+            Verb(_, _) | Noun(_) | Adverb(_, _) | Conjunction(_, _) => false,
+            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) => false,
+            NewLine => false,
+            StartOfLine | Nothing => false,
+            Comment => unreachable!("should have been removed from the stream by now"),
+        }
     }
 }
 

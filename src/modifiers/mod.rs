@@ -27,7 +27,7 @@ impl ModifierImpl {
             ModifierImpl::Conjunction(c) => {
                 (c.f)(x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
-            ModifierImpl::DerivedAdverb { l: _l, r: _r } => bail!("TODO: DerivedAdverb"),
+            ModifierImpl::DerivedAdverb { l, r } => bail!("TODO: DerivedAdverb l: {l:?} r: {r:?}"),
         }
     }
 

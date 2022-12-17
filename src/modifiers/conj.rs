@@ -6,8 +6,9 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
+use crate::cells::monad_cells;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{arr0d, eval, Ctx, IntoJArray, Num};
+use crate::{arr0d, eval, generate_cells, Ctx, IntoJArray, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -402,5 +403,48 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 .context("central bondo NVV")
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("bondo x:{x:?} n:{n:?} m:{m:?}")),
+    }
+}
+
+pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (x, n, m, y) {
+        (None, Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
+            let (cells, _frame) = monad_cells(y, Rank::zero())?;
+            let vi = v
+                .obverse()
+                .ok_or(JError::NonceError)
+                .context("lacking obverse")?;
+            let mut parts = Vec::new();
+            for y in cells {
+                let v = v.exec(None, &Word::Noun(y)).context("under dual v")?;
+                let u = u.exec(None, &Word::Noun(v)).context("under dual u")?;
+                let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
+                parts.push(vi);
+            }
+            flatten(&parts.into_array()?).map(Word::Noun)
+        }
+        (Some(Word::Noun(x)), Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
+            let vi = v
+                .obverse()
+                .ok_or(JError::NonceError)
+                .context("lacking obverse")?;
+            let vr = v
+                .dyad_rank()
+                .ok_or(JError::NonceError)
+                .context("missing rank for dyad")?;
+            let (_frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+            let mut parts = Vec::new();
+            for (x, y) in cells {
+                let l = v.exec(None, &Word::Noun(x)).context("under dual l")?;
+                let r = v.exec(None, &Word::Noun(y)).context("under dual r")?;
+                let u = u
+                    .exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                    .context("under dual u")?;
+                let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
+                parts.push(vi);
+            }
+            flatten(&parts.into_array()?).map(Word::Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("under dual x:{x:?} n:{n:?} m:{m:?}")),
     }
 }

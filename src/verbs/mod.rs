@@ -4,10 +4,12 @@ mod impl_shape;
 mod maff;
 mod ranks;
 
+use std::iter::repeat;
+
 use crate::number::{promote_to_array, Num};
 use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
-use anyhow::{anyhow, bail, Context, ensure, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
@@ -26,6 +28,10 @@ pub use impl_shape::*;
 
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
+}
+
+pub fn v_not_exist_monad(_y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError).context("this verb lacks a monad")
 }
 
 pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -135,8 +141,26 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// ; (monad)
-pub fn v_raze(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_raze(y: &JArray) -> Result<JArray> {
+    match y {
+        JArray::BoxArray(arr) if arr.shape().len() == 1 => {
+            let mut parts = Vec::new();
+            for arr in arr {
+                if arr.shape().len() > 1 {
+                    return Err(JError::NonceError).context("non-list inside a box");
+                }
+                parts.extend(arr.clone().into_elems());
+            }
+            let arr = promote_to_array(parts)?;
+            // hee hee hee, unatoming
+            Ok(if !arr.shape().is_empty() {
+                arr
+            } else {
+                JArray::from(arr.to_shape(IxDyn(&[1usize]))?)
+            })
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
+    }
 }
 
 /// ;: (monad)
@@ -300,25 +324,51 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
         .single_math_num()
         .ok_or(JError::NonceError)
         .context("atomic x")?;
-    match y.shape().len() {
-        2 => {
-            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
-            let mut nums = Vec::new();
-            for line in arr.outer_iter() {
-                let s: String = line.iter().collect();
-                // TODO: assumes x is 0
-                nums.push(Elem::Num(
-                    s.trim()
-                        .parse::<f64>()
+    let mut rows = Vec::new();
+    let mut push_row = |arr: ArrayViewD<char>| {
+        rows.push(
+            arr.iter()
+                .collect::<String>()
+                .split_whitespace()
+                .map(|s| {
+                    s.parse::<f64>()
                         .map(Num::Float)
                         .unwrap_or_else(|_| x.clone())
-                        .demote(),
-                ));
-            }
-            promote_to_array(nums)
+                })
+                .collect_vec(),
+        )
+    };
+
+    match y.shape().len() {
+        1 => {
+            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
+            push_row(arr.view());
         }
-        _ => Err(JError::NonceError).context("atomic x, table y only"),
+        2 => {
+            let CharArray(arr) = y else { return Err(JError::DomainError).context("char array please") };
+            for line in arr.outer_iter() {
+                push_row(line);
+            }
+        }
+        _ => {
+            return Err(JError::NonceError)
+                .with_context(|| anyhow!("atomic x ({x:?}), table y ({y:?}) only"))
+        }
     }
+    if rows.is_empty() {
+        return Err(JError::NonceError).context("empty input?");
+    }
+    let width = rows.iter().map(|r| r.len()).max().expect("non-empty");
+    let mut nums = Vec::new();
+    for row in rows {
+        let gap = width - row.len();
+        nums.extend(row.into_iter().map(Num::demote).map(Elem::Num));
+        for _ in 0..gap {
+            nums.push(Elem::Num(x.clone()));
+        }
+    }
+
+    promote_to_array(nums)
 }
 
 /// ": (monad)
@@ -359,35 +409,47 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     ensure!(ido.shape().len() == 1);
 
     // promote is laziness, it's a list of bools already
-    promote_to_array(ido.into_nums().ok_or(JError::NonceError).context("v_index_of returns numbers")?
-        .into_iter()
-        .map(|n| Elem::Num(Num::bool(n < tally)))
-        .collect())
+    promote_to_array(
+        ido.into_nums()
+            .ok_or(JError::NonceError)
+            .context("v_index_of returns numbers")?
+            .into_iter()
+            .map(|n| Elem::Num(Num::bool(n < tally)))
+            .collect(),
+    )
 }
 
-/// i. (monad)
+/// i. (monad) (1)
 pub fn v_integers(y: &JArray) -> Result<JArray> {
     match y {
         // monadic i.
         IntArray(a) => {
             let p = a.product();
             if p < 0 {
-                bail!("todo: monadic i. negative args");
+                return Err(JError::NonceError).context("i. negatives");
             } else {
                 let ints = Array::from_vec((0..p).collect());
                 Ok(IntArray(reshape(a, &ints.into_dyn())?))
             }
         }
-        ExtIntArray(_) => {
-            bail!("todo: monadic i. ExtIntArray")
+        BoolArray(a) => {
+            let is = a.iter().copied().map(usize::from).collect_vec();
+            let p = is.iter().product::<usize>();
+            Ok(
+                IntArray(Array::from_vec((0..p).map(|x| x as i64).collect()).into_dyn())
+                    .to_shape(IxDyn(&is))?
+                    .into(),
+            )
         }
-        _ => Err(JError::DomainError.into()),
+        ExtIntArray(_) => return Err(JError::NonceError).context("i. ExtInt"),
+        _ => Err(JError::DomainError).with_context(|| anyhow!("unsupported arg type: {y:?}")),
     }
 }
 /// i. (dyad)
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() != 1 {
-        return Err(JError::NonceError).context("input x must be a list");
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("input x must be a list, not {x:?} for {y:?}"));
     }
     let x = x.clone().into_elems();
     let output_shape = y.shape();
@@ -399,6 +461,22 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
         .collect_vec();
     Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
+}
+
+/// E. (dyad) (_, _)
+pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() != 1 || y.shape().len() != 1 {
+        return Err(JError::NonceError).context("inputs must be lists");
+    }
+    let x = x.clone().into_elems();
+    let y = y.clone().into_elems();
+    ensure!(!x.is_empty());
+    promote_to_array(
+        y.windows(x.len())
+            .map(|win| Elem::Num(Num::bool(x == win)))
+            .chain(repeat(Elem::Num(Num::bool(false))).take(x.len() - 1))
+            .collect(),
+    )
 }
 
 /// i: (monad)
