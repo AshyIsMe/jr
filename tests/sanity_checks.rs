@@ -443,9 +443,25 @@ fn test_link() {
         .unwrap()
     );
 }
+
 #[test]
 fn test_link_insert() {
+    assert_eq!(
+        scan_eval(";/i.5").unwrap(),
+        scan_eval("(2-2);(2-1);2;3;4").unwrap()
+    );
+}
+
+#[test]
+fn test_box_equals() {
+    // BUG: this should work
     assert_eq!(scan_eval(";/i.5").unwrap(), scan_eval("0;1;2;3;4").unwrap());
+
+    // Further show the issue
+    assert_eq!(
+        scan_eval("(;/i.5) = 0;1;2;3;4").unwrap(),
+        scan_eval("1 1 1 1 1").unwrap()
+    );
 }
 
 #[test]
