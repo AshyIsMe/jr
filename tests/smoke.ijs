@@ -346,3 +346,8 @@ NB. AoC
 'helico' ,&< 'pter'
 6 ({. ,&< }.) 'helicopter'
 'cat' e. 'abcd'
+
+;/i.5
+0;1;2;3;4
+NB. (;/i.5) = 0;1;2;3;4
+0;1
