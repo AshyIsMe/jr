@@ -55,7 +55,11 @@ pub fn a_slash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                     .to_cells()?
                     .into_iter()
                     .map(Ok)
-                    .reduce(|x, y| u.exec(Some(&x?), &y?).map(Word::Noun))
+                    .rev()
+                    // Reverse to force right to left execution.
+                    // Required for (;/i.5) to work correctly.
+                    // Yes we flipped y and x args in the lambda below:
+                    .reduce(|y, x| u.exec(Some(&x?), &y?).map(Word::Noun))
                     .ok_or(JError::DomainError)?,
                 _ => Err(JError::custom("noun expected")),
             },
