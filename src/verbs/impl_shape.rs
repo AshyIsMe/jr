@@ -275,7 +275,6 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                         } else {
                             flatten(
                                 &y.outer_iter()
-                                    .into_iter()
                                     .map(JArray::from)
                                     .chain(iter::repeat(JArray::empty()))
                                     .take(x)

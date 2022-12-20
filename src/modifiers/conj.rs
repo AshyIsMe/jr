@@ -256,7 +256,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
 
     match (x, n, y) {
         (None, Verb(_, v), Noun(y)) => {
-            let parts = y.outer_iter();
+            let parts = y.outer_iter().collect_vec();
             ensure!(!parts.is_empty());
             match m {
                 -2 => (),
@@ -310,7 +310,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             }
             let mut stack = empty_box_array();
             let mut out = empty_box_array();
-            for (&x, part) in x.iter().zip(y.outer_iter().into_iter()) {
+            for (&x, part) in x.iter().zip(y.outer_iter()) {
                 if is_inclusive || x == 0 {
                     stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
                 }

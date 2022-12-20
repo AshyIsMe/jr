@@ -113,11 +113,11 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 
             let size = usize::try_from(x.abs())?;
             if x < 0 {
-                for chunk in y.outer_iter().chunks(size) {
+                for chunk in y.outer_iter().collect_vec().chunks(size) {
                     f(chunk)?;
                 }
             } else {
-                for chunk in y.outer_iter().windows(size) {
+                for chunk in y.outer_iter().collect_vec().windows(size) {
                     f(chunk)?;
                 }
             }
@@ -132,7 +132,7 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, u, y) {
         (None, Word::Verb(_, u), Word::Noun(y)) => {
-            let y = y.outer_iter();
+            let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
                 piece.push(u.exec(None, &Word::Noun(flatten_partial(&y[i..])?))?);

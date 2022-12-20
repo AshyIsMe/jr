@@ -54,7 +54,7 @@ pub fn v_plot(y: &JArray) -> Result<JArray> {
 
 /// = (monad)
 pub fn v_self_classify(y: &JArray) -> Result<JArray> {
-    let candidates = y.outer_iter();
+    let candidates = y.outer_iter().collect_vec();
     let nubs = nub(&candidates);
     let output_shape = [nubs.len(), candidates.len()];
     let mut output = Vec::with_capacity(output_shape[0] * output_shape[1]);
@@ -80,7 +80,7 @@ pub fn v_match(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-fn nub(candidates: &Vec<JArrayCow>) -> Vec<usize> {
+fn nub(candidates: &[JArrayCow]) -> Vec<usize> {
     let mut included = Vec::new();
     'outer: for (i, test) in candidates.iter().enumerate() {
         // if we've already seen this value, don't add it to the `included` list,
@@ -100,7 +100,7 @@ pub fn v_nub(y: &JArray) -> Result<JArray> {
     // truly awful; missing methods on JArrayCow / JArray which need adding; select, outer_iter()
     // O(n²) 'cos of laziness around PartialEq; might be needed for tolerance
 
-    let candidates = y.outer_iter();
+    let candidates = y.outer_iter().collect_vec();
     let included = nub(&candidates);
 
     Ok(y.select(Axis(0), &included))
@@ -113,7 +113,7 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 
 /// |. (monad)
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
-    let mut y = y.outer_iter();
+    let mut y = y.outer_iter().collect_vec();
     y.reverse();
     flatten(&y.into_iter().map(JArray::from).collect_vec().into_array()?)
 }
@@ -130,7 +130,7 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         return Ok(y.clone());
     }
 
-    let mut y = y.outer_iter().into_iter().collect::<VecDeque<_>>();
+    let mut y = y.outer_iter().collect::<VecDeque<_>>();
     let distance = usize::try_from(x.abs())?;
 
     // yes, this looks the wrong way around to me, too, but it's what it says
@@ -310,7 +310,7 @@ pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
         .context("from integers only")?;
 
     if let Ok(x) = usize::try_from(x) {
-        let outer = y.outer_iter();
+        let outer = y.outer_iter().collect_vec();
         outer
             .get(x)
             // TODO: pointless (but cheap for once) clone

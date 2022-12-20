@@ -160,15 +160,13 @@ impl JArray {
         })
     }
 
-    // TODO: Iterator
-    pub fn outer_iter<'v>(&'v self) -> Vec<JArrayCow<'v>> {
+    pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
         if self.shape().is_empty() {
-            vec![JArrayCow::from(self)]
+            Box::new(vec![JArrayCow::from(self)].into_iter())
         } else {
-            impl_array!(self, |x: &'v ArrayBase<_, _>| x
-                .outer_iter()
-                .map(JArrayCow::from)
-                .collect())
+            impl_array!(self, |x: &'v ArrayBase<_, _>| Box::new(
+                x.outer_iter().map(JArrayCow::from)
+            ))
         }
     }
 
