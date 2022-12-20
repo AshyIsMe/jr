@@ -205,6 +205,9 @@ NB. reflexive / passive
 3.2 %~ 16
 16 %~ 3.2
 
+NB. grade
+/: 3 1 4 2 1 3 3
+
 NB. sort
 'abcd' /: 4 2 3 1
 7 8 9 10 /: 4 2 3 1
@@ -237,6 +240,7 @@ NB. same / left / right
 (i. 2 3) ] 'abcde'
 
 NB. amend
+'x' 0 3} 'cross'
 'gw' 0 3} 'cross'
 
 NB. cap

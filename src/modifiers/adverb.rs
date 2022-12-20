@@ -149,7 +149,7 @@ pub fn a_close_squiggle(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     use Word::Noun;
     match (x, u, y) {
         (Some(Noun(x)), Noun(u), Noun(y))
-            if x.shape().len() == 1 && u.shape().len() == 1 && y.shape().len() == 1 =>
+            if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
         {
             let u = u
                 .clone()
@@ -163,16 +163,11 @@ pub fn a_close_squiggle(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
                 .context("non-sizes as indexes")?;
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
-            if x.len() != u.len() {
-                return Err(JError::LengthError).with_context(|| {
-                    anyhow!("expecting replacements, {x:?}, to be the same size as offsets, {u:?}")
-                });
-            }
 
-            for (x, u) in x.into_iter().zip(u.into_iter()) {
+            for u in u {
                 *y.get_mut(u)
                     .ok_or(JError::LengthError)
-                    .context("index out of bounds")? = x;
+                    .context("index out of bounds")? = x[u % x.len()].clone();
             }
 
             promote_to_array(y).map(Noun)

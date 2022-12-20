@@ -250,8 +250,21 @@ pub fn v_antibase(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// /: (monad)
-pub fn v_grade_up(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_grade_up(y: &JArray) -> Result<JArray> {
+    if y.shape().len() > 1 {
+        return Err(JError::NonceError).context("sort only implemented for (1d) lists");
+    }
+
+    let mut y = y.clone().into_elems().into_iter().enumerate().collect_vec();
+    y.try_sort_by_key(|(_, n)| Some(n.clone()))
+        .map_err(|_| JError::NonceError)
+        .context("sort only implemented for simple types")?;
+
+    promote_to_array(
+        y.into_iter()
+            .map(|(p, _)| Elem::Num(Num::Int(i64::try_from(p).expect("usize fits in an i64"))))
+            .collect(),
+    )
 }
 /// /: (dyad)
 pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
