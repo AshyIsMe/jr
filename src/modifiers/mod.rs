@@ -6,7 +6,7 @@ mod conj;
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::{JArray, Word};
+use crate::{Ctx, JArray, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -19,13 +19,20 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec(&self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    pub fn exec(
+        &self,
+        ctx: &mut Ctx,
+        x: Option<&Word>,
+        u: &Word,
+        v: &Word,
+        y: &Word,
+    ) -> Result<Word> {
         match self {
             ModifierImpl::Adverb(a) => {
-                (a.f)(x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
+                (a.f)(ctx, x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
             }
             ModifierImpl::Conjunction(c) => {
-                (c.f)(x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
+                (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
             ModifierImpl::DerivedAdverb { l, r } => bail!("TODO: DerivedAdverb l: {l:?} r: {r:?}"),
         }
