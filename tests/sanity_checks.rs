@@ -445,6 +445,7 @@ fn test_link() {
 }
 
 #[test]
+#[test]
 fn test_link_insert() {
     assert_eq!(
         scan_eval(";/i.5").unwrap(),

@@ -4,11 +4,10 @@ mod impl_shape;
 mod maff;
 mod ranks;
 
-use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
+use crate::{impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -112,35 +111,12 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 }
 
 /// |. (monad)
-pub fn v_reverse(y: &JArray) -> Result<JArray> {
-    let mut y = y.outer_iter();
-    y.reverse();
-    flatten(&y.into_iter().map(JArray::from).collect_vec().into_array()?)
+pub fn v_reverse(_y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError.into())
 }
 /// |. (dyad)
-pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
-    let x = x
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("mathematical directions")?
-        .value_i64()
-        .context("integer directions")?;
-
-    if 0 == x {
-        return Ok(y.clone());
-    }
-
-    let mut y = y.outer_iter().into_iter().collect::<VecDeque<_>>();
-    let distance = usize::try_from(x.abs())?;
-
-    // yes, this looks the wrong way around to me, too, but it's what it says
-    if x < 0 {
-        y.rotate_right(distance)
-    } else {
-        y.rotate_left(distance)
-    };
-
-    flatten(&y.into_iter().map(JArray::from).collect_vec().into_array()?)
+pub fn v_rotate_shift(_x: &JArray, _y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError.into())
 }
 
 /// , (monad)
@@ -151,15 +127,8 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 }
 
 /// ,. (monad)
-pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
-    Ok(match y.shape().len() {
-        0 | 1 => y.to_shape(IxDyn(&[y.len(), 1]))?.into(),
-        2 => y.clone(),
-        _ => {
-            return Err(JError::NonceError)
-                .with_context(|| anyhow!("ravel items on shape: {:?}", y.shape()))
-        }
-    })
+pub fn v_ravel_items(_y: &JArray) -> Result<JArray> {
+    Err(JError::NonceError.into())
 }
 
 /// ,: (monad)
