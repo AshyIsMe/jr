@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
 use crate::modifiers::c_atop;
+use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
 use crate::{flatten, Arrayable, JArray, JError, Word};
 
@@ -140,5 +141,42 @@ pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
             flatten(&piece.into_array()?).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
+    }
+}
+
+/// (_ _ _)
+pub fn a_close_squiggle(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    use Word::Noun;
+    match (x, u, y) {
+        (Some(Noun(x)), Noun(u), Noun(y))
+            if x.shape().len() == 1 && u.shape().len() == 1 && y.shape().len() == 1 =>
+        {
+            let u = u
+                .clone()
+                .into_nums()
+                .ok_or(JError::DomainError)
+                .context("non-numerics as indexes")?
+                .into_iter()
+                .map(|x| x.value_len())
+                .collect::<Option<Vec<usize>>>()
+                .ok_or(JError::DomainError)
+                .context("non-sizes as indexes")?;
+            let x = x.clone().into_elems();
+            let mut y = y.clone().into_elems();
+            if x.len() != u.len() {
+                return Err(JError::LengthError).with_context(|| {
+                    anyhow!("expecting replacements, {x:?}, to be the same size as offsets, {u:?}")
+                });
+            }
+
+            for (x, u) in x.into_iter().zip(u.into_iter()) {
+                *y.get_mut(u)
+                    .ok_or(JError::LengthError)
+                    .context("index out of bounds")? = x;
+            }
+
+            promote_to_array(y).map(Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
     }
 }

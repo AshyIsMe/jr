@@ -216,6 +216,11 @@ e3,02,04,01,04,676f6f64,
 e3,02,07,01,07,6d6f726e696e67'''
 
 [[runs]]
+expr = "'gw' 0 3} 'cross'"
+output = 'grows'
+encoded = 'e3,02,05,01,05,67726f7773'
+
+[[runs]]
 expr = "'helico' ,&< 'pter'"
 output = '''
 ┌──────┬────┐

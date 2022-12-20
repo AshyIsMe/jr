@@ -236,6 +236,9 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. amend
+'gw' 0 3} 'cross'
+
 NB. cap
 2 (>. % [: <. + * -) 2
 
