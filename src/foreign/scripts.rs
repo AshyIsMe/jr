@@ -3,9 +3,9 @@
 use anyhow::{anyhow, Context, Result};
 use std::fs;
 
-use crate::{JArray, JError, Word};
+use crate::{feed, Ctx, EvalOutput, HasEmpty, JArray, JError, Word};
 
-pub fn f_load_script(k: usize, y: &Word) -> Result<Word> {
+pub fn f_load_script(ctx: &mut Ctx, k: usize, y: &Word) -> Result<Word> {
     if k != 0o000 {
         return Err(JError::NonceError).context("only support [file, error, silent] load mode");
     }
@@ -23,5 +23,15 @@ pub fn f_load_script(k: usize, y: &Word) -> Result<Word> {
     let path = path.iter().collect::<String>();
     let path = fs::canonicalize(&path).with_context(|| anyhow!("canonicalising {path}"))?;
 
-    Err(JError::NonceError).with_context(|| anyhow!("j/k can't actually load files: {path:?}"))
+    let mut last = EvalOutput::Regular(Word::Nothing);
+    for line in fs::read_to_string(&path)
+        .with_context(|| anyhow!("reading {path:?}"))?
+        .split('\n')
+    {
+        last = feed(line, ctx)?;
+    }
+    match last {
+        EvalOutput::Regular(_) => Ok(Word::Noun(JArray::empty())),
+        other => Err(anyhow!("file unexpectedly finished inside a {other:?}")),
+    }
 }
