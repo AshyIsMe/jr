@@ -277,6 +277,7 @@ NB. link
 (<'abc');(<'def');<(<'ghi')
 
 NB. raze
+; <1
 ; 1 2 3; 4 5 6; 7 8 9
 ; (1 $ < (1 $ 1))
 
@@ -333,10 +334,18 @@ NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Ivers
 NB. ampdot
 NB. floats: 3 +&.^. 4
 i.&.> (1;2;2 3)
+#&.> ('foo'; 'ba')
+#&.> 1 {. ('foo'; 'ba')
+#&.> <'foo'
+NB. derived: # (&.>) < 'foo'
+(3;5) (+&.>) (<7)
 
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
+
+NB. indexes (bool)
+I. 0 0 1 0 1 0
 
 NB. member interval
 'co' E. 'cocoa'
@@ -363,6 +372,7 @@ NB. AoC
 'helico' ,&< 'pter'
 6 ({. ,&< }.) 'helicopter'
 'cat' e. 'abcd'
+('aba'; 'ba') I. @ E. &.> <'ababa'
 
 ;/i.5
 0;1;2;3;4

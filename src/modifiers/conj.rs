@@ -6,7 +6,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
-use crate::cells::monad_cells;
+use crate::cells::{apply_cells, monad_cells};
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{arr0d, eval, generate_cells, Ctx, IntoJArray, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
@@ -417,7 +417,7 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
 pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (x, n, m, y) {
         (None, Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
-            let (cells, _frame) = monad_cells(y, Rank::zero())?;
+            let (cells, frame) = monad_cells(y, Rank::zero())?;
             let vi = v
                 .obverse()
                 .ok_or(JError::NonceError)
@@ -429,7 +429,10 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten(&parts.into_array()?).map(Word::Noun)
+            flatten(&parts.into_array()?)?
+                .to_shape(frame)
+                .map(|cow| cow.to_owned())
+                .map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
             let vi = v
@@ -440,18 +443,27 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 .dyad_rank()
                 .ok_or(JError::NonceError)
                 .context("missing rank for dyad")?;
-            let (_frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
-            let mut parts = Vec::new();
-            for (x, y) in cells {
-                let l = v.exec(None, &Word::Noun(x)).context("under dual l")?;
-                let r = v.exec(None, &Word::Noun(y)).context("under dual r")?;
-                let u = u
-                    .exec(Some(&Word::Noun(l)), &Word::Noun(r))
-                    .context("under dual u")?;
-                let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
-                parts.push(vi);
-            }
-            flatten(&parts.into_array()?).map(Word::Noun)
+            let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+            let parts = apply_cells(
+                &cells,
+                |x, y| {
+                    let l = v
+                        .exec(None, &Word::Noun(x.clone()))
+                        .context("under dual l")?;
+                    let r = v
+                        .exec(None, &Word::Noun(y.clone()))
+                        .context("under dual r")?;
+                    let u = u
+                        .exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                        .context("under dual u")?;
+                    vi.exec(None, &Word::Noun(u)).context("under dual vi")
+                },
+                vr,
+            )?;
+            flatten(&parts.into_array()?)?
+                .to_shape(frame)
+                .map(|cow| cow.to_owned())
+                .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("under dual x:{x:?} n:{n:?} m:{m:?}")),
     }

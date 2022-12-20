@@ -102,6 +102,7 @@ impl fmt::Display for Word {
             Word::Verb(sv, _) => write!(f, "{}", sv),
             Word::Adverb(sa, _) => write!(f, "{}", sa),
             Word::Conjunction(sc, _) => write!(f, "{}", sc),
+            Word::Nothing => Ok(()),
             //_ => write!(f, "{:+}", self),
             _ => todo!("Display for Word {:?}", self),
         }

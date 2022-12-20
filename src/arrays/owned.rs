@@ -33,12 +33,12 @@ impl fmt::Debug for JArray {
         match self {
             BoolArray(a) => write!(f, "BoolArray({a})"),
             CharArray(a) => write!(f, "CharArray({a})"),
-            IntArray(a) => write!(f, "IntArray({a})"),
+            IntArray(a) => write!(f, "IntArray({a:?})"),
             ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
             RationalArray(a) => write!(f, "RationalArray({a})"),
             FloatArray(a) => write!(f, "FloatArray({a})"),
             ComplexArray(a) => write!(f, "ComplexArray({a})"),
-            BoxArray(a) => write!(f, "BoxArray({a})"),
+            BoxArray(a) => write!(f, "BoxArray({a:?})"),
         }
     }
 }

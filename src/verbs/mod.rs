@@ -184,6 +184,13 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
 /// ; (monad)
 pub fn v_raze(y: &JArray) -> Result<JArray> {
     match y {
+        JArray::BoxArray(arr) if !arr.is_empty() && arr.shape().is_empty() => Ok(arr
+            .iter()
+            .next()
+            .expect("checked")
+            .clone()
+            .to_shape(IxDyn(&[1usize]))?
+            .to_owned()),
         JArray::BoxArray(arr) if arr.shape().len() == 1 => {
             let mut parts = Vec::new();
             for arr in arr {
@@ -505,7 +512,8 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
 /// E. (dyad) (_, _)
 pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() != 1 || y.shape().len() != 1 {
-        return Err(JError::NonceError).context("inputs must be lists");
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("inputs must be lists: {x:?} {y:?}"));
     }
     let x = x.clone().into_elems();
     let y = y.clone().into_elems();
@@ -528,8 +536,22 @@ pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// I. (monad)
-pub fn v_indices(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_indices(y: &JArray) -> Result<JArray> {
+    match y {
+        JArray::BoolArray(arr) if arr.shape().len() == 1 => promote_to_array(
+            arr.iter()
+                .enumerate()
+                .filter_map(|(p, x)| {
+                    if *x == 0 {
+                        None
+                    } else {
+                        Some(Elem::Num(Num::Int(p as i64)))
+                    }
+                })
+                .collect(),
+        ),
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("non-bool-list: {y:?}")),
+    }
 }
 /// I. (dyad)
 pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<JArray> {
