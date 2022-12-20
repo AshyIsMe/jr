@@ -238,7 +238,8 @@ impl VerbImpl {
 fn must_be_box(v: Word) -> Result<BoxArray> {
     match v {
         Word::Noun(arr) => Ok(arr0d(arr)),
-        _ => Err(JError::DomainError).context("unexpected non-noun in noun context"),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }
 }
 

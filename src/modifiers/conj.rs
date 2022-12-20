@@ -346,7 +346,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
     }
 }
 
-pub fn c_foreign(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (n, m) {
         (Word::Noun(n), Word::Noun(m)) => {
             let n = n
@@ -359,7 +359,7 @@ pub fn c_foreign(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word)
                 .and_then(|m| m.value_len())
                 .ok_or(JError::DomainError)
                 .context("right foreign takes numerics")?;
-            foreign(n, m, x, y)
+            foreign(ctx, n, m, x, y)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }
