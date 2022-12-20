@@ -75,14 +75,14 @@ pub fn monad_cells(y: &JArray, arg_rank: Rank) -> Result<(Vec<JArray>, Vec<usize
 
 pub fn monad_apply(
     macrocells: &[JArray],
-    f: impl Fn(&JArray) -> Result<JArray>,
+    f: impl FnMut(&JArray) -> Result<JArray>,
 ) -> Result<Vec<JArray>> {
     macrocells.iter().map(f).collect()
 }
 
 pub fn apply_cells(
     cells: &[(JArray, JArray)],
-    f: impl Fn(&JArray, &JArray) -> Result<JArray>,
+    mut f: impl FnMut(&JArray, &JArray) -> Result<JArray>,
     (x_arg_rank, y_arg_rank): DyadRank,
 ) -> Result<Vec<JArray>> {
     cells
@@ -104,6 +104,9 @@ pub fn apply_cells(
                 .take(limit)
                 .zip(y_parts.into_iter().cycle().take(limit))
                 .map(|(x, y)| f(&x, &y))
+                // TODO: comedy borrow checker
+                .collect_vec()
+                .into_iter()
         })
         .collect()
 }
