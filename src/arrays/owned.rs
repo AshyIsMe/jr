@@ -11,7 +11,7 @@ use num_traits::ToPrimitive;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
-use crate::{arr0d, Word};
+use crate::{arr0d, map_to_cow, Word};
 
 pub type BoxArray = ArrayD<JArray>;
 
@@ -127,37 +127,26 @@ impl JArray {
     }
 
     pub fn shape<'s>(&'s self) -> &[usize] {
-        impl_array!(self, |a: &'s ArrayBase<_, _>| a.shape())
+        impl_array!(self, ArrayBase::shape)
     }
 
-    // TODO: CoW
-    pub fn transpose<'s>(&'s self) -> JArray {
-        map_array!(self, |a: &'s ArrayBase<_, _>| a.t().to_owned())
+    pub fn transpose<'s>(&'s self) -> JArrayCow {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| CowArrayD::from(a.t()).into())
     }
 
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
         map_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix))
     }
 
-    // TODO: CoW
-    pub fn slice_axis(&self, axis: Axis, slice: Slice) -> JArray {
-        map_array!(self, |a: &ArrayBase<_, _>| a
-            .slice_axis(axis, slice)
-            .to_owned())
+    pub fn slice_axis<'v>(&'v self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
+        // TODO: panics if axis > shape?
+        Ok(impl_array!(self, |a: &'v ArrayBase<_, _>| JArrayCow::from(
+            a.slice_axis(axis, slice)
+        )))
     }
 
-    pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow> {
-        use JArray::*;
-        Ok(match self {
-            BoolArray(a) => JArrayCow::BoolArray(a.to_shape(shape)?),
-            CharArray(a) => JArrayCow::CharArray(a.to_shape(shape)?),
-            IntArray(a) => JArrayCow::IntArray(a.to_shape(shape)?),
-            ExtIntArray(a) => JArrayCow::ExtIntArray(a.to_shape(shape)?),
-            RationalArray(a) => JArrayCow::RationalArray(a.to_shape(shape)?),
-            FloatArray(a) => JArrayCow::FloatArray(a.to_shape(shape)?),
-            ComplexArray(a) => JArrayCow::ComplexArray(a.to_shape(shape)?),
-            BoxArray(a) => JArrayCow::BoxArray(a.to_shape(shape)?),
-        })
+    pub fn to_shape<'v>(&'v self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow<'v>> {
+        map_to_cow!(self, |a: &'v ArrayBase<_, _>| a.to_shape(shape))
     }
 
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {

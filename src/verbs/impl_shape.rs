@@ -59,7 +59,7 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
 
 /// |: (monad) (_)
 pub fn v_transpose(y: &JArray) -> Result<JArray> {
-    Ok(y.transpose())
+    Ok(y.transpose().into())
 }
 
 /// |: (dyad) (1, _)
@@ -266,7 +266,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     if x == 1 {
                         match y.shape() {
                             [] => y.to_shape(vec![x])?.into(),
-                            _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
+                            _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into(),
                         }
                     } else {
                         let y_len_zero = y.len_of(Axis(0));
