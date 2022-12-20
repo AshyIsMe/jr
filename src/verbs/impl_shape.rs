@@ -8,11 +8,11 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
-use ndarray::{concatenate, Axis, Slice};
+use ndarray::{Axis, Slice};
 
 use crate::arrays::Arrayable;
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
+use crate::{arr0d, flatten, impl_array, HasEmpty, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -88,22 +88,8 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 }
 
-fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
-    impl_homo!(
-        x,
-        y,
-        |x: &ArrayBase<_, _>, y: &ArrayBase<_, _>| concatenate(Axis(0), &[x.view(), y.view()])
-    )
-}
-
 /// , (dyad)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() >= 1 && y.shape().len() >= 1 {
-        if let Ok(arr) = append_nd(x, y) {
-            return Ok(arr);
-        }
-    }
-
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
         return Err(JError::NonceError)
             .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));

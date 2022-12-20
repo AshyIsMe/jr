@@ -133,21 +133,13 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             );
 
             match (x, y) {
-                (None, Word::Noun(y)) => exec_monad(
-                    |y| {
-                        u.exec(None, &Word::Noun(y.clone()))
-                            .context("running monadic u inside re-rank")
-                    },
-                    ranks.0,
-                    y,
-                )
-                .map(Word::Noun)
-                .context("monadic rank drifting"),
+                (None, Word::Noun(y)) => {
+                    exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
+                        .map(Word::Noun)
+                        .context("monadic rank drifting")
+                }
                 (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
-                    |x, y| {
-                        u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
-                            .context("running dyadic u inside re-rank")
-                    },
+                    |x, y| u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone())),
                     (ranks.1, ranks.2),
                     x,
                     y,
