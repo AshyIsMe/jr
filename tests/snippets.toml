@@ -222,6 +222,25 @@ e3,04,01,,08'''
 [[runs]]
 expr = '''
 s =: 0 : 0
+1
+2
+
+3
+4
+)
+s
+'''
+output = '''
+1
+2
+
+3
+4'''
+encoded = 'e3,02,09,01,09,310a320a0a330a34,0a'
+
+[[runs]]
+expr = '''
+s =: 0 : 0
 hello world
 I love horses
 )
