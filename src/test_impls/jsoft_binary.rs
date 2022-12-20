@@ -94,8 +94,11 @@ pub fn decode(lines: &[u64]) -> Result<JArray> {
         match marker {
             0xe3 => (),
             0xe0 | 0xe1 | 0xe2 => bail!("unsupported machine type (or parser error) at {pos}"),
+            other if pos == 0 => {
+                bail!("invalid record header {other} at the start; not a valid document")
+            }
             other => {
-                bail!("invalid record header {other} at {pos}, probably a parser bug: {blocks:?}")
+                bail!("invalid record header {other} at {pos}, successfully parsed so far: {blocks:?}")
             }
         }
         blocks.insert(

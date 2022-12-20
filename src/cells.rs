@@ -155,10 +155,10 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
             .collect_vec();
 
         // TODO: guess what, more clones
-        let arr: JArray = arr
+        let arr = arr
             .to_shape(rank_extended_shape)
             .context("rank extension")?
-            .into();
+            .into_owned();
         let shape = arr.shape();
         assert_eq!(shape.len(), target_inner_shape.len());
 
@@ -174,7 +174,7 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
             }
             2 if shape[0] < target_inner_shape[0] && shape[1] == target_inner_shape[1] => {
                 for sub in arr.outer_iter() {
-                    big_daddy.extend(JArray::from(sub).into_elems());
+                    big_daddy.extend(sub.into_owned().into_elems());
                 }
                 for _ in shape[0]..target_inner_shape[0] {
                     // only tested this for shape[1] == 1 lolol
@@ -199,7 +199,7 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
     Ok(nums
         .to_shape(target_shape)
         .context("flattening output shape")?
-        .into())
+        .into_owned())
 }
 
 #[cfg(test)]

@@ -1,6 +1,8 @@
+use std::iter;
+
 use anyhow::Result;
 use ndarray::prelude::*;
-use ndarray::IntoDimension;
+use ndarray::{IntoDimension, Slice};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
@@ -35,6 +37,22 @@ macro_rules! impl_array {
     };
 }
 
+#[macro_export]
+macro_rules! map_to_cow {
+    ($arr:ident, $func:expr) => {
+        Ok(match $arr {
+            JArray::BoolArray(a) => JArrayCow::BoolArray($func(a)?),
+            JArray::CharArray(a) => JArrayCow::CharArray($func(a)?),
+            JArray::IntArray(a) => JArrayCow::IntArray($func(a)?),
+            JArray::ExtIntArray(a) => JArrayCow::ExtIntArray($func(a)?),
+            JArray::RationalArray(a) => JArrayCow::RationalArray($func(a)?),
+            JArray::FloatArray(a) => JArrayCow::FloatArray($func(a)?),
+            JArray::ComplexArray(a) => JArrayCow::ComplexArray($func(a)?),
+            JArray::BoxArray(a) => JArrayCow::BoxArray($func(a)?),
+        })
+    };
+}
+
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
         //impl_array!(self, ArrayBase::len)
@@ -48,6 +66,25 @@ impl<'v> JArrayCow<'v> {
 
     pub fn shape(&self) -> &[usize] {
         impl_array!(self, ArrayBase::shape)
+    }
+
+    pub fn len_of(&self, axis: Axis) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len_of(axis))
+    }
+
+    pub fn transpose<'s>(&'s self) -> JArrayCow {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| CowArrayD::from(a.t()).into())
+    }
+
+    pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix).into())
+    }
+
+    pub fn slice_axis<'s: 'v>(&'s self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
+        // TODO: panics if axis > shape?
+        Ok(impl_array!(self, |a: &'v ArrayBase<_, _>| JArrayCow::from(
+            a.slice_axis(axis, slice)
+        )))
     }
 
     pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow> {
@@ -64,38 +101,31 @@ impl<'v> JArrayCow<'v> {
         })
     }
 
-    // TODO: Iterator
-    pub fn outer_iter(&'v self) -> Vec<Self> {
-        impl_array!(self, |x: &'v ArrayBase<_, _>| x
-            .outer_iter()
-            .map(Self::from)
-            .collect())
-    }
-
-    // TODO: Iterator
-    pub fn iter(&'v self) -> Vec<Self> {
-        use JArrayCow::*;
-        // AA TODO into_raw_vec() map, from
-        // impl_array!(self, |x: &'v ArrayBase<_, _>| x
-        //     .iter()
-        //     .map(|x| Self::from(x))
-        //     .collect())
-        match self {
-            BoolArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
-            CharArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
-            IntArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
-            ExtIntArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
-            RationalArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
-            FloatArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
-            ComplexArray(a) => a.iter().map(|x| JArrayCow::from(*x)).collect(),
-            BoxArray(a) => a.iter().map(|x| JArrayCow::from(x.clone())).collect(),
+    pub fn outer_iter(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
+        if self.shape().is_empty() {
+            Box::new(iter::once(self.clone()))
+        } else {
+            impl_array!(self, |x: &'v ArrayBase<_, _>| Box::new(
+                x.outer_iter().map(Self::from)
+            ))
         }
     }
-}
 
-impl<'v> From<JArrayCow<'v>> for JArray {
-    fn from(value: JArrayCow<'v>) -> Self {
-        match value {
+    pub fn to_owned(&self) -> JArray {
+        match self {
+            JArrayCow::BoolArray(v) => JArray::BoolArray(v.to_owned()),
+            JArrayCow::CharArray(v) => JArray::CharArray(v.to_owned()),
+            JArrayCow::IntArray(v) => JArray::IntArray(v.to_owned()),
+            JArrayCow::ExtIntArray(v) => JArray::ExtIntArray(v.to_owned()),
+            JArrayCow::RationalArray(v) => JArray::RationalArray(v.to_owned()),
+            JArrayCow::FloatArray(v) => JArray::FloatArray(v.to_owned()),
+            JArrayCow::ComplexArray(v) => JArray::ComplexArray(v.to_owned()),
+            JArrayCow::BoxArray(v) => JArray::BoxArray(v.to_owned()),
+        }
+    }
+
+    pub fn into_owned(self) -> JArray {
+        match self {
             JArrayCow::BoolArray(v) => JArray::BoolArray(v.into_owned()),
             JArrayCow::CharArray(v) => JArray::CharArray(v.into_owned()),
             JArrayCow::IntArray(v) => JArray::IntArray(v.into_owned()),
@@ -123,24 +153,6 @@ impl<'v> From<&'v JArray> for JArrayCow<'v> {
     }
 }
 
-macro_rules! impl_from_atom {
-    ($t:ty, $j:path) => {
-        impl<'v> From<$t> for JArrayCow<'v> {
-            fn from(value: $t) -> JArrayCow<'v> {
-                $j(CowArrayD::from(ArrayD::from_elem(IxDyn(&[]), value)))
-            }
-        }
-    };
-}
-impl_from_atom!(u8, JArrayCow::BoolArray);
-impl_from_atom!(char, JArrayCow::CharArray);
-impl_from_atom!(i64, JArrayCow::IntArray);
-impl_from_atom!(BigInt, JArrayCow::ExtIntArray);
-impl_from_atom!(BigRational, JArrayCow::RationalArray);
-impl_from_atom!(f64, JArrayCow::FloatArray);
-impl_from_atom!(Complex64, JArrayCow::ComplexArray);
-impl_from_atom!(JArray, JArrayCow::BoxArray);
-
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {
         impl<'v> From<ArrayD<$t>> for JArrayCow<'v> {
@@ -159,6 +171,25 @@ impl_from_nd!(BigRational, JArrayCow::RationalArray);
 impl_from_nd!(f64, JArrayCow::FloatArray);
 impl_from_nd!(Complex64, JArrayCow::ComplexArray);
 impl_from_nd!(JArray, JArrayCow::BoxArray);
+
+macro_rules! impl_from_nd_cow {
+    ($t:ty, $j:path) => {
+        impl<'v> From<CowArrayD<'v, $t>> for JArrayCow<'v> {
+            fn from(value: CowArrayD<'v, $t>) -> JArrayCow<'v> {
+                $j(value.into())
+            }
+        }
+    };
+}
+
+impl_from_nd_cow!(u8, JArrayCow::BoolArray);
+impl_from_nd_cow!(char, JArrayCow::CharArray);
+impl_from_nd_cow!(i64, JArrayCow::IntArray);
+impl_from_nd_cow!(BigInt, JArrayCow::ExtIntArray);
+impl_from_nd_cow!(BigRational, JArrayCow::RationalArray);
+impl_from_nd_cow!(f64, JArrayCow::FloatArray);
+impl_from_nd_cow!(Complex64, JArrayCow::ComplexArray);
+impl_from_nd_cow!(JArray, JArrayCow::BoxArray);
 
 macro_rules! impl_from_nd_view {
     ($t:ty, $j:path) => {

@@ -205,6 +205,9 @@ NB. reflexive / passive
 3.2 %~ 16
 16 %~ 3.2
 
+NB. grade
+/: 3 1 4 2 1 3 3
+
 NB. sort
 'abcd' /: 4 2 3 1
 7 8 9 10 /: 4 2 3 1
@@ -219,6 +222,10 @@ NB. self classify
 = 3 3 $ i. 6
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
+
+NB. prefix
+]\ 'banana'
++/\ 1 2 3 4 5 6
 
 NB. infix
 _2 [\ ('aba';'XYZT';'ba';'+')
@@ -236,14 +243,35 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. amend
+'x' 0 3} 'cross'
+'gw' 0 3} 'cross'
+
 NB. cap
 2 (>. % [: <. + * -) 2
+
+NB. reverse
+|. i.6
+|. i. 2 3
+
+NB. rotate shift
+2 |. i.6
+_1 |. i.6
+0 |. i. 6
+2 |. i. 2 3
+_1 |. i. 2 3
 
 NB. append
 5,3
 5,3 6
 2 5,3
 'abc','d'
+(i. 2 3),(10 + i. 2 3)
+(i. 2 3),(10 + i. 3 3)
+
+NB. ravel items
+,. 'a'
+,. i.3
 
 NB. link
 5;3
@@ -260,6 +288,7 @@ NB. link
 (<'abc');(<'def');<(<'ghi')
 
 NB. raze
+; <1
 ; 1 2 3; 4 5 6; 7 8 9
 ; (1 $ < (1 $ 1))
 
@@ -316,12 +345,32 @@ NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Ivers
 NB. ampdot
 NB. floats: 3 +&.^. 4
 i.&.> (1;2;2 3)
+#&.> ('foo'; 'ba')
+#&.> 1 {. ('foo'; 'ba')
+#&.> <'foo'
+NB. derived: # (&.>) < 'foo'
+(3;5) (+&.>) (<7)
+
+NB. integers
+i. 0
+i. 1
+i. 2
+i. _1
+i. _2
+i. 2 3
+i. 2 _3
+i. _2 3
+i. _2 _3
 
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
 
+NB. indexes (bool)
+I. 0 0 1 0 1 0
+
 NB. member interval
+'c' E. 'cocoa'
 'co' E. 'cocoa'
 
 NB. NB.
@@ -346,8 +395,11 @@ NB. AoC
 'helico' ,&< 'pter'
 6 ({. ,&< }.) 'helicopter'
 'cat' e. 'abcd'
+('aba'; 'ba') I. @ E. &.> <'ababa'
 
 ;/i.5
 0;1;2;3;4
 NB. (;/i.5) = 0;1;2;3;4
 0;1
+(,. ,"1 (<:@# # '-'&[)) 'ABCD'
+(>:i. #'ABCD') |."0 1 (,. ,"1 (<:@# # '-'&[)) 'ABCD'

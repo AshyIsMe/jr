@@ -6,7 +6,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
-use crate::cells::monad_cells;
+use crate::cells::{apply_cells, monad_cells};
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{arr0d, eval, generate_cells, Ctx, IntoJArray, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
@@ -133,13 +133,21 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             );
 
             match (x, y) {
-                (None, Word::Noun(y)) => {
-                    exec_monad(|y| u.exec(None, &Word::Noun(y.clone())), ranks.0, y)
-                        .map(Word::Noun)
-                        .context("monadic rank drifting")
-                }
+                (None, Word::Noun(y)) => exec_monad(
+                    |y| {
+                        u.exec(None, &Word::Noun(y.clone()))
+                            .context("running monadic u inside re-rank")
+                    },
+                    ranks.0,
+                    y,
+                )
+                .map(Word::Noun)
+                .context("monadic rank drifting"),
                 (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
-                    |x, y| u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone())),
+                    |x, y| {
+                        u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
+                            .context("running dyadic u inside re-rank")
+                    },
                     (ranks.1, ranks.2),
                     x,
                     y,
@@ -248,7 +256,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
 
     match (x, n, y) {
         (None, Verb(_, v), Noun(y)) => {
-            let parts = y.outer_iter();
+            let parts = y.outer_iter().collect_vec();
             ensure!(!parts.is_empty());
             match m {
                 -2 => (),
@@ -277,7 +285,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                     stack = empty_box_array();
                 } else {
                     stack
-                        .push(Axis(0), arr0d(JArray::from(part.clone())).view())
+                        .push(Axis(0), arr0d(part.to_owned()).view())
                         .context("push")?;
                 }
             }
@@ -302,9 +310,9 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             }
             let mut stack = empty_box_array();
             let mut out = empty_box_array();
-            for (&x, part) in x.iter().zip(y.outer_iter().into_iter()) {
+            for (&x, part) in x.iter().zip(y.outer_iter()) {
                 if is_inclusive || x == 0 {
-                    stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                    stack.push(Axis(0), arr0d(part.into_owned()).view())?;
                 }
                 if x != 1 {
                     continue;
@@ -409,7 +417,7 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
 pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (x, n, m, y) {
         (None, Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
-            let (cells, _frame) = monad_cells(y, Rank::zero())?;
+            let (cells, frame) = monad_cells(y, Rank::zero())?;
             let vi = v
                 .obverse()
                 .ok_or(JError::NonceError)
@@ -421,7 +429,10 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten(&parts.into_array()?).map(Word::Noun)
+            flatten(&parts.into_array()?)?
+                .to_shape(frame)
+                .map(|cow| cow.to_owned())
+                .map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
             let vi = v
@@ -432,18 +443,27 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 .dyad_rank()
                 .ok_or(JError::NonceError)
                 .context("missing rank for dyad")?;
-            let (_frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
-            let mut parts = Vec::new();
-            for (x, y) in cells {
-                let l = v.exec(None, &Word::Noun(x)).context("under dual l")?;
-                let r = v.exec(None, &Word::Noun(y)).context("under dual r")?;
-                let u = u
-                    .exec(Some(&Word::Noun(l)), &Word::Noun(r))
-                    .context("under dual u")?;
-                let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
-                parts.push(vi);
-            }
-            flatten(&parts.into_array()?).map(Word::Noun)
+            let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+            let parts = apply_cells(
+                &cells,
+                |x, y| {
+                    let l = v
+                        .exec(None, &Word::Noun(x.clone()))
+                        .context("under dual l")?;
+                    let r = v
+                        .exec(None, &Word::Noun(y.clone()))
+                        .context("under dual r")?;
+                    let u = u
+                        .exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                        .context("under dual u")?;
+                    vi.exec(None, &Word::Noun(u)).context("under dual vi")
+                },
+                vr,
+            )?;
+            flatten(&parts.into_array()?)?
+                .to_shape(frame)
+                .map(|cow| cow.to_owned())
+                .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("under dual x:{x:?} n:{n:?} m:{m:?}")),
     }

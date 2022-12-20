@@ -29,8 +29,11 @@ fn main() -> Result<()> {
         read_ijs_lines(&fs::read_to_string(&ijs)?)
     };
 
-    for content in contents {
-        run_list.add(&content).context(content)?;
+    for (ctx, content) in contents {
+        run_list
+            .add(&content)
+            .with_context(|| anyhow!("content:\n{content:?}"))
+            .with_context(|| anyhow!("unable to capture result for {ctx}"))?;
     }
 
     fs::write(toml, run_list.save()?)?;

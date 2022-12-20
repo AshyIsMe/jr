@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
 use crate::modifiers::c_atop;
+use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
 use crate::{flatten, Arrayable, JArray, JError, Word};
 
@@ -88,7 +89,7 @@ fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
     flatten(
         &chunk
             .iter()
-            .map(|arr| JArray::from(arr.clone()))
+            .map(|arr| arr.to_owned())
             .collect_vec()
             .into_array()?,
     )
@@ -97,6 +98,18 @@ fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
 /// (0 _)
 pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, u, y) {
+        (None, Word::Verb(_, u), Word::Noun(y)) => {
+            let y = y.outer_iter().collect_vec();
+            let mut piece = Vec::new();
+            for i in 1..=y.len() {
+                let chunk = &y[..i];
+                piece.push(
+                    u.exec(None, &Word::Noun(flatten_partial(chunk)?))
+                        .context("backslash (u)")?,
+                );
+            }
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
             let x = x
                 .single_math_num()
@@ -113,11 +126,11 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 
             let size = usize::try_from(x.abs())?;
             if x < 0 {
-                for chunk in y.outer_iter().chunks(size) {
+                for chunk in y.outer_iter().collect_vec().chunks(size) {
                     f(chunk)?;
                 }
             } else {
-                for chunk in y.outer_iter().windows(size) {
+                for chunk in y.outer_iter().collect_vec().windows(size) {
                     f(chunk)?;
                 }
             }
@@ -132,7 +145,7 @@ pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, u, y) {
         (None, Word::Verb(_, u), Word::Noun(y)) => {
-            let y = y.outer_iter();
+            let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
                 piece.push(u.exec(None, &Word::Noun(flatten_partial(&y[i..])?))?);
@@ -140,5 +153,37 @@ pub fn a_suffix_outfix(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
             flatten(&piece.into_array()?).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
+    }
+}
+
+/// (_ _ _)
+pub fn a_close_squiggle(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    use Word::Noun;
+    match (x, u, y) {
+        (Some(Noun(x)), Noun(u), Noun(y))
+            if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
+        {
+            let u = u
+                .clone()
+                .into_nums()
+                .ok_or(JError::DomainError)
+                .context("non-numerics as indexes")?
+                .into_iter()
+                .map(|x| x.value_len())
+                .collect::<Option<Vec<usize>>>()
+                .ok_or(JError::DomainError)
+                .context("non-sizes as indexes")?;
+            let x = x.clone().into_elems();
+            let mut y = y.clone().into_elems();
+
+            for u in u {
+                *y.get_mut(u)
+                    .ok_or(JError::IndexError)
+                    .context("index out of bounds")? = x[u % x.len()].clone();
+            }
+
+            promote_to_array(y).map(Noun)
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
     }
 }

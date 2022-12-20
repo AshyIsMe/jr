@@ -8,11 +8,11 @@ use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
-use ndarray::{Axis, Slice};
+use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::Arrayable;
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, HasEmpty, IntoJArray, JArray, JError};
+use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -59,7 +59,7 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
 
 /// |: (monad) (_)
 pub fn v_transpose(y: &JArray) -> Result<JArray> {
-    Ok(y.transpose())
+    Ok(y.transpose().into_owned())
 }
 
 /// |: (dyad) (1, _)
@@ -88,8 +88,22 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 }
 
+fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
+    impl_homo!(
+        x,
+        y,
+        |x: &ArrayBase<_, _>, y: &ArrayBase<_, _>| concatenate(Axis(0), &[x.view(), y.view()])
+    )
+}
+
 /// , (dyad)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() >= 1 && y.shape().len() >= 1 {
+        if let Ok(arr) = append_nd(x, y) {
+            return Ok(arr);
+        }
+    }
+
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
         return Err(JError::NonceError)
             .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));
@@ -198,7 +212,7 @@ pub fn v_head(y: &JArray) -> Result<JArray> {
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
     if !a.shape().is_empty() {
         let s = &a.shape()[1..];
-        Ok(JArray::from(a.clone().to_shape(s).unwrap()))
+        Ok(a.clone().to_shape(s).unwrap().into_owned())
     } else {
         Ok(a)
     }
@@ -237,7 +251,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
                     if x == 1 {
                         match y.shape() {
-                            [] => JArray::from(y.to_shape(vec![x])?),
+                            [] => y.to_shape(vec![x])?.into_owned(),
                             _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                         }
                     } else {
@@ -251,8 +265,8 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
                     if x == 1 {
                         match y.shape() {
-                            [] => y.to_shape(vec![x])?.into(),
-                            _ => y.slice_axis(Axis(0), Slice::from(..1usize)),
+                            [] => y.to_shape(vec![x])?.into_owned(),
+                            _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
                         }
                     } else {
                         let y_len_zero = y.len_of(Axis(0));
@@ -261,8 +275,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                         } else {
                             flatten(
                                 &y.outer_iter()
-                                    .into_iter()
-                                    .map(JArray::from)
+                                    .map(|cow| cow.into_owned())
                                     .chain(iter::repeat(JArray::empty()))
                                     .take(x)
                                     .collect_vec()
@@ -285,7 +298,7 @@ pub fn v_tail(y: &JArray) -> Result<JArray> {
     // 3  NB. atom not a single element list
     if !a.shape().is_empty() {
         let s = &a.shape()[1..];
-        Ok(JArray::from(a.clone().to_shape(s).unwrap()))
+        Ok(a.clone().to_shape(s).unwrap().into_owned())
     } else {
         Ok(a)
     }
