@@ -1,6 +1,8 @@
+use std::iter;
+
 use anyhow::Result;
 use ndarray::prelude::*;
-use ndarray::IntoDimension;
+use ndarray::{IntoDimension, Slice};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
@@ -66,6 +68,25 @@ impl<'v> JArrayCow<'v> {
         impl_array!(self, ArrayBase::shape)
     }
 
+    pub fn len_of(&self, axis: Axis) -> usize {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.len_of(axis))
+    }
+
+    pub fn transpose<'s>(&'s self) -> JArrayCow {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| CowArrayD::from(a.t()).into())
+    }
+
+    pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
+        impl_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix).into())
+    }
+
+    pub fn slice_axis<'s: 'v>(&'s self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
+        // TODO: panics if axis > shape?
+        Ok(impl_array!(self, |a: &'v ArrayBase<_, _>| JArrayCow::from(
+            a.slice_axis(axis, slice)
+        )))
+    }
+
     pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow> {
         use JArrayCow::*;
         Ok(match self {
@@ -80,12 +101,14 @@ impl<'v> JArrayCow<'v> {
         })
     }
 
-    // TODO: Iterator
-    pub fn outer_iter(&'v self) -> Vec<Self> {
-        impl_array!(self, |x: &'v ArrayBase<_, _>| x
-            .outer_iter()
-            .map(Self::from)
-            .collect())
+    pub fn outer_iter(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
+        if self.shape().is_empty() {
+            Box::new(iter::once(self.clone()))
+        } else {
+            impl_array!(self, |x: &'v ArrayBase<_, _>| Box::new(
+                x.outer_iter().map(Self::from)
+            ))
+        }
     }
 
     pub fn to_owned(&self) -> JArray {

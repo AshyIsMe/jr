@@ -70,21 +70,6 @@ macro_rules! impl_array {
     };
 }
 
-macro_rules! map_array {
-    ($arr:ident, $func:expr) => {
-        match $arr {
-            JArray::BoolArray(a) => JArray::BoolArray($func(a)),
-            JArray::CharArray(a) => JArray::CharArray($func(a)),
-            JArray::IntArray(a) => JArray::IntArray($func(a)),
-            JArray::ExtIntArray(a) => JArray::ExtIntArray($func(a)),
-            JArray::RationalArray(a) => JArray::RationalArray($func(a)),
-            JArray::FloatArray(a) => JArray::FloatArray($func(a)),
-            JArray::ComplexArray(a) => JArray::ComplexArray($func(a)),
-            JArray::BoxArray(a) => JArray::BoxArray($func(a)),
-        }
-    };
-}
-
 #[macro_export]
 macro_rules! impl_homo {
     ($x:ident, $y:ident, $func:expr) => {
@@ -135,7 +120,7 @@ impl JArray {
     }
 
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
-        map_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix))
+        impl_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix).into())
     }
 
     pub fn slice_axis<'v>(&'v self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
@@ -151,7 +136,7 @@ impl JArray {
 
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
         if self.shape().is_empty() {
-            Box::new(vec![JArrayCow::from(self)].into_iter())
+            Box::new(iter::once(JArrayCow::from(self)))
         } else {
             impl_array!(self, |x: &'v ArrayBase<_, _>| Box::new(
                 x.outer_iter().map(JArrayCow::from)
@@ -408,6 +393,25 @@ impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
 impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
 impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
 impl_into_jarray!(ArrayD<JArray>, JArray::BoxArray);
+
+macro_rules! impl_from_nd {
+    ($t:ty, $j:path) => {
+        impl From<ArrayD<$t>> for JArray {
+            fn from(value: ArrayD<$t>) -> JArray {
+                $j(value.into())
+            }
+        }
+    };
+}
+
+impl_from_nd!(u8, JArray::BoolArray);
+impl_from_nd!(char, JArray::CharArray);
+impl_from_nd!(i64, JArray::IntArray);
+impl_from_nd!(BigInt, JArray::ExtIntArray);
+impl_from_nd!(BigRational, JArray::RationalArray);
+impl_from_nd!(f64, JArray::FloatArray);
+impl_from_nd!(Complex64, JArray::ComplexArray);
+impl_from_nd!(JArray, JArray::BoxArray);
 
 impl From<Num> for JArray {
     fn from(value: Num) -> Self {
