@@ -65,7 +65,7 @@ pub fn c_hatco(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                     .collect::<Result<_, _>>()?,
             )?)
         }
-        (Word::Verb(_, _), Word::Verb(_, _)) => todo!("power conjunction verb right argument"),
+        (Word::Verb(_, _), Word::Verb(_, _)) => bail!("power conjunction verb right argument"),
         _ => Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     }
 }
