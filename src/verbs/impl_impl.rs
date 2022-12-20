@@ -120,6 +120,7 @@ impl VerbImpl {
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
                 (None, Noun(y)) => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
+                    .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("monadic {:?}", imp.name)),
                 (Some(Noun(x)), Noun(y)) => {
                     let dyad = imp

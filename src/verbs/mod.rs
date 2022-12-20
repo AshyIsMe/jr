@@ -184,13 +184,17 @@ pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
 /// ; (monad)
 pub fn v_raze(y: &JArray) -> Result<JArray> {
     match y {
-        JArray::BoxArray(arr) if !arr.is_empty() && arr.shape().is_empty() => Ok(arr
-            .iter()
-            .next()
-            .expect("checked")
-            .clone()
-            .to_shape(IxDyn(&[1usize]))?
-            .to_owned()),
+        JArray::BoxArray(arr) if !arr.is_empty() && arr.shape().is_empty() => {
+            let maybe_atom = arr.iter().next().expect("checked");
+            if maybe_atom.shape().is_empty() {
+                Ok(maybe_atom
+                    .to_shape(IxDyn(&[1usize]))
+                    .context("atom")?
+                    .to_owned())
+            } else {
+                Ok(maybe_atom.clone())
+            }
+        }
         JArray::BoxArray(arr) if arr.shape().len() == 1 => {
             let mut parts = Vec::new();
             for arr in arr {
@@ -204,7 +208,9 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             Ok(if !arr.shape().is_empty() {
                 arr
             } else {
-                arr.to_shape(IxDyn(&[1usize]))?.into_owned()
+                arr.to_shape(IxDyn(&[1usize]))
+                    .context("promoted reshape")?
+                    .into_owned()
             })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
