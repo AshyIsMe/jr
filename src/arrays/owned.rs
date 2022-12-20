@@ -85,6 +85,29 @@ macro_rules! map_array {
     };
 }
 
+#[macro_export]
+macro_rules! impl_homo {
+    ($x:ident, $y:ident, $func:expr) => {
+        match ($x, $y) {
+            (JArray::BoolArray(x), JArray::BoolArray(y)) => Ok(JArray::BoolArray($func(x, y)?)),
+            (JArray::CharArray(x), JArray::CharArray(y)) => Ok(JArray::CharArray($func(x, y)?)),
+            (JArray::IntArray(x), JArray::IntArray(y)) => Ok(JArray::IntArray($func(x, y)?)),
+            (JArray::ExtIntArray(x), JArray::ExtIntArray(y)) => {
+                Ok(JArray::ExtIntArray($func(x, y)?))
+            }
+            (JArray::RationalArray(x), JArray::RationalArray(y)) => {
+                Ok(JArray::RationalArray($func(x, y)?))
+            }
+            (JArray::FloatArray(x), JArray::FloatArray(y)) => Ok(JArray::FloatArray($func(x, y)?)),
+            (JArray::ComplexArray(x), JArray::ComplexArray(y)) => {
+                Ok(JArray::ComplexArray($func(x, y)?))
+            }
+            (JArray::BoxArray(x), JArray::BoxArray(y)) => Ok(JArray::BoxArray($func(x, y)?)),
+            _ => Err(JError::DomainError).context("expected homo arrays"),
+        }
+    };
+}
+
 impl JArray {
     pub fn is_empty(&self) -> bool {
         impl_array!(self, |a: &ArrayBase<_, _>| { a.is_empty() })

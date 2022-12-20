@@ -255,6 +255,8 @@ NB. append
 5,3 6
 2 5,3
 'abc','d'
+(i. 2 3),(10 + i. 2 3)
+(i. 2 3),(10 + i. 3 3)
 
 NB. ravel items
 ,. 'a'
