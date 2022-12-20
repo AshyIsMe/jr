@@ -1,5 +1,5 @@
+use std::fmt;
 use std::iter;
-use std::{fmt, fs};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -7,8 +7,9 @@ use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::cells::{apply_cells, monad_cells};
+use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{arr0d, eval, generate_cells, Ctx, IntoJArray, Num};
+use crate::{arr0d, eval, generate_cells, Ctx, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -339,7 +340,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     }
 }
 
-pub fn c_foreign(_x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_foreign(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (n, m) {
         (Word::Noun(n), Word::Noun(m)) => {
             let n = n
@@ -352,43 +353,9 @@ pub fn c_foreign(_x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word
                 .and_then(|m| m.value_len())
                 .ok_or(JError::DomainError)
                 .context("right foreign takes numerics")?;
-            match (m, n) {
-                (1, 1) => f_read_file(y).context("reading file"),
-                _ => Err(JError::NonceError)
-                    .with_context(|| anyhow!("unsupported foreign: {m}!:{n}")),
-            }
+            foreign(n, m, x, y)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
-    }
-}
-
-fn f_read_file(y: &Word) -> Result<Word> {
-    match y {
-        Word::Noun(JArray::BoxArray(arr)) if arr.len() == 1 => {
-            let arr = arr
-                .iter()
-                .next()
-                .ok_or(JError::DomainError)
-                .context("empty box?")?;
-            let arr = arr
-                .when_char()
-                .ok_or(JError::NonceError)
-                .context("can't read boxed non-paths")?;
-
-            if arr.shape().len() > 1 {
-                return Err(JError::NonceError).context("multi-dimensional path");
-            }
-
-            let path: String = arr.iter().copied().collect();
-            match fs::read_to_string(&path) {
-                Ok(s) => Ok(s.chars().collect_vec().into_array()?.into_noun()),
-                Err(e) => Err(JError::FileNameError)
-                    .context(e)
-                    .with_context(|| anyhow!("reading {path:?}")),
-            }
-        }
-        _ => Err(JError::NonceError)
-            .context("can't read non-paths (hint: pointless box required 1!:1 <'a')"),
     }
 }
 
