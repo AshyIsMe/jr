@@ -44,22 +44,26 @@ pub fn scan_eval(sentence: &str) -> Result<Word> {
     last.when_word()
 }
 
-pub fn read_ijs_lines(lines: &str) -> Vec<String> {
+pub fn read_ijs_lines(lines: &str) -> Vec<(String, String)> {
     lines
         .lines()
-        .map(|line| line.trim())
-        .filter(|line| !line.is_empty() && !line.starts_with("NB. "))
-        .map(ToString::to_string)
+        .enumerate()
+        .map(|(p, line)| (p + 1, line.trim()))
+        .filter(|(_, line)| !line.is_empty() && !line.starts_with("NB. "))
+        .map(|(p, l)| (format!("file line {p}"), l.to_string()))
         .collect()
 }
 
-pub fn read_ijs_dir(dir: impl AsRef<Path>) -> Result<Vec<String>> {
+pub fn read_ijs_dir(dir: impl AsRef<Path>) -> Result<Vec<(String, String)>> {
     let dir = dir.as_ref();
     fs::read_dir(dir)
         .with_context(|| anyhow!("listing {dir:?}"))?
         .map(|entry| {
             let path = entry?.path();
-            fs::read_to_string(&path).with_context(|| anyhow!("reading {path:?}"))
+            Ok((
+                format!("{path:?}"),
+                fs::read_to_string(&path).with_context(|| anyhow!("reading {path:?}"))?,
+            ))
         })
         .collect()
 }

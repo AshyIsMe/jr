@@ -24,7 +24,7 @@ C Z
 scores=: ". (}."1 s2) rplc ;/'X1Y2Z3'
 scores =: scores + (6 * s2 e. wins) + (3 * s2 e. draws)
 
-] d2p1=: +/scores
+d2p1=: +/scores
 
 NB. day 2 part 2
 NB. X lose, Y draw, Z win
@@ -42,5 +42,6 @@ hands=: ". }: (LF;';') rplc~  0 : 0
 'C Z';'1'
 )
 points =: ". _1 ,\ s2 rplc hands
-] d2p2=: +/ scores + points
+d2p2=: +/ scores + points
 
+d2p1; d2p2
