@@ -484,14 +484,17 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
         .ok_or(JError::DomainError)
         .context("i. takes integers")?;
 
-    let p = y.iter().product();
-    if p < 0 {
-        return Err(JError::NonceError).context("i. negatives");
-    } else {
-        JArray::IntArray((0..p).collect_vec().into_array()?)
-            .to_shape(IxDyn(&y.iter().map(|x| *x as usize).collect_vec()))
-            .map(|cow| cow.to_owned())
+    let p: i64 = y.iter().product();
+    let mut arr = (0..p.abs())
+        .collect_vec()
+        .into_array()?
+        .into_shape(IxDyn(&y.iter().map(|x| x.abs() as usize).collect_vec()))?;
+    for (axis, val) in y.iter().enumerate() {
+        if *val < 0 {
+            arr.invert_axis(Axis(axis));
+        }
     }
+    Ok(JArray::IntArray(arr))
 }
 /// i. (dyad)
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {

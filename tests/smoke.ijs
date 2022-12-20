@@ -343,6 +343,17 @@ i.&.> (1;2;2 3)
 NB. derived: # (&.>) < 'foo'
 (3;5) (+&.>) (<7)
 
+NB. integers
+i. 0
+i. 1
+i. 2
+i. _1
+i. _2
+i. 2 3
+i. 2 _3
+i. _2 3
+i. _2 _3
+
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
