@@ -87,11 +87,22 @@ impl<'v> JArrayCow<'v> {
             .map(Self::from)
             .collect())
     }
-}
 
-impl<'v> From<JArrayCow<'v>> for JArray {
-    fn from(value: JArrayCow<'v>) -> Self {
-        match value {
+    pub fn to_owned(&self) -> JArray {
+        match self {
+            JArrayCow::BoolArray(v) => JArray::BoolArray(v.to_owned()),
+            JArrayCow::CharArray(v) => JArray::CharArray(v.to_owned()),
+            JArrayCow::IntArray(v) => JArray::IntArray(v.to_owned()),
+            JArrayCow::ExtIntArray(v) => JArray::ExtIntArray(v.to_owned()),
+            JArrayCow::RationalArray(v) => JArray::RationalArray(v.to_owned()),
+            JArrayCow::FloatArray(v) => JArray::FloatArray(v.to_owned()),
+            JArrayCow::ComplexArray(v) => JArray::ComplexArray(v.to_owned()),
+            JArrayCow::BoxArray(v) => JArray::BoxArray(v.to_owned()),
+        }
+    }
+
+    pub fn into_owned(self) -> JArray {
+        match self {
             JArrayCow::BoolArray(v) => JArray::BoolArray(v.into_owned()),
             JArrayCow::CharArray(v) => JArray::CharArray(v.into_owned()),
             JArrayCow::IntArray(v) => JArray::IntArray(v.into_owned()),

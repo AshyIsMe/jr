@@ -285,7 +285,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                     stack = empty_box_array();
                 } else {
                     stack
-                        .push(Axis(0), arr0d(JArray::from(part.clone())).view())
+                        .push(Axis(0), arr0d(part.to_owned()).view())
                         .context("push")?;
                 }
             }
@@ -312,7 +312,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
             let mut out = empty_box_array();
             for (&x, part) in x.iter().zip(y.outer_iter()) {
                 if is_inclusive || x == 0 {
-                    stack.push(Axis(0), arr0d(JArray::from(part.clone())).view())?;
+                    stack.push(Axis(0), arr0d(part.into_owned()).view())?;
                 }
                 if x != 1 {
                     continue;

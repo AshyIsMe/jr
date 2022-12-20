@@ -115,7 +115,12 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
     let mut y = y.outer_iter().collect_vec();
     y.reverse();
-    flatten(&y.into_iter().map(JArray::from).collect_vec().into_array()?)
+    flatten(
+        &y.into_iter()
+            .map(|cow| cow.into_owned())
+            .collect_vec()
+            .into_array()?,
+    )
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -140,7 +145,12 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         y.rotate_left(distance)
     };
 
-    flatten(&y.into_iter().map(JArray::from).collect_vec().into_array()?)
+    flatten(
+        &y.into_iter()
+            .map(|cow| cow.into_owned())
+            .collect_vec()
+            .into_array()?,
+    )
 }
 
 /// , (monad)
@@ -153,7 +163,7 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 /// ,. (monad)
 pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
     Ok(match y.shape().len() {
-        0 | 1 => y.to_shape(IxDyn(&[y.len(), 1]))?.into(),
+        0 | 1 => y.to_shape(IxDyn(&[y.len(), 1]))?.into_owned(),
         2 => y.clone(),
         _ => {
             return Err(JError::NonceError)
@@ -187,7 +197,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             Ok(if !arr.shape().is_empty() {
                 arr
             } else {
-                JArray::from(arr.to_shape(IxDyn(&[1usize]))?)
+                arr.to_shape(IxDyn(&[1usize]))?.into_owned()
             })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
@@ -313,9 +323,7 @@ pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
         let outer = y.outer_iter().collect_vec();
         outer
             .get(x)
-            // TODO: pointless (but cheap for once) clone
-            .cloned()
-            .map(JArray::from)
+            .map(|cow| cow.to_owned())
             .ok_or(JError::IndexError)
             .with_context(|| anyhow!("out of bounds read, {x} is past the end of {y:?}"))
     } else {
@@ -469,7 +477,7 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
             Ok(
                 IntArray(Array::from_vec((0..p).map(|x| x as i64).collect()).into_dyn())
                     .to_shape(IxDyn(&is))?
-                    .into(),
+                    .into_owned(),
             )
         }
         ExtIntArray(_) => return Err(JError::NonceError).context("i. ExtInt"),
@@ -491,7 +499,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
         .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
         .collect_vec();
-    Ok(JArray::from(promote_to_array(y)?.to_shape(output_shape)?))
+    Ok(promote_to_array(y)?.to_shape(output_shape)?.into_owned())
 }
 
 /// E. (dyad) (_, _)

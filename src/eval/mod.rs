@@ -410,7 +410,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 }
 
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
-                    ctx.alias(name, Noun(v_open(&JArray::from(val))?));
+                    ctx.alias(name, Noun(v_open(&val.into_owned())?));
                 }
                 Ok(vec![any])
             }
