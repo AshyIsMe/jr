@@ -473,28 +473,24 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// i. (monad) (1)
 pub fn v_integers(y: &JArray) -> Result<JArray> {
-    match y {
-        // monadic i.
-        IntArray(a) => {
-            let p = a.product();
-            if p < 0 {
-                return Err(JError::NonceError).context("i. negatives");
-            } else {
-                let ints = Array::from_vec((0..p).collect());
-                Ok(IntArray(reshape(a, &ints.into_dyn())?))
-            }
-        }
-        BoolArray(a) => {
-            let is = a.iter().copied().map(usize::from).collect_vec();
-            let p = is.iter().product::<usize>();
-            Ok(
-                IntArray(Array::from_vec((0..p).map(|x| x as i64).collect()).into_dyn())
-                    .to_shape(IxDyn(&is))?
-                    .into_owned(),
-            )
-        }
-        ExtIntArray(_) => return Err(JError::NonceError).context("i. ExtInt"),
-        _ => Err(JError::DomainError).with_context(|| anyhow!("unsupported arg type: {y:?}")),
+    let y = y
+        .clone()
+        .into_nums()
+        .ok_or(JError::DomainError)
+        .context("i. takes numbers")?
+        .into_iter()
+        .map(|x| x.value_i64())
+        .collect::<Option<Vec<_>>>()
+        .ok_or(JError::DomainError)
+        .context("i. takes integers")?;
+
+    let p = y.iter().product();
+    if p < 0 {
+        return Err(JError::NonceError).context("i. negatives");
+    } else {
+        JArray::IntArray((0..p).collect_vec().into_array()?)
+            .to_shape(IxDyn(&y.iter().map(|x| *x as usize).collect_vec()))
+            .map(|cow| cow.to_owned())
     }
 }
 /// i. (dyad)
