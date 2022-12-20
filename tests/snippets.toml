@@ -1,5 +1,126 @@
 [[runs]]
 expr = '''
+
+NB. adventofcode 2022 day1
+s =: 0 : 0
+1000
+2000
+3000
+
+4000
+
+5000
+6000
+
+7000
+8000
+9000
+
+10000
+)
+
+d1p1=: >./ +/ &> ". }: s rplc (LF,LF);';';LF;' '
+d1p2=: +/ 3 {. \:~ +/ &> ". }: s rplc (LF,LF);';';LF;' '
+
+d1p1; d1p2
+'''
+output = '''
+┌─────┬─────┐
+│24000│45000│
+└─────┴─────┘'''
+encoded = '''
+e3,2,02,01,02,38,6,
+e3,04,01,,c05d,
+e3,04,01,,c8af'''
+
+[[runs]]
+expr = '''
+
+NB. adventofcode 2022 day2
+s2=:(,;._2~ LF=]) 0 : 0
+A Y
+B X
+C Z
+)
+
+NB. A rock B paper C scissors
+NB. X rock Y paper Z scissors
+
+wins=:(,;._2~ LF=]) 0 : 0
+A Y
+B Z
+C X
+)
+
+draws=: (,;._2~ LF=]) 0 : 0
+A X
+B Y
+C Z
+)
+
+scores=: ". (}."1 s2) rplc ;/'X1Y2Z3'
+scores =: scores + (6 * s2 e. wins) + (3 * s2 e. draws)
+
+d2p1=: +/scores
+
+NB. day 2 part 2
+NB. X lose, Y draw, Z win
+scores=: ". (}."1 s2) rplc ;/'X0Y3Z6'
+NB. A1, B2, C3
+hands=: ". }: (LF;';') rplc~  0 : 0
+'A X';'3'
+'A Y';'1'
+'A Z';'2'
+'B X';'1'
+'B Y';'2'
+'B Z';'3'
+'C X';'2'
+'C Y';'3'
+'C Z';'1'
+)
+points =: ". _1 ,\ s2 rplc hands
+d2p2=: +/ scores + points
+
+d2p1; d2p2
+'''
+output = '''
+┌──┬──┐
+│15│12│
+└──┴──┘'''
+encoded = '''
+e3,2,02,01,02,38,6,
+e3,04,01,,0f,
+e3,04,01,,0c'''
+
+[[runs]]
+expr = '''
+NB. Diamond Kata
+
+NB.    dia 'ABCD'
+NB. ---A---
+NB. --B-B--
+NB. -C---C-
+NB. D-----D
+NB. -C---C-
+NB. --B-B--
+NB. ---A---
+
+dia =: {{ (] ,"1 }.@|."1) ([ , }.@|.) (>:i. #y) |."0 1 (,. ,"1 (<:@# # '-'&[)) y}}
+
+dia 'ABCD'
+'''
+output = '''
+---A---
+--B-B--
+-C---C-
+D-----D
+-C---C-
+--B-B--
+---A---'''
+encoded = 'e3,02,31,02,07,07,2d2d2d412d2d2d2d,2d422d422d2d2d43,2d2d2d432d442d2d,2d2d2d442d432d2d,2d432d2d2d422d42,2d2d2d2d2d412d2d,2d'
+
+[[runs]]
+expr = '''
 NB. should be pulled in from stdlib.ijs
 split =: ({. ,&< }.)
 
@@ -97,6 +218,25 @@ encoded = '''
 e3,2,02,01,02,38,6,
 e3,04,01,,0c,
 e3,04,01,,08'''
+
+[[runs]]
+expr = '''
+s =: 0 : 0
+1
+2
+
+3
+4
+)
+s
+'''
+output = '''
+1
+2
+
+3
+4'''
+encoded = 'e3,02,09,01,09,310a320a0a330a34,0a'
 
 [[runs]]
 expr = '''
