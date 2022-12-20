@@ -223,6 +223,10 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. prefix
+]\ 'banana'
++/\ 1 2 3 4 5 6
+
 NB. infix
 _2 [\ ('aba';'XYZT';'ba';'+')
 _3 <\ 'abcdefg'
@@ -366,6 +370,7 @@ NB. indexes (bool)
 I. 0 0 1 0 1 0
 
 NB. member interval
+'c' E. 'cocoa'
 'co' E. 'cocoa'
 
 NB. NB.

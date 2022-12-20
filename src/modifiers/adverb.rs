@@ -98,6 +98,18 @@ fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
 /// (0 _)
 pub fn a_backslash(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     match (x, u, y) {
+        (None, Word::Verb(_, u), Word::Noun(y)) => {
+            let y = y.outer_iter().collect_vec();
+            let mut piece = Vec::new();
+            for i in 1..=y.len() {
+                let chunk = &y[..i];
+                piece.push(
+                    u.exec(None, &Word::Noun(flatten_partial(chunk)?))
+                        .context("backslash (u)")?,
+                );
+            }
+            flatten(&piece.into_array()?).map(Word::Noun)
+        }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
             let x = x
                 .single_math_num()
@@ -166,7 +178,7 @@ pub fn a_close_squiggle(x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
 
             for u in u {
                 *y.get_mut(u)
-                    .ok_or(JError::LengthError)
+                    .ok_or(JError::IndexError)
                     .context("index out of bounds")? = x[u % x.len()].clone();
             }
 

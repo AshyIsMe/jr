@@ -529,7 +529,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// E. (dyad) (_, _)
 pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() != 1 || y.shape().len() != 1 {
+    if x.shape().len() > 1 || y.shape().len() > 1 {
         return Err(JError::NonceError)
             .with_context(|| anyhow!("inputs must be lists: {x:?} {y:?}"));
     }
