@@ -245,6 +245,10 @@ NB. append
 2 5,3
 'abc','d'
 
+NB. ravel items
+,. 'a'
+,. i.3
+
 NB. link
 5;3
 6;7;8

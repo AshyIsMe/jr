@@ -33,8 +33,7 @@ fn main() -> Result<()> {
         run_list
             .add(&content)
             .with_context(|| anyhow!("content:\n{content:?}"))
-            .with_context(|| anyhow!("unable to capture result for {ctx}"))
-            ?;
+            .with_context(|| anyhow!("unable to capture result for {ctx}"))?;
     }
 
     fs::write(toml, run_list.save()?)?;

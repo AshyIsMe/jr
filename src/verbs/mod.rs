@@ -127,8 +127,15 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 }
 
 /// ,. (monad)
-pub fn v_ravel_items(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
+    Ok(match y.shape().len() {
+        0 | 1 => y.to_shape(IxDyn(&[y.len(), 1]))?.into(),
+        2 => y.clone(),
+        _ => {
+            return Err(JError::NonceError)
+                .with_context(|| anyhow!("ravel items on shape: {:?}", y.shape()))
+        }
+    })
 }
 
 /// ,: (monad)
