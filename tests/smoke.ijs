@@ -332,6 +332,10 @@ NB. atop / at
 (1 2 3 4) */ @  + (7 5 3 2)
 (1 2 3 4) */ @: + (7 5 3 2)
 
+NB. cor
+NB. can't eval nouns: 0 : 'hello'
+(3 (4 : 'x + y') 5)
+
 NB. bondo
 1&+ 5
 (+&1) 5

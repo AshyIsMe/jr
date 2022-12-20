@@ -6,7 +6,7 @@ use std::iter::repeat;
 use crate::{Ctx, Elem, JArray, Num};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use num_traits::Zero;
 
 use crate::error::JError;
@@ -103,7 +103,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         debug!("restoring onto {:?}", sus.qs.stack);
         sus.qs
             .stack
-            .push_front(Word::noun(sus.data.chars().collect_vec())?);
+            .push_back(Word::noun(sus.data.chars().collect_vec())?);
         sus.qs
     } else {
         let mut queue = VecDeque::from(sentence);
@@ -273,7 +273,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
             }
-            (ref w, Noun(m), Conjunction(sc, c), Noun(n))
+            (ref w, Noun(ref m), Conjunction(ref sc, ref c), Noun(n))
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
@@ -282,15 +282,17 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("4 Conj N C N");
                 if c.farcical(&m, &n)? {
                     queue.push_back(fragment.0);
-                    debug!("suspending {queue:?} {stack:?}");
+                    stack.push_back(fragment.1);
+                    stack.push_back(fragment.2);
+                    warn!("suspending {queue:?} {stack:?}");
                     ctx.suspend(Qs { queue, stack })?;
                     return Ok(EvalOutput::Suspension);
                 }
                 let verb_str = format!("m {} n", sc);
                 let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Noun(m)),
+                    l: Box::new(Noun(m.clone())),
                     r: Box::new(Noun(n)),
-                    m: Box::new(Conjunction(sc, c)),
+                    m: Box::new(Conjunction(sc.clone(), c.clone())),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
             }
@@ -437,8 +439,12 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             },
         };
 
-        debug!("result: {:?}", result);
+        stack.retain(|w| !matches!(w, Nothing));
+
+        debug!("result: {:?} with {stack:?}", result);
         stack = vec![result?, stack.into()].concat().into(); //push_front
+
+        stack.retain(|w| !matches!(w, Nothing));
     }
     trace!("DEBUG stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
