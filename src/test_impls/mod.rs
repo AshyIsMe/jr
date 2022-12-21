@@ -18,12 +18,21 @@ pub fn run_j(expr: impl AsRef<str>) -> Result<String> {
 }
 
 fn run_j_inner(expr: &str) -> Result<String> {
-    let mut p = Command::new("jconsole.sh")
+    let mut p = match Command::new("jconsole.sh")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()
-        .context("executing jconsole.sh from path")?;
+        .context("executing jconsole.sh from path")
+    {
+        Ok(p) => p,
+        Err(_) => Command::new("ijconsole")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .context("executing ijconsole from path")?,
+    };
     p.stdin
         .as_mut()
         .expect("requested")
