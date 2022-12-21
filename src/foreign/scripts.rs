@@ -39,13 +39,16 @@ pub fn f_load_script(ctx: &mut Ctx, k: usize, y: &Word) -> Result<Word> {
     let path = arg_to_fs_path(y)?;
 
     let mut last = EvalOutput::Regular(Word::Nothing);
-    for line in fs::read_to_string(&path)
+    for (off, line) in fs::read_to_string(&path)
         .with_context(|| anyhow!("reading {path:?}"))?
         .split('\n')
+        .enumerate()
     {
         match feed(line, ctx) {
             Ok(word) => last = word,
-            Err(e) if break_on_error => return Err(e),
+            Err(e) if break_on_error => {
+                return Err(e).with_context(|| anyhow!("on line {} of {path:?}", off + 1))
+            }
             Err(e) => {
                 info!("ignoring error during script load, as requested: {e:?}")
             }
