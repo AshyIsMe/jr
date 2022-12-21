@@ -1,11 +1,13 @@
 use anyhow::Result;
 
-use crate::Word;
+use crate::{arr0d, JArray, Word};
 
 pub fn f_os_type() -> Result<Word> {
-    Word::noun(vec![match std::env::consts::OS {
-        "linux" => 5i64,
-        "windows" => 6,
-        _ => -1,
-    }])
+    Ok(Word::Noun(JArray::IntArray(arr0d(
+        match std::env::consts::OS {
+            "linux" => 5i64,
+            "windows" => 6,
+            _ => -1,
+        },
+    ))))
 }

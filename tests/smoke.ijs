@@ -389,6 +389,8 @@ NB. foreign
 3!:3 ] 2
 3!:3 ] 2 4 7 _2
 2 (3!:4) 97
+NB. platform dependent actual result
+$ 9!:12 ''
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'

@@ -68,11 +68,13 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
 pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
     // should not be returned?
     let mut word = Word::Nothing;
-    for sentence in sentence
+    for (rel_pos, sentence) in sentence
         .split(|w| matches!(w, Word::NewLine))
-        .filter(|sub| !sub.is_empty())
+        .enumerate()
+        .filter(|(_, sub)| !sub.is_empty())
     {
-        word = eval(sentence.to_vec(), ctx)?;
+        word = eval(sentence.to_vec(), ctx)
+            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?;
     }
     Ok(word)
 }
@@ -411,18 +413,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (Noun(names), IsLocal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
-                let Noun(arr) = w else { return Err(JError::NonceError).context("non-noun on the right of noun assignment"); };
-                let JArray::CharArray(names) = names else { return Err(JError::NonceError).context("assigning to char arrays only please"); };
-                if names.shape().len() != 1 {
-                    return Err(JError::NonceError)
-                        .context("lists of chars (strings), not multi-dimensional char arrays");
-                }
-                // presumably this is supposed to be "words"
-                let names = names.iter().collect::<String>();
-                let names = names.split_whitespace().collect_vec();
-                if arr.shape()[0] != names.len() {
-                    return Err(JError::LengthError).context("wrong number of names for an array");
-                }
+                debug!("7 Is Local Noun w");
+                let (arr, names) = string_assignment(names, w)?;
 
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
                     ctx.alias(name, Noun(v_open(&val.into_owned())?));
@@ -432,8 +424,19 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (Name(n), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
-                debug!("7 Is Local Name w");
+                debug!("7 Is Global Name w");
                 ctx.alias(n, w.clone());
+                Ok(vec![any])
+            }
+            (Noun(names), IsGlobal, w, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Global Noun w");
+                let (arr, names) = string_assignment(names, w)?;
+
+                for (name, val) in names.into_iter().zip(arr.outer_iter()) {
+                    ctx.alias(name, Noun(v_open(&val.into_owned())?));
+                }
                 Ok(vec![any])
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
@@ -475,6 +478,25 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         _ => Err(JError::SyntaxError)
             .with_context(|| anyhow!("expected a single output value but found {new_stack:?}")),
     }
+}
+
+fn string_assignment(names: JArray, w: Word) -> Result<(JArray, Vec<String>)> {
+    let Noun(arr) = w else { return Err(JError::NonceError).context("non-noun on the right of noun assignment"); };
+    let JArray::CharArray(names) = names else { return Err(JError::NonceError).context("assigning to char arrays only please"); };
+    if names.shape().len() != 1 {
+        return Err(JError::NonceError)
+            .context("lists of chars (strings), not multi-dimensional char arrays");
+    }
+    // presumably this is supposed to be "words"
+    let names = names.iter().collect::<String>();
+    let names = names
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect_vec();
+    if arr.len() != names.len() {
+        return Err(JError::LengthError).context("wrong number of names for an array");
+    }
+    Ok((arr, names))
 }
 
 fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {

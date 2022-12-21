@@ -74,6 +74,11 @@ output = '6 8'
 encoded = 'e3,04,02,01,02,06,08'
 
 [[runs]]
+expr = "$ 9!:12 ''"
+output = ''
+encoded = 'e3,04,,01,'
+
+[[runs]]
 expr = '$;._2 (1 2 0 0 1 0)'
 output = '''
 2
@@ -208,6 +213,26 @@ encoded = 'e3,01,03,01,03,0101'
 expr = "'co' E. 'cocoa'"
 output = '1 0 1 0 0'
 encoded = 'e3,01,05,01,05,010001'
+
+[[runs]]
+expr = ''''foo bar' =. 0 1'''
+output = ''
+encoded = 'e3,01,02,01,02,0001'
+
+[[runs]]
+expr = ''''foo bar' =. 0 2'''
+output = ''
+encoded = 'e3,04,02,01,02,,02'
+
+[[runs]]
+expr = ''''foo bar' =: 0 1'''
+output = ''
+encoded = 'e3,01,02,01,02,0001'
+
+[[runs]]
+expr = ''''foo bar' =: 0 2'''
+output = ''
+encoded = 'e3,04,02,01,02,,02'
 
 [[runs]]
 expr = "'good' ; 'morning'"
@@ -1452,6 +1477,36 @@ output = 'rnieedcbaaa'
 encoded = 'e3,02,0b,01,0b,726e696565646362,616161'
 
 [[runs]]
+expr = '''] 'foo bar' =. 0 1'''
+output = '0 1'
+encoded = 'e3,01,02,01,02,0001'
+
+[[runs]]
+expr = '''] 'foo bar' =. 0 2'''
+output = '0 2'
+encoded = 'e3,04,02,01,02,,02'
+
+[[runs]]
+expr = '''] 'foo bar' =: 0 1'''
+output = '0 1'
+encoded = 'e3,01,02,01,02,0001'
+
+[[runs]]
+expr = '''] 'foo bar' =: 0 2'''
+output = '0 2'
+encoded = 'e3,04,02,01,02,,02'
+
+[[runs]]
+expr = '] foo =. 7'
+output = '7'
+encoded = 'e3,04,01,,07'
+
+[[runs]]
+expr = '] foo =: 7'
+output = '7'
+encoded = 'e3,04,01,,07'
+
+[[runs]]
 expr = '] i. 2 3'
 output = '''
 0 1 2
@@ -1547,6 +1602,16 @@ encoded = 'e3,1,01,,000000000000f0ff,000000000000f0ff'
 expr = '_j_'
 output = '_j_'
 encoded = 'e3,1,01,,000000000000f07f,000000000000f07f'
+
+[[runs]]
+expr = 'foo =. 7'
+output = ''
+encoded = 'e3,04,01,,07'
+
+[[runs]]
+expr = 'foo =: 7'
+output = ''
+encoded = 'e3,04,01,,07'
 
 [[runs]]
 expr = 'i. 0'
