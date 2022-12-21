@@ -403,3 +403,8 @@ NB. (;/i.5) = 0;1;2;3;4
 0;1
 (,. ,"1 (<:@# # '-'&[)) 'ABCD'
 (>:i. #'ABCD') |."0 1 (,. ,"1 (<:@# # '-'&[)) 'ABCD'
+
+
+NB. conjunction parsing semantics
+# &.> 1 2 3;4;5 6
+# (&.>) 1 2 3;4;5 6 NB. should be identical to the line above
