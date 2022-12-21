@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
+use crate::arrays::BoxArray;
 use crate::{Arrayable, IntoJArray, JArray, JError, Word};
 
 // 1!:1
@@ -20,10 +21,9 @@ pub fn f_read_file(y: &Word) -> Result<Word> {
     }
 }
 
-pub fn arg_to_fs_path(y: &Word) -> Result<PathBuf> {
-    let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::NonceError).context("only support <'filepath' loading"); };
+pub fn arg_to_string(y: &BoxArray) -> Result<String> {
     if y.len() != 1 {
-        return Err(JError::NonceError).context("only one path please");
+        return Err(JError::NonceError).context("only one arg please");
     }
 
     let path = y.iter().next().expect("just checked");
@@ -32,6 +32,11 @@ pub fn arg_to_fs_path(y: &Word) -> Result<PathBuf> {
         return Err(JError::NonceError).context("single string required");
     }
 
-    let path = path.iter().collect::<String>();
+    Ok(path.iter().collect::<String>())
+}
+
+pub fn arg_to_fs_path(y: &Word) -> Result<PathBuf> {
+    let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::NonceError).context("only support <'filepath' loading"); };
+    let path = arg_to_string(y)?;
     fs::canonicalize(&path).with_context(|| anyhow!("canonicalising {path}"))
 }

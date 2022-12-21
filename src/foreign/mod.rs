@@ -1,6 +1,7 @@
 mod conversion;
 mod files;
 mod global_param;
+mod names;
 mod scripts;
 
 use anyhow::{anyhow, Context, Result};
@@ -11,6 +12,7 @@ use crate::{Ctx, HasEmpty, JArray, JError, Word};
 use conversion::*;
 use files::*;
 use global_param::*;
+use names::*;
 use scripts::*;
 
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
@@ -32,6 +34,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) ->
         (3, 3) => f_dump_hex(x, y),
         (3, 4) => f_int_bytes(x, y),
         (3, _) => unsupported("conversion"),
+        (4, 0) => f_name_status(ctx, y),
         (4, _) => unsupported("name"),
         (5, _) => unsupported("representation"),
         (6, _) => unsupported("time"),
