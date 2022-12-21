@@ -7,7 +7,7 @@ use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::cells::{apply_cells, monad_cells};
-use crate::eval::eval_lines;
+use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
 use crate::{arr0d, generate_cells, Ctx, Num};
@@ -208,7 +208,7 @@ pub fn c_cor_farcical(n: &JArray, m: &JArray) -> Result<bool> {
     })
 }
 
-pub fn c_cor(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use crate::arrays::JArray::*;
     match (n, m) {
         (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
@@ -216,26 +216,32 @@ pub fn c_cor(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> 
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        let mut ctx = Ctx::empty();
+                        // TODO: wrong, this should be a sub-context
+                        let mut ctx = ctx.clone();
                         ctx.alias("x", x.clone());
                         ctx.alias("y", y.clone());
-                        eval_lines(
-                            &crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut ctx,
-                        )
-                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                        let mut words =
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        if !resolve_controls(&mut words)? {
+                            return Err(JError::SyntaxError).context("unable to resolve controls");
+                        }
+                        eval_lines(&words, &mut ctx)
+                            .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }
                 }
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
                 match x {
                     None => {
-                        let mut ctx = Ctx::empty();
+                        // TODO: wrong, this should be a sub-context
+                        let mut ctx = ctx.clone();
                         ctx.alias("y", y.clone());
-                        eval_lines(
-                            &crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut ctx,
-                        )
-                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                        let mut words =
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        if !resolve_controls(&mut words)? {
+                            return Err(JError::SyntaxError).context("unable to resolve controls");
+                        }
+                        eval_lines(&words, &mut ctx)
+                            .with_context(|| anyhow!("evaluating {:?}", jcode))
                     }
                     _ => Err(JError::DomainError).with_context(|| anyhow!("monad")),
                 }

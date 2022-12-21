@@ -10,7 +10,8 @@ use log::{debug, trace};
 use num_traits::Zero;
 
 use crate::error::JError;
-use crate::eval::controls::resolve_controls;
+// TODO: oh come on, this is clearly an eval concept
+pub use crate::eval::controls::resolve_controls;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
 use crate::Word::{self, *};
