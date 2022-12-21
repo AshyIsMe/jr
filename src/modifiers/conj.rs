@@ -1,5 +1,6 @@
 use std::fmt;
 use std::iter;
+use std::ops::Deref;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -9,7 +10,7 @@ use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::cells::{apply_cells, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, Rank};
+use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -168,6 +169,43 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
         }
         _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
     }
+}
+
+pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    use VerbImpl::*;
+    use Word::*;
+
+    let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
+    let v = v
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("agenda's index must be numeric")?
+        .value_len()
+        .ok_or(JError::DomainError)
+        .context("agenda's index must be a len")?;
+
+    // TODO: complete hack, only handling a tiny case
+    if v != 0 && v != 1 {
+        return Err(JError::NonceError).context("@. only implemented for 2-gerunds");
+    }
+
+    match u {
+        Verb(_, DerivedVerb { l, r, m }) => match (l.deref(), r.deref(), m.deref()) {
+            // TODO: complete hack, matching on the *name* of the verb
+            (Verb(_, l), Verb(_, r), Conjunction(name, _)) if name == "`" => {
+                if v == 0 {
+                    return l.exec(ctx, x, y).map(Noun).context("agenda l");
+                } else if v == 1 {
+                    return r.exec(ctx, x, y).map(Noun).context("agenda r");
+                } else {
+                    unreachable!("checked above")
+                }
+            }
+            _ => (),
+        },
+        _ => (),
+    }
+    Err(JError::NonceError).with_context(|| anyhow!("\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"))
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png

@@ -341,6 +341,10 @@ NB. do
 NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. agenda
+5 (+`-@.1) 2
+5 (+`-@.0) 2
+
 NB. atop / at
 #@> 'Newton';'Einstein'
 2 3 <@, 4 5

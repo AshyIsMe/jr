@@ -243,10 +243,11 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "[." => conj("[.", c_not_implemented),
         "]." => conj("].", c_not_implemented),
         "\"" => conj("\"", c_quote),
+        // matched on in the c_agenda implementation
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
         "@" => conj("@", c_atop),
-        "@." => conj("@.", c_not_implemented),
+        "@." => conj("@.", c_agenda),
         "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),
         "&." => conj("&.", c_under),

@@ -76,17 +76,17 @@ fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
             // _0:, _1:, ..
             '_' if sentence[i + 1..].starts_with(|c: char| c.is_ascii_digit())
                 && sentence[i + 2..].starts_with(":") =>
-                {
-                    let c = sentence[i + 1..].chars().next().expect("checked");
-                    words.push((
-                        (i, i + 2),
-                        Word::Verb(
-                            format!("_{c}:"),
-                            VerbImpl::Number(-((c as u8 - b'0') as f64)),
-                        ),
-                    ));
-                    skip = 2;
-                }
+            {
+                let c = sentence[i + 1..].chars().next().expect("checked");
+                words.push((
+                    (i, i + 2),
+                    Word::Verb(
+                        format!("_{c}:"),
+                        VerbImpl::Number(-((c as u8 - b'0') as f64)),
+                    ),
+                ));
+                skip = 2;
+            }
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
                 words.push(((i, i + l), t));
