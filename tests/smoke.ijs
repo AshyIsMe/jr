@@ -385,6 +385,10 @@ NB. NB. at the start of a line is handled by the test framework today.
 NB. controls
 3 {{ x + y }} 5
 
+NB. foreign
+3!:3 ] 2
+3!:3 ] 2 4 7 _2
+
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 

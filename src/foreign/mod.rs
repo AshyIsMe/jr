@@ -1,3 +1,4 @@
+mod conversion;
 mod files;
 mod global_param;
 mod scripts;
@@ -7,12 +8,13 @@ use log::warn;
 
 use crate::{Ctx, HasEmpty, JArray, JError, Word};
 
+use conversion::*;
 use files::*;
 use global_param::*;
 use scripts::*;
 
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
-pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, _x: Option<&Word>, y: &Word) -> Result<Word> {
+pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) -> Result<Word> {
     let unsupported = |name: &'static str| -> Result<Word> {
         Err(JError::NonceError).with_context(|| anyhow!("unsupported {name} foreign: {l}!:{r}"))
     };
@@ -27,6 +29,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, _x: Option<&Word>, y: &Word) -
         (1, 1) => f_read_file(y).context("reading file"),
         (1, _) => unsupported("file"),
         (2, _) => unsupported("host"),
+        (3, 3) => f_dump_hex(x, y),
         (3, _) => unsupported("conversion"),
         (4, _) => unsupported("name"),
         (5, _) => unsupported("representation"),
