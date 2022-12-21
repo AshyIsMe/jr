@@ -5,6 +5,7 @@ mod adverb;
 mod conj;
 
 use anyhow::{anyhow, bail, Context, Result};
+use std::ops::Deref;
 
 use crate::{Ctx, JArray, Word};
 
@@ -34,7 +35,14 @@ impl ModifierImpl {
             ModifierImpl::Conjunction(c) => {
                 (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
-            ModifierImpl::DerivedAdverb { l, r } => bail!("TODO: DerivedAdverb l: {l:?} r: {r:?}"),
+            ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
+                (Word::Conjunction(cn, c), r) => c
+                    .exec(ctx, x, u, r, y)
+                    .with_context(|| anyhow!("derived adverb conjunction {cn:?}")),
+                _ => bail!(
+                    "TODO: DerivedAdverb l: {l:?} r: {r:?} x: {x:?} u: {u:?} v: {v:?} y: {y:?}"
+                ),
+            },
         }
     }
 
