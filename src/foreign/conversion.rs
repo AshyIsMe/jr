@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use itertools::Itertools;
 
-use crate::{flatten, Arrayable, IntoJArray, JArray, JError, Num, Word};
+use crate::{arr0d, flatten, Arrayable, IntoJArray, JArray, JError, Num, Word};
 
 pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
     if cfg!(not(target_pointer_width = "64")) {
@@ -57,4 +57,25 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
         .collect_vec();
 
     flatten(&result.into_array()?).map(Word::Noun)
+}
+
+pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
+    let Some(Word::Noun(x)) = x else { return Err(JError::DomainError).context("invalid mode type"); };
+    let Word::Noun(y) = y else { return Err(JError::DomainError).context("invalid data"); };
+    match x.single_math_num() {
+        Some(x) if x == Num::Int(2) => (),
+        _ => return Err(JError::NonceError).context("unsupported mode"),
+    }
+    let Some(y) = y.single_math_num() else { return Err(JError::NonceError).context("only single numbers"); };
+    let Some(y) = y.value_i64() else  { return Err(JError::NonceError).context("only integers"); };
+    if y < 32 && y > 128 {
+        return Err(JError::NonceError).context("ascii only");
+    }
+
+    Ok(Word::Noun(JArray::CharArray(
+        // thanks, I hate it
+        vec![y as u8 as char, '\0', '\0', '\0']
+            .into_array()
+            .expect("infallible"),
+    )))
 }

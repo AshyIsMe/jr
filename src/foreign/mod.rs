@@ -30,6 +30,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) ->
         (1, _) => unsupported("file"),
         (2, _) => unsupported("host"),
         (3, 3) => f_dump_hex(x, y),
+        (3, 4) => f_int_bytes(x, y),
         (3, _) => unsupported("conversion"),
         (4, _) => unsupported("name"),
         (5, _) => unsupported("representation"),
