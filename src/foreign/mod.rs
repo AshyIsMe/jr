@@ -1,4 +1,5 @@
 mod files;
+mod global_param;
 mod scripts;
 
 use anyhow::{anyhow, Context, Result};
@@ -7,6 +8,7 @@ use log::warn;
 use crate::{Ctx, HasEmpty, JArray, JError, Word};
 
 use files::*;
+use global_param::*;
 use scripts::*;
 
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
@@ -31,6 +33,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, _x: Option<&Word>, y: &Word) -
         (6, _) => unsupported("time"),
         (7, _) => unsupported("space"),
         (8, _) => unsupported("format"),
+        (9, 12) => f_os_type(),
         (9, _) => unsupported("global param"),
         (13, _) => unsupported("debug"),
         (15, _) => unsupported("dll"),
