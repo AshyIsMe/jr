@@ -104,7 +104,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         debug!("restoring onto {:?}", sus.qs.stack);
         sus.qs
             .stack
-            .push_back(Word::noun(sus.data.chars().collect_vec())?);
+            // after `mode :`
+            .insert(2, Word::noun(sus.data.chars().collect_vec())?);
         sus.qs
     } else {
         let mut queue = VecDeque::from(sentence);
@@ -283,8 +284,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("4 Conj N C N");
                 if c.farcical(&m, &n)? {
                     queue.push_back(fragment.0);
-                    stack.push_back(fragment.1);
-                    stack.push_back(fragment.2);
+                    stack.push_front(fragment.2);
+                    stack.push_front(fragment.1);
                     debug!("suspending {queue:?} {stack:?}");
                     ctx.suspend(Qs { queue, stack })?;
                     return Ok(EvalOutput::Suspension);
