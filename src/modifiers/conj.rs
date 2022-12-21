@@ -7,9 +7,10 @@ use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::cells::{apply_cells, monad_cells};
+use crate::eval::eval_lines;
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{arr0d, eval, generate_cells, Ctx, Num};
+use crate::{arr0d, generate_cells, Ctx, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -218,8 +219,8 @@ pub fn c_cor(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> 
                         let mut ctx = Ctx::empty();
                         ctx.alias("x", x.clone());
                         ctx.alias("y", y.clone());
-                        eval(
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                        eval_lines(
+                            &crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
                             &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))
@@ -230,8 +231,8 @@ pub fn c_cor(_ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> 
                     None => {
                         let mut ctx = Ctx::empty();
                         ctx.alias("y", y.clone());
-                        eval(
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                        eval_lines(
+                            &crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
                             &mut ctx,
                         )
                         .with_context(|| anyhow!("evaluating {:?}", jcode))

@@ -180,6 +180,29 @@ e3,04,01,01,01,1d'''
 
 [[runs]]
 expr = '''
+s =: 4 : 0
+x + y
+)
+
+3 s 5
+'''
+output = '8'
+encoded = 'e3,04,01,,08'
+
+[[runs]]
+expr = '''
+s =: 4 : 0
+x + y
+)
+
+3 s 5
+
+'''
+output = '8'
+encoded = 'e3,04,01,,08'
+
+[[runs]]
+expr = '''
 s =: 5
 s
 '''
