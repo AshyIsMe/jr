@@ -7,7 +7,7 @@ use super::ranks::Rank;
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
 use crate::eval::eval_lines;
-use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Word};
+use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Num, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
@@ -61,6 +61,8 @@ pub enum VerbImpl {
         r: Box<Word>,
     },
     Cap,
+
+    Number(f64),
 }
 
 fn exec_monad_inner(
@@ -208,6 +210,7 @@ impl VerbImpl {
             },
             VerbImpl::Cap => Err(JError::DomainError)
                 .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
+            VerbImpl::Number(i) => Ok(arr0d(JArray::from(Num::Float(*i).demote()))),
         }
     }
 
