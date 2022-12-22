@@ -134,6 +134,10 @@ impl JArray {
         map_to_cow!(self, |a: &'v ArrayBase<_, _>| a.to_shape(shape))
     }
 
+    pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
+        impl_array!(self, |a: ArrayBase<_, _>| Ok(a.into_shape(shape)?.into()))
+    }
+
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
         if self.shape().is_empty() {
             Box::new(iter::once(JArrayCow::from(self)))

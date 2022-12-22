@@ -112,26 +112,41 @@ pub fn apply_cells(
 }
 
 pub fn flatten(results: &BoxArray) -> Result<JArray> {
-    // TODO: this is only true for dyads, the monads re-use this code ignoring the split
-    // TODO: I wonder if really this funciton should be talking a pre-flattened answer,
-    // TODO: we don't otherwise care
-    // TODO: I've left the code here as it helps me remember what these numbers mean
-    // assert_eq!(
-    //     common_frame.iter().product::<usize>(),
-    //     macrocell_results.len()
-    // );
-    // for macrocell in macrocell_results {
-    //     assert_eq!(surplus_frame.iter().product::<usize>(), macrocell.len());
-    // }
-
-    // max(all results)
-    // TODO: max isn't sufficient here, we need to max each dimension after creating dimensions via. rank extension, I think
-    let target_inner_shape = results
+    let max_rank = results
         .iter()
-        .map(|x| x.shape())
+        .map(|x| x.shape().len())
         .max()
         .ok_or(JError::NonceError)
         .context("non-empty macrocells")?;
+
+    // rank extend every child
+    let results = results.map(|arr| {
+        let rank_extended_shape = (0..max_rank - arr.shape().len())
+            .map(|_| &1)
+            .chain(arr.shape())
+            .copied()
+            .collect_vec();
+        // *not* into_shape, as into_shape returns errors for e.g. reversed arrays
+        arr.to_shape(rank_extended_shape)
+            .expect("rank extension is always valid")
+            .into_owned()
+    });
+
+    // max each dimension
+    let target_inner_shape = results
+        .iter()
+        .map(|x| x.shape().to_vec())
+        .reduce(|acc, va| {
+            assert_eq!(acc.len(), va.len(), "same rank, as we rank extended above");
+            // elementwise max
+            acc.into_iter()
+                .zip(va.into_iter())
+                .map(|(l, r)| max(l, r))
+                .collect()
+        })
+        .ok_or(JError::NonceError)
+        .context("non-empty macrocells")?
+        .to_vec();
 
     // common_frame + surplus_frame + max(all results)
     let target_shape = results
@@ -151,17 +166,6 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
             continue;
         }
 
-        let rank_extended_shape = (0..(target_inner_shape.len() - arr.shape().len()))
-            .map(|_| &1)
-            .chain(arr.shape())
-            .copied()
-            .collect_vec();
-
-        // TODO: guess what, more clones
-        let arr = arr
-            .to_shape(rank_extended_shape)
-            .context("rank extension")?
-            .into_owned();
         let shape = arr.shape();
         assert_eq!(shape.len(), target_inner_shape.len());
 

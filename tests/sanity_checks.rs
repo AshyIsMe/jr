@@ -399,7 +399,7 @@ fn test_drop_empty() -> Result<()> {
     assert_eq!(
         scan_eval("10 }. 1 2 3")?,
         Word::Noun(JArray::IntArray(Array::from_shape_vec(
-            IxDyn(&[]),
+            IxDyn(&[0]),
             [].to_vec()
         )?))
     );
@@ -407,7 +407,7 @@ fn test_drop_empty() -> Result<()> {
     assert_eq!(
         scan_eval("10 }. ''")?,
         Word::Noun(JArray::CharArray(Array::from_shape_vec(
-            IxDyn(&[]),
+            IxDyn(&[0]),
             [].to_vec()
         )?))
     );

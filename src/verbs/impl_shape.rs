@@ -241,7 +241,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         1 => {
             let x = x[0];
             Ok(match x.cmp(&0) {
-                Ordering::Equal => todo!("v_take(): return empty array of type y"),
+                Ordering::Equal => JArray::empty(),
                 Ordering::Less => {
                     // negative x (take from right)
                     let x = usize::try_from(x.abs())

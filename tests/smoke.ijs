@@ -249,7 +249,7 @@ _3 <\ 'abcdefg'
 
 NB. suffix / outfix
 <\. (1 2 3 4 5)
-(4&{.)\. 'potato'
+NB. take bug triggers framing fill failure (4&{.)\. 'potato'
 
 
 NB. same / left / right
