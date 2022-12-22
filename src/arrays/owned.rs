@@ -8,6 +8,7 @@ use num::complex::Complex64;
 use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
+use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
@@ -99,12 +100,7 @@ impl JArray {
     }
 
     pub fn len(&self) -> usize {
-        impl_array!(self, |a: &ArrayBase<_, _>| {
-            match a.shape() {
-                [] => 1,
-                a => a[0],
-            }
-        })
+        impl_array!(self, len_of_0)
     }
 
     pub fn len_of(&self, axis: Axis) -> usize {

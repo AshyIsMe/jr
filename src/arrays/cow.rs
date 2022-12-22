@@ -6,6 +6,7 @@ use ndarray::{IntoDimension, Slice};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use super::nd_ext::len_of_0;
 use crate::JArray;
 
 pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
@@ -55,13 +56,7 @@ macro_rules! map_to_cow {
 
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
-        //impl_array!(self, ArrayBase::len)
-        impl_array!(self, |a: &ArrayBase<_, _>| {
-            match a.shape() {
-                [] => 1,
-                a => a[0],
-            }
-        })
+        impl_array!(self, len_of_0)
     }
 
     pub fn shape(&self) -> &[usize] {

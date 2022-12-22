@@ -259,6 +259,9 @@ NB. same / left / right
 (i. 2 3) ] 'abcde'
 
 NB. take
+0 {. 2
+1 {. 2
+2 {. 2
 2 {. 'abcde'
 _2 {. 'abcde'
 6 {. 3 1 4 1 5 9 6 2 3 5

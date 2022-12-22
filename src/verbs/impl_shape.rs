@@ -10,7 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::Arrayable;
+use crate::arrays::{Arrayable, len_of_0};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
 
@@ -250,7 +250,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
             let x = usize::try_from(x.abs())
                 .map_err(|_| JError::NaNError)
                 .context("offset doesn't fit in memory")?;
-            let y_len_zero = y.len_of(Axis(0));
+            let y_len_zero = y.len();
 
             if x == 1 {
                 match y.shape() {
@@ -258,7 +258,11 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                 }
             } else {
-                y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
+                if x <= y_len_zero {
+                    y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
+                } else {
+                    return Err(JError::NonceError).context("negative overtake");
+                }
             }
         }
         Ordering::Greater => {
@@ -272,7 +276,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
                 }
             } else {
-                let y_len_zero = y.len_of(Axis(0));
+                let y_len_zero = y.len();
                 if x <= y_len_zero {
                     y.select(Axis(0), &(0..x).collect_vec())
                 } else {
@@ -340,11 +344,11 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
                         Ordering::Less => {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4
-                            let new_x = y.len_of(Axis(0)) as i64 - x.abs();
+                            let new_x = len_of_0(arr) as i64 - x.abs();
                             v_take(&JArray::from(Num::from(new_x)), y)?
                         }
                         Ordering::Greater => {
-                            let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
+                            let new_x = len_of_0(arr) as i64 - x.abs();
                             if new_x < 0 {
                                 // todo!("return empty array of type arr")
                                 v_take(&JArray::from(Num::from(0i64)), y)?
