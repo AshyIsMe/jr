@@ -471,7 +471,7 @@ pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
 pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     let ido = v_index_of(y, x).context("member in idot")?;
     let tally = Num::Int(i64::try_from(y.len())?);
-    ensure!(ido.shape().len() == 1);
+    ensure!(ido.shape().len() <= 1);
 
     // promote is laziness, it's a list of bools already
     promote_to_array(
