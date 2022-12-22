@@ -241,7 +241,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         1 => {
             let x = x[0];
             Ok(match x.cmp(&0) {
-                Ordering::Equal => bail!("v_take(): return empty array of type y"),
+                Ordering::Equal => todo!("v_take(): return empty array of type y"),
                 Ordering::Less => {
                     // negative x (take from right)
                     let x = usize::try_from(x.abs())
@@ -346,7 +346,8 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
                         Ordering::Greater => {
                             let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
                             if new_x < 0 {
-                                todo!("return empty array of type arr")
+                                // todo!("return empty array of type arr")
+                                v_take(&JArray::from(Num::from(0i64)), y)?
                             } else {
                                 v_take(&JArray::from(Num::from(-new_x)), y)?
                             }
