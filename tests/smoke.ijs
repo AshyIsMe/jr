@@ -249,7 +249,7 @@ _3 <\ 'abcdefg'
 
 NB. suffix / outfix
 <\. (1 2 3 4 5)
-NB. take bug triggers framing fill failure (4&{.)\. 'potato'
+(4&{.)\. 'potato'
 
 
 NB. same / left / right
@@ -262,9 +262,11 @@ NB. take
 2 {. 'abcde'
 _2 {. 'abcde'
 6 {. 3 1 4 1 5 9 6 2 3 5
-NB. overtake broken: 6 {. 3 1 4
+6 {. 3 1 4
 3 {. 5 }. 'abcdefghijklmnopqrstuvwxyz'
 2 ({. ,&< }.) 'abcde'
+> (5;(0 $ 0))
+> ((i. 0 4); (i. 2 2))
 
 NB. amend
 'x' 0 3} 'cross'

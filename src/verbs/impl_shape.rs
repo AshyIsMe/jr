@@ -279,7 +279,8 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     flatten(
                         &y.outer_iter()
                             .map(|cow| cow.into_owned())
-                            .chain(iter::repeat(JArray::empty()))
+                            // we can't use empty() here as its rank is higher than arr0, which matters
+                            .chain(iter::repeat(JArray::BoolArray(arr0d(0))))
                             .take(x)
                             .collect_vec()
                             .into_array()?,

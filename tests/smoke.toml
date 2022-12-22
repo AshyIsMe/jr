@@ -1474,6 +1474,23 @@ output = '''
 encoded = 'e3,01,09,02,03,03,0100000001,01'
 
 [[runs]]
+expr = '> ((i. 0 4); (i. 2 2))'
+output = '''
+0 0 0 0
+0 0 0 0
+
+0 1 0 0
+2 3 0 0'''
+encoded = 'e3,04,1,03,02,02,04,,,,,,,,,,01,,,02,03,,'
+
+[[runs]]
+expr = '> (5;(0 $ 0))'
+output = '''
+5
+0'''
+encoded = 'e3,04,02,02,02,01,05,'
+
+[[runs]]
 expr = '>. 4.6 4 _4 _4.6'
 output = '5 4 _4 _4'
 encoded = 'e3,04,04,01,04,05,04,fcffffffffffffff,fcffffffffffffff'
