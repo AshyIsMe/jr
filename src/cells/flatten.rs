@@ -63,40 +63,7 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
             continue;
         }
 
-        let shape = arr.shape();
-        assert_eq!(shape.len(), target_inner_shape.len());
-
-        match shape.len() {
-            1 => {
-                let current = shape[0];
-                let target = target_inner_shape[0];
-                assert!(current < target, "{current} < {target}: single-dimensional fill can't see longer or equal shapes");
-                big_daddy.extend(arr.clone().into_elems());
-                for _ in current..target {
-                    big_daddy.push(Elem::Num(Num::zero()));
-                }
-            }
-            2 if shape[0] < target_inner_shape[0] && shape[1] == target_inner_shape[1] => {
-                for sub in arr.outer_iter() {
-                    big_daddy.extend(sub.into_owned().into_elems());
-                }
-                for _ in shape[0]..target_inner_shape[0] {
-                    // only tested this for shape[1] == 1 lolol
-                    for _ in 0..shape[1] {
-                        big_daddy.push(Elem::Num(Num::zero()));
-                    }
-                }
-            }
-            _ => {
-                return Err(JError::NonceError).with_context(|| {
-                    anyhow!(
-                        "can't framing fill {:?} out to {:?}",
-                        arr.shape(),
-                        target_inner_shape
-                    )
-                });
-            }
-        }
+        push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
     let nums = promote_to_array(big_daddy).context("flattening promotion")?;
@@ -104,4 +71,42 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         .to_shape(target_shape)
         .context("flattening output shape")?
         .into_owned())
+}
+
+fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result<()> {
+    let shape = arr.shape();
+    assert_eq!(shape.len(), target.len());
+
+    match shape.len() {
+        1 => {
+            let current = shape[0];
+            let target = target[0];
+            assert!(
+                current < target,
+                "{current} < {target}: single-dimensional fill can't see longer or equal shapes"
+            );
+            out.extend(arr.to_owned().into_elems());
+            for _ in current..target {
+                out.push(Elem::Num(Num::zero()));
+            }
+        }
+        2 if shape[0] < target[0] && shape[1] == target[1] => {
+            for sub in arr.outer_iter() {
+                let v = sub.clone().into_owned();
+                out.extend(v.into_elems());
+            }
+            for _ in shape[0]..target[0] {
+                // only tested this for shape[1] == 1 lolol
+                for _ in 0..shape[1] {
+                    out.push(Elem::Num(Num::zero()));
+                }
+            }
+        }
+        _ => {
+            return Err(JError::NonceError).with_context(|| {
+                anyhow!("can't framing fill {:?} out to {:?}", arr.shape(), target)
+            });
+        }
+    }
+    Ok(())
 }
