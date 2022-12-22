@@ -1,6 +1,7 @@
 use std::cmp::max;
+use std::iter;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use itertools::Itertools;
 use num_traits::Zero;
 
@@ -76,41 +77,41 @@ fn rank_extend(target: usize, arr: &JArray) -> JArray {
         .into_owned()
 }
 
+// recursive implementation; lops off the start of the dims, recurses on that, then later fills
 fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result<()> {
-    let shape = arr.shape();
-    assert_eq!(shape.len(), target.len());
+    assert!(
+        !target.is_empty(),
+        "recursion has presumably gone wrong somewhere"
+    );
 
-    match shape.len() {
-        1 => {
-            let current = shape[0];
-            let target = target[0];
-            assert!(
-                current <= target,
-                "{current} <= {target}: single-dimensional fill can't see longer shapes"
-            );
-            out.extend(arr.to_owned().into_elems());
-            for _ in current..target {
-                out.push(Elem::Num(Num::zero()));
-            }
-        }
-        2 if shape[0] < target[0] && shape[1] == target[1] => {
-            for sub in arr.outer_iter() {
-                let v = sub.clone().into_owned();
-                out.extend(v.into_elems());
-            }
-            for _ in shape[0]..target[0] {
-                // only tested this for shape[1] == 1 lolol
-                for _ in 0..shape[1] {
-                    out.push(Elem::Num(Num::zero()));
-                }
-            }
-        }
-        _ => {
-            return Err(JError::NonceError).with_context(|| {
-                anyhow!("can't framing fill {:?} out to {:?}", arr.shape(), target)
-            });
+    assert_eq!(arr.shape().len(), target.len());
+
+    let this_dim_size = target[0];
+    let initial_size = arr.shape()[0];
+
+    let remaining_dims = &target[1..];
+
+    assert!(
+        initial_size <= this_dim_size,
+        "{initial_size} <= {this_dim_size}: fill can't see longer shapes"
+    );
+
+    if remaining_dims.is_empty() {
+        out.extend(arr.to_owned().into_elems());
+    } else {
+        let children = arr.outer_iter();
+        assert_eq!(initial_size, children.len());
+        for item in children {
+            push_with_shape(out, remaining_dims, item.to_owned())?;
         }
     }
+
+    let fill = Elem::Num(Num::zero());
+    let fills_needed = this_dim_size - initial_size;
+    let fills_per_dim = remaining_dims.iter().product::<usize>();
+
+    out.extend(iter::repeat(fill).take(fills_per_dim * fills_needed));
+
     Ok(())
 }
 
@@ -132,12 +133,16 @@ mod tests {
     }
 
     #[test]
-    fn test_push() {
+    fn test_push_1d() {
         // not sure an atomic output is really legal, currently broken
         // assert_eq!(vec![5], push(&[], arr0d(5)));
         assert_eq!(vec![5], push(&[1], arr0d(5)));
         assert_eq!(vec![5, 0], push(&[2], arr0d(5)));
         assert_eq!(vec![5, 2, 0, 0, 0, 0], push(&[6], array![5, 2].into_dyn()));
+    }
+
+    #[test]
+    fn test_push_2d() {
         assert_eq!(
             vec![1, 2, 3, 4, 0, 0],
             push(&[3, 2], array![[1, 2], [3, 4]].into_dyn())
@@ -145,7 +150,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_push_multi_expand_2d() {
         assert_eq!(
             vec![1, 2, 0, 3, 4, 0, 0, 0, 0],

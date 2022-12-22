@@ -258,6 +258,14 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. take
+2 {. 'abcde'
+_2 {. 'abcde'
+6 {. 3 1 4 1 5 9 6 2 3 5
+NB. overtake broken: 6 {. 3 1 4
+3 {. 5 }. 'abcdefghijklmnopqrstuvwxyz'
+2 ({. ,&< }.) 'abcde'
+
 NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'

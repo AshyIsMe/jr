@@ -235,60 +235,59 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|n| n.value_i64())
         .collect::<Option<Vec<i64>>>()
         .ok_or(JError::DomainError)
-        .context("takee expecting integer-like x")?;
+        .context("take expecting integer-like x")?;
 
-    match x.len() {
-        1 => {
-            let x = x[0];
-            Ok(match x.cmp(&0) {
-                Ordering::Equal => JArray::empty(),
-                Ordering::Less => {
-                    // negative x (take from right)
-                    let x = usize::try_from(x.abs())
-                        .map_err(|_| JError::NaNError)
-                        .context("offset doesn't fit in memory")?;
-                    let y_len_zero = y.len_of(Axis(0));
-
-                    if x == 1 {
-                        match y.shape() {
-                            [] => y.to_shape(vec![x])?.into_owned(),
-                            _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
-                        }
-                    } else {
-                        y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
-                    }
-                }
-                Ordering::Greater => {
-                    let x = usize::try_from(x)
-                        .map_err(|_| JError::NaNError)
-                        .context("offset doesn't fit in memory")?;
-
-                    if x == 1 {
-                        match y.shape() {
-                            [] => y.to_shape(vec![x])?.into_owned(),
-                            _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
-                        }
-                    } else {
-                        let y_len_zero = y.len_of(Axis(0));
-                        if x <= y_len_zero {
-                            y.select(Axis(0), &(0..x).collect_vec())
-                        } else {
-                            flatten(
-                                &y.outer_iter()
-                                    .map(|cow| cow.into_owned())
-                                    .chain(iter::repeat(JArray::empty()))
-                                    .take(x)
-                                    .collect_vec()
-                                    .into_array()?,
-                            )?
-                        }
-                    }
-                }
-            })
-        }
-        _ => Err(JError::LengthError)
-            .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
+    if 1 != x.len() {
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len()));
     }
+
+    let x = x[0];
+    Ok(match x.cmp(&0) {
+        Ordering::Equal => JArray::empty(),
+        Ordering::Less => {
+            // negative x (take from right)
+            let x = usize::try_from(x.abs())
+                .map_err(|_| JError::NaNError)
+                .context("offset doesn't fit in memory")?;
+            let y_len_zero = y.len_of(Axis(0));
+
+            if x == 1 {
+                match y.shape() {
+                    [] => y.to_shape(vec![x])?.into_owned(),
+                    _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
+                }
+            } else {
+                y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
+            }
+        }
+        Ordering::Greater => {
+            let x = usize::try_from(x)
+                .map_err(|_| JError::NaNError)
+                .context("offset doesn't fit in memory")?;
+
+            if x == 1 {
+                match y.shape() {
+                    [] => y.to_shape(vec![x])?.into_owned(),
+                    _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
+                }
+            } else {
+                let y_len_zero = y.len_of(Axis(0));
+                if x <= y_len_zero {
+                    y.select(Axis(0), &(0..x).collect_vec())
+                } else {
+                    flatten(
+                        &y.outer_iter()
+                            .map(|cow| cow.into_owned())
+                            .chain(iter::repeat(JArray::empty()))
+                            .take(x)
+                            .collect_vec()
+                            .into_array()?,
+                    )?
+                }
+            }
+        }
+    })
 }
 
 /// {: (monad)
