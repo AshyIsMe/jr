@@ -337,6 +337,10 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
 }
 /// { (dyad)
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.is_empty() {
+        return v_shape(&JArray::from(Num::from(0i64)), y);
+    }
+
     let x = x
         .single_math_num()
         .ok_or(JError::NonceError)

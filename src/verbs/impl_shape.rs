@@ -10,7 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::{Arrayable, len_of_0};
+use crate::arrays::{len_of_0, Arrayable};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
 
@@ -226,6 +226,10 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         x.shape()
     );
 
+    if x.is_empty() {
+        return v_shape(&JArray::from(Num::from(0i64)), y);
+    }
+
     let x = x
         .clone()
         .into_nums()
@@ -320,6 +324,10 @@ pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// }. (monad)
 pub fn v_behead(y: &JArray) -> Result<JArray> {
+    if y.is_empty() {
+        return Ok(y.clone());
+    }
+
     impl_array!(y, |arr: &ArrayD<_>| Ok(arr
         .slice_axis(Axis(0), Slice::from(1isize..))
         .into_owned()
@@ -328,6 +336,11 @@ pub fn v_behead(y: &JArray) -> Result<JArray> {
 /// }. (dyad)
 pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
     use JArray::*;
+
+    if x.is_empty() {
+        return Ok(y.clone());
+    }
+
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
         RationalArray(_) => Err(JError::DomainError.into()),
