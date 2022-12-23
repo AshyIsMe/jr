@@ -1,9 +1,10 @@
 mod controls;
+mod ctl_if;
 
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::{Ctx, Elem, JArray, Num};
+use crate::{Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
@@ -12,6 +13,7 @@ use num_traits::Zero;
 use crate::error::JError;
 // TODO: oh come on, this is clearly an eval concept
 pub use crate::eval::controls::resolve_controls;
+use crate::eval::ctl_if::control_if;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
 use crate::Word::{self, *};
@@ -79,13 +81,6 @@ pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
     Ok(word)
 }
 
-fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
-    words
-        .iter()
-        .position(f)
-        .map(|p| (&words[..p], &words[p + 1..]))
-}
-
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
     if sentence
         .iter()
@@ -133,34 +128,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
         let result: Result<Vec<Word>> = match fragment {
             (IfBlock(def), b, c, d) => {
-                debug!("control if.");
-                if def.iter().any(|w| matches!(w, Word::ElseIf)) {
-                    return Err(JError::NonceError).context("no elsif.");
-                }
-                let (cond, follow) = split_once(&def, |w| matches!(w, Word::Do))
-                    .ok_or(JError::SyntaxError)
-                    .context("no do. in if.")?;
-                let (tru, fal) = match split_once(follow, |w| matches!(w, Word::Else)) {
-                    Some(x) => x,
-                    None => (follow, [].as_slice()),
-                };
-                let cond = match eval(cond.to_vec(), ctx).context("if statement conditional")? {
-                    Word::Noun(arr) => arr
-                        .into_elems()
-                        .into_iter()
-                        .next()
-                        .map(|e| e != Elem::Num(Num::zero()))
-                        .unwrap_or_default(),
-                    _ => {
-                        return Err(JError::NounResultWasRequired)
-                            .context("evaluating if conditional")
-                    }
-                };
-                if cond {
-                    let _ = eval_lines(tru, ctx).context("true block")?;
-                } else if !fal.is_empty() {
-                    let _ = eval_lines(fal, ctx).context("false block")?;
-                }
+                control_if(ctx, &def)?;
                 Ok(vec![b, c, d])
             }
             (ref w, Verb(_, v), Noun(y), any)
