@@ -83,6 +83,53 @@ encoded = 'e3,04,01,,0b'
 
 [[runs]]
 expr = '''
+a =: {{)m
+  r =. 5
+  if. y > 3 do.
+    r =. 7
+  end.
+  r
+}}
+
+(a 4); (a 2)
+'''
+output = '''
+┌─┬─┐
+│7│5│
+└─┴─┘'''
+encoded = '''
+e3,2,02,01,02,38,6,
+e3,04,01,,07,
+e3,04,01,,05'''
+
+[[runs]]
+expr = '''
+a =: {{)m
+  r =. 9
+  if. y > 3 do.
+    r =. 7
+  elseif. y > 1 do.
+    r =. 6
+  else.
+    r =. 5
+  end.
+  r
+}}
+
+(a 4); (a 2); (a 0)
+'''
+output = '''
+┌─┬─┬─┐
+│7│6│5│
+└─┴─┴─┘'''
+encoded = '''
+e3,2,03,01,03,4,68,9,
+e3,04,01,,07,
+e3,04,01,,06,
+e3,04,01,,05'''
+
+[[runs]]
+expr = '''
 a=: <;._2 ] 'Try and try and try again '
 (~. a); (=a); (= <'and')
 '''
@@ -105,8 +152,7 @@ e3,01,01,02,01,01,01'''
 
 [[runs]]
 expr = '''
-double_greater =: {{
-  hack =: x
+double_greater =: {{)d
   if. x > y do.
     b =: x
   else.

@@ -1,5 +1,4 @@
-double_greater =: {{
-  hack =: x
+double_greater =: {{)d
   if. x > y do.
     b =: x
   else.
