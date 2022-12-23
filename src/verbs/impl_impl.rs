@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::Deref;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 
 use super::ranks::Rank;
 use crate::arrays::BoxArray;
@@ -98,8 +98,17 @@ pub fn exec_dyad_inner(
 ) -> Result<BoxArray> {
     let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
-    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
-    Ok(BoxArray::from_shape_vec(frames, application_result).expect("apply_cells generated shape"))
+    let mut application_result =
+        apply_cells(&cells, f, rank).context("applying function to cells")?;
+
+    // leeetle bit of a hack, we generate a frame of [0], instead of [],
+    // and an application result containing empty arrays, but can't reshape that,
+    // entirely unclear where this should be handled; in flatten? Flatten probably handles it.
+    if frames.iter().product::<usize>() == 0 {
+        ensure!(application_result.iter().all(|c| c.is_empty()));
+        application_result.clear();
+    }
+    BoxArray::from_shape_vec(frames, application_result).context("apply_cells generated shape")
 }
 
 pub fn exec_dyad(

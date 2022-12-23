@@ -7,9 +7,15 @@ use num_traits::Zero;
 
 use crate::arrays::BoxArray;
 use crate::number::{promote_to_array, Num};
-use crate::{Elem, JArray, JError};
+use crate::{Elem, HasEmpty, JArray, JError};
 
 pub fn flatten(results: &BoxArray) -> Result<JArray> {
+    if results.is_empty() {
+        return Ok(JArray::empty()
+            .into_shape(results.shape())
+            .context("empty flatten shortcut")?);
+    }
+
     let max_rank = results
         .iter()
         .map(|x| x.shape().len())

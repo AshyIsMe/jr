@@ -275,8 +275,9 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                 .context("offset doesn't fit in memory")?;
 
             if x == 1 {
-                match y.shape() {
-                    [] => y.to_shape(vec![x])?.into_owned(),
+                match (y.is_empty(), y.shape()) {
+                    (true, _) => JArray::atomic_zero(),
+                    (false, []) => y.to_shape(vec![x])?.into_owned(),
                     _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
                 }
             } else {
@@ -288,7 +289,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                         &y.outer_iter()
                             .map(|cow| cow.into_owned())
                             // we can't use empty() here as its rank is higher than arr0, which matters
-                            .chain(iter::repeat(JArray::BoolArray(arr0d(0))))
+                            .chain(iter::repeat(JArray::atomic_zero()))
                             .take(x)
                             .collect_vec()
                             .into_array()?,
