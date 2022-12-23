@@ -186,9 +186,9 @@ impl VerbImpl {
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
-                    log::warn!("Fork {:?} {:?} {:?}", f, g, h);
-                    log::warn!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(ctx, x, y));
-                    log::warn!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
+                    log::debug!("Fork {:?} {:?} {:?}", f, g, h);
+                    log::debug!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(ctx, x, y));
+                    log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
                     let f = match f {
                         VerbImpl::Cap => None,
                         _ => Some(f.exec(ctx, x, y).map(Word::Noun).context("fork impl (f)")?),

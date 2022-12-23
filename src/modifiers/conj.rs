@@ -256,6 +256,15 @@ pub fn c_cor_farcical(n: &JArray, m: &JArray) -> Result<bool> {
     })
 }
 
+// TODO: this is typically called from partial_exec which has a panic
+// TODO: attack about Nothing; this is a big lie
+fn nothing_to_empty(w: Word) -> Word {
+    match w {
+        Word::Nothing => Word::Noun(JArray::empty()),
+        other => other,
+    }
+}
+
 pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use crate::arrays::JArray::*;
     match (n, m) {
@@ -275,6 +284,7 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                         }
                         eval_lines(&words, &mut ctx)
                             .with_context(|| anyhow!("evaluating {:?}", jcode))
+                            .map(nothing_to_empty)
                     }
                 }
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
@@ -290,6 +300,7 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                         }
                         eval_lines(&words, &mut ctx)
                             .with_context(|| anyhow!("evaluating {:?}", jcode))
+                            .map(nothing_to_empty)
                     }
                     _ => Err(JError::DomainError).with_context(|| anyhow!("monad")),
                 }

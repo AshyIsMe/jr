@@ -131,6 +131,11 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 control_if(ctx, &def)?;
                 Ok(vec![b, c, d])
             }
+            (AssertLine(def), b, c, d) => {
+                let _word = eval_lines(&def, ctx).context("assert body")?;
+                // TODO: actually assert
+                Ok(vec![b, c, d])
+            }
             (ref w, Verb(_, v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {

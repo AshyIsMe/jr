@@ -31,6 +31,7 @@ pub enum Word {
     IfBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
     WhileBlock(Vec<Word>),
+    AssertLine(Vec<Word>),
 
     Comment,
     DirectDefUnknown, // {{
@@ -45,6 +46,8 @@ pub enum Word {
 
     For(Option<String>),
     While,
+
+    Assert,
 }
 
 impl Word {
@@ -69,9 +72,10 @@ impl Word {
             DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
             If | Do | Else | ElseIf | End => true,
             For(_) | While => true,
+            Assert => true,
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
             Verb(_, _) | Noun(_) | Adverb(_, _) | Conjunction(_, _) => false,
-            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) => false,
+            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) => false,
             NewLine => false,
             StartOfLine | Nothing => false,
             Comment => unreachable!("should have been removed from the stream by now"),

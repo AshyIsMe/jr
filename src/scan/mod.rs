@@ -266,6 +266,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "end." => Word::End,
             "for." => Word::For(None),
             "while." => Word::While,
+            "assert." => Word::Assert,
             "NB." => Word::Comment,
             _ => return Ok(None),
         }
