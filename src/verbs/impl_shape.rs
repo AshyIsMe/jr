@@ -96,12 +96,27 @@ fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
     )
 }
 
-/// , (dyad)
+pub fn unatom(y: JArray) -> JArray {
+    if y.shape().is_empty() {
+        y.into_shape(IxDyn(&[1])).expect("infalliable")
+    } else {
+        y
+    }
+}
+
+/// , (dyad) (_, _)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() >= 1 && y.shape().len() >= 1 {
         if let Ok(arr) = append_nd(x, y) {
             return Ok(arr);
         }
+    }
+
+    if x.is_empty() {
+        return Ok(unatom(y.clone()));
+    }
+    if y.is_empty() {
+        return Ok(unatom(x.clone()));
     }
 
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
