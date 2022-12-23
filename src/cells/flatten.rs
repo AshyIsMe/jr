@@ -5,9 +5,19 @@ use anyhow::{Context, Result};
 use itertools::Itertools;
 use num_traits::Zero;
 
-use crate::arrays::BoxArray;
+use crate::arrays::{BoxArray, JArrayCow};
 use crate::number::{promote_to_array, Num};
-use crate::{Elem, HasEmpty, JArray, JError};
+use crate::{Arrayable, Elem, HasEmpty, JArray, JError};
+
+pub fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
+    flatten(
+        &chunk
+            .iter()
+            .map(|arr| arr.to_owned())
+            .collect_vec()
+            .into_array()?,
+    )
+}
 
 pub fn flatten(results: &BoxArray) -> Result<JArray> {
     if results.is_empty() {

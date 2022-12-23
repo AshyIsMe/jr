@@ -183,6 +183,12 @@ NB. not
 -. 3r2 7
 NB. test framework bug: -. 0.5 0.7 3j5
 
+NB. less
+'encephalogram' -. 'e'
+'encephalogram' -. 'a'
+'encephalogram' -. 'aeiouAEIOU'
+NB. wrong, needs to understand agreement (sigh): (i. 3 3) -. 3 4 5
+
 NB. halve
 NB. incorrect datatype: -: i. 5
 

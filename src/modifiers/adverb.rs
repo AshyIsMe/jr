@@ -4,10 +4,11 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
+use crate::cells::flatten_partial;
 use crate::modifiers::c_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
-use crate::{flatten, Arrayable, Ctx, JArray, JError, Word};
+use crate::{flatten, Arrayable, Ctx, JError, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -84,16 +85,6 @@ pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     }
-}
-
-fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
-    flatten(
-        &chunk
-            .iter()
-            .map(|arr| arr.to_owned())
-            .collect_vec()
-            .into_array()?,
-    )
 }
 
 /// (0 _)

@@ -215,6 +215,21 @@ output = '1 0 1 0 0'
 encoded = 'e3,01,05,01,05,010001'
 
 [[runs]]
+expr = "'encephalogram' -. 'a'"
+output = 'encephlogrm'
+encoded = 'e3,02,0b,01,0b,656e636570686c6f,67726d'
+
+[[runs]]
+expr = "'encephalogram' -. 'aeiouAEIOU'"
+output = 'ncphlgrm'
+encoded = 'e3,02,08,01,08,6e6370686c67726d,'
+
+[[runs]]
+expr = "'encephalogram' -. 'e'"
+output = 'ncphalogram'
+encoded = 'e3,02,0b,01,0b,6e637068616c6f67,72616d'
+
+[[runs]]
 expr = "'good' ; 'morning'"
 output = '''
 ┌────┬───────┐
@@ -416,6 +431,13 @@ output = '''
 13 14 15
 16 17 18'''
 encoded = 'e3,04,0f,02,05,03,,01,02,03,04,05,0a,0b,0c,0d,0e,0f,1,11,12'
+
+[[runs]]
+expr = '(i. 3 3) -. 3 4 5'
+output = '''
+0 1 2
+6 7 8'''
+encoded = 'e3,04,06,02,02,03,,01,02,06,07,08'
 
 [[runs]]
 expr = '(i. 5) + 2 * j. (i. 5)'
