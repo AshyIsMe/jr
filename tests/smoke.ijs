@@ -192,6 +192,10 @@ NB. wrong, needs to understand agreement (sigh): (i. 3 3) -. 3 4 5
 NB. halve
 NB. incorrect datatype: -: i. 5
 
+NB. match
+'no' -: |. 'on'
+'no' -: 'yes'
+
 NB. reciprocal
 NB. incorrect datatype: % 1
 % 0.25

@@ -257,6 +257,16 @@ e3,02,06,01,06,68656c69636f,
 e3,02,04,01,04,70746572'''
 
 [[runs]]
+expr = "'no' -: 'yes'"
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
+expr = "'no' -: |. 'on'"
+output = '1'
+encoded = 'e3,01,01,,01'
+
+[[runs]]
 expr = "'x' 0 3} 'cross'"
 output = 'xroxs'
 encoded = 'e3,02,05,01,05,78726f7873'

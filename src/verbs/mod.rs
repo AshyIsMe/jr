@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
+use crate::{arr0d, flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -81,8 +81,8 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// -: (dyad)
-pub fn v_match(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_match(x: &JArray, y: &JArray) -> Result<JArray> {
+    Ok(JArray::BoolArray(arr0d(if x == y { 1 } else { 0 })))
 }
 
 fn nub(candidates: &[JArrayCow]) -> Vec<usize> {
