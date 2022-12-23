@@ -119,7 +119,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "{." => primitive("{.", v_head, v_take, (inf, 1, inf)),
         "{:" => primitive("{:", v_tail, v_not_implemented_dyad, (inf, inf, inf)),
         "}:" => primitive("}:", v_curtail, v_not_implemented_dyad, (inf, inf, inf)),
-        "{::" => primitive("{:", v_map, v_fetch, (inf, 1, inf)),
+        "{::" => primitive("{::", v_map, v_fetch, (inf, 1, inf)),
         "}." => primitive("}.", v_behead, v_drop, (inf, 1, inf)),
 
         "\"." => primitive("\".", v_do, v_numbers, (1, inf, inf)),

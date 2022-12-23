@@ -334,8 +334,25 @@ pub fn v_curtail(y: &JArray) -> Result<JArray> {
 }
 
 /// {:: (dyad)
-pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_fetch(x: &JArray, y: &JArray) -> Result<JArray> {
+    let JArray::BoxArray(y) = y else { return Err(JError::NonceError).context("boxed y"); };
+    if y.shape().len() > 1 {
+        return Err(JError::NonceError).context("multi-dimensional shape output is missing");
+    }
+
+    let x = x
+        .single_math_num()
+        .ok_or(JError::NonceError)
+        .context("numeric x")?
+        .value_len()
+        .ok_or(JError::NonceError)
+        .context("positive integer x")?;
+
+    Ok(y.iter()
+        .nth(x)
+        .ok_or(JError::IndexError)
+        .context("x past end of atoms")?
+        .to_owned())
 }
 
 /// }. (monad)
