@@ -290,6 +290,13 @@ NB. fetch
 NB. broken, not willing to implicitly box: 0 {:: 5
 NB. broken, they maintain the outer shape somehows: 0 {:: (2 1 $ ((<5);(<<4)))
 
+NB. rank
+(5"_) 0
+(5"_) (0 $ 0)
+(5"_) i. 2 3
+(''"_) 'hello'
+(''"_) 5 6
+
 NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'

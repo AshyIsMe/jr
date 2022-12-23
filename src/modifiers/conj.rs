@@ -167,6 +167,16 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                     .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
             }
         }
+        (Word::Noun(u), Word::Noun(n)) => {
+            let n = n
+                .approx()
+                .ok_or(JError::DomainError)
+                .context("rank expects integer arguments")?;
+            if n != arr0d(f32::INFINITY) {
+                return Err(JError::NonceError).context("only infinite ranks");
+            }
+            Ok(Word::Noun(u.clone()))
+        }
         _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
     }
 }
@@ -288,6 +298,17 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             }
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
+    }
+}
+
+pub fn c_whatevs(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+    match (n, m) {
+        (Word::Verb(_, n), Word::Verb(_, m)) => n
+            .exec(ctx, x, y)
+            .or_else(|_| m.exec(ctx, x, y))
+            .map(Word::Noun),
+        _ => Err(JError::NonceError)
+            .with_context(|| anyhow!("\nx: {x:?}\nn: {n:?}\nm: {m:?}\ny: {y:?}")),
     }
 }
 

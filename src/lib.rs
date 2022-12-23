@@ -236,7 +236,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
             farcical: c_cor_farcical,
         }),
         ":." => conj(":.", c_not_implemented),
-        "::" => conj("::", c_not_implemented),
+        "::" => conj("::", c_whatevs),
         ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
         "!:" => conj("!:", c_foreign),
