@@ -1,6 +1,7 @@
 mod conversion;
 mod files;
 mod global_param;
+mod host;
 mod names;
 mod scripts;
 
@@ -9,6 +10,7 @@ use log::warn;
 
 use crate::{Ctx, HasEmpty, JArray, JError, Word};
 
+use crate::foreign::host::f_shell_out;
 use conversion::*;
 use files::*;
 use global_param::*;
@@ -30,6 +32,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) ->
         (0, k) => f_load_script(ctx, k, y),
         (1, 1) => f_read_file(y).context("reading file"),
         (1, _) => unsupported("file"),
+        (2, 0) => f_shell_out(y),
         (2, _) => unsupported("host"),
         (3, 3) => f_dump_hex(x, y),
         (3, 4) => f_int_bytes(x, y),
