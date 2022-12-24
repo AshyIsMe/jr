@@ -44,7 +44,7 @@ fn run_j_inner(expr: &str) -> Result<String> {
 }
 
 pub fn scan_eval(sentence: &str) -> Result<Word> {
-    let mut ctx = Ctx::empty();
+    let mut ctx = Ctx::root();
     // always overwritten?
     let mut last = EvalOutput::Regular(Word::StartOfLine);
     for line in sentence.trim().split('\n') {

@@ -10,7 +10,7 @@ pub fn f_name_status(ctx: &Ctx, y: &Word) -> Result<Word> {
     let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::DomainError).context("boxed name please"); };
     let name = arg_to_string(y)?;
     // TODO: this should validate the name, but doesn't
-    let result = match ctx.resolve(&name) {
+    let result = match ctx.eval().locales.lookup(&name)? {
         Some(Word::Noun(_)) => 0i64,
         Some(Word::Adverb(_, _)) => 1,
         Some(Word::Conjunction(_, _)) => 2,

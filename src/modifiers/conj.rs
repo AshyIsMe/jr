@@ -273,10 +273,9 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        // TODO: wrong, this should be a sub-context
-                        let mut ctx = ctx.clone();
-                        ctx.alias("x", x.clone());
-                        ctx.alias("y", y.clone());
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut().locales.assign_local("x", x.clone())?;
+                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
                         let mut words =
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
                         if !resolve_controls(&mut words)? {
@@ -291,8 +290,8 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 match x {
                     None => {
                         // TODO: wrong, this should be a sub-context
-                        let mut ctx = ctx.clone();
-                        ctx.alias("y", y.clone());
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
                         let mut words =
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
                         if !resolve_controls(&mut words)? {

@@ -41,20 +41,26 @@ impl EvalOutput {
 }
 
 pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
-    if ctx.is_suspended() {
+    let buf = ctx
+        .input_buffers
+        .as_mut()
+        .ok_or(JError::ControlError)
+        .context("non-root context at feed")?;
+
+    if buf.is_suspended() {
         if line != ")" {
-            ctx.input_push(line)?;
+            buf.input_push(line)?;
             return Ok(EvalOutput::Suspension);
         }
         return eval_suspendable(vec![], ctx);
     }
-    let mut tokens = crate::scan(&format!("{}{line}", ctx.other_input_buffer))?;
+    let mut tokens = crate::scan(&format!("{}{line}", buf.other_input_buffer))?;
     if !resolve_controls(&mut tokens)? {
-        ctx.other_input_buffer.push_str(line);
-        ctx.other_input_buffer.push('\n');
+        buf.other_input_buffer.push_str(line);
+        buf.other_input_buffer.push('\n');
         return Ok(EvalOutput::InDefinition);
     }
-    ctx.other_input_buffer.clear();
+    buf.other_input_buffer.clear();
     debug!("tokens: {:?}", tokens);
     eval_suspendable(tokens, ctx).with_context(|| anyhow!("evaluating {:?}", line))
 }
@@ -92,7 +98,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
     // https://www.jsoftware.com/ioj/iojSent.htm
     // https://www.jsoftware.com/help/jforc/parsing_and_execution_ii.htm#_Toc191734586
 
-    let qs = if let Some(mut sus) = ctx.take_suspension() {
+    let qs = if let Some(mut sus) = ctx.input_buffers.as_mut().and_then(|b| b.take_suspension()) {
         assert!(
             sentence.is_empty(),
             "this function is called either with a suspended ctx *xor* a sentence"
@@ -124,7 +130,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
         let fragment = get_fragment(&mut stack);
         trace!("fragment: {:?}", fragment);
-        let fragment = resolve_names(fragment, ctx);
+        let fragment = resolve_names(fragment, ctx)?;
 
         let result: Result<Vec<Word>> = match fragment {
             (IfBlock(def), b, c, d) => {
@@ -262,7 +268,11 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     stack.push_front(fragment.2);
                     stack.push_front(fragment.1);
                     debug!("suspending {queue:?} {stack:?}");
-                    ctx.suspend(Qs { queue, stack })?;
+                    ctx.input_buffers
+                        .as_mut()
+                        .ok_or(JError::ControlError)
+                        .context("suspension without buffers")?
+                        .suspend(Qs { queue, stack })?;
                     return Ok(EvalOutput::Suspension);
                 }
                 // circumventing c_cor's implementation for nouns, but.. there's no way for a conj
@@ -380,7 +390,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
-                ctx.alias(n, w.clone());
+                ctx.eval_mut().locales.assign_local(n, w.clone())?;
                 Ok(vec![w.clone(), any])
             }
             (Noun(names), IsLocal, w, any)
@@ -390,7 +400,9 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 let (arr, names) = string_assignment(names, w)?;
 
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
-                    ctx.alias(name, Noun(v_open(&val.into_owned())?));
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local(name, Noun(v_open(&val.into_owned())?))?;
                 }
                 Ok(vec![any])
             }
@@ -398,7 +410,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
                 debug!("7 Is Global Name w");
-                ctx.alias(n, w.clone());
+                ctx.eval_mut().locales.assign_global(n, w.clone())?;
                 Ok(vec![any])
             }
             (Noun(names), IsGlobal, w, any)
@@ -408,7 +420,9 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 let (arr, names) = string_assignment(names, w)?;
 
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
-                    ctx.alias(name, Noun(v_open(&val.into_owned())?));
+                    ctx.eval_mut()
+                        .locales
+                        .assign_global(name, Noun(v_open(&val.into_owned())?))?;
                 }
                 Ok(vec![any])
             }
@@ -480,7 +494,10 @@ fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {
         .expect("infinite iterator can't be empty")
 }
 
-pub fn resolve_names(fragment: (Word, Word, Word, Word), ctx: &Ctx) -> (Word, Word, Word, Word) {
+pub fn resolve_names(
+    fragment: (Word, Word, Word, Word),
+    ctx: &Ctx,
+) -> Result<(Word, Word, Word, Word)> {
     let words = vec![
         fragment.0.clone(),
         fragment.1.clone(),
@@ -494,7 +511,9 @@ pub fn resolve_names(fragment: (Word, Word, Word, Word), ctx: &Ctx) -> (Word, Wo
         match w {
             IsGlobal => break,
             IsLocal => break,
-            Name(ref n) => resolved_words.push(ctx.resolve(n).unwrap_or(&fragment.0).clone()),
+            Name(ref n) => {
+                resolved_words.push(ctx.eval().locales.lookup(n)?.unwrap_or(&fragment.0).clone())
+            }
             _ => resolved_words.push(w.clone()),
         }
     }
@@ -502,5 +521,5 @@ pub fn resolve_names(fragment: (Word, Word, Word, Word), ctx: &Ctx) -> (Word, Wo
 
     let l = words.len() - resolved_words.len();
     let new_words = [&words[..l], &resolved_words[..]].concat();
-    new_words.iter().cloned().collect_tuple().unwrap()
+    Ok(new_words.iter().cloned().collect_tuple().unwrap())
 }

@@ -152,20 +152,20 @@ impl VerbImpl {
             },
             VerbImpl::Anonymous(dyadic, words) => {
                 // TODO: wrong, should have access to the global context
-                let mut ctx = Ctx::empty();
+                let mut ctx = Ctx::root();
                 if let Some(x) = x {
                     if !dyadic {
                         return Err(JError::DomainError)
                             .context("x provided for a monad-only verb");
                     }
-                    ctx.alias("x", x.clone());
+                    ctx.eval_mut().locales.assign_local("x", x.clone())?;
                 } else {
                     if *dyadic {
                         return Err(JError::DomainError)
                             .context("no x provided for a dyad-only verb");
                     }
                 }
-                ctx.alias("y", y.clone());
+                ctx.eval_mut().locales.assign_local("y", y.clone())?;
                 eval_lines(words, &mut ctx)
                     .and_then(must_be_box)
                     .context("anonymous")

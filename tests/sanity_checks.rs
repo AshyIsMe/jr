@@ -51,7 +51,7 @@ fn test_parse_basics() {
         Word::noun([1i64, 2, 3]).unwrap(),
     ];
     assert_eq!(
-        jr::eval(words, &mut Ctx::empty()).unwrap(),
+        jr::eval(words, &mut Ctx::root()).unwrap(),
         Word::noun([3i64, 4, 5]).unwrap(),
     );
 }
@@ -273,7 +273,7 @@ fn test_idot_dyadic() {
 
 #[test]
 fn test_assignment() {
-    let mut ctx = Ctx::empty();
+    let mut ctx = Ctx::root();
     jr::eval(jr::scan("a =: 42").unwrap(), &mut ctx).unwrap();
     assert_eq!(
         jr::eval(jr::scan("a").unwrap(), &mut ctx).unwrap(),
@@ -283,8 +283,11 @@ fn test_assignment() {
 
 #[test]
 fn test_resolve_names() {
-    let mut ctx = Ctx::empty();
-    ctx.alias("a", Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap());
+    let mut ctx = Ctx::root();
+    ctx.eval_mut()
+        .locales
+        .assign_global("a", Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap())
+        .unwrap();
 
     let words = (
         Name(String::from("a")),
@@ -292,7 +295,7 @@ fn test_resolve_names() {
         Word::noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
         Nothing,
     );
-    assert_eq!(resolve_names(words.clone(), &ctx), words);
+    assert_eq!(resolve_names(words.clone(), &ctx).unwrap(), words);
 
     let words2 = (
         Name(String::from("b")),
@@ -301,7 +304,7 @@ fn test_resolve_names() {
         Nothing,
     );
     assert_eq!(
-        resolve_names(words2.clone(), &ctx),
+        resolve_names(words2.clone(), &ctx).unwrap(),
         (
             Name(String::from("b")),
             IsLocal,
