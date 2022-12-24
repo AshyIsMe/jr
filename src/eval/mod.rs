@@ -481,7 +481,9 @@ fn string_assignment(names: JArray, w: Word) -> Result<(JArray, Vec<String>)> {
         .map(|s| s.to_string())
         .collect_vec();
     if arr.len() != names.len() {
-        return Err(JError::LengthError).context("wrong number of names for an array");
+        return Err(JError::LengthError).with_context(|| {
+            anyhow!("wrong number of names for an array: {arr:?} into {names:?}")
+        });
     }
     Ok((arr, names))
 }
