@@ -70,11 +70,11 @@ This file auto-generated: just get-impl-status
         "/." => adverb("/.", a_slash_dot),
         "\\" => adverb("\\", a_backslash),
         "\\." => adverb("\\.", a_suffix_outfix),
-        "}" => adverb("}", a_close_squiggle),
+        "}" => adverb("}", a_curlyrt),
 
 ## Implemented Conjunctions
         "^:" => conj("^:", c_hatco),
-        "::" => conj("::", c_whatevs),
+        "::" => conj("::", c_assign_adverse),
         ";." => conj(";.", c_cut),
         "!:" => conj("!:", c_foreign),
         "\"" => conj("\"", c_quote),

@@ -149,7 +149,7 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
 }
 
 /// (_ _ _)
-pub fn a_close_squiggle(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+pub fn a_curlyrt(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
     use Word::Noun;
     match (x, u, y) {
         (Some(Noun(x)), Noun(u), Noun(y))

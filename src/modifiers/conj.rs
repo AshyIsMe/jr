@@ -312,7 +312,13 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
     }
 }
 
-pub fn c_whatevs(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_assign_adverse(
+    ctx: &mut Ctx,
+    x: Option<&Word>,
+    n: &Word,
+    m: &Word,
+    y: &Word,
+) -> Result<Word> {
     match (n, m) {
         (Word::Verb(_, n), Word::Verb(_, m)) => n
             .exec(ctx, x, y)
