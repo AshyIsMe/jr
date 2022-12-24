@@ -9,17 +9,17 @@ use crate::{arr0d, Ctx, JArray, JError, Word};
 pub fn f_name_status(ctx: &Ctx, y: &Word) -> Result<Word> {
     let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::DomainError).context("boxed name please"); };
     let name = arg_to_string(y)?;
-    // TODO: this should validate the name, but doesn't
-    let result = match ctx.eval().locales.lookup(&name)? {
-        Some(Word::Noun(_)) => 0i64,
-        Some(Word::Adverb(_, _)) => 1,
-        Some(Word::Conjunction(_, _)) => 2,
-        Some(Word::Verb(_, _)) => 3,
-        Some(other) => {
+    let result = match ctx.eval().locales.lookup(&name) {
+        Ok(Some(Word::Noun(_))) => 0i64,
+        Ok(Some(Word::Adverb(_, _))) => 1,
+        Ok(Some(Word::Conjunction(_, _))) => 2,
+        Ok(Some(Word::Verb(_, _))) => 3,
+        Ok(Some(other)) => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unknown word in name {name:?}: {other:?}"))
         }
-        None => -1,
+        Ok(None) => -1,
+        Err(_) => -2,
     };
 
     Ok(Word::Noun(JArray::IntArray(arr0d(result))))

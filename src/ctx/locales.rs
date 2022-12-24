@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
 
 use crate::{JError, Word};
 
@@ -38,16 +39,16 @@ impl Locales {
 
     pub fn assign_global(&mut self, n: impl ToString, v: Word) -> Result<()> {
         let n = n.to_string();
-        if n.contains('_') {
-            return Err(JError::NonceError).context("namespaced names");
-        }
+        let (n, ns) = parse_name(&n)?;
+        let ns = ns.unwrap_or(
+            self.search_path
+                .last()
+                .expect("non-empty search path")
+                .as_str(),
+        );
+
         self.inner
-            .entry(
-                self.search_path
-                    .last()
-                    .expect("non-empty search path")
-                    .to_string(),
-            )
+            .entry(ns.to_string())
             .or_insert_with(|| Default::default())
             .0
             .insert(n.to_string(), v);
@@ -70,7 +71,12 @@ impl Locales {
     }
 
     pub fn lookup(&self, n: impl AsRef<str>) -> Result<Option<&Word>> {
-        let n = n.as_ref();
+        let (n, ns) = parse_name(n.as_ref())?;
+
+        if let Some(ns) = ns {
+            return Ok(self.inner.get(ns).and_then(|ns| ns.0.get(n)));
+        }
+
         for local in self.anon.iter().rev() {
             if let Some(v) = local.0.get(n) {
                 return Ok(Some(v));
@@ -85,4 +91,13 @@ impl Locales {
 
         Ok(None)
     }
+}
+
+pub fn parse_name(name: &str) -> Result<(&str, Option<&str>)> {
+    let parts = name.split('_').collect_vec();
+    Ok(match parts.len() {
+        1 => (parts[0], None),
+        3 if parts[2].is_empty() => (parts[0], Some(parts[1])),
+        _ => return Err(JError::IllFormedName).with_context(|| anyhow!("{name:?}")),
+    })
 }
