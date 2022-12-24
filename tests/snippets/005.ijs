@@ -1,6 +1,6 @@
 NB. should be pulled in from stdlib.ijs
 split =: ({. ,&< }.)
-
+LF =: 10{a.
 s3 =: 0 : 0
 vJrwpWtwJgWrhcsFMMfFFhFp
 jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL

@@ -151,8 +151,7 @@ impl VerbImpl {
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
             VerbImpl::Anonymous(dyadic, words) => {
-                // TODO: wrong, should have access to the global context
-                let mut ctx = Ctx::root();
+                let mut ctx = ctx.nest();
                 if let Some(x) = x {
                     if !dyadic {
                         return Err(JError::DomainError)

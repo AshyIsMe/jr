@@ -77,6 +77,12 @@ impl Locales {
             }
         }
 
+        for ns in self.search_path.iter().rev() {
+            if let Some(v) = self.inner.get(ns).and_then(|ns| ns.0.get(n)) {
+                return Ok(Some(v));
+            }
+        }
+
         Ok(None)
     }
 }
