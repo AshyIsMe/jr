@@ -10,6 +10,7 @@ use crate::arrays::*;
 use crate::JError;
 use crate::{primitive_adverbs, primitive_conjunctions, primitive_nouns, primitive_verbs};
 
+use crate::verbs::VerbImpl;
 use litnum::scan_litnumarray;
 pub use litnum::scan_num_token;
 use JArray::*;
@@ -56,17 +57,45 @@ fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
                 words.push(((i, i), Word::RP));
             }
             c if c.is_whitespace() => (),
+            // 0:, 1:..
+            c if c.is_ascii_digit() && sentence[i + 1..].starts_with(':') => {
+                words.push((
+                    (i, i + 1),
+                    Word::Verb(format!("{c}:"), VerbImpl::Number((c as u8 - b'0') as f64)),
+                ));
+                skip = 1;
+            }
+            // _:
+            '_' if sentence[i + 1..].starts_with(":") => {
+                words.push((
+                    (i, i + 1),
+                    Word::Verb(format!("_:"), VerbImpl::Number(f64::INFINITY)),
+                ));
+                skip = 1;
+            }
+            // _0:, _1:, ..
+            '_' if sentence[i + 1..].starts_with(|c: char| c.is_ascii_digit())
+                && sentence[i + 2..].starts_with(":") =>
+            {
+                let c = sentence[i + 1..].chars().next().expect("checked");
+                words.push((
+                    (i, i + 2),
+                    Word::Verb(
+                        format!("_{c}:"),
+                        VerbImpl::Number(-((c as u8 - b'0') as f64)),
+                    ),
+                ));
+                skip = 2;
+            }
             '0'..='9' | '_' => {
                 let (l, t) = scan_litnumarray(&sentence[i..])?;
                 words.push(((i, i + l), t));
                 skip = l;
-                continue;
             }
             '\'' => {
                 let (l, t) = scan_litstring(&sentence[i..])?;
                 words.push(((i, i + l), t));
                 skip = l;
-                continue;
             }
             'a'..='z' | 'A'..='Z' => {
                 let (l, t) = scan_name(&sentence[i..])?;
@@ -75,13 +104,11 @@ fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
                 }
                 words.push(((i, i + l), t));
                 skip = l;
-                continue;
             }
             _ => {
                 let (l, t) = scan_primitive(&sentence[i..])?;
                 words.push(((i, i + l), t));
                 skip = l;
-                continue;
             }
         }
     }
@@ -239,6 +266,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "end." => Word::End,
             "for." => Word::For(None),
             "while." => Word::While,
+            "assert." => Word::Assert,
             "NB." => Word::Comment,
             _ => return Ok(None),
         }

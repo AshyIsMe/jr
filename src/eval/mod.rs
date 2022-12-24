@@ -1,16 +1,19 @@
 mod controls;
+mod ctl_if;
 
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::{Ctx, Elem, JArray, Num};
+use crate::{Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
 use num_traits::Zero;
 
 use crate::error::JError;
-use crate::eval::controls::resolve_controls;
+// TODO: oh come on, this is clearly an eval concept
+pub use crate::eval::controls::resolve_controls;
+use crate::eval::ctl_if::control_if;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
 use crate::Word::{self, *};
@@ -67,20 +70,15 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
 pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
     // should not be returned?
     let mut word = Word::Nothing;
-    for sentence in sentence
+    for (rel_pos, sentence) in sentence
         .split(|w| matches!(w, Word::NewLine))
-        .filter(|sub| !sub.is_empty())
+        .enumerate()
+        .filter(|(_, sub)| !sub.is_empty())
     {
-        word = eval(sentence.to_vec(), ctx)?;
+        word = eval(sentence.to_vec(), ctx)
+            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?;
     }
     Ok(word)
-}
-
-fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
-    words
-        .iter()
-        .position(f)
-        .map(|p| (&words[..p], &words[p + 1..]))
 }
 
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
@@ -103,7 +101,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         debug!("restoring onto {:?}", sus.qs.stack);
         sus.qs
             .stack
-            .push_front(Word::noun(sus.data.chars().collect_vec())?);
+            // after `mode :`
+            .insert(2, Word::noun(sus.data.chars().collect_vec())?);
         sus.qs
     } else {
         let mut queue = VecDeque::from(sentence);
@@ -129,34 +128,12 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
         let result: Result<Vec<Word>> = match fragment {
             (IfBlock(def), b, c, d) => {
-                debug!("control if.");
-                if def.iter().any(|w| matches!(w, Word::ElseIf)) {
-                    return Err(JError::NonceError).context("no elsif.");
-                }
-                let (cond, follow) = split_once(&def, |w| matches!(w, Word::Do))
-                    .ok_or(JError::SyntaxError)
-                    .context("no do. in if.")?;
-                let (tru, fal) = match split_once(follow, |w| matches!(w, Word::Else)) {
-                    Some(x) => x,
-                    None => (follow, [].as_slice()),
-                };
-                let cond = match eval(cond.to_vec(), ctx).context("if statement conditional")? {
-                    Word::Noun(arr) => arr
-                        .into_elems()
-                        .into_iter()
-                        .next()
-                        .map(|e| e != Elem::Num(Num::zero()))
-                        .unwrap_or_default(),
-                    _ => {
-                        return Err(JError::NounResultWasRequired)
-                            .context("evaluating if conditional")
-                    }
-                };
-                if cond {
-                    let _ = eval_lines(tru, ctx).context("true block")?;
-                } else if !fal.is_empty() {
-                    let _ = eval_lines(fal, ctx).context("false block")?;
-                }
+                control_if(ctx, &def)?;
+                Ok(vec![b, c, d])
+            }
+            (AssertLine(def), b, c, d) => {
+                let _word = eval_lines(&def, ctx).context("assert body")?;
+                // TODO: actually assert
                 Ok(vec![b, c, d])
             }
             (ref w, Verb(_, v), Noun(y), any)
@@ -165,7 +142,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("0 monad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
                     any,
                 ])
             }
@@ -179,7 +156,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![
                     fragment.0,
                     Verb(us, u.clone()),
-                    v.exec(None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
                 ])
             }
             (ref w, Noun(x), Verb(_, ref v), Noun(y))
@@ -191,7 +168,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("2 dyad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(Some(&Noun(x)), &Noun(y))
+                    v.exec(ctx, Some(&Noun(x)), &Noun(y))
                         .context("evaluating 2 dyad")
                         .map(Word::Noun)?,
                 ])
@@ -273,7 +250,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
             }
-            (ref w, Noun(m), Conjunction(sc, c), Noun(n))
+            (ref w, Noun(ref m), Conjunction(ref sc, ref c), Noun(n))
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
@@ -282,17 +259,30 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("4 Conj N C N");
                 if c.farcical(&m, &n)? {
                     queue.push_back(fragment.0);
+                    stack.push_front(fragment.2);
+                    stack.push_front(fragment.1);
                     debug!("suspending {queue:?} {stack:?}");
                     ctx.suspend(Qs { queue, stack })?;
                     return Ok(EvalOutput::Suspension);
                 }
-                let verb_str = format!("m {} n", sc);
-                let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Noun(m)),
-                    r: Box::new(Noun(n)),
-                    m: Box::new(Conjunction(sc, c)),
+                // circumventing c_cor's implementation for nouns, but.. there's no way for a conj
+                // to otherwise get "called", which is the observed behaviour; implicit call at eval
+                // time
+                let noun_hack = match (m.single_math_num(), sc.as_str()) {
+                    (Some(n), ":") if n.is_zero() => true,
+                    _ => false,
                 };
-                Ok(vec![fragment.0, Verb(verb_str, dv)])
+                if noun_hack {
+                    Ok(vec![fragment.0, Noun(n)])
+                } else {
+                    let verb_str = format!("m {} n", sc);
+                    let dv = VerbImpl::DerivedVerb {
+                        l: Box::new(Noun(m.clone())),
+                        r: Box::new(Noun(n)),
+                        m: Box::new(Conjunction(sc.clone(), c.clone())),
+                    };
+                    Ok(vec![fragment.0, Verb(verb_str, dv)])
+                }
             }
             //// (V|N) V V - 5 Fork
             (ref w, Verb(sf, f), Verb(sg, g), Verb(sh, h))
@@ -396,18 +386,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (Noun(names), IsLocal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
-                let Noun(arr) = w else { return Err(JError::NonceError).context("non-noun on the right of noun assignment"); };
-                let JArray::CharArray(names) = names else { return Err(JError::NonceError).context("assigning to char arrays only please"); };
-                if names.shape().len() != 1 {
-                    return Err(JError::NonceError)
-                        .context("lists of chars (strings), not multi-dimensional char arrays");
-                }
-                // presumably this is supposed to be "words"
-                let names = names.iter().collect::<String>();
-                let names = names.split_whitespace().collect_vec();
-                if arr.shape()[0] != names.len() {
-                    return Err(JError::LengthError).context("wrong number of names for an array");
-                }
+                debug!("7 Is Local Noun w");
+                let (arr, names) = string_assignment(names, w)?;
 
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
                     ctx.alias(name, Noun(v_open(&val.into_owned())?));
@@ -417,8 +397,19 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (Name(n), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
             {
-                debug!("7 Is Local Name w");
+                debug!("7 Is Global Name w");
                 ctx.alias(n, w.clone());
+                Ok(vec![any])
+            }
+            (Noun(names), IsGlobal, w, any)
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+            {
+                debug!("7 Is Global Noun w");
+                let (arr, names) = string_assignment(names, w)?;
+
+                for (name, val) in names.into_iter().zip(arr.outer_iter()) {
+                    ctx.alias(name, Noun(v_open(&val.into_owned())?));
+                }
                 Ok(vec![any])
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
@@ -437,8 +428,12 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             },
         };
 
-        debug!("result: {:?}", result);
+        stack.retain(|w| !matches!(w, Nothing));
+
+        debug!("result: {:?} with {stack:?}", result);
         stack = vec![result?, stack.into()].concat().into(); //push_front
+
+        stack.retain(|w| !matches!(w, Nothing));
     }
     trace!("DEBUG stack: {:?}", stack);
     let mut new_stack: VecDeque<Word> = stack
@@ -456,6 +451,25 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         _ => Err(JError::SyntaxError)
             .with_context(|| anyhow!("expected a single output value but found {new_stack:?}")),
     }
+}
+
+fn string_assignment(names: JArray, w: Word) -> Result<(JArray, Vec<String>)> {
+    let Noun(arr) = w else { return Err(JError::NonceError).context("non-noun on the right of noun assignment"); };
+    let JArray::CharArray(names) = names else { return Err(JError::NonceError).context("assigning to char arrays only please"); };
+    if names.shape().len() != 1 {
+        return Err(JError::NonceError)
+            .context("lists of chars (strings), not multi-dimensional char arrays");
+    }
+    // presumably this is supposed to be "words"
+    let names = names.iter().collect::<String>();
+    let names = names
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect_vec();
+    if arr.len() != names.len() {
+        return Err(JError::LengthError).context("wrong number of names for an array");
+    }
+    Ok((arr, names))
 }
 
 fn get_fragment(stack: &mut VecDeque<Word>) -> (Word, Word, Word, Word) {

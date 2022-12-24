@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
+use crate::{arr0d, flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -23,6 +23,7 @@ use maff::*;
 pub use ranks::Rank;
 
 use crate::arrays::{Arrayable, JArrayCow};
+use crate::cells::flatten_partial;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -71,13 +72,17 @@ pub fn v_self_classify(y: &JArray) -> Result<JArray> {
 }
 
 /// -. (dyad)
-pub fn v_less(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.shape().len() > 1 || y.shape().len() > 1 {
+        return Err(JError::NonceError).context("only available for lists");
+    }
+    let y = y.outer_iter().collect_vec();
+    flatten_partial(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
 }
 
 /// -: (dyad)
-pub fn v_match(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_match(x: &JArray, y: &JArray) -> Result<JArray> {
+    Ok(JArray::BoolArray(arr0d(if x == y { 1 } else { 0 })))
 }
 
 fn nub(candidates: &[JArrayCow]) -> Vec<usize> {
@@ -337,6 +342,10 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
 }
 /// { (dyad)
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
+    if x.is_empty() {
+        return v_shape(&JArray::from(Num::from(0i64)), y);
+    }
+
     let x = x
         .single_math_num()
         .ok_or(JError::NonceError)
@@ -471,7 +480,7 @@ pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
 pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     let ido = v_index_of(y, x).context("member in idot")?;
     let tally = Num::Int(i64::try_from(y.len())?);
-    ensure!(ido.shape().len() == 1);
+    ensure!(ido.shape().len() <= 1);
 
     // promote is laziness, it's a list of bools already
     promote_to_array(

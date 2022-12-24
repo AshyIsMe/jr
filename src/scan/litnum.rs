@@ -1,6 +1,6 @@
 use std::ops;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use num::complex::Complex64;
@@ -20,8 +20,19 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
             _?          # minus
             (?:_|\d)    # infinity, or a leading number
             [\d._ejrx]* # a bunch more number bits
-            (?:\s*\b)   # trailing whitespace, or the end of the string
+            (?:\s*|\b)  # trailing whitespace, or the end of the string
             )+          # repeatedly
+            :?          # a trailing colon, to help the function recogniser below
+            "#
+        )
+        .expect("static regex");
+        static ref DIGIT_FUNC: Regex = Regex::new(
+            r#"(?x)     # allow comments and ignore whitespace
+            (?:         # (
+            _ |         #   lone _, or
+            _?[0-9]     #   optional leading _, digit
+            ):          # ), with a colon
+            (?:\s*|\b)  # trailing whitespace, or the end of the string
             "#
         )
         .expect("static regex");
@@ -30,6 +41,24 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
         .find(sentence)
         .ok_or_else(|| anyhow!("at least the first number should match"))?;
     let sentence = m.as_str();
+
+    // if there's a digit function in the string at all, remove it.
+    // it should always be right at the end
+    let sentence: &str = match DIGIT_FUNC.find(sentence) {
+        Some(m) => &sentence[..m.start()],
+        None => sentence,
+    };
+
+    // if there's still a colon right at the end, which wasn't a digit function, remove it
+    let sentence = match sentence.strip_suffix(':') {
+        Some(x) => x,
+        None => sentence,
+    };
+
+    ensure!(
+        !sentence.is_empty(),
+        "should have extracted at least one number"
+    );
 
     let l = sentence.len() - 1;
 
@@ -139,7 +168,7 @@ fn sign_lift<T: ops::Neg<Output = T>>(term: &str, f: impl FnOnce(&str) -> Result
 
 #[cfg(test)]
 mod tests {
-    use ndarray::array;
+    use ndarray::{array, ArrayD};
     use num::complex::Complex64;
     use num::rational::BigRational;
     use num::BigInt;
@@ -317,6 +346,38 @@ mod tests {
         assert_eq!(
             array![1., f64::INFINITY, 1.].into_dyn(),
             litnum_to_array("1 _ 1").when_f64().expect("float array"),
+        );
+    }
+
+    #[test]
+    fn scan_litnum_const_funcs() {
+        let litnum = |s: &'static str| -> (usize, ArrayD<i64>) {
+            let (l, w) = super::scan_litnumarray(s).expect("success");
+            let arr = match w {
+                Word::Noun(arr) => arr,
+                _ => unreachable!(),
+            };
+            (s.len() - l, arr.when_i64().expect("i64").clone())
+        };
+
+        assert!(
+            super::scan_litnumarray("3:").is_err(),
+            "shouldn't get here; calling code should handle it"
+        );
+
+        assert_eq!(
+            (" 3:".len(), array![7i64, 1, 2].into_dyn()),
+            litnum("7 1 2 3:")
+        );
+
+        assert_eq!(
+            (" _3:".len(), array![1i64, -2].into_dyn()),
+            litnum("1 _2 _3:")
+        );
+
+        assert_eq!(
+            (" _:".len(), array![1i64, -2].into_dyn()),
+            litnum("1 _2 _:")
         );
     }
 }

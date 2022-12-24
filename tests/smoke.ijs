@@ -38,6 +38,21 @@ _3j_3.3
 <2
 0 $ 0
 (0$0) $ 17
+0: 5
+1: 5
+2: 5
+9: 5
+5 2: 5
+5 6 2: 5
+_0: 5
+_1: 5
+_2: 5
+_9: 5
+5 _2: 5
+5 6 _2: 5
+_: 5
+5 _: 5
+_ _: _
 
 NB. literal promotions
 1 0.5 2j3
@@ -168,8 +183,18 @@ NB. not
 -. 3r2 7
 NB. test framework bug: -. 0.5 0.7 3j5
 
+NB. less
+'encephalogram' -. 'e'
+'encephalogram' -. 'a'
+'encephalogram' -. 'aeiouAEIOU'
+NB. wrong, needs to understand agreement (sigh): (i. 3 3) -. 3 4 5
+
 NB. halve
 NB. incorrect datatype: -: i. 5
+
+NB. match
+'no' -: |. 'on'
+'no' -: 'yes'
 
 NB. reciprocal
 NB. incorrect datatype: % 1
@@ -243,6 +268,35 @@ NB. same / left / right
 (i. 2 3) [ 'abcde'
 (i. 2 3) ] 'abcde'
 
+NB. take
+0 {. 2
+1 {. 2
+2 {. 2
+2 {. 'abcde'
+_2 {. 'abcde'
+6 {. 3 1 4 1 5 9 6 2 3 5
+6 {. 3 1 4
+3 {. 5 }. 'abcdefghijklmnopqrstuvwxyz'
+2 ({. ,&< }.) 'abcde'
+> (5;(0 $ 0))
+> ((i. 0 4); (i. 2 2))
+
+NB. fetch
+1 {:: 'foo'; 'bar'
+0 {:: <5
+0 {:: ((<5);(<<4))
+1 {:: ((<5);(<<4))
+(2 1 $ ((<5);(<<4)))
+NB. broken, not willing to implicitly box: 0 {:: 5
+NB. broken, they maintain the outer shape somehows: 0 {:: (2 1 $ ((<5);(<<4)))
+
+NB. rank
+(5"_) 0
+(5"_) (0 $ 0)
+(5"_) i. 2 3
+(''"_) 'hello'
+(''"_) 5 6
+
 NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'
@@ -268,6 +322,9 @@ NB. append
 'abc','d'
 (i. 2 3),(10 + i. 2 3)
 (i. 2 3),(10 + i. 3 3)
+5,(0 $ 0)
+(0 $ 0),6
+5,(0 $ 0),6
 
 NB. ravel items
 ,. 'a'
@@ -326,11 +383,19 @@ NB. do
 NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. agenda
+5 (+`-@.1) 2
+5 (+`-@.0) 2
+
 NB. atop / at
 #@> 'Newton';'Einstein'
 2 3 <@, 4 5
 (1 2 3 4) */ @  + (7 5 3 2)
 (1 2 3 4) */ @: + (7 5 3 2)
+
+NB. cor
+0 : 'hello'
+(3 (4 : 'x + y') 5)
 
 NB. bondo
 1&+ 5
@@ -348,7 +413,7 @@ i.&.> (1;2;2 3)
 #&.> ('foo'; 'ba')
 #&.> 1 {. ('foo'; 'ba')
 #&.> <'foo'
-NB. derived: # (&.>) < 'foo'
+# (&.>) < 'foo'
 (3;5) (+&.>) (<7)
 
 NB. integers
@@ -381,6 +446,13 @@ NB. NB. at the start of a line is handled by the test framework today.
 NB. controls
 3 {{ x + y }} 5
 
+NB. foreign
+3!:3 ] 2
+3!:3 ] 2 4 7 _2
+2 (3!:4) 97
+NB. platform dependent actual result
+$ 9!:12 ''
+
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 
@@ -403,3 +475,9 @@ NB. (;/i.5) = 0;1;2;3;4
 0;1
 (,. ,"1 (<:@# # '-'&[)) 'ABCD'
 (>:i. #'ABCD') |."0 1 (,. ,"1 (<:@# # '-'&[)) 'ABCD'
+
+NB. empty should be fine
+}. 0$0
+{. 0$0
+(0$0) }. 1 2 3
+(0$0) { 1 2 3

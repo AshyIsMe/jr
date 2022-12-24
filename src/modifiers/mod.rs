@@ -5,8 +5,9 @@ mod adverb;
 mod conj;
 
 use anyhow::{anyhow, bail, Context, Result};
+use std::ops::Deref;
 
-use crate::{JArray, Word};
+use crate::{Ctx, JArray, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -19,15 +20,29 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec(&self, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    pub fn exec(
+        &self,
+        ctx: &mut Ctx,
+        x: Option<&Word>,
+        u: &Word,
+        v: &Word,
+        y: &Word,
+    ) -> Result<Word> {
         match self {
             ModifierImpl::Adverb(a) => {
-                (a.f)(x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
+                (a.f)(ctx, x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
             }
             ModifierImpl::Conjunction(c) => {
-                (c.f)(x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
+                (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
-            ModifierImpl::DerivedAdverb { l, r } => bail!("TODO: DerivedAdverb l: {l:?} r: {r:?}"),
+            ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
+                (Word::Conjunction(cn, c), r) => c
+                    .exec(ctx, x, u, r, y)
+                    .with_context(|| anyhow!("derived adverb conjunction {cn:?}")),
+                _ => bail!(
+                    "TODO: DerivedAdverb l: {l:?} r: {r:?} x: {x:?} u: {u:?} v: {v:?} y: {y:?}"
+                ),
+            },
         }
     }
 

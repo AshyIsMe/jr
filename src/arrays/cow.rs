@@ -6,6 +6,7 @@ use ndarray::{IntoDimension, Slice};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use super::nd_ext::len_of_0;
 use crate::JArray;
 
 pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
@@ -55,13 +56,7 @@ macro_rules! map_to_cow {
 
 impl<'v> JArrayCow<'v> {
     pub fn len(&self) -> usize {
-        //impl_array!(self, ArrayBase::len)
-        impl_array!(self, |a: &ArrayBase<_, _>| {
-            match a.shape() {
-                [] => 1,
-                a => a[0],
-            }
-        })
+        impl_array!(self, len_of_0)
     }
 
     pub fn shape(&self) -> &[usize] {
@@ -134,6 +129,21 @@ impl<'v> JArrayCow<'v> {
             JArrayCow::FloatArray(v) => JArray::FloatArray(v.into_owned()),
             JArrayCow::ComplexArray(v) => JArray::ComplexArray(v.into_owned()),
             JArrayCow::BoxArray(v) => JArray::BoxArray(v.into_owned()),
+        }
+    }
+}
+
+impl From<JArray> for JArrayCow<'static> {
+    fn from(value: JArray) -> Self {
+        match value {
+            JArray::BoolArray(v) => JArrayCow::BoolArray(v.into()),
+            JArray::CharArray(v) => JArrayCow::CharArray(v.into()),
+            JArray::IntArray(v) => JArrayCow::IntArray(v.into()),
+            JArray::ExtIntArray(v) => JArrayCow::ExtIntArray(v.into()),
+            JArray::RationalArray(v) => JArrayCow::RationalArray(v.into()),
+            JArray::FloatArray(v) => JArrayCow::FloatArray(v.into()),
+            JArray::ComplexArray(v) => JArrayCow::ComplexArray(v.into()),
+            JArray::BoxArray(v) => JArrayCow::BoxArray(v.into()),
         }
     }
 }

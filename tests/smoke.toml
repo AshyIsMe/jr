@@ -74,6 +74,11 @@ output = '6 8'
 encoded = 'e3,04,02,01,02,06,08'
 
 [[runs]]
+expr = "$ 9!:12 ''"
+output = ''
+encoded = 'e3,04,,01,'
+
+[[runs]]
 expr = '$;._2 (1 2 0 0 1 0)'
 output = '''
 2
@@ -210,6 +215,21 @@ output = '1 0 1 0 0'
 encoded = 'e3,01,05,01,05,010001'
 
 [[runs]]
+expr = "'encephalogram' -. 'a'"
+output = 'encephlogrm'
+encoded = 'e3,02,0b,01,0b,656e636570686c6f,67726d'
+
+[[runs]]
+expr = "'encephalogram' -. 'aeiouAEIOU'"
+output = 'ncphlgrm'
+encoded = 'e3,02,08,01,08,6e6370686c67726d,'
+
+[[runs]]
+expr = "'encephalogram' -. 'e'"
+output = 'ncphalogram'
+encoded = 'e3,02,0b,01,0b,6e637068616c6f67,72616d'
+
+[[runs]]
 expr = "'good' ; 'morning'"
 output = '''
 ┌────┬───────┐
@@ -237,9 +257,29 @@ e3,02,06,01,06,68656c69636f,
 e3,02,04,01,04,70746572'''
 
 [[runs]]
+expr = "'no' -: 'yes'"
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
+expr = "'no' -: |. 'on'"
+output = '1'
+encoded = 'e3,01,01,,01'
+
+[[runs]]
 expr = "'x' 0 3} 'cross'"
 output = 'xroxs'
 encoded = 'e3,02,05,01,05,78726f7873'
+
+[[runs]]
+expr = "(''\"_) 'hello'"
+output = ''
+encoded = 'e3,02,,01,,'
+
+[[runs]]
+expr = '''(''"_) 5 6'''
+output = ''
+encoded = 'e3,02,,01,,'
 
 [[runs]]
 expr = "('aba'; 'ba') I. @ E. &.> <'ababa'"
@@ -267,6 +307,11 @@ D---'''
 encoded = 'e3,02,1,02,04,04,412d2d2d422d2d2d,432d2d2d442d2d2d,'
 
 [[runs]]
+expr = '(0 $ 0),6'
+output = '6'
+encoded = 'e3,04,01,01,01,06'
+
+[[runs]]
 expr = '(0 1j2 2j4 3j6 4j8) * (+(0 1j2 2j4 3j6 4j8))'
 output = '0 5 20 45 80'
 encoded = 'e3,1,05,01,05,,,000000000000144,,000000000000344,,000000000080464,,000000000000544,'
@@ -277,6 +322,16 @@ output = '17'
 encoded = 'e3,04,01,,11'
 
 [[runs]]
+expr = '(0$0) { 1 2 3'
+output = ''
+encoded = 'e3,04,,01,'
+
+[[runs]]
+expr = '(0$0) }. 1 2 3'
+output = '1 2 3'
+encoded = 'e3,04,03,01,03,01,02,03'
+
+[[runs]]
 expr = '(1 2 3 4) */ @  + (7 5 3 2)'
 output = '8 7 6 6'
 encoded = 'e3,04,04,01,04,08,07,06,06'
@@ -285,6 +340,30 @@ encoded = 'e3,04,04,01,04,08,07,06,06'
 expr = '(1 2 3 4) */ @: + (7 5 3 2)'
 output = '2016'
 encoded = 'e3,04,01,,e007'
+
+[[runs]]
+expr = '(2 1 $ ((<5);(<<4)))'
+output = '''
+┌───┐
+│┌─┐│
+││5││
+│└─┘│
+├───┤
+│┌─┐│
+││4││
+│└─┘│
+└───┘'''
+encoded = '''
+e3,2,02,02,02,01,4,9,
+e3,2,01,,28,
+e3,04,01,,05,
+e3,2,01,,28,
+e3,04,01,,04'''
+
+[[runs]]
+expr = '''(3 (4 : 'x + y') 5)'''
+output = '8'
+encoded = 'e3,04,01,,08'
 
 [[runs]]
 expr = '(3;5) (+&.>) (<7)'
@@ -307,6 +386,21 @@ ato
 to  
 o'''
 encoded = 'e3,02,18,02,06,04,706f74616f746174,7461746f61746f2,746f20206f20202,'
+
+[[runs]]
+expr = '(5"_) (0 $ 0)'
+output = '5'
+encoded = 'e3,04,01,,05'
+
+[[runs]]
+expr = '(5"_) 0'
+output = '5'
+encoded = 'e3,04,01,,05'
+
+[[runs]]
+expr = '(5"_) i. 2 3'
+output = '5'
+encoded = 'e3,04,01,,05'
 
 [[runs]]
 expr = '''(<'abc');(<'def');(<'ghi')'''
@@ -652,6 +746,31 @@ e3,04,02,01,02,,02,
 e3,04,04,01,04,04,02,05,07'''
 
 [[runs]]
+expr = "0 : 'hello'"
+output = 'hello'
+encoded = 'e3,02,05,01,05,68656c6c6f'
+
+[[runs]]
+expr = '0 {. 2'
+output = ''
+encoded = 'e3,04,,01,'
+
+[[runs]]
+expr = '0 {:: ((<5);(<<4))'
+output = '''
+┌─┐
+│5│
+└─┘'''
+encoded = '''
+e3,2,01,,28,
+e3,04,01,,05'''
+
+[[runs]]
+expr = '0 {:: <5'
+output = '5'
+encoded = 'e3,04,01,,05'
+
+[[runs]]
 expr = '0 |. i. 6'
 output = '0 1 2 3 4 5'
 encoded = 'e3,04,06,01,06,,01,02,03,04,05'
@@ -675,6 +794,11 @@ encoded = 'e3,01,04,01,04,01000001'
 expr = '0.5'
 output = '0.5'
 encoded = 'e3,08,01,,000000000000e03f'
+
+[[runs]]
+expr = '0: 5'
+output = '0'
+encoded = 'e3,01,01,,'
 
 [[runs]]
 expr = '0;1'
@@ -790,6 +914,26 @@ output = '1 4j2 3j3 2'
 encoded = 'e3,1,04,01,04,000000000000f03f,,000000000000104,000000000000004,000000000000084,000000000000084,000000000000004,'
 
 [[runs]]
+expr = '1 {. 2'
+output = '2'
+encoded = 'e3,04,01,01,01,02'
+
+[[runs]]
+expr = "1 {:: 'foo'; 'bar'"
+output = 'bar'
+encoded = 'e3,02,03,01,03,626172'
+
+[[runs]]
+expr = '1 {:: ((<5);(<<4))'
+output = '''
+┌─┐
+│4│
+└─┘'''
+encoded = '''
+e3,2,01,,28,
+e3,04,01,,04'''
+
+[[runs]]
 expr = '1&+ 5'
 output = '6'
 encoded = 'e3,04,01,,06'
@@ -803,6 +947,11 @@ encoded = 'e3,04,01,,01'
 expr = '16 %~ 3.2'
 output = '0.2'
 encoded = 'e3,08,01,,9a9999999999c93f'
+
+[[runs]]
+expr = '1: 5'
+output = '1'
+encoded = 'e3,01,01,,01'
 
 [[runs]]
 expr = '1r2'
@@ -830,9 +979,25 @@ output = '5 5 6 6 7 7'
 encoded = 'e3,04,06,01,06,05,05,06,06,07,07'
 
 [[runs]]
+expr = '2 (3!:4) 97'
+output = 'a'
+encoded = 'e3,02,04,01,04,61'
+
+[[runs]]
 expr = '2 (>. % [: <. + * -) 2'
 output = '_'
 encoded = 'e3,08,01,,000000000000f07f'
+
+[[runs]]
+expr = "2 ({. ,&< }.) 'abcde'"
+output = '''
+┌──┬───┐
+│ab│cde│
+└──┴───┘'''
+encoded = '''
+e3,2,02,01,02,38,68,
+e3,02,02,01,02,6162,
+e3,02,03,01,03,636465'''
 
 [[runs]]
 expr = '2 2 $ 1;2;3;4'
@@ -886,6 +1051,16 @@ output = '2 5 3'
 encoded = 'e3,04,03,01,03,02,05,03'
 
 [[runs]]
+expr = "2 {. 'abcde'"
+output = 'ab'
+encoded = 'e3,02,02,01,02,6162'
+
+[[runs]]
+expr = '2 {. 2'
+output = '2 0'
+encoded = 'e3,04,02,01,02,02,'
+
+[[runs]]
 expr = '2 |. i. 2 3'
 output = '''
 0 1 2
@@ -916,6 +1091,11 @@ encoded = 'e3,04,01,,ffffffffffffffff'
 expr = '2.1j3.1'
 output = '2.1j3.1'
 encoded = 'e3,1,01,,cdcccccccccc004,cdcccccccccc084'
+
+[[runs]]
+expr = '2: 5'
+output = '2'
+encoded = 'e3,04,01,,02'
 
 [[runs]]
 expr = '2j3'
@@ -970,9 +1150,38 @@ output = '0'
 encoded = 'e3,01,01,,'
 
 [[runs]]
+expr = "3 {. 5 }. 'abcdefghijklmnopqrstuvwxyz'"
+output = 'fgh'
+encoded = 'e3,02,03,01,03,666768'
+
+[[runs]]
 expr = '3 {{ x + y }} 5'
 output = '8'
 encoded = 'e3,04,01,,08'
+
+[[runs]]
+expr = '3!:3 ] 2'
+output = '''
+e300000000000000
+0400000000000000
+0100000000000000
+0000000000000000
+0200000000000000'''
+encoded = 'e3,02,5,02,05,1,653330303030303,303030303030303,303430303030303,303030303030303,303130303030303,303030303030303,303030303030303,303030303030303,303230303030303,303030303030303,'
+
+[[runs]]
+expr = '3!:3 ] 2 4 7 _2'
+output = '''
+e300000000000000
+0400000000000000
+0400000000000000
+0100000000000000
+0400000000000000
+0200000000000000
+0400000000000000
+0700000000000000
+feffffffffffffff'''
+encoded = 'e3,02,9,02,09,1,653330303030303,303030303030303,303430303030303,303030303030303,303430303030303,303030303030303,303130303030303,303030303030303,303430303030303,303030303030303,303230303030303,303030303030303,303430303030303,303030303030303,303730303030303,303030303030303,6665666666666666,6666666666666666,'
 
 [[runs]]
 expr = '3*5'
@@ -1056,6 +1265,31 @@ output = '0.1'
 encoded = 'e3,08,01,,9a9999999999b93f'
 
 [[runs]]
+expr = '5 (+`-@.0) 2'
+output = '7'
+encoded = 'e3,04,01,,07'
+
+[[runs]]
+expr = '5 (+`-@.1) 2'
+output = '3'
+encoded = 'e3,04,01,,03'
+
+[[runs]]
+expr = '5 2: 5'
+output = '2'
+encoded = 'e3,04,01,,02'
+
+[[runs]]
+expr = '5 6 2: 5'
+output = '2'
+encoded = 'e3,04,01,,02'
+
+[[runs]]
+expr = '5 6 _2: 5'
+output = '_2'
+encoded = 'e3,04,01,,feffffffffffffff'
+
+[[runs]]
 expr = '5 ; 12 ; 1995'
 output = '''
 ┌─┬──┬────┐
@@ -1091,6 +1325,26 @@ encoded = 'e3,04,01,,05'
 expr = '''5 NB. it's a boy!'''
 output = '5'
 encoded = 'e3,04,01,,05'
+
+[[runs]]
+expr = '5 _2: 5'
+output = '_2'
+encoded = 'e3,04,01,,feffffffffffffff'
+
+[[runs]]
+expr = '5 _: 5'
+output = '_'
+encoded = 'e3,08,01,,000000000000f07f'
+
+[[runs]]
+expr = '5,(0 $ 0)'
+output = '5'
+encoded = 'e3,04,01,01,01,05'
+
+[[runs]]
+expr = '5,(0 $ 0),6'
+output = '5 6'
+encoded = 'e3,04,02,01,02,05,06'
 
 [[runs]]
 expr = '5,3'
@@ -1155,6 +1409,16 @@ output = 'helico'
 encoded = 'e3,02,06,01,06,68656c69636f'
 
 [[runs]]
+expr = '6 {. 3 1 4'
+output = '3 1 4 0 0 0'
+encoded = 'e3,04,06,01,06,03,01,04,,,'
+
+[[runs]]
+expr = '6 {. 3 1 4 1 5 9 6 2 3 5'
+output = '3 1 4 1 5 9'
+encoded = 'e3,04,06,01,06,03,01,04,01,05,09'
+
+[[runs]]
 expr = "6 }. 'helicopter'"
 output = 'pter'
 encoded = 'e3,02,04,01,04,70746572'
@@ -1190,6 +1454,11 @@ encoded = 'e3,04,03,01,03,08,09,07'
 expr = '7 8 9 10 /: 4 2 3 1'
 output = '10 8 9 7'
 encoded = 'e3,04,04,01,04,0a,08,09,07'
+
+[[runs]]
+expr = '9: 5'
+output = '9'
+encoded = 'e3,04,01,,09'
 
 [[runs]]
 expr = '9^0.5'
@@ -1333,6 +1602,23 @@ output = '''
 encoded = 'e3,01,09,02,03,03,0100000001,01'
 
 [[runs]]
+expr = '> ((i. 0 4); (i. 2 2))'
+output = '''
+0 0 0 0
+0 0 0 0
+
+0 1 0 0
+2 3 0 0'''
+encoded = 'e3,04,1,03,02,02,04,,,,,,,,,,01,,,02,03,,'
+
+[[runs]]
+expr = '> (5;(0 $ 0))'
+output = '''
+5
+0'''
+encoded = 'e3,04,02,02,02,01,05,'
+
+[[runs]]
 expr = '>. 4.6 4 _4 _4.6'
 output = '5 4 _4 _4'
 encoded = 'e3,04,04,01,04,05,04,fcffffffffffffff,fcffffffffffffff'
@@ -1441,6 +1727,16 @@ output = '_'
 encoded = 'e3,08,01,,000000000000f07f'
 
 [[runs]]
+expr = '_ _: _'
+output = '_'
+encoded = 'e3,08,01,,000000000000f07f'
+
+[[runs]]
+expr = '_0: 5'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
 expr = '_1 |. i. 2 3'
 output = '''
 3 4 5
@@ -1451,6 +1747,11 @@ encoded = 'e3,04,06,02,02,03,03,04,05,,01,02'
 expr = '_1 |. i.6'
 output = '5 0 1 2 3 4'
 encoded = 'e3,04,06,01,06,05,,01,02,03,04'
+
+[[runs]]
+expr = '_1: 5'
+output = '_1'
+encoded = 'e3,04,01,,ffffffffffffffff'
 
 [[runs]]
 expr = '''_2 [\ ('aba';'XYZT';'ba';'+')'''
@@ -1473,6 +1774,16 @@ output = '3 _ 8'
 encoded = 'e3,08,03,01,03,000000000000084,000000000000f07f,000000000000204'
 
 [[runs]]
+expr = "_2 {. 'abcde'"
+output = 'de'
+encoded = 'e3,02,02,01,02,6465'
+
+[[runs]]
+expr = '_2: 5'
+output = '_2'
+encoded = 'e3,04,01,,feffffffffffffff'
+
+[[runs]]
 expr = "_3 <\\ 'abcdefg'"
 output = '''
 ┌───┬───┬─┐
@@ -1488,6 +1799,16 @@ e3,02,01,01,01,67'''
 expr = '_3j_3.3'
 output = '_3j_3.3'
 encoded = 'e3,1,01,,00000000000008c,6666666666660ac'
+
+[[runs]]
+expr = '_9: 5'
+output = '_9'
+encoded = 'e3,04,01,,f7ffffffffffffff'
+
+[[runs]]
+expr = '_: 5'
+output = '_'
+encoded = 'e3,08,01,,000000000000f07f'
 
 [[runs]]
 expr = '__'
@@ -1586,6 +1907,11 @@ output = '0 0j1 0j2 0j3 0j4'
 encoded = 'e3,1,05,01,05,,,,000000000000f03f,,000000000000004,,000000000000084,,000000000000104'
 
 [[runs]]
+expr = '{. 0$0'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
 expr = '|. i. 2 3'
 output = '''
 3 4 5
@@ -1615,6 +1941,11 @@ output = '''
 2 6
 3 7'''
 encoded = 'e3,04,08,02,04,02,,04,01,05,02,06,03,07'
+
+[[runs]]
+expr = '}. 0$0'
+output = ''
+encoded = 'e3,01,,01,,'
 
 [[runs]]
 expr = '~. (3 3 $ 1 2 3 1 2 3 4 5 6)'

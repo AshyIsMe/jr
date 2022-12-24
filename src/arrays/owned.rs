@@ -1,6 +1,6 @@
 use std::{fmt, iter};
 
-use anyhow::Result;
+use anyhow::{ensure, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{IntoDimension, Slice};
@@ -8,6 +8,7 @@ use num::complex::Complex64;
 use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
+use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
@@ -94,17 +95,16 @@ macro_rules! impl_homo {
 }
 
 impl JArray {
+    pub fn atomic_zero() -> JArray {
+        JArray::BoolArray(arr0d(0))
+    }
+
     pub fn is_empty(&self) -> bool {
         impl_array!(self, |a: &ArrayBase<_, _>| { a.is_empty() })
     }
 
     pub fn len(&self) -> usize {
-        impl_array!(self, |a: &ArrayBase<_, _>| {
-            match a.shape() {
-                [] => 1,
-                a => a[0],
-            }
-        })
+        impl_array!(self, len_of_0)
     }
 
     pub fn len_of(&self, axis: Axis) -> usize {
@@ -124,7 +124,15 @@ impl JArray {
     }
 
     pub fn slice_axis<'v>(&'v self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
-        // TODO: panics if axis > shape?
+        let index = axis.index();
+        ensure!(index < self.shape().len());
+        let this_dim = self.shape()[index];
+        if let Some(end) = slice.end.and_then(|i| usize::try_from(i).ok()) {
+            ensure!(
+                end < this_dim,
+                "slice end, {end}, past end of axis {index}, of length {this_dim}"
+            );
+        }
         Ok(impl_array!(self, |a: &'v ArrayBase<_, _>| JArrayCow::from(
             a.slice_axis(axis, slice)
         )))
@@ -132,6 +140,10 @@ impl JArray {
 
     pub fn to_shape<'v>(&'v self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow<'v>> {
         map_to_cow!(self, |a: &'v ArrayBase<_, _>| a.to_shape(shape))
+    }
+
+    pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
+        impl_array!(self, |a: ArrayBase<_, _>| Ok(a.into_shape(shape)?.into()))
     }
 
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {

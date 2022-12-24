@@ -140,8 +140,11 @@ pub fn v_real_imaginary(y: &JArray) -> Result<JArray> {
     }
 }
 /// +. (dyad)
-pub fn v_gcd_or(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_gcd_or(x: &JArray, y: &JArray) -> Result<JArray> {
+    d00nrn(x, y, |x, y| match (x.value_bool(), y.value_bool()) {
+        (Some(x), Some(y)) => Ok(Num::bool(x || y)),
+        _ => Err(JError::NonceError).context("gcd on non-booleans"),
+    })
 }
 
 /// +: (monad)

@@ -10,7 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::Arrayable;
+use crate::arrays::{len_of_0, Arrayable};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
 
@@ -96,12 +96,27 @@ fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
     )
 }
 
-/// , (dyad)
+pub fn unatom(y: JArray) -> JArray {
+    if y.shape().is_empty() {
+        y.into_shape(IxDyn(&[1])).expect("infalliable")
+    } else {
+        y
+    }
+}
+
+/// , (dyad) (_, _)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.shape().len() >= 1 && y.shape().len() >= 1 {
         if let Ok(arr) = append_nd(x, y) {
             return Ok(arr);
         }
+    }
+
+    if x.is_empty() {
+        return Ok(unatom(y.clone()));
+    }
+    if y.is_empty() {
+        return Ok(unatom(x.clone()));
     }
 
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
@@ -226,6 +241,10 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         x.shape()
     );
 
+    if x.is_empty() {
+        return v_shape(&JArray::from(Num::from(0i64)), y);
+    }
+
     let x = x
         .clone()
         .into_nums()
@@ -235,60 +254,65 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|n| n.value_i64())
         .collect::<Option<Vec<i64>>>()
         .ok_or(JError::DomainError)
-        .context("takee expecting integer-like x")?;
+        .context("take expecting integer-like x")?;
 
-    match x.len() {
-        1 => {
-            let x = x[0];
-            Ok(match x.cmp(&0) {
-                Ordering::Equal => bail!("v_take(): return empty array of type y"),
-                Ordering::Less => {
-                    // negative x (take from right)
-                    let x = usize::try_from(x.abs())
-                        .map_err(|_| JError::NaNError)
-                        .context("offset doesn't fit in memory")?;
-                    let y_len_zero = y.len_of(Axis(0));
-
-                    if x == 1 {
-                        match y.shape() {
-                            [] => y.to_shape(vec![x])?.into_owned(),
-                            _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
-                        }
-                    } else {
-                        y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
-                    }
-                }
-                Ordering::Greater => {
-                    let x = usize::try_from(x)
-                        .map_err(|_| JError::NaNError)
-                        .context("offset doesn't fit in memory")?;
-
-                    if x == 1 {
-                        match y.shape() {
-                            [] => y.to_shape(vec![x])?.into_owned(),
-                            _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
-                        }
-                    } else {
-                        let y_len_zero = y.len_of(Axis(0));
-                        if x <= y_len_zero {
-                            y.select(Axis(0), &(0..x).collect_vec())
-                        } else {
-                            flatten(
-                                &y.outer_iter()
-                                    .map(|cow| cow.into_owned())
-                                    .chain(iter::repeat(JArray::empty()))
-                                    .take(x)
-                                    .collect_vec()
-                                    .into_array()?,
-                            )?
-                        }
-                    }
-                }
-            })
-        }
-        _ => Err(JError::LengthError)
-            .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len())),
+    if 1 != x.len() {
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("expected an atomic x, got a shape of {:?}", x.len()));
     }
+
+    let x = x[0];
+    Ok(match x.cmp(&0) {
+        Ordering::Equal => JArray::empty(),
+        Ordering::Less => {
+            // negative x (take from right)
+            let x = usize::try_from(x.abs())
+                .map_err(|_| JError::NaNError)
+                .context("offset doesn't fit in memory")?;
+            let y_len_zero = y.len();
+
+            if x == 1 {
+                match y.shape() {
+                    [] => y.to_shape(vec![x])?.into_owned(),
+                    _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
+                }
+            } else {
+                if x <= y_len_zero {
+                    y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec())
+                } else {
+                    return Err(JError::NonceError).context("negative overtake");
+                }
+            }
+        }
+        Ordering::Greater => {
+            let x = usize::try_from(x)
+                .map_err(|_| JError::NaNError)
+                .context("offset doesn't fit in memory")?;
+
+            if x == 1 {
+                match (y.is_empty(), y.shape()) {
+                    (true, _) => JArray::atomic_zero(),
+                    (false, []) => y.to_shape(vec![x])?.into_owned(),
+                    _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
+                }
+            } else {
+                let y_len_zero = y.len();
+                if x <= y_len_zero {
+                    y.select(Axis(0), &(0..x).collect_vec())
+                } else {
+                    flatten(
+                        &y.outer_iter()
+                            .map(|cow| cow.into_owned())
+                            // we can't use empty() here as its rank is higher than arr0, which matters
+                            .chain(iter::repeat(JArray::atomic_zero()))
+                            .take(x)
+                            .collect_vec()
+                            .into_array()?,
+                    )?
+                }
+            }
+        }
+    })
 }
 
 /// {: (monad)
@@ -310,12 +334,33 @@ pub fn v_curtail(y: &JArray) -> Result<JArray> {
 }
 
 /// {:: (dyad)
-pub fn v_fetch(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_fetch(x: &JArray, y: &JArray) -> Result<JArray> {
+    let JArray::BoxArray(y) = y else { return Err(JError::NonceError).context("boxed y"); };
+    if y.shape().len() > 1 {
+        return Err(JError::NonceError).context("multi-dimensional shape output is missing");
+    }
+
+    let x = x
+        .single_math_num()
+        .ok_or(JError::NonceError)
+        .context("numeric x")?
+        .value_len()
+        .ok_or(JError::NonceError)
+        .context("positive integer x")?;
+
+    Ok(y.iter()
+        .nth(x)
+        .ok_or(JError::IndexError)
+        .context("x past end of atoms")?
+        .to_owned())
 }
 
 /// }. (monad)
 pub fn v_behead(y: &JArray) -> Result<JArray> {
+    if y.is_empty() {
+        return Ok(y.clone());
+    }
+
     impl_array!(y, |arr: &ArrayD<_>| Ok(arr
         .slice_axis(Axis(0), Slice::from(1isize..))
         .into_owned()
@@ -324,6 +369,11 @@ pub fn v_behead(y: &JArray) -> Result<JArray> {
 /// }. (dyad)
 pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
     use JArray::*;
+
+    if x.is_empty() {
+        return Ok(y.clone());
+    }
+
     match x {
         CharArray(_) => Err(JError::DomainError.into()),
         RationalArray(_) => Err(JError::DomainError.into()),
@@ -340,13 +390,14 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
                         Ordering::Less => {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4
-                            let new_x = y.len_of(Axis(0)) as i64 - x.abs();
+                            let new_x = len_of_0(arr) as i64 - x.abs();
                             v_take(&JArray::from(Num::from(new_x)), y)?
                         }
                         Ordering::Greater => {
-                            let new_x = arr.len_of(Axis(0)) as i64 - x.abs();
+                            let new_x = len_of_0(arr) as i64 - x.abs();
                             if new_x < 0 {
-                                todo!("return empty array of type arr")
+                                // todo!("return empty array of type arr")
+                                v_take(&JArray::from(Num::from(0i64)), y)?
                             } else {
                                 v_take(&JArray::from(Num::from(-new_x)), y)?
                             }

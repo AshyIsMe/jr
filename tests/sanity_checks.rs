@@ -391,6 +391,31 @@ fn test_drop() -> Result<()> {
 }
 
 #[test]
+fn test_drop_empty() -> Result<()> {
+    //    10 }. 1 2 3
+    //
+    //    datatype 10 }. 1 2 3
+    // integer
+    assert_eq!(
+        scan_eval("10 }. 1 2 3")?,
+        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+            IxDyn(&[0]),
+            [].to_vec()
+        )?))
+    );
+
+    assert_eq!(
+        scan_eval("10 }. ''")?,
+        Word::Noun(JArray::CharArray(Array::from_shape_vec(
+            IxDyn(&[0]),
+            [].to_vec()
+        )?))
+    );
+
+    Ok(())
+}
+
+#[test]
 fn test_box() {
     // "$ < 42" == []
     assert_eq!(

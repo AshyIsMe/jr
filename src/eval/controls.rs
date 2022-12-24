@@ -13,6 +13,12 @@ enum Resolution {
 
 /// true iff resolution completed
 pub fn resolve_controls(words: &mut Vec<Word>) -> Result<bool> {
+    while match resolve_one_assert(words)? {
+        Resolution::StepTaken => true,
+        Resolution::Complete => false,
+        Resolution::InsufficientInput => return Ok(false),
+    } {}
+
     while match resolve_one_direct_def(words)? {
         Resolution::StepTaken => true,
         Resolution::Complete => false,
@@ -28,6 +34,34 @@ pub fn resolve_controls(words: &mut Vec<Word>) -> Result<bool> {
         bail!("control resolution failed: didn't eliminate {remaining:?} at {pos}");
     }
     Ok(true)
+}
+
+fn resolve_one_assert(words: &mut Vec<Word>) -> Result<Resolution> {
+    let last_assert_start = match words.iter().rposition(|w| matches!(w, Word::Assert)) {
+        Some(x) => x,
+        None => return Ok(Resolution::Complete),
+    };
+    let assert_end = words
+        .iter()
+        .skip(last_assert_start)
+        .position(|w| matches!(w, Word::NewLine))
+        .map(|p| p + last_assert_start)
+        .unwrap_or(words.len());
+
+    // (last_dd_start..dd_end) includes the start and end, which we want to remove from the words
+    let mut def = words.drain(last_assert_start..assert_end).collect_vec();
+
+    // ... but not include in the definition
+    assert_eq!(Word::Assert, def.remove(0));
+
+    // maybe should remove the trailing newline
+
+    // don't think we need to resolve controls, as controls are not expressions?
+    // assert. if. 5 do.
+    // ..., no, because if. isn't an expression.
+
+    words.insert(last_assert_start, Word::AssertLine(def));
+    Ok(Resolution::StepTaken)
 }
 
 fn resolve_one_direct_def(words: &mut Vec<Word>) -> Result<Resolution> {

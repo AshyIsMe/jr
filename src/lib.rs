@@ -4,6 +4,7 @@ mod ctx;
 mod empty;
 mod error;
 mod eval;
+mod foreign;
 mod modifiers;
 mod number;
 mod scan;
@@ -118,7 +119,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "{." => primitive("{.", v_head, v_take, (inf, 1, inf)),
         "{:" => primitive("{:", v_tail, v_not_implemented_dyad, (inf, inf, inf)),
         "}:" => primitive("}:", v_curtail, v_not_implemented_dyad, (inf, inf, inf)),
-        "{::" => primitive("{:", v_map, v_fetch, (inf, 1, inf)),
+        "{::" => primitive("{::", v_map, v_fetch, (inf, 1, inf)),
         "}." => primitive("}.", v_behead, v_drop, (inf, 1, inf)),
 
         "\"." => primitive("\".", v_do, v_numbers, (1, inf, inf)),
@@ -157,25 +158,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "T." => not_impl("T."),
         "u:" => not_impl("u:"),
         "Z:" => not_impl("Z:"),
-        "_9:" => not_impl("_9:"),
-        "_8:" => not_impl("_8:"),
-        "_7:" => not_impl("_7:"),
-        "_6:" => not_impl("_6:"),
-        "_5:" => not_impl("_5:"),
-        "_4:" => not_impl("_4:"),
-        "_3:" => not_impl("_3:"),
-        "_2:" => not_impl("_2:"),
-        "_1:" => not_impl("_1:"),
-        "0:" => not_impl("0:"),
-        "1:" => not_impl("1:"),
-        "2:" => not_impl("2:"),
-        "3:" => not_impl("3:"),
-        "4:" => not_impl("4:"),
-        "5:" => not_impl("5:"),
-        "6:" => not_impl("6:"),
-        "7:" => not_impl("7:"),
-        "8:" => not_impl("8:"),
-        "9" => not_impl("9"),
         "u." => not_impl("u."),
         "v." => not_impl("v."),
 
@@ -195,7 +177,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
         "\\" => adverb("\\", a_backslash),
         "\\." => adverb("\\.", a_suffix_outfix),
         "]:" => adverb("]:", a_not_implemented),
-        "}" => adverb("}", a_close_squiggle),
+        "}" => adverb("}", a_curlyrt),
         "b." => adverb("b.", a_not_implemented),
         "f." => adverb("f.", a_not_implemented),
         "M." => adverb("M.", a_not_implemented),
@@ -254,17 +236,18 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
             farcical: c_cor_farcical,
         }),
         ":." => conj(":.", c_not_implemented),
-        "::" => conj("::", c_not_implemented),
+        "::" => conj("::", c_assign_adverse),
         ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
         "!:" => conj("!:", c_foreign),
         "[." => conj("[.", c_not_implemented),
         "]." => conj("].", c_not_implemented),
         "\"" => conj("\"", c_quote),
+        // matched on in the c_agenda implementation
         "`" => conj("`", c_not_implemented),
         "`:" => conj("`:", c_not_implemented),
         "@" => conj("@", c_atop),
-        "@." => conj("@.", c_not_implemented),
+        "@." => conj("@.", c_agenda),
         "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),
         "&." => conj("&.", c_under),

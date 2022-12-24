@@ -1,5 +1,6 @@
+use std::fmt;
 use std::iter;
-use std::{fmt, fs};
+use std::ops::Deref;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -7,11 +8,13 @@ use ndarray::prelude::*;
 
 use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
 use crate::cells::{apply_cells, monad_cells};
-use crate::verbs::{exec_dyad, exec_monad, Rank};
-use crate::{arr0d, eval, generate_cells, Ctx, IntoJArray, Num};
+use crate::eval::{eval_lines, resolve_controls};
+use crate::foreign::foreign;
+use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
+use crate::{arr0d, generate_cells, Ctx, Num};
 use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
 
-pub type ConjunctionFn = fn(Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
+pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 
 #[derive(Clone)]
 pub struct SimpleConjunction {
@@ -36,11 +39,17 @@ pub fn not_farcical(_n: &JArray, _m: &JArray) -> Result<bool> {
     Ok(false)
 }
 
-pub fn c_not_implemented(_x: Option<&Word>, _u: &Word, _v: &Word, _y: &Word) -> Result<Word> {
+pub fn c_not_implemented(
+    _ctx: &mut Ctx,
+    _x: Option<&Word>,
+    _u: &Word,
+    _v: &Word,
+    _y: &Word,
+) -> Result<Word> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
-pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_hatco(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     match (u, v) {
@@ -51,14 +60,14 @@ pub fn c_hatco(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     .map(|i| -> Result<_> {
                         let mut t = y.clone();
                         for _ in 0..*i {
-                            t = u.exec(x, &t).map(Word::Noun)?;
+                            t = u.exec(ctx, x, &t).map(Word::Noun)?;
                         }
                         Ok(t)
                     })
                     .collect::<Result<_, _>>()?,
             )?)
         }
-        (Word::Verb(_, _), Word::Verb(_, _)) => todo!("power conjunction verb right argument"),
+        (Word::Verb(_, _), Word::Verb(_, _)) => bail!("power conjunction verb right argument"),
         _ => Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     }
 }
@@ -103,7 +112,7 @@ fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
     Ok(result)
 }
 
-pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Noun(n)) => {
             let n = n
@@ -135,7 +144,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
             match (x, y) {
                 (None, Word::Noun(y)) => exec_monad(
                     |y| {
-                        u.exec(None, &Word::Noun(y.clone()))
+                        u.exec(ctx, None, &Word::Noun(y.clone()))
                             .context("running monadic u inside re-rank")
                     },
                     ranks.0,
@@ -145,7 +154,7 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                 .context("monadic rank drifting"),
                 (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
                     |x, y| {
-                        u.exec(Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
+                        u.exec(ctx, Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
                             .context("running dyadic u inside re-rank")
                     },
                     (ranks.1, ranks.2),
@@ -158,16 +167,63 @@ pub fn c_quote(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
                     .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
             }
         }
+        (Word::Noun(u), Word::Noun(n)) => {
+            let n = n
+                .approx()
+                .ok_or(JError::DomainError)
+                .context("rank expects integer arguments")?;
+            if n != arr0d(f32::INFINITY) {
+                return Err(JError::NonceError).context("only infinite ranks");
+            }
+            Ok(Word::Noun(u.clone()))
+        }
         _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
     }
 }
 
+pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+    use VerbImpl::*;
+    use Word::*;
+
+    let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
+    let v = v
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .context("agenda's index must be numeric")?
+        .value_len()
+        .ok_or(JError::DomainError)
+        .context("agenda's index must be a len")?;
+
+    // TODO: complete hack, only handling a tiny case
+    if v != 0 && v != 1 {
+        return Err(JError::NonceError).context("@. only implemented for 2-gerunds");
+    }
+
+    match u {
+        Verb(_, DerivedVerb { l, r, m }) => match (l.deref(), r.deref(), m.deref()) {
+            // TODO: complete hack, matching on the *name* of the verb
+            (Verb(_, l), Verb(_, r), Conjunction(name, _)) if name == "`" => {
+                if v == 0 {
+                    return l.exec(ctx, x, y).map(Noun).context("agenda l");
+                } else if v == 1 {
+                    return r.exec(ctx, x, y).map(Noun).context("agenda r");
+                } else {
+                    unreachable!("checked above")
+                }
+            }
+            _ => (),
+        },
+        _ => (),
+    }
+    Err(JError::NonceError).with_context(|| anyhow!("\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"))
+}
+
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_atop(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(x, y).context("right half of c_atop")?;
-            let r = map_result(r, |a| u.exec(None, &Word::Noun(a.clone())))
+            let r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
+            let r = map_result(r, |a| u.exec(ctx, None, &Word::Noun(a.clone())))
                 .context("left half of c_at")?;
             Ok(Word::Noun(
                 flatten(&r).context("expanding result of c_atop")?,
@@ -179,12 +235,12 @@ pub fn c_atop(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_at(x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(x, y).context("right half of c_at")?;
+            let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
             let r = flatten(&r).context("expanding result of c_atop")?;
-            u.exec(None, &Word::Noun(r))
+            u.exec(ctx, None, &Word::Noun(r))
                 .context("left half of c_at")
                 .map(Word::Noun)
         }
@@ -200,7 +256,16 @@ pub fn c_cor_farcical(n: &JArray, m: &JArray) -> Result<bool> {
     })
 }
 
-pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+// TODO: this is typically called from partial_exec which has a panic
+// TODO: attack about Nothing; this is a big lie
+fn nothing_to_empty(w: Word) -> Word {
+    match w {
+        Word::Nothing => Word::Noun(JArray::empty()),
+        other => other,
+    }
+}
+
+pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use crate::arrays::JArray::*;
     match (n, m) {
         (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
@@ -208,26 +273,34 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        let mut ctx = Ctx::empty();
+                        // TODO: wrong, this should be a sub-context
+                        let mut ctx = ctx.clone();
                         ctx.alias("x", x.clone());
                         ctx.alias("y", y.clone());
-                        eval(
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut ctx,
-                        )
-                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                        let mut words =
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        if !resolve_controls(&mut words)? {
+                            return Err(JError::SyntaxError).context("unable to resolve controls");
+                        }
+                        eval_lines(&words, &mut ctx)
+                            .with_context(|| anyhow!("evaluating {:?}", jcode))
+                            .map(nothing_to_empty)
                     }
                 }
             } else if n == Array::from_elem(IxDyn(&[]), 3) {
                 match x {
                     None => {
-                        let mut ctx = Ctx::empty();
+                        // TODO: wrong, this should be a sub-context
+                        let mut ctx = ctx.clone();
                         ctx.alias("y", y.clone());
-                        eval(
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
-                            &mut ctx,
-                        )
-                        .with_context(|| anyhow!("evaluating {:?}", jcode))
+                        let mut words =
+                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        if !resolve_controls(&mut words)? {
+                            return Err(JError::SyntaxError).context("unable to resolve controls");
+                        }
+                        eval_lines(&words, &mut ctx)
+                            .with_context(|| anyhow!("evaluating {:?}", jcode))
+                            .map(nothing_to_empty)
                     }
                     _ => Err(JError::DomainError).with_context(|| anyhow!("monad")),
                 }
@@ -239,11 +312,28 @@ pub fn c_cor(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     }
 }
 
+pub fn c_assign_adverse(
+    ctx: &mut Ctx,
+    x: Option<&Word>,
+    n: &Word,
+    m: &Word,
+    y: &Word,
+) -> Result<Word> {
+    match (n, m) {
+        (Word::Verb(_, n), Word::Verb(_, m)) => n
+            .exec(ctx, x, y)
+            .or_else(|_| m.exec(ctx, x, y))
+            .map(Word::Noun),
+        _ => Err(JError::NonceError)
+            .with_context(|| anyhow!("\nx: {x:?}\nn: {n:?}\nm: {m:?}\ny: {y:?}")),
+    }
+}
+
 fn empty_box_array() -> BoxArray {
     ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")
 }
 
-pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
     let m = m
@@ -277,7 +367,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                     out.push(
                         Axis(0),
                         arr0d(
-                            v.exec(None, &Noun(arg))
+                            v.exec(ctx, None, &Noun(arg))
                                 .context("evaluating intermediate")?,
                         )
                         .view(),
@@ -326,7 +416,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 out.push(
                     Axis(0),
                     arr0d(
-                        v.exec(None, &Noun(arg))
+                        v.exec(ctx, None, &Noun(arg))
                             .context("evaluating intermediate")?,
                     )
                     .view(),
@@ -339,7 +429,7 @@ pub fn c_cut(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     }
 }
 
-pub fn c_foreign(_x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (n, m) {
         (Word::Noun(n), Word::Noun(m)) => {
             let n = n
@@ -352,61 +442,27 @@ pub fn c_foreign(_x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word
                 .and_then(|m| m.value_len())
                 .ok_or(JError::DomainError)
                 .context("right foreign takes numerics")?;
-            match (m, n) {
-                (1, 1) => f_read_file(y).context("reading file"),
-                _ => Err(JError::NonceError)
-                    .with_context(|| anyhow!("unsupported foreign: {m}!:{n}")),
-            }
+            foreign(ctx, n, m, x, y)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }
 }
 
-fn f_read_file(y: &Word) -> Result<Word> {
-    match y {
-        Word::Noun(JArray::BoxArray(arr)) if arr.len() == 1 => {
-            let arr = arr
-                .iter()
-                .next()
-                .ok_or(JError::DomainError)
-                .context("empty box?")?;
-            let arr = arr
-                .when_char()
-                .ok_or(JError::NonceError)
-                .context("can't read boxed non-paths")?;
-
-            if arr.shape().len() > 1 {
-                return Err(JError::NonceError).context("multi-dimensional path");
-            }
-
-            let path: String = arr.iter().copied().collect();
-            match fs::read_to_string(&path) {
-                Ok(s) => Ok(s.chars().collect_vec().into_array()?.into_noun()),
-                Err(e) => Err(JError::FileNameError)
-                    .context(e)
-                    .with_context(|| anyhow!("reading {path:?}")),
-            }
-        }
-        _ => Err(JError::NonceError)
-            .context("can't read non-paths (hint: pointless box required 1!:1 <'a')"),
-    }
-}
-
-pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_bondo(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (x, n, m) {
         (None, Word::Verb(_, n), Word::Noun(m)) => n
-            .exec(Some(&Word::Noun(m.clone())), y)
+            .exec(ctx, Some(&Word::Noun(m.clone())), y)
             .context("monad bondo VN")
             .map(Word::Noun),
         (None, Word::Noun(n), Word::Verb(_, m)) => m
-            .exec(Some(&Word::Noun(n.clone())), y)
+            .exec(ctx, Some(&Word::Noun(n.clone())), y)
             .context("monad bondo NV")
             .map(Word::Noun),
-        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(x, n, m, y),
+        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(ctx, x, n, m, y),
         (Some(x), Word::Verb(_, u), Word::Verb(_, v)) => {
-            let l = v.exec(None, x).context("left bondo NVV")?;
-            let r = v.exec(None, y).context("right bondo NVV")?;
-            u.exec(Some(&Word::Noun(l)), &Word::Noun(r))
+            let l = v.exec(ctx, None, x).context("left bondo NVV")?;
+            let r = v.exec(ctx, None, y).context("right bondo NVV")?;
+            u.exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
                 .map(Word::Noun)
                 .context("central bondo NVV")
         }
@@ -414,7 +470,7 @@ pub fn c_bondo(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     }
 }
 
-pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (x, n, m, y) {
         (None, Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
             let (cells, frame) = monad_cells(y, Rank::zero())?;
@@ -424,9 +480,11 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 .context("lacking obverse")?;
             let mut parts = Vec::new();
             for y in cells {
-                let v = v.exec(None, &Word::Noun(y)).context("under dual v")?;
-                let u = u.exec(None, &Word::Noun(v)).context("under dual u")?;
-                let vi = vi.exec(None, &Word::Noun(u)).context("under dual vi")?;
+                let v = v.exec(ctx, None, &Word::Noun(y)).context("under dual v")?;
+                let u = u.exec(ctx, None, &Word::Noun(v)).context("under dual u")?;
+                let vi = vi
+                    .exec(ctx, None, &Word::Noun(u))
+                    .context("under dual vi")?;
                 parts.push(vi);
             }
             flatten(&parts.into_array()?)?
@@ -448,15 +506,15 @@ pub fn c_under(x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
                 &cells,
                 |x, y| {
                     let l = v
-                        .exec(None, &Word::Noun(x.clone()))
+                        .exec(ctx, None, &Word::Noun(x.clone()))
                         .context("under dual l")?;
                     let r = v
-                        .exec(None, &Word::Noun(y.clone()))
+                        .exec(ctx, None, &Word::Noun(y.clone()))
                         .context("under dual r")?;
                     let u = u
-                        .exec(Some(&Word::Noun(l)), &Word::Noun(r))
+                        .exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
                         .context("under dual u")?;
-                    vi.exec(None, &Word::Noun(u)).context("under dual vi")
+                    vi.exec(ctx, None, &Word::Noun(u)).context("under dual vi")
                 },
                 vr,
             )?;
