@@ -104,7 +104,7 @@ pub fn plot(arr: &JArray) -> Result<JArray> {
         Ok(())
     })?;
 
-    Ok(arr0d(69i64).into_jarray())
+    Ok(arr0d(69i64).into())
 }
 
 fn black_line(canvas: &mut Canvas<OpenGl>, (sx, sy): (f32, f32), (ex, ey): (f32, f32)) {

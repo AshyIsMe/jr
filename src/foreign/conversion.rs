@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use itertools::Itertools;
 
-use crate::{flatten, Arrayable, IntoJArray, JArray, JError, Num, Word};
+use crate::{flatten, Arrayable, JArray, JError, Num, Word};
 
 pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
     if cfg!(not(target_pointer_width = "64")) {
@@ -52,7 +52,7 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
                 .collect_vec()
                 .into_array()
                 .expect("infalliable for vec")
-                .into_jarray()
+                .into()
         })
         .collect_vec();
 

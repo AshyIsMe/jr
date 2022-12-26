@@ -6,7 +6,7 @@ use std::cmp::Ordering;
 
 use crate::arrays::Arrayable;
 use crate::number::Num;
-use crate::{IntoJArray, JArray, JError};
+use crate::{JArray, JError};
 
 use anyhow::{Context, Result};
 use ndarray::prelude::*;
@@ -134,7 +134,7 @@ pub fn v_real_imaginary(y: &JArray) -> Result<JArray> {
             let mut shape = y.shape().to_vec();
             shape.push(2);
             let values = y.iter().flat_map(|x| [x.re, x.im]).collect();
-            Ok(ArrayD::from_shape_vec(shape, values)?.into_jarray())
+            Ok(ArrayD::from_shape_vec(shape, values)?.into())
         }
         None => Err(JError::DomainError.into()),
     }
@@ -197,7 +197,7 @@ pub fn v_length_angle(y: &JArray) -> Result<JArray> {
 
         pair.into_array()
             .expect("infalliable for fixed arrays")
-            .into_jarray()
+            .into()
     })
 }
 /// *. (dyad) (0 0)
@@ -385,7 +385,7 @@ pub fn v_deal(x: &JArray, y: &JArray) -> Result<JArray> {
     let mut rng = rand::thread_rng();
     let mut chosen = (0..y).choose_multiple(&mut rng, x);
     chosen.shuffle(&mut rng);
-    Ok(chosen.into_array()?.into_jarray())
+    Ok(chosen.into_array()?.into())
 }
 
 /// ?. (dyad)

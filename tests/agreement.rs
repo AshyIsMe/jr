@@ -2,7 +2,7 @@ use anyhow::Result;
 use ndarray::{arr0, array, Array, Axis, IxDyn};
 
 use jr::test_impls::scan_eval;
-use jr::{IntoJArray, JError, Word};
+use jr::{JArray, JError, Word};
 
 #[test]
 fn array_iter_2_3() {
@@ -50,7 +50,9 @@ fn array_iter_2_3_2() -> Result<()> {
 fn test_agreement() {
     assert_eq!(
         scan_eval("10 20 + i.2 3").unwrap(),
-        array![[10i64, 11, 12], [23, 24, 25]].into_dyn().into_noun()
+        Word::Noun(JArray::from(
+            array![[10i64, 11, 12], [23, 24, 25]].into_dyn()
+        ))
     );
 }
 
@@ -78,7 +80,7 @@ fn test_agreement_3() -> Result<()> {
 fn test_agreement_4() -> Result<()> {
     assert_eq!(
         scan_eval("$ (i.2 2) + i.2 2 2").unwrap(),
-        array![2i64, 2, 2].into_dyn().into_noun()
+        Word::Noun(JArray::from(array![2i64, 2, 2].into_dyn()))
     );
     Ok(())
 }
@@ -87,9 +89,9 @@ fn test_agreement_4() -> Result<()> {
 fn test_agreement_plus_rank1() {
     assert_eq!(
         scan_eval("1 2 3 +\"1 i.2 3").unwrap(),
-        Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8])
-            .unwrap()
-            .into_noun()
+        Word::Noun(JArray::from(
+            Array::from_shape_vec(IxDyn(&[2, 3]), vec![1i64, 3, 5, 4, 6, 8]).unwrap()
+        ))
     );
 }
 

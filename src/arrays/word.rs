@@ -6,7 +6,7 @@ use std::fmt;
 use anyhow::Result;
 use ndarray::prelude::*;
 
-use super::{Arrayable, IntoJArray};
+use super::Arrayable;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::{impl_array, primitive_verbs, JArray, JError};
@@ -53,9 +53,9 @@ pub enum Word {
 impl Word {
     pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word>
     where
-        ArrayD<T>: IntoJArray,
+        JArray: From<ArrayD<T>>,
     {
-        Ok(Word::Noun(v.into_array()?.into_jarray()))
+        Ok(Word::Noun(v.into_array()?.into()))
     }
 
     /// primarily intended for asserts, hence the "static", and the PANIC on invalid input
@@ -94,7 +94,7 @@ impl Word {
         }
         Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
             .outer_iter()
-            .map(|a| Word::Noun(a.into_owned().into_jarray()))
+            .map(|a| Word::Noun(a.into_owned().into()))
             .collect()))
     }
 }

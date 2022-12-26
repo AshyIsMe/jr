@@ -114,7 +114,7 @@ mod tests {
     use ndarray::array;
 
     use super::*;
-    use crate::{arr0d, IntoJArray};
+    use crate::arr0d;
 
     #[test]
     fn test_common_dims() {
@@ -137,15 +137,12 @@ mod tests {
 
     #[test]
     fn test_gen_macrocells_plus_one() -> Result<()> {
-        let x = arr0d(5i64).into_jarray();
-        let y = array![1i64, 2, 3].into_dyn().into_jarray();
+        let x = arr0d(5i64).into();
+        let y = array![1i64, 2, 3].into_dyn().into();
         let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
-            vec![(
-                arr0d(5i64).into_jarray(),
-                array![1i64, 2, 3].into_dyn().into_jarray()
-            )]
+            vec![(arr0d(5i64).into(), array![1i64, 2, 3].into_dyn().into())]
         );
         Ok(())
     }
@@ -153,15 +150,15 @@ mod tests {
     #[test]
     fn test_gen_macrocells_plus_same() -> Result<()> {
         // I think I'd rather the arrays came out whole in this case?
-        let x = array![10i64, 20, 30].into_dyn().into_jarray();
-        let y = array![1i64, 2, 3].into_dyn().into_jarray();
+        let x = array![10i64, 20, 30].into_dyn().into();
+        let y = array![1i64, 2, 3].into_dyn().into();
         let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
-                (arr0d(10i64).into_jarray(), arr0d(1i64).into_jarray()),
-                (arr0d(20i64).into_jarray(), arr0d(2i64).into_jarray()),
-                (arr0d(30i64).into_jarray(), arr0d(3i64).into_jarray()),
+                (arr0d(10i64).into(), arr0d(1i64).into()),
+                (arr0d(20i64).into(), arr0d(2i64).into()),
+                (arr0d(30i64).into(), arr0d(3i64).into()),
             ]
         );
         Ok(())
@@ -169,22 +166,14 @@ mod tests {
 
     #[test]
     fn test_gen_macrocells_plus_two_three() -> Result<()> {
-        let x = array![1i64, 2].into_dyn().into_jarray();
-        let y = array![[10i64, 20, 30], [70, 80, 90]]
-            .into_dyn()
-            .into_jarray();
+        let x = array![1i64, 2].into_dyn().into();
+        let y = array![[10i64, 20, 30], [70, 80, 90]].into_dyn().into();
         let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
-                (
-                    arr0d(1i64).into_jarray(),
-                    array![10i64, 20, 30].into_dyn().into_jarray()
-                ),
-                (
-                    arr0d(2i64).into_jarray(),
-                    array![70i64, 80, 90].into_dyn().into_jarray()
-                ),
+                (arr0d(1i64).into(), array![10i64, 20, 30].into_dyn().into()),
+                (arr0d(2i64).into(), array![70i64, 80, 90].into_dyn().into()),
             ],
         );
         Ok(())
@@ -192,20 +181,14 @@ mod tests {
 
     #[test]
     fn test_gen_macrocells_plus_i() -> Result<()> {
-        let x = array![100i64, 200].into_dyn().into_jarray();
-        let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into_jarray();
+        let x = array![100i64, 200].into_dyn().into();
+        let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into();
         let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
         assert_eq!(
             cells,
             vec![
-                (
-                    arr0d(100i64).into_jarray(),
-                    array![0i64, 1, 2].into_dyn().into_jarray()
-                ),
-                (
-                    arr0d(200i64).into_jarray(),
-                    array![3i64, 4, 5].into_dyn().into_jarray()
-                ),
+                (arr0d(100i64).into(), array![0i64, 1, 2].into_dyn().into()),
+                (arr0d(200i64).into(), array![3i64, 4, 5].into_dyn().into()),
             ]
         );
         Ok(())
@@ -213,14 +196,14 @@ mod tests {
 
     #[test]
     fn test_gen_macrocells_hash() -> Result<()> {
-        let x = array![24i64, 60, 61].into_dyn().into_jarray();
-        let y = array![1800i64, 7200].into_dyn().into_jarray();
+        let x = array![24i64, 60, 61].into_dyn().into();
+        let y = array![1800i64, 7200].into_dyn().into();
         let (_, cells) = generate_cells(x, y, (Rank::one(), Rank::zero()))?;
         assert_eq!(
             cells,
             vec![(
-                array![24i64, 60, 61].into_dyn().into_jarray(),
-                array![1800i64, 7200].into_dyn().into_jarray()
+                array![24i64, 60, 61].into_dyn().into(),
+                array![1800i64, 7200].into_dyn().into()
             )]
         );
         Ok(())
@@ -228,7 +211,7 @@ mod tests {
 
     #[test]
     fn monadic_apply() -> Result<()> {
-        let y = array![2i64, 3].into_dyn().into_jarray();
+        let y = array![2i64, 3].into_dyn().into();
         let (cells, _) = monad_cells(&y, Rank::one())?;
         assert_eq!(cells, vec![y.clone()],);
 

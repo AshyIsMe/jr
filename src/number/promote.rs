@@ -6,7 +6,7 @@ use num::rational::BigRational;
 use num_traits::Zero;
 
 use super::Num;
-use crate::arrays::{Elem, IntoJArray, JArray};
+use crate::arrays::{Elem, JArray};
 use crate::error::JError;
 
 pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
@@ -104,7 +104,7 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
 fn arrayise<T>(it: impl IntoIterator<Item = Result<T>>) -> Result<JArray>
 where
     T: Clone,
-    ArrayD<T>: IntoJArray,
+    JArray: From<ArrayD<T>>,
 {
     let vec = it.into_iter().collect::<Result<Vec<T>>>()?;
     Ok(if vec.len() == 1 {
@@ -112,5 +112,5 @@ where
     } else {
         ArrayD::from_shape_vec(IxDyn(&[vec.len()]), vec).expect("simple shape")
     }
-    .into_jarray())
+    .into())
 }

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use ndarray::prelude::*;
 
 use crate::JError;
@@ -27,23 +27,6 @@ impl<T> Arrayable<T> for Vec<T> {
 
     fn into_vec(self) -> Result<Vec<T>> {
         Ok(self)
-    }
-}
-
-// This is designed for use with shape(), sorry if it caught something else.
-impl Arrayable<i64> for &[usize] {
-    fn len(&self) -> usize {
-        <[usize]>::len(self)
-    }
-
-    fn into_vec(self) -> Result<Vec<i64>> {
-        self.iter()
-            .map(|&v| {
-                i64::try_from(v)
-                    .map_err(|_| JError::LimitError)
-                    .with_context(|| anyhow!("{} doesn't fit in an i64", v))
-            })
-            .collect()
     }
 }
 

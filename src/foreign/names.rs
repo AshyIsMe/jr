@@ -2,10 +2,9 @@
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-use log::debug;
 
 use crate::foreign::files::arg_to_string;
-use crate::{arr0d, Arrayable, Ctx, JArray, JError, Word};
+use crate::{arr0d, Ctx, JArray, JError, Word};
 
 // 4!:0
 pub fn f_name_status(ctx: &Ctx, y: &Word) -> Result<Word> {

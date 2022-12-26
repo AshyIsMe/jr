@@ -12,7 +12,7 @@ pub use arrayable::Arrayable;
 pub use cow::{CowArrayD, JArrayCow};
 pub use elem::Elem;
 pub use nd_ext::*;
-pub use owned::{BoxArray, IntoJArray, JArray};
+pub use owned::{BoxArray, JArray};
 pub use plural::JArrays;
 pub use word::Word;
 

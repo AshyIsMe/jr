@@ -216,11 +216,7 @@ impl JArray {
             impl_array!(self, |x: &ArrayBase<_, _>| x
                 .exact_chunks(IxDyn(&iter_shape))
                 .into_iter()
-                .map(|x| x
-                    .into_shape(surplus.clone())
-                    .unwrap()
-                    .into_owned()
-                    .into_jarray())
+                .map(|x| x.into_shape(surplus.clone()).unwrap().into_owned().into())
                 .collect())
         }
     }
@@ -326,6 +322,10 @@ impl JArray {
     pub fn from_char_array(s: impl AsRef<str>) -> JArray {
         let chars = s.as_ref().chars().collect_vec();
         JArray::CharArray(chars.into_array().expect("infallible on vec"))
+    }
+
+    pub fn from_vec<T>(v: Vec<T>) -> JArray {
+        todo!()
     }
 }
 
@@ -449,38 +449,6 @@ impl fmt::Display for JArray {
         }
     }
 }
-
-pub trait IntoJArray {
-    fn into_jarray(self) -> JArray;
-    fn into_noun(self) -> Word
-    where
-        Self: Sized,
-    {
-        Word::Noun(self.into_jarray())
-    }
-}
-
-macro_rules! impl_into_jarray {
-    ($t:ty, $j:path) => {
-        impl IntoJArray for $t {
-            /// free for ArrayD<>, clones for unowned CowArrayD<>
-            fn into_jarray(self) -> JArray {
-                $j(self.into_owned())
-            }
-        }
-    };
-}
-
-// these also cover the CowArrayD<> conversions because both are just aliases
-// for ArrayBase<T> and the compiler lets us get away without lifetimes for some reason.
-impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
-impl_into_jarray!(ArrayD<char>, JArray::CharArray);
-impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
-impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
-impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
-impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
-impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
-impl_into_jarray!(ArrayD<JArray>, JArray::BoxArray);
 
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {

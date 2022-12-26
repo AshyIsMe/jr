@@ -16,7 +16,7 @@ mod plot;
 pub mod test_impls;
 
 // laziness
-pub use arrays::{Elem, IntoJArray, JArray, Word};
+pub use arrays::{Elem, JArray, Word};
 pub use cells::flatten;
 pub use empty::HasEmpty;
 

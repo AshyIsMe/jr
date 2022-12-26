@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, Ctx, Elem, HasEmpty, IntoJArray, JArray, JError, Word};
+use crate::{arr0d, flatten, impl_array, Ctx, Elem, HasEmpty, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -68,7 +68,7 @@ pub fn v_self_classify(y: &JArray) -> Result<JArray> {
 
     Ok(ArrayD::from_shape_vec(&output_shape[..], output)
         .expect("fixed shape")
-        .into_jarray())
+        .into())
 }
 
 /// -. (dyad)
@@ -156,7 +156,7 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
 /// , (monad)
 pub fn v_ravel(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| {
-        Ok(arr.clone().into_raw_vec().into_array()?.into_jarray())
+        Ok(arr.clone().into_raw_vec().into_array()?.into())
     })
 }
 
@@ -626,7 +626,7 @@ pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
                     .iter()
                     .flat_map(|x| [x.numer().clone(), x.denom().clone()])
                     .collect();
-                Ok(ArrayD::from_shape_vec(shape, values)?.into_jarray())
+                Ok(ArrayD::from_shape_vec(shape, values)?.into())
             }
             None => Err(JError::NonceError).context("expecting a rational input"),
         },
