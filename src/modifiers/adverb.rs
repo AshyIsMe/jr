@@ -103,13 +103,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             flatten(&piece.into_array()?).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
-            let x = x
-                .single_math_num()
-                .ok_or(JError::DomainError)
-                .context("infix needs a number")?
-                .value_i64()
-                .ok_or(JError::DomainError)
-                .context("infix needs an int")?;
+            let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
                 piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(chunk)?))?);

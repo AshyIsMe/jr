@@ -18,7 +18,7 @@ use names::*;
 use scripts::*;
 
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
-pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) -> Result<Word> {
+pub fn foreign(ctx: &mut Ctx, l: i64, r: i64, x: Option<&Word>, y: &Word) -> Result<Word> {
     let unsupported = |name: &'static str| -> Result<Word> {
         Err(JError::NonceError).with_context(|| anyhow!("unsupported {name} foreign: {l}!:{r}"))
     };

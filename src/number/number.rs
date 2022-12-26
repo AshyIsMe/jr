@@ -78,7 +78,7 @@ impl Num {
         }
     }
 
-    /// the `i64` in the value, regardless of typ
+    /// the `i64` in the value, regardless of type
     pub fn value_i64(&self) -> Option<i64> {
         use Num::*;
         match self {

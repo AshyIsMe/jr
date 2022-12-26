@@ -1,6 +1,6 @@
 use std::{fmt, iter};
 
-use anyhow::{ensure, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{IntoDimension, Slice};
@@ -12,7 +12,7 @@ use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, Word};
+use crate::{arr0d, map_to_cow, JError, Word};
 
 pub type BoxArray = ArrayD<JArray>;
 
@@ -99,12 +99,24 @@ impl JArray {
         JArray::BoolArray(arr0d(0))
     }
 
+    /// does the array contain zero elements, regardless of shape
     pub fn is_empty(&self) -> bool {
         impl_array!(self, |a: &ArrayBase<_, _>| { a.is_empty() })
     }
 
+    #[deprecated = "different from ndarray: returns len_of_0(), not tally()"]
     pub fn len(&self) -> usize {
+        self.len_of_0()
+    }
+
+    /// the length of the outermost axis, the length of `outer_iter`.
+    pub fn len_of_0(&self) -> usize {
         impl_array!(self, len_of_0)
+    }
+
+    /// the number of elements in the array; the product of the shape (1 for atoms)
+    pub fn tally(&self) -> usize {
+        impl_array!(self, ArrayBase::len)
     }
 
     pub fn len_of(&self, axis: Axis) -> usize {
@@ -244,12 +256,33 @@ impl JArray {
     }
 
     pub fn single_math_num(&self) -> Option<Num> {
-        if self.len() != 1 {
+        if self.tally() != 1 {
             return None;
         }
         self.clone()
             .into_nums()
             .map(|v| v.into_iter().next().expect("checked"))
+    }
+
+    pub fn approx_i64_one(&self) -> Result<i64> {
+        let tally = self.tally();
+        if tally != 1 {
+            return Err(JError::DomainError)
+                .with_context(|| anyhow!("expected a single integer, found {tally} items"));
+        }
+
+        self.single_math_num()
+            .and_then(|num| num.value_i64())
+            .ok_or(JError::DomainError)
+            .context("expected integers, found non-integers")
+    }
+
+    pub fn approx_usize_one(&self) -> Result<usize> {
+        self.approx_i64_one().and_then(|v| {
+            usize::try_from(v)
+                .map_err(|_| JError::DomainError)
+                .context("unexpectedly negative")
+        })
     }
 }
 

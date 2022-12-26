@@ -249,11 +249,7 @@ pub fn v_halve(y: &JArray) -> Result<JArray> {
 
 /// % (monad)
 pub fn v_reciprocal(y: &JArray) -> Result<JArray> {
-    let y = y
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("reciprocal expects a number")?;
-    Ok((Num::one() / y).into())
+    m0nn(y, |y| Num::one() / y)
 }
 
 /// % (dyad)
@@ -368,14 +364,7 @@ pub fn v_out_of(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// ? (monad)
 pub fn v_roll(y: &JArray) -> Result<JArray> {
-    let y = y
-        .single_math_num()
-        .and_then(|v| v.value_len())
-        .ok_or(JError::DomainError)
-        .context("expecting zero or a positive integer")?;
-    let y = i64::try_from(y)
-        .map_err(|_| JError::DomainError)
-        .context("must fit in an int")?;
+    let y = y.approx_i64_one()?.abs();
     let mut rng = thread_rng();
     Ok(match y {
         0 => JArray::from(Num::from(rng.gen::<f64>())),
@@ -385,17 +374,8 @@ pub fn v_roll(y: &JArray) -> Result<JArray> {
 
 /// ? (dyad)
 pub fn v_deal(x: &JArray, y: &JArray) -> Result<JArray> {
-    let x = x
-        .single_math_num()
-        .and_then(|n| n.value_len())
-        .ok_or(JError::DomainError)
-        .context("expecting an usize-like x")?;
-    // going via. value_len to elide floats and ban negatives
-    let y = y
-        .single_math_num()
-        .and_then(|n| n.value_len())
-        .ok_or(JError::DomainError)
-        .context("expecting an usize-like y")?;
+    let x = x.approx_usize_one().context("deal's x")?;
+    let y = y.approx_usize_one().context("deal's y")?;
     if x > y {
         return Err(JError::DomainError).context("can't pick more items than we have");
     }

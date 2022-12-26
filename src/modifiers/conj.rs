@@ -186,13 +186,7 @@ pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -
     use Word::*;
 
     let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
-    let v = v
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("agenda's index must be numeric")?
-        .value_len()
-        .ok_or(JError::DomainError)
-        .context("agenda's index must be a len")?;
+    let v = v.approx_i64_one().context("agenda's v")?;
 
     // TODO: complete hack, only handling a tiny case
     if v != 0 && v != 1 {
@@ -335,13 +329,7 @@ fn empty_box_array() -> BoxArray {
 pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
-    let m = m
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("mathematical modes")?
-        .value_i64()
-        .ok_or(JError::DomainError)
-        .context("integer modes")?;
+    let m = m.approx_i64_one().context("cut's m")?;
 
     match (x, n, y) {
         (None, Verb(_, v), Noun(y)) => {
@@ -431,16 +419,8 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
 pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (n, m) {
         (Word::Noun(n), Word::Noun(m)) => {
-            let n = n
-                .single_math_num()
-                .and_then(|n| n.value_len())
-                .ok_or(JError::DomainError)
-                .context("left foreign takes numerics")?;
-            let m = m
-                .single_math_num()
-                .and_then(|m| m.value_len())
-                .ok_or(JError::DomainError)
-                .context("right foreign takes numerics")?;
+            let n = n.approx_i64_one().context("foreign's left")?;
+            let m = m.approx_i64_one().context("foreign's right")?;
             foreign(ctx, n, m, x, y)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),

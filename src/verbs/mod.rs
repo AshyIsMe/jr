@@ -129,12 +129,7 @@ pub fn v_reverse(y: &JArray) -> Result<JArray> {
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
-    let x = x
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("mathematical directions")?
-        .value_i64()
-        .context("integer directions")?;
+    let x = x.approx_i64_one().context("rotate shift's x")?;
 
     if 0 == x {
         return Ok(y.clone());
@@ -346,13 +341,7 @@ pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
         return v_shape(&JArray::from(Num::from(0i64)), y);
     }
 
-    let x = x
-        .single_math_num()
-        .ok_or(JError::NonceError)
-        .context("from single numbers only")?
-        .value_i64()
-        .ok_or(JError::NonceError)
-        .context("from integers only")?;
+    let x = x.approx_i64_one().context("from's x")?;
 
     if let Ok(x) = usize::try_from(x) {
         let outer = y.outer_iter().collect_vec();
@@ -587,12 +576,7 @@ pub fn v_interval_index(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// j. (monad)
 pub fn v_imaginary(y: &JArray) -> Result<JArray> {
-    let y = y
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("expecting a single number for 'y'")?;
-
-    Ok((y * Num::i()).into())
+    m0nn(y, |y| (y * Num::i()))
 }
 /// j. (dyad)
 pub fn v_complex(x: &JArray, y: &JArray) -> Result<JArray> {
