@@ -18,7 +18,7 @@ pub struct Locales {
 }
 
 #[derive(Debug, Default)]
-pub struct Names(HashMap<String, Word>);
+pub struct Names(pub HashMap<String, Word>);
 
 impl Eval {
     pub fn new() -> Eval {

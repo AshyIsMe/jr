@@ -38,7 +38,7 @@ pub fn foreign(ctx: &mut Ctx, l: usize, r: usize, x: Option<&Word>, y: &Word) ->
         (3, 4) => f_int_bytes(x, y),
         (3, _) => unsupported("conversion"),
         (4, 0) => f_name_status(ctx, y),
-        (4, _) => unsupported("name"),
+        (4, 1) => f_name_namelist(ctx, x, y),
         (5, _) => unsupported("representation"),
         (6, _) => unsupported("time"),
         (7, _) => unsupported("space"),
