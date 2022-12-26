@@ -6,7 +6,7 @@ use num::{BigInt, BigRational};
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, Arrayable, Ctx, JArray, JError, Num, Rank, Word};
+use jr::{arr0d, collect_nouns, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();
@@ -25,9 +25,10 @@ pub fn idot(s: &[usize]) -> JArray {
 fn test_basic_addition() {
     assert_eq!(scan_eval("2 + 2").unwrap(), Word::from(4i64));
 
+    let v = [5i64, 7, 9];
     assert_eq!(
         scan_eval("1 2 3 + 4 5 6").unwrap(),
-        make_noun([5i64, 7, 9]).unwrap()
+        Word::Noun(JArray::from_list(v))
     );
 
     assert_eq!(scan_eval("1 + 3.14").unwrap(), Word::from(1f64 + 3.14));
@@ -37,22 +38,25 @@ fn test_basic_addition() {
 fn test_basic_times() {
     assert_eq!(scan_eval("2 * 2").unwrap(), Word::from(4));
 
+    let v = [4i64, 10, 18];
     assert_eq!(
         scan_eval("1 2 3 * 4 5 6").unwrap(),
-        make_noun([4i64, 10, 18]).unwrap()
+        Word::Noun(JArray::from_list(v))
     );
 }
 
 #[test]
 fn test_parse_basics() {
+    let v = [1i64, 2, 3];
     let words = vec![
         Word::from(2),
         Word::static_verb("+"),
-        make_noun([1i64, 2, 3]).unwrap(),
+        Word::Noun(JArray::from_list(v)),
     ];
+    let v = [3i64, 4, 5];
     assert_eq!(
         jr::eval(words, &mut Ctx::root()).unwrap(),
-        make_noun([3i64, 4, 5]).unwrap(),
+        Word::Noun(JArray::from_list(v)),
     );
 }
 
@@ -141,15 +145,17 @@ fn test_agreement_reshape_3() -> Result<()> {
 #[test]
 fn test_reshape_cycle() -> Result<()> {
     let r1 = scan_eval("6 $ 1 2 3").unwrap();
-    assert_eq!(r1, make_noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    let v = [1i64, 2, 3, 1, 2, 3];
+    assert_eq!(r1, Word::Noun(JArray::from_list(v)));
     Ok(())
 }
 
 #[test]
 fn test_power_conjunction_bool_arg() {
+    let v = [4i64, 16];
     assert_eq!(
         scan_eval("(*:^:0 1) 4").unwrap(),
-        make_noun([4i64, 16]).unwrap()
+        Word::Noun(JArray::from_list(v))
     );
 }
 
@@ -167,7 +173,12 @@ fn test_power_conjunction_noun_arg() {
 
 #[test]
 fn test_collect_int_nouns() {
-    let a = vec![make_noun([0i64, 1]).unwrap(), make_noun([2i64, 3]).unwrap()];
+    let v = [2i64, 3];
+    let v1 = [0i64, 1];
+    let a = vec![
+        Word::Noun(JArray::from_list(v1)),
+        Word::Noun(JArray::from_list(v)),
+    ];
     let result = collect_nouns(a).unwrap();
     println!("result: {:?}", result);
     assert_eq!(
@@ -180,9 +191,11 @@ fn test_collect_int_nouns() {
 
 #[test]
 fn test_collect_extint_nouns() {
+    let v = [BigInt::from(2), BigInt::from(3)];
+    let v1 = [BigInt::from(0), BigInt::from(1)];
     let a = vec![
-        make_noun([BigInt::from(0), BigInt::from(1)]).unwrap(),
-        make_noun([BigInt::from(2), BigInt::from(3)]).unwrap(),
+        Word::Noun(JArray::from_list(v1)),
+        Word::Noun(JArray::from_list(v)),
     ];
     let result = collect_nouns(a).unwrap();
     println!("result: {:?}", result);
@@ -197,9 +210,11 @@ fn test_collect_extint_nouns() {
 
 #[test]
 fn test_collect_char_nouns() {
+    let v = ['c', 'd'];
+    let v1 = ['a', 'b'];
     let a = vec![
-        make_noun(['a', 'b']).unwrap(),
-        make_noun(['c', 'd']).unwrap(),
+        Word::Noun(JArray::from_list(v1)),
+        Word::Noun(JArray::from_list(v)),
     ];
     let result = collect_nouns(a).unwrap();
     println!("result: {:?}", result);
@@ -281,15 +296,17 @@ fn test_assignment() {
 #[test]
 fn test_resolve_names() {
     let mut ctx = Ctx::root();
+    let v = [3i64, 1, 4, 1, 5, 9];
     ctx.eval_mut()
         .locales
-        .assign_global("a", make_noun([3i64, 1, 4, 1, 5, 9]).unwrap())
+        .assign_global("a", Word::Noun(JArray::from_list(v)))
         .unwrap();
 
+    let v = [3i64, 1, 4, 1, 5, 9];
     let words = (
         Name(String::from("a")),
         IsLocal,
-        make_noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
+        Word::Noun(JArray::from_list(v)),
         Nothing,
     );
     assert_eq!(resolve_names(words.clone(), &ctx).unwrap(), words);
@@ -300,12 +317,13 @@ fn test_resolve_names() {
         Name(String::from("a")),
         Nothing,
     );
+    let v = [3i64, 1, 4, 1, 5, 9];
     assert_eq!(
         resolve_names(words2.clone(), &ctx).unwrap(),
         (
             Name(String::from("b")),
             IsLocal,
-            make_noun([3i64, 1, 4, 1, 5, 9]).unwrap(),
+            Word::Noun(JArray::from_list(v)),
             Nothing,
         )
     );
@@ -351,7 +369,8 @@ fn test_num_dom() -> Result<()> {
 
 #[test]
 fn test_behead() -> Result<()> {
-    assert_eq!(scan_eval("}. 5 6 7")?, make_noun([6i64, 7])?);
+    let v = [6i64, 7];
+    assert_eq!(scan_eval("}. 5 6 7")?, Word::Noun(JArray::from_list(v)));
 
     assert_eq!(
         scan_eval("}. 3 2 $ i. 10")?,
@@ -375,7 +394,8 @@ fn test_behead() -> Result<()> {
 fn test_drop() -> Result<()> {
     //    2 }. 5 6 7
     // 7
-    assert_eq!(scan_eval("2 }. 5 6 7")?, make_noun([7i64])?);
+    let v = [7i64];
+    assert_eq!(scan_eval("2 }. 5 6 7")?, Word::Noun(JArray::from_list(v)));
 
     assert_eq!(
         scan_eval("2 }. i.3 3")?,
@@ -385,7 +405,8 @@ fn test_drop() -> Result<()> {
         )?))
     );
 
-    assert_eq!(scan_eval("_1 }. 'abc'")?, make_noun(['a', 'b'])?);
+    let v = ['a', 'b'];
+    assert_eq!(scan_eval("_1 }. 'abc'")?, Word::Noun(JArray::from_list(v)));
 
     Ok(())
 }
@@ -449,23 +470,23 @@ fn test_increment() {
 
 #[test]
 fn test_link() {
+    let v = [
+        BoolArray(Array::from_elem(IxDyn(&[]), 1)),
+        IntArray(Array::from_elem(IxDyn(&[]), 2)),
+        IntArray(Array::from_elem(IxDyn(&[]), 3)),
+    ];
     assert_eq!(
         scan_eval("1 ; 2 ; 3").unwrap(),
-        make_noun([
-            BoolArray(Array::from_elem(IxDyn(&[]), 1)),
-            IntArray(Array::from_elem(IxDyn(&[]), 2)),
-            IntArray(Array::from_elem(IxDyn(&[]), 3)),
-        ])
-        .unwrap()
+        Word::Noun(JArray::from_list(v))
     );
+    let v = [
+        BoolArray(Array::from_elem(IxDyn(&[]), 1)),
+        IntArray(Array::from_elem(IxDyn(&[]), 2)),
+        IntArray(Array::from_elem(IxDyn(&[]), 3)),
+    ];
     assert_eq!(
         scan_eval("1 ; 2 ; <3").unwrap(),
-        make_noun([
-            BoolArray(Array::from_elem(IxDyn(&[]), 1)),
-            IntArray(Array::from_elem(IxDyn(&[]), 2)),
-            IntArray(Array::from_elem(IxDyn(&[]), 3)),
-        ])
-        .unwrap()
+        Word::Noun(JArray::from_list(v))
     );
 }
 
@@ -550,9 +571,10 @@ fn test_rank_conjunction_1_1() {
     //    (+/"1) i.2 3
     // 3 12
 
+    let v = [3i64, 12];
     assert_eq!(
         scan_eval("+/\"1 i.2 3").unwrap(),
-        make_noun([3i64, 12]).unwrap()
+        Word::Noun(JArray::from_list(v))
     );
 }
 
@@ -603,19 +625,24 @@ fn test_head() -> Result<()> {
 
     assert_eq!(scan_eval("{. 1 2 3")?, Word::from(1i64));
 
-    assert_eq!(scan_eval("{. i.2 3")?, make_noun([0i64, 1, 2])?);
+    let v = [0i64, 1, 2];
+    assert_eq!(scan_eval("{. i.2 3")?, Word::Noun(JArray::from_list(v)));
 
-    assert_eq!(scan_eval("{. i.3 3")?, make_noun([0i64, 1, 2])?);
+    let v = [0i64, 1, 2];
+    assert_eq!(scan_eval("{. i.3 3")?, Word::Noun(JArray::from_list(v)));
     Ok(())
 }
 
 #[test]
 fn test_take() -> Result<()> {
-    assert_eq!(scan_eval("1 {. 1 2 3")?, make_noun([1i64])?);
+    let v = [1i64];
+    assert_eq!(scan_eval("1 {. 1 2 3")?, Word::Noun(JArray::from_list(v)));
 
-    assert_eq!(scan_eval("1 {. 1")?, make_noun([1u8])?);
+    let v = [1u8];
+    assert_eq!(scan_eval("1 {. 1")?, Word::Noun(JArray::from_list(v)));
 
-    assert_eq!(scan_eval("2 {. 1 2 3")?, make_noun([1i64, 2])?);
+    let v = [1i64, 2];
+    assert_eq!(scan_eval("2 {. 1 2 3")?, Word::Noun(JArray::from_list(v)));
 
     assert_eq!(
         scan_eval("2 {. i.3 3")?,
@@ -624,7 +651,8 @@ fn test_take() -> Result<()> {
         ))
     );
 
-    assert_eq!(scan_eval("_2 {. 1 2 3")?, make_noun([2i64, 3])?);
+    let v = [2i64, 3];
+    assert_eq!(scan_eval("_2 {. 1 2 3")?, Word::Noun(JArray::from_list(v)));
 
     Ok(())
 }
@@ -645,7 +673,8 @@ fn test_take_agreement() -> Result<()> {
 #[ignore]
 fn test_take_framingfill() -> Result<()> {
     // TODO Fix Framing Fill here
-    assert_eq!(scan_eval("3 {. 1")?, make_noun([1i64, 0, 0])?);
+    let v = [1i64, 0, 0];
+    assert_eq!(scan_eval("3 {. 1")?, Word::Noun(JArray::from_list(v)));
 
     Ok(())
 }
@@ -663,17 +692,21 @@ fn test_tail() -> Result<()> {
 
     assert_eq!(scan_eval("{: 1 2 3")?, Word::from(3i64));
 
-    assert_eq!(scan_eval("{: i.2 3")?, make_noun([3i64, 4, 5])?);
+    let v = [3i64, 4, 5];
+    assert_eq!(scan_eval("{: i.2 3")?, Word::Noun(JArray::from_list(v)));
 
-    assert_eq!(scan_eval("{: i.3 3")?, make_noun([6i64, 7, 8])?);
+    let v = [6i64, 7, 8];
+    assert_eq!(scan_eval("{: i.3 3")?, Word::Noun(JArray::from_list(v)));
     Ok(())
 }
 
 #[test]
 fn test_curtail() -> Result<()> {
-    assert_eq!(scan_eval("}: 'abc'")?, make_noun(['a', 'b'])?);
+    let v = ['a', 'b'];
+    assert_eq!(scan_eval("}: 'abc'")?, Word::Noun(JArray::from_list(v)));
 
-    assert_eq!(scan_eval("}: 1 2 3")?, make_noun([1i64, 2])?);
+    let v = [1i64, 2];
+    assert_eq!(scan_eval("}: 1 2 3")?, Word::Noun(JArray::from_list(v)));
 
     assert_eq!(
         scan_eval("}: i.2 3")?,
@@ -693,7 +726,8 @@ fn test_curtail() -> Result<()> {
 
 #[test]
 fn test_ravel() -> Result<()> {
-    assert_eq!(scan_eval(", i.2 2")?, make_noun([0i64, 1, 2, 3])?);
+    let v = [0i64, 1, 2, 3];
+    assert_eq!(scan_eval(", i.2 2")?, Word::Noun(JArray::from_list(v)));
 
     assert_eq!(scan_eval(", i.2 3 4")?, scan_eval("i.24")?,);
     Ok(())
@@ -723,11 +757,4 @@ fn test_user_defined_monadic_verb() -> Result<()> {
     assert!(matches!(root, JError::DomainError));
 
     Ok(())
-}
-
-fn make_noun<T>(v: impl Arrayable<T>) -> Result<Word>
-where
-    JArray: From<ArrayD<T>>,
-{
-    Ok(Word::Noun(JArray::from_list(v)))
 }
