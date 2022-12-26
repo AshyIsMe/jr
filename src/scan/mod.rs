@@ -175,12 +175,12 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
             ))),
         ))
     } else {
-        Ok((l, char_array(&s)?))
+        Ok((l, char_array(&s)))
     }
 }
 
-pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
-    Ok(Noun(JArray::from_char_array(x)))
+pub fn char_array(x: impl AsRef<str>) -> Word {
+    Noun(JArray::from_char_array(x))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {

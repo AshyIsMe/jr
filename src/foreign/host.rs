@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use itertools::Itertools;
 
 use crate::{JArray, JError, Word};
 
