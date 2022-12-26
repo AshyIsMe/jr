@@ -17,7 +17,6 @@ pub mod test_impls;
 
 // laziness
 pub use arrays::{Elem, JArray, Word};
-pub use cells::flatten;
 pub use empty::HasEmpty;
 
 // public API

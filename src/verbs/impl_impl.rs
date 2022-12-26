@@ -5,7 +5,9 @@ use anyhow::{anyhow, ensure, Context, Result};
 
 use super::ranks::Rank;
 use crate::arrays::BoxArray;
-use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
+use crate::cells::{
+    apply_cells, flatten_maintaining_prefix, generate_cells, monad_apply, monad_cells,
+};
 use crate::eval::eval_lines;
 use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Num, Word};
 
@@ -87,7 +89,7 @@ pub fn exec_monad(
     }
 
     let r = exec_monad_inner(f, rank, y)?;
-    flatten(&r)
+    flatten_maintaining_prefix(&r)
 }
 
 pub fn exec_dyad_inner(
@@ -122,12 +124,12 @@ pub fn exec_dyad(
     }
 
     let r = exec_dyad_inner(f, rank, x, y)?;
-    flatten(&r)
+    flatten_maintaining_prefix(&r)
 }
 
 impl VerbImpl {
     pub fn exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<JArray> {
-        flatten(&self.partial_exec(ctx, x, y)?)
+        flatten_maintaining_prefix(&self.partial_exec(ctx, x, y)?)
     }
 
     pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<BoxArray> {

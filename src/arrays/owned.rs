@@ -13,7 +13,7 @@ use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, Arrayable, JError, Word};
+use crate::{arr0d, map_to_cow, Arrayable, JError};
 
 pub type BoxArray = ArrayD<JArray>;
 

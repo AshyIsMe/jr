@@ -4,11 +4,11 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
-use crate::cells::{flatten_list, flatten_partial};
+use crate::cells::{flatten_list, flatten_list_cow};
 use crate::modifiers::c_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
-use crate::{flatten, Arrayable, Ctx, JError, Word};
+use crate::{Ctx, JError, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -96,7 +96,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &Word::Noun(flatten_partial(chunk)?))
+                    u.exec(ctx, None, &Word::Noun(flatten_list_cow(chunk)?))
                         .context("backslash (u)")?,
                 );
             }
@@ -106,7 +106,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(chunk)?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(flatten_list_cow(chunk)?))?);
                 Ok(())
             };
 
@@ -134,9 +134,9 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(&y[i..])?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(flatten_list_cow(&y[i..])?))?);
             }
-            flatten(&piece.into_array()).map(Word::Noun)
+            flatten_list(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }

@@ -23,7 +23,7 @@ use maff::*;
 pub use ranks::Rank;
 
 use crate::arrays::{Arrayable, JArrayCow};
-use crate::cells::{flatten_list, flatten_partial};
+use crate::cells::{flatten_list, flatten_list_cow};
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -77,7 +77,7 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("only available for lists");
     }
     let y = y.outer_iter().collect_vec();
-    flatten_partial(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
+    flatten_list_cow(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
 }
 
 /// -: (dyad)

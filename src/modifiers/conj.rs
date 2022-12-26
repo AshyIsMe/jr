@@ -6,13 +6,13 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
-use crate::cells::{apply_cells, monad_cells};
+use crate::arrays::{map_result, BoxArray, JArrays};
+use crate::cells::{apply_cells, flatten_list, flatten_maintaining_prefix, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
-use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
+use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 
@@ -220,7 +220,7 @@ pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> 
             let r = map_result(r, |a| u.exec(ctx, None, &Word::Noun(a.clone())))
                 .context("left half of c_at")?;
             Ok(Word::Noun(
-                flatten(&r).context("expanding result of c_atop")?,
+                flatten_maintaining_prefix(&r).context("expanding result of c_atop")?,
             ))
         }
         _ => Err(JError::DomainError)
@@ -233,7 +233,7 @@ pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Re
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
             let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-            let r = flatten(&r).context("expanding result of c_atop")?;
+            let r = flatten_maintaining_prefix(&r).context("expanding result of c_atop")?;
             u.exec(ctx, None, &Word::Noun(r))
                 .context("left half of c_at")
                 .map(Word::Noun)
@@ -341,33 +341,27 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             }
 
             let key = &parts[parts.len() - 1];
-            let mut stack = empty_box_array();
-            let mut out = empty_box_array();
+            let mut stack = Vec::new();
+            let mut out = Vec::new();
             for part in &parts {
                 if part == key {
                     // copy-paste of below
                     let arg = if stack.is_empty() {
                         JArray::BoxArray(empty_box_array())
                     } else {
-                        flatten(&stack).context("flattening intermediate")?
+                        flatten_list(stack).context("flattening intermediate")?
                     };
                     out.push(
-                        Axis(0),
-                        arr0d(
-                            v.exec(ctx, None, &Noun(arg))
-                                .context("evaluating intermediate")?,
-                        )
-                        .view(),
-                    )?;
-                    stack = empty_box_array();
+                        v.exec(ctx, None, &Noun(arg))
+                            .context("evaluating intermediate")?,
+                    );
+                    stack = Vec::new();
                 } else {
-                    stack
-                        .push(Axis(0), arr0d(part.to_owned()).view())
-                        .context("push")?;
+                    stack.push(part.to_owned())
                 }
             }
 
-            flatten(&out).map(Noun)
+            flatten_list(out).map(Noun)
         }
         (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
             let is_end = match m {
@@ -398,7 +392,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 let arg = if stack.is_empty() {
                     JArray::BoxArray(empty_box_array())
                 } else {
-                    flatten(&stack).context("flattening intermediate")?
+                    flatten_maintaining_prefix(&stack).context("flattening intermediate")?
                 };
                 out.push(
                     Axis(0),
@@ -410,7 +404,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 )?;
                 stack = empty_box_array();
             }
-            flatten(&out).map(Noun)
+            flatten_maintaining_prefix(&out).map(Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }
@@ -466,7 +460,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                     .context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten(&parts.into_array())?
+            flatten_list(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)
@@ -497,7 +491,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                 },
                 vr,
             )?;
-            flatten(&parts.into_array())?
+            flatten_list(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)

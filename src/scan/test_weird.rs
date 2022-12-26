@@ -94,7 +94,7 @@ fn test_scan_atoms() -> Result<()> {
 #[test]
 fn test_scan_string() -> Result<()> {
     let words = scan("'abc'")?;
-    assert_eq!(words, [char_array("abc")?]);
+    assert_eq!(words, [char_array("abc")]);
     Ok(())
 }
 
@@ -130,11 +130,7 @@ fn test_scan_string_verb_string() -> Result<()> {
     let words = scan("'abc','def'")?;
     assert_eq!(
         words,
-        [
-            char_array("abc")?,
-            Word::static_verb(","),
-            char_array("def")?,
-        ]
+        [char_array("abc"), Word::static_verb(","), char_array("def"),]
     );
     Ok(())
 }
