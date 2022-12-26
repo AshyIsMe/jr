@@ -453,6 +453,11 @@ NB. foreign
 3!:3 ] 2
 3!:3 ] 2 4 7 _2
 2 (3!:4) 97
+
+NB. name list
+{{ 4!:1 [ 0 1 2 3 [ a =. 4 5 6 [ b =. 7 8 9 }} ''
+
+NB. platform information
 NB. platform dependent actual result
 $ 9!:12 ''
 
