@@ -321,7 +321,7 @@ fn usize_or_domain_err(v: i64) -> Result<usize> {
 impl JArray {
     pub fn from_char_array(s: impl AsRef<str>) -> JArray {
         let chars = s.as_ref().chars().collect_vec();
-        JArray::CharArray(chars.into_array().expect("infallible on vec"))
+        JArray::CharArray(chars.into_array())
     }
 
     pub fn from_vec<T>(v: Vec<T>) -> JArray {

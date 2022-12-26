@@ -466,7 +466,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                     .context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten(&parts.into_array()?)?
+            flatten(&parts.into_array())?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)
@@ -497,7 +497,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                 },
                 vr,
             )?;
-            flatten(&parts.into_array()?)?
+            flatten(&parts.into_array())?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)

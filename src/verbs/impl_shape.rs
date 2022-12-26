@@ -73,7 +73,7 @@ pub fn v_shape_of(y: &JArray) -> Result<JArray> {
         .iter()
         .map(|v| Ok(i64::try_from(*v)?))
         .collect::<Result<Vec<i64>>>()?
-        .into_array()?
+        .into_array()
         .into())
 }
 
@@ -151,7 +151,7 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
         // always box x, only box y if not already boxed
         (x, JArray::BoxArray(y)) if y.shape().is_empty() && !y.is_empty() => {
             Ok(vec![x.clone(), y.iter().cloned().next().expect("len == 1")]
-                .into_array()?
+                .into_array()
                 .into())
         }
         (x, JArray::BoxArray(y)) => {
@@ -162,9 +162,9 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
                         .map(|x| x.iter().next().expect("non-empty").clone()),
                 )
                 .collect_vec();
-            Ok(parts.into_array().context("noun")?.into())
+            Ok(parts.into_array().into())
         }
-        (x, y) => Ok([x.clone(), y.clone()].into_array()?.into()),
+        (x, y) => Ok([x.clone(), y.clone()].into_array().into()),
     }
 }
 
@@ -294,7 +294,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                             .chain(iter::repeat(JArray::atomic_zero()))
                             .take(x)
                             .collect_vec()
-                            .into_array()?,
+                            .into_array(),
                     )?
                 }
             }

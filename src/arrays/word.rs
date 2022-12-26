@@ -55,7 +55,7 @@ impl Word {
     where
         JArray: From<ArrayD<T>>,
     {
-        Ok(Word::Noun(v.into_array()?.into()))
+        Ok(Word::Noun(v.into_array().into()))
     }
 
     /// primarily intended for asserts, hence the "static", and the PANIC on invalid input

@@ -15,7 +15,7 @@ pub fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
             .iter()
             .map(|arr| arr.to_owned())
             .collect_vec()
-            .into_array()?,
+            .into_array(),
     )
 }
 

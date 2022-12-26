@@ -171,7 +171,7 @@ impl_from_atom!(Complex64, Num::Complex);
 #[inline]
 fn to_f64_panic(v: impl ToPrimitive) -> f64 {
     v.to_f64()
-        .expect("float conversion is infalliable on supported types")
+        .expect("float conversion is infallible on supported types")
 }
 
 #[inline]

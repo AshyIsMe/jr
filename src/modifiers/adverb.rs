@@ -100,7 +100,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                         .context("backslash (u)")?,
                 );
             }
-            flatten(&piece.into_array()?).map(Word::Noun)
+            flatten(&piece.into_array()).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
             let x = x.approx_i64_one().context("backslash's x")?;
@@ -121,7 +121,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                 }
             }
 
-            flatten(&piece.into_array()?).map(Word::Noun)
+            flatten(&piece.into_array()).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
@@ -136,7 +136,7 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             for i in 0..y.len() {
                 piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(&y[i..])?))?);
             }
-            flatten(&piece.into_array()?).map(Word::Noun)
+            flatten(&piece.into_array()).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }

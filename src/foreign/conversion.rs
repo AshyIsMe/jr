@@ -51,12 +51,11 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
                 .chars()
                 .collect_vec()
                 .into_array()
-                .expect("infalliable for vec")
                 .into()
         })
         .collect_vec();
 
-    flatten(&result.into_array()?).map(Word::Noun)
+    flatten(&result.into_array()).map(Word::Noun)
 }
 
 pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
@@ -74,8 +73,6 @@ pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
 
     Ok(Word::Noun(JArray::CharArray(
         // thanks, I hate it
-        vec![y as u8 as char, '\0', '\0', '\0']
-            .into_array()
-            .expect("infallible"),
+        vec![y as u8 as char, '\0', '\0', '\0'].into_array(),
     )))
 }

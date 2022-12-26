@@ -195,9 +195,7 @@ pub fn v_length_angle(y: &JArray) -> Result<JArray> {
             other => [other.approx_f64().expect("complex covered above"), 0.],
         };
 
-        pair.into_array()
-            .expect("infalliable for fixed arrays")
-            .into()
+        pair.into_array().into()
     })
 }
 /// *. (dyad) (0 0)
@@ -385,7 +383,7 @@ pub fn v_deal(x: &JArray, y: &JArray) -> Result<JArray> {
     let mut rng = rand::thread_rng();
     let mut chosen = (0..y).choose_multiple(&mut rng, x);
     chosen.shuffle(&mut rng);
-    Ok(chosen.into_array()?.into())
+    Ok(chosen.into_array().into())
 }
 
 /// ?. (dyad)

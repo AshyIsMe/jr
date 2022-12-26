@@ -124,7 +124,7 @@ pub fn v_reverse(y: &JArray) -> Result<JArray> {
         &y.into_iter()
             .map(|cow| cow.into_owned())
             .collect_vec()
-            .into_array()?,
+            .into_array(),
     )
 }
 /// |. (dyad)
@@ -149,14 +149,14 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         &y.into_iter()
             .map(|cow| cow.into_owned())
             .collect_vec()
-            .into_array()?,
+            .into_array(),
     )
 }
 
 /// , (monad)
 pub fn v_ravel(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| {
-        Ok(arr.clone().into_raw_vec().into_array()?.into())
+        Ok(arr.clone().into_raw_vec().into_array().into())
     })
 }
 
@@ -489,7 +489,7 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
     let p: i64 = y.iter().product();
     let mut arr = (0..p.abs())
         .collect_vec()
-        .into_array()?
+        .into_array()
         .into_shape(IxDyn(&y.iter().map(|x| x.abs() as usize).collect_vec()))?;
     for (axis, val) in y.iter().enumerate() {
         if *val < 0 {
