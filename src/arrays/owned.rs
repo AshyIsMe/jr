@@ -307,6 +307,13 @@ impl JArray {
     pub fn approx_usize_one(&self) -> Result<usize> {
         self.approx_i64_one().and_then(usize_or_domain_err)
     }
+
+    pub fn when_string(&self) -> Option<String> {
+        if self.shape().len() > 1 {
+            return None;
+        }
+        Some(self.when_char()?.into_iter().collect())
+    }
 }
 
 fn usize_or_domain_err(v: i64) -> Result<usize> {

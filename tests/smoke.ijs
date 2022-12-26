@@ -456,6 +456,9 @@ NB. foreign
 
 NB. name list
 {{ 4!:1 [ 0 1 2 3 [ a =. 4 5 6 [ b =. 7 8 9 }} ''
+NB. jsoft bug, apparently nothing starts with an empty string: {{ '' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+{{ 'a' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+{{ 'ab' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
 
 NB. platform information
 NB. platform dependent actual result
