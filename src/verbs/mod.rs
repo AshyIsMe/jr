@@ -484,16 +484,7 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// i. (monad) (1)
 pub fn v_integers(y: &JArray) -> Result<JArray> {
-    let y = y
-        .clone()
-        .into_nums()
-        .ok_or(JError::DomainError)
-        .context("i. takes numbers")?
-        .into_iter()
-        .map(|x| x.value_i64())
-        .collect::<Option<Vec<_>>>()
-        .ok_or(JError::DomainError)
-        .context("i. takes integers")?;
+    let y = y.approx_i64_list().context("integers' y")?;
 
     let p: i64 = y.iter().product();
     let mut arr = (0..p.abs())

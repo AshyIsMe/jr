@@ -171,16 +171,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 
     // x is a list of offsets
-    let mut x = x
-        .clone()
-        .into_nums()
-        .ok_or(JError::DomainError)
-        .context("non-numerics as indexes")?
-        .into_iter()
-        .map(|x| x.value_len())
-        .collect::<Option<Vec<usize>>>()
-        .ok_or(JError::DomainError)
-        .context("non-sizes as indexes")?;
+    let mut x = x.approx_usize_list().context("copy's x")?;
 
     impl_array!(y, |y: &ArrayBase<_, _>| {
         // y is a list of items
@@ -245,16 +236,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         return v_shape(&JArray::from(Num::from(0i64)), y);
     }
 
-    let x = x
-        .clone()
-        .into_nums()
-        .ok_or(JError::DomainError)
-        .context("take expecting numeric x")?
-        .into_iter()
-        .map(|n| n.value_i64())
-        .collect::<Option<Vec<i64>>>()
-        .ok_or(JError::DomainError)
-        .context("take expecting integer-like x")?;
+    let x = x.approx_i64_list().context("take's x")?;
 
     if 1 != x.len() {
         return Err(JError::NonceError)

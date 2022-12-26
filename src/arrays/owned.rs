@@ -264,6 +264,32 @@ impl JArray {
             .map(|v| v.into_iter().next().expect("checked"))
     }
 
+    pub fn approx_i64_list(&self) -> Result<Vec<i64>> {
+        if self.is_empty() {
+            return Ok(Vec::new());
+        }
+        if self.shape().len() > 1 {
+            return Err(JError::DomainError).context("non-list in list context");
+        }
+
+        self.clone()
+            .into_nums()
+            .ok_or(JError::DomainError)
+            .context("expected a list of integers, found non-numbers")?
+            .into_iter()
+            .map(|x| x.value_i64())
+            .collect::<Option<Vec<i64>>>()
+            .ok_or(JError::DomainError)
+            .context("expected a list of integers, found non-integers")
+    }
+
+    pub fn approx_usize_list(&self) -> Result<Vec<usize>> {
+        self.approx_i64_list()?
+            .into_iter()
+            .map(usize_or_domain_err)
+            .collect()
+    }
+
     pub fn approx_i64_one(&self) -> Result<i64> {
         let tally = self.tally();
         if tally != 1 {
@@ -278,12 +304,14 @@ impl JArray {
     }
 
     pub fn approx_usize_one(&self) -> Result<usize> {
-        self.approx_i64_one().and_then(|v| {
-            usize::try_from(v)
-                .map_err(|_| JError::DomainError)
-                .context("unexpectedly negative")
-        })
+        self.approx_i64_one().and_then(usize_or_domain_err)
     }
+}
+
+fn usize_or_domain_err(v: i64) -> Result<usize> {
+    usize::try_from(v)
+        .map_err(|_| JError::DomainError)
+        .context("unexpectedly negative")
 }
 
 impl JArray {

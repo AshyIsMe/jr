@@ -149,16 +149,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result
         (Some(Noun(x)), Noun(u), Noun(y))
             if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
         {
-            let u = u
-                .clone()
-                .into_nums()
-                .ok_or(JError::DomainError)
-                .context("non-numerics as indexes")?
-                .into_iter()
-                .map(|x| x.value_len())
-                .collect::<Option<Vec<usize>>>()
-                .ok_or(JError::DomainError)
-                .context("non-sizes as indexes")?;
+            let u = u.approx_usize_list()?;
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
 
