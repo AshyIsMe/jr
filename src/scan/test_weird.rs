@@ -1,6 +1,7 @@
 use crate::{arr0d, Word};
 use crate::{char_array, primitive_nouns, JArray};
 use anyhow::Result;
+use itertools::Itertools;
 use ndarray::prelude::*;
 
 use super::scan;
@@ -16,9 +17,21 @@ fn test_scan_prime_nunez() {
 }
 
 #[test]
-#[ignore]
 fn test_scan_prime_prime_nunez() {
     let _ = scan("'й'e");
+}
+
+#[test]
+fn test_scan_nunez_neg() {
+    let _ = scan("й-");
+}
+
+#[test]
+fn test_scan_wot() {
+    let s = String::from_utf8(vec![0xc2, 0x85, 0]).unwrap();
+    println!("s: {:?}", s);
+    println!("chars: {:?}", s.chars().enumerate().collect_vec());
+    let _ = scan(&s);
 }
 
 #[test]

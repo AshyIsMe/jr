@@ -44,7 +44,7 @@ pub fn scan_with_locations(sentence: &str) -> Result<Vec<(Pos, Word)>> {
 fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
     let mut words: Vec<(Pos, Word)> = Vec::new();
     let mut skip: usize = 0;
-    for (i, c) in sentence.chars().enumerate() {
+    for (i, c) in sentence.char_indices() {
         if skip > 0 {
             skip -= 1;
             continue;
@@ -196,6 +196,11 @@ fn scan_name(sentence: &str) -> Result<(usize, Word)> {
         if let Some(primitive) = str_to_primitive(&format!("{base}{suffix}"))? {
             return Ok((base.len(), primitive));
         }
+    }
+
+    if base.is_empty() {
+        return Err(JError::SyntaxError)
+            .context("generated an empty name (this is probably a parser bug)");
     }
 
     Ok((
