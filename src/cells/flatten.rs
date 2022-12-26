@@ -18,6 +18,15 @@ pub fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
     flatten_list(chunk.iter().map(|arr| arr.to_owned()))
 }
 
+// concat_promo_fill(&[JArrayCow]) -> JArray
+// concat_promo_fill(x).shape()[0] == x.len()
+// fn flatten_reshaping(prefix: Shape, l: &[JArrayCow]) {
+//   let cpf = concat_promo_fill(l)?;
+//   let s = concat_promo_fill(l)?.shape();
+//   s.remove(0);
+//   s.unshift(prefix);
+//   cpf.into_shape(s)
+// }
 pub fn flatten(results: &BoxArray) -> Result<JArray> {
     if results.is_empty() {
         return Ok(JArray::empty()
