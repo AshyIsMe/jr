@@ -4,7 +4,7 @@
 
 use std::cmp::Ordering;
 
-use crate::arrays::Arrayable;
+use crate::arrays::IntoVec;
 use crate::number::Num;
 use crate::{JArray, JError};
 

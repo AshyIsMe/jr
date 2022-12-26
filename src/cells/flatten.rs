@@ -7,56 +7,9 @@ use num_traits::Zero;
 
 use crate::arrays::{BoxArray, JArrayCow};
 use crate::number::{promote_to_array, Num};
-use crate::{Arrayable, Elem, HasEmpty, JArray, JError};
+use crate::{Elem, HasEmpty, IntoVec, JArray, JError};
 
-/// Lay out a list of JArrays as components in a bigger array.
-/// The input list represents the outer dimension.
-///
-/// This is multiple phases:
-/// Takes multiple arrays,
-/// fills them out to the same size,
-/// promotes them to the same type,
-/// and adds a dimension to represent the outer iterator
-///
-/// ### Examples
-///
-/// ```
-/// # use ndarray::{array, ArrayD};
-/// # use jr::{arr0d, Arrayable, JArray};
-/// # fn atom<T>(v: T) -> JArray where JArray: From<ArrayD<T>> { JArray::from(arr0d(v)) }
-/// # fn list<T: Clone>(v: &[T]) -> JArray where JArray: From<ArrayD<T>> { JArray::from_list(v.to_vec()) }
-/// # use jr::fill_promote_list;
-/// let items = [atom(5i64), list(&[2i64, 3, 4])];
-/// let outer_dimension = items.len();
-/// let fpl = fill_promote_list(items).unwrap();
-/// assert_eq!(fpl.shape()[0], outer_dimension);
-/// assert_eq!(fpl.shape(), &[2, 3]);
-/// assert_eq!(
-///     fpl,
-///     JArray::IntArray(array![
-///         // the atom and its fill
-///         [5, 0, 0],
-///         // the list, which has forced the shape of the 'inner' array
-///         [2, 3, 4],
-///     ].into_dyn())
-/// );
-///
-///
-/// let items = [atom(6.3), atom(5i64)];
-/// let outer_dimension = items.len();
-/// let fpl = fill_promote_list(items).unwrap();
-/// assert_eq!(fpl.shape()[0], outer_dimension);
-/// assert_eq!(fpl.shape(), &[2]);
-/// assert_eq!(
-///     fpl,
-///     JArray::FloatArray(array![
-///         // note, no inner array, the atoms are expanded in-place
-///         6.3,
-///         // the 5i64 has been promoted to a 5.0f64
-///         5.0,
-///     ].into_dyn())
-/// );
-/// ```
+/// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
     fill_promote_reshape(&items.into_iter().collect_vec().into_array())
 }

@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 
-use crate::cells::fill_promote_list;
 use crate::{JArray, JError, Num, Word};
 
 pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
@@ -44,10 +43,10 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
         _ => return Err(JError::NonceError).context("only int arrays (don't ask)"),
     }
 
-    fill_promote_list(
+    JArray::from_fill_promote(
         result
             .into_iter()
-            .map(|x| JArray::from_char_array(format!("{:016x}", x.to_be()))),
+            .map(|x| JArray::from_string(format!("{:016x}", x.to_be()))),
     )
     .map(Word::Noun)
 }

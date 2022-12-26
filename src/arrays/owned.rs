@@ -12,8 +12,9 @@ use num_traits::ToPrimitive;
 use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
+use crate::cells::fill_promote_list;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, Arrayable, JError};
+use crate::{arr0d, map_to_cow, IntoVec, JError};
 
 pub type BoxArray = ArrayD<JArray>;
 
@@ -319,15 +320,129 @@ fn usize_or_domain_err(v: i64) -> Result<usize> {
 }
 
 impl JArray {
-    pub fn from_char_array(s: impl AsRef<str>) -> JArray {
-        JArray::from_list(s.as_ref().chars().collect_vec())
-    }
-
-    pub fn from_list<T>(v: impl Arrayable<T>) -> JArray
+    /// For any of our plain data types (`i64`, `f64`, `char`, `Complex64`, ..), produce a list of plain data.
+    ///
+    /// This operation is cheap. [`JArray::into_shape`] on the result is cheap.
+    ///
+    /// This will not touch nested JArrays, and will form a `BoxArray`.
+    ///
+    /// This will always return a list, including an empty list, and never an atom.
+    ///
+    /// If you have mixed or multi-dimensional data, consider [`crate::fill_promote_list`].
+    ///
+    /// ### Examples
+    /// ```
+    /// # use itertools::Itertools;
+    /// # use ndarray::{array, ArrayD, IxDyn};
+    /// # use jr::{arr0d, JArray};
+    /// assert_eq!(
+    ///     JArray::from_list([5i64, 6, 7]),
+    ///     JArray::IntArray(array![5, 6, 7].into_dyn()),
+    /// );
+    ///
+    /// assert_eq!(
+    ///     JArray::from_list(Vec::<i64>::new()),
+    ///     JArray::IntArray(ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")),
+    /// );
+    ///
+    /// // construct a box array
+    /// let items = [
+    ///     JArray::from(arr0d(6.3)),
+    ///     JArray::from_list([5i64, 6, 7]),
+    ///   ];
+    /// assert_eq!(
+    ///    JArray::from_list(items),
+    ///    JArray::BoxArray(array![
+    ///       JArray::from(arr0d(6.3)),
+    ///       JArray::from_list([5i64, 6, 7]),
+    ///     ].into_dyn()),
+    ///   );
+    /// ```
+    pub fn from_list<T>(v: impl IntoVec<T>) -> JArray
     where
         JArray: From<ArrayD<T>>,
     {
         JArray::from(v.into_array())
+    }
+
+    /// Lay out a list of `JArray`s as components in a bigger array.
+    ///
+    /// This "unboxes" the input, it is performing: `> (<1 2 3), (<3)` -> `2 3 $ 1 2 3 4 0 0`:
+    /// ```text
+    ///    > (<1 2 3), (<3)
+    /// 1 2 3
+    /// 4 0 0
+    /// ```
+    ///
+    /// The input list represents the outer dimension, the returned `shape()` will
+    /// always start with the len() of the input.
+    ///
+    /// This operation is *not* cheap, if you have plain data, please use [`JArray::from_list`].
+    ///
+    /// If you want to construct a box array, use [`JArray::from_list`] on the `Vec<JArray>` directly.
+    ///
+    /// This is multiple phases:
+    /// Takes multiple arrays,
+    /// fills them out to the same size,
+    /// promotes them to the same type,
+    /// and adds a dimension to represent the outer iterator
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// # use itertools::Itertools;
+    /// use ndarray::{array, ArrayD};
+    /// # use jr::{arr0d, IntoVec, JArray};
+    /// # fn atom<T>(v: T) -> JArray where JArray: From<ArrayD<T>> { JArray::from(arr0d(v)) }
+    /// # fn list<T: Clone>(v: &[T]) -> JArray where JArray: From<ArrayD<T>> { JArray::from_list(v.to_vec()) }
+    /// let items = [atom(5i64), list(&[2i64, 3, 4])];
+    /// let outer_dimension = items.len();
+    /// let fpl = JArray::from_fill_promote(items).unwrap();
+    /// assert_eq!(fpl.shape()[0], outer_dimension);
+    /// assert_eq!(fpl.shape(), &[2, 3]);
+    /// assert_eq!(
+    ///     fpl,
+    ///     JArray::IntArray(array![
+    ///         // the atom and its fill
+    ///         [5, 0, 0],
+    ///         // the list, which has forced the shape of the 'inner' array
+    ///         [2, 3, 4],
+    ///     ].into_dyn())
+    /// );
+    ///
+    ///
+    /// let items = [atom(6.3), atom(5i64)];
+    /// let outer_dimension = items.len();
+    /// let fpl = JArray::from_fill_promote(items).unwrap();
+    /// assert_eq!(fpl.shape()[0], outer_dimension);
+    /// assert_eq!(fpl.shape(), &[2]);
+    /// assert_eq!(
+    ///     fpl,
+    ///     JArray::FloatArray(array![
+    ///         // note, no inner array, the atoms are expanded in-place
+    ///         6.3,
+    ///         // the 5i64 has been promoted to a 5.0f64
+    ///         5.0,
+    ///     ].into_dyn())
+    /// );
+    /// ```
+    pub fn from_fill_promote(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
+        fill_promote_list(items)
+    }
+
+    /// Produce a 1D char array from a Rust String-like
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// # use ndarray::array;
+    /// # use jr::JArray;
+    /// assert_eq!(
+    ///     JArray::from_string("hello"),
+    ///     JArray::CharArray(array!['h', 'e', 'l', 'l', 'o'].into_dyn()),
+    /// );
+    pub fn from_string(s: impl AsRef<str>) -> JArray {
+        JArray::from_list(s.as_ref().chars().collect_vec())
     }
 }
 

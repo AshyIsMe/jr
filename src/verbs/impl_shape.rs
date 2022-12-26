@@ -10,8 +10,7 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::{len_of_0, Arrayable};
-use crate::cells::fill_promote_list;
+use crate::arrays::{len_of_0, IntoVec};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0d, impl_array, impl_homo, HasEmpty, JArray, JError};
 
@@ -287,7 +286,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                 if x <= y_len_zero {
                     y.select(Axis(0), &(0..x).collect_vec())
                 } else {
-                    fill_promote_list(
+                    JArray::from_fill_promote(
                         y.outer_iter()
                             .map(|cow| cow.into_owned())
                             // we can't use empty() here as its rank is higher than arr0, which matters

@@ -13,7 +13,7 @@ pub fn f_read_file(y: &Word) -> Result<Word> {
     let path = arg_to_fs_path(y)?;
 
     match fs::read_to_string(&path) {
-        Ok(s) => Ok(Word::Noun(JArray::from_char_array(s))),
+        Ok(s) => Ok(Word::Noun(JArray::from_string(s))),
         Err(e) => Err(JError::FileNameError)
             .context(e)
             .with_context(|| anyhow!("reading {path:?}")),

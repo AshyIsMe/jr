@@ -27,11 +27,8 @@ pub use crate::eval::{eval, feed, EvalOutput};
 // e.g. cli syntax highlighting
 pub use scan::{scan, scan_with_locations};
 
-// internal array construction methods?
-pub use crate::cells::fill_promote_list;
-
 // TODO: helper function for tests, not really public
-pub use crate::arrays::Arrayable;
+pub use crate::arrays::IntoVec;
 pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;

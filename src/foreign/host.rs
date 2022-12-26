@@ -11,5 +11,5 @@ pub fn f_shell_out(y: &Word) -> Result<Word> {
         _ => return Err(JError::NonceError).context("shelling out is disabled"),
     };
 
-    Ok(Word::Noun(JArray::from_char_array(result)))
+    Ok(Word::Noun(JArray::from_string(result)))
 }

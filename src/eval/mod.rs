@@ -108,7 +108,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         sus.qs
             .stack
             // after `mode :`
-            .insert(2, Word::Noun(JArray::from_char_array(sus.data)));
+            .insert(2, Word::Noun(JArray::from_string(sus.data)));
         sus.qs
     } else {
         let mut queue = VecDeque::from(sentence);

@@ -7,7 +7,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::{map_result, BoxArray, JArrays};
-use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
+use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
@@ -349,7 +349,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                     let arg = if stack.is_empty() {
                         JArray::BoxArray(empty_box_array())
                     } else {
-                        fill_promote_list(stack).context("flattening intermediate")?
+                        JArray::from_fill_promote(stack).context("flattening intermediate")?
                     };
                     out.push(
                         v.exec(ctx, None, &Noun(arg))
@@ -361,7 +361,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 }
             }
 
-            fill_promote_list(out).map(Noun)
+            JArray::from_fill_promote(out).map(Noun)
         }
         (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
             let is_end = match m {
@@ -460,7 +460,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                     .context("under dual vi")?;
                 parts.push(vi);
             }
-            fill_promote_list(parts)?
+            JArray::from_fill_promote(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)
@@ -491,7 +491,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                 },
                 vr,
             )?;
-            fill_promote_list(parts)?
+            JArray::from_fill_promote(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)

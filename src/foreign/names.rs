@@ -63,7 +63,7 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
     Ok(Word::Noun(JArray::from_list(
         names
             .into_iter()
-            .map(|s| JArray::from_char_array(&s))
+            .map(|s| JArray::from_string(&s))
             .collect_vec(),
     )))
 }

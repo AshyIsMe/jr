@@ -1,7 +1,6 @@
 use ndarray::prelude::*;
 
-// like IntoIterator<Item = T> + ExactSizeIterator
-pub trait Arrayable<T> {
+pub trait IntoVec<T> {
     fn into_vec(self) -> Vec<T>;
 
     fn into_array(self) -> ArrayD<T>
@@ -13,13 +12,13 @@ pub trait Arrayable<T> {
     }
 }
 
-impl<T> Arrayable<T> for Vec<T> {
+impl<T> IntoVec<T> for Vec<T> {
     fn into_vec(self) -> Vec<T> {
         self
     }
 }
 
-impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
+impl<T: Clone, const N: usize> IntoVec<T> for [T; N] {
     fn into_vec(self) -> Vec<T> {
         self.to_vec()
     }

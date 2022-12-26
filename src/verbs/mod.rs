@@ -22,8 +22,8 @@ use JArray::*;
 use maff::*;
 pub use ranks::Rank;
 
-use crate::arrays::{Arrayable, JArrayCow};
-use crate::cells::{fill_promote_list, fill_promote_list_cow};
+use crate::arrays::{IntoVec, JArrayCow};
+use crate::cells::fill_promote_list_cow;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -120,7 +120,7 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
     let mut y = y.outer_iter().collect_vec();
     y.reverse();
-    fill_promote_list(y.into_iter().map(|cow| cow.into_owned()))
+    JArray::from_fill_promote(y.into_iter().map(|cow| cow.into_owned()))
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -140,7 +140,7 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         y.rotate_left(distance)
     };
 
-    fill_promote_list(y.into_iter().map(|cow| cow.into_owned()))
+    JArray::from_fill_promote(y.into_iter().map(|cow| cow.into_owned()))
 }
 
 /// , (monad)

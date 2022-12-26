@@ -4,11 +4,11 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
-use crate::cells::{fill_promote_list, fill_promote_list_cow};
+use crate::cells::fill_promote_list_cow;
 use crate::modifiers::c_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
-use crate::{Ctx, JError, Word};
+use crate::{Ctx, JArray, JError, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -100,7 +100,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                         .context("backslash (u)")?,
                 );
             }
-            fill_promote_list(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
             let x = x.approx_i64_one().context("backslash's x")?;
@@ -121,7 +121,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                 }
             }
 
-            fill_promote_list(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
@@ -136,7 +136,7 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             for i in 0..y.len() {
                 piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(&y[i..])?))?);
             }
-            fill_promote_list(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
