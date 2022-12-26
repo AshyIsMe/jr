@@ -40,16 +40,21 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
             // TODO: Only works for the anon names (inner function locals) currently:
             //    {{ 4!:1 [ 1 2 3 4 [ a =. 1 2 3 [ b =. 4 5 6}} ''
             // |[[a], [y], [b]]|
-            debug!("ctx: {:?}", ctx);
-            let names: Vec<JArray> = ctx
+            let mut names: Vec<String> = ctx
                 .eval()
                 .locales
                 .anon
                 .iter()
                 .flat_map(|n| n.0.keys())
-                .map(|s| JArray::CharArray(s.chars().collect_vec().into_array().unwrap()))
+                .map(|s| s.to_string())
                 .collect();
-            Word::noun(names)
+            names.sort();
+            Word::noun(
+                names
+                    .into_iter()
+                    .map(|s| JArray::from_char_array(&s))
+                    .collect_vec(),
+            )
         }
     }
 }

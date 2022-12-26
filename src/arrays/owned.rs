@@ -1,6 +1,7 @@
 use std::{fmt, iter};
 
 use anyhow::{anyhow, ensure, Context, Result};
+use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{IntoDimension, Slice};
@@ -12,7 +13,7 @@ use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, JError, Word};
+use crate::{arr0d, map_to_cow, Arrayable, JError, Word};
 
 pub type BoxArray = ArrayD<JArray>;
 
@@ -312,6 +313,13 @@ fn usize_or_domain_err(v: i64) -> Result<usize> {
     usize::try_from(v)
         .map_err(|_| JError::DomainError)
         .context("unexpectedly negative")
+}
+
+impl JArray {
+    pub fn from_char_array(s: impl AsRef<str>) -> JArray {
+        let chars = s.as_ref().chars().collect_vec();
+        JArray::CharArray(chars.into_array().expect("infallible on vec"))
+    }
 }
 
 impl JArray {
