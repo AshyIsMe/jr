@@ -10,7 +10,7 @@ So, you've got some data, and you want to produce a J type.
 ### Homogenous lists
 
 `JArray::from_list(iterable)` can construct a list (`shape() == [iterable.len()]`)
-from an iterable of any basic type. This is infalliable and cheap.
+from an iterable of any basic type. This is infallible and cheap.
 
 
 ### Multi-dimensional

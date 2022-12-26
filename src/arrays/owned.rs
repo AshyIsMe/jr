@@ -328,7 +328,7 @@ impl JArray {
     ///
     /// This will always return a list, including an empty list, and never an atom.
     ///
-    /// If you have mixed or multi-dimensional data, consider [`crate::fill_promote_list`].
+    /// If you have mixed or multi-dimensional data, consider [`JArray::from_fill_promote`].
     ///
     /// ### Examples
     /// ```

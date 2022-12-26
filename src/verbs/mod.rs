@@ -250,11 +250,11 @@ pub fn v_grade_up(y: &JArray) -> Result<JArray> {
         .map_err(|_| JError::NonceError)
         .context("sort only implemented for simple types")?;
 
-    promote_to_array(
+    Ok(JArray::from_list(
         y.into_iter()
-            .map(|(p, _)| Elem::Num(Num::Int(i64::try_from(p).expect("usize fits in an i64"))))
-            .collect(),
-    )
+            .map(|(p, _)| i64::try_from(p).expect("usize fits in an i64"))
+            .collect_vec(),
+    ))
 }
 /// /: (dyad)
 pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -461,15 +461,14 @@ pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     let tally = Num::Int(i64::try_from(y.len())?);
     ensure!(ido.shape().len() <= 1);
 
-    // promote is laziness, it's a list of bools already
-    promote_to_array(
+    Ok(JArray::from_list(
         ido.into_nums()
             .ok_or(JError::NonceError)
             .context("v_index_of returns numbers")?
             .into_iter()
-            .map(|n| Elem::Num(Num::bool(n < tally)))
-            .collect(),
-    )
+            .map(|n| if n < tally { 1u8 } else { 0u8 })
+            .collect_vec(),
+    ))
 }
 
 /// i. (monad) (1)
@@ -501,9 +500,9 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .into_elems()
         .into_iter()
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
-        .map(|o| Elem::from(i64::try_from(o).expect("arrays that fit in memory")))
+        .map(|o| i64::try_from(o).expect("arrays that fit in memory"))
         .collect_vec();
-    Ok(promote_to_array(y)?.to_shape(output_shape)?.into_owned())
+    Ok(JArray::from_list(y).to_shape(output_shape)?.into_owned())
 }
 
 /// E. (dyad) (_, _)
@@ -535,18 +534,12 @@ pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
 /// I. (monad)
 pub fn v_indices(y: &JArray) -> Result<JArray> {
     match y {
-        JArray::BoolArray(arr) if arr.shape().len() == 1 => promote_to_array(
+        JArray::BoolArray(arr) if arr.shape().len() == 1 => Ok(JArray::from_list(
             arr.iter()
                 .enumerate()
-                .filter_map(|(p, x)| {
-                    if *x == 0 {
-                        None
-                    } else {
-                        Some(Elem::Num(Num::Int(p as i64)))
-                    }
-                })
-                .collect(),
-        ),
+                .filter_map(|(p, x)| if *x == 0 { None } else { Some(p as i64) })
+                .collect_vec(),
+        )),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("non-bool-list: {y:?}")),
     }
 }
