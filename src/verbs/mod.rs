@@ -23,7 +23,7 @@ use maff::*;
 pub use ranks::Rank;
 
 use crate::arrays::{Arrayable, JArrayCow};
-use crate::cells::{flatten_list, flatten_list_cow};
+use crate::cells::{fill_promote_list, fill_promote_list_cow};
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -77,7 +77,7 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("only available for lists");
     }
     let y = y.outer_iter().collect_vec();
-    flatten_list_cow(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
+    fill_promote_list_cow(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
 }
 
 /// -: (dyad)
@@ -120,7 +120,7 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
     let mut y = y.outer_iter().collect_vec();
     y.reverse();
-    flatten_list(y.into_iter().map(|cow| cow.into_owned()))
+    fill_promote_list(y.into_iter().map(|cow| cow.into_owned()))
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -140,7 +140,7 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         y.rotate_left(distance)
     };
 
-    flatten_list(y.into_iter().map(|cow| cow.into_owned()))
+    fill_promote_list(y.into_iter().map(|cow| cow.into_owned()))
 }
 
 /// , (monad)

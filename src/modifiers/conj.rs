@@ -7,7 +7,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::{map_result, BoxArray, JArrays};
-use crate::cells::{apply_cells, flatten_list, flatten_maintaining_prefix, monad_cells};
+use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
@@ -220,7 +220,7 @@ pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> 
             let r = map_result(r, |a| u.exec(ctx, None, &Word::Noun(a.clone())))
                 .context("left half of c_at")?;
             Ok(Word::Noun(
-                flatten_maintaining_prefix(&r).context("expanding result of c_atop")?,
+                fill_promote_reshape(&r).context("expanding result of c_atop")?,
             ))
         }
         _ => Err(JError::DomainError)
@@ -233,7 +233,7 @@ pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Re
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
             let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-            let r = flatten_maintaining_prefix(&r).context("expanding result of c_atop")?;
+            let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
             u.exec(ctx, None, &Word::Noun(r))
                 .context("left half of c_at")
                 .map(Word::Noun)
@@ -349,7 +349,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                     let arg = if stack.is_empty() {
                         JArray::BoxArray(empty_box_array())
                     } else {
-                        flatten_list(stack).context("flattening intermediate")?
+                        fill_promote_list(stack).context("flattening intermediate")?
                     };
                     out.push(
                         v.exec(ctx, None, &Noun(arg))
@@ -361,7 +361,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 }
             }
 
-            flatten_list(out).map(Noun)
+            fill_promote_list(out).map(Noun)
         }
         (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
             let is_end = match m {
@@ -392,7 +392,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 let arg = if stack.is_empty() {
                     JArray::BoxArray(empty_box_array())
                 } else {
-                    flatten_maintaining_prefix(&stack).context("flattening intermediate")?
+                    fill_promote_reshape(&stack).context("flattening intermediate")?
                 };
                 out.push(
                     Axis(0),
@@ -404,7 +404,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 )?;
                 stack = empty_box_array();
             }
-            flatten_maintaining_prefix(&out).map(Noun)
+            fill_promote_reshape(&out).map(Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }
@@ -460,7 +460,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                     .context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten_list(parts)?
+            fill_promote_list(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)
@@ -491,7 +491,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                 },
                 vr,
             )?;
-            flatten_list(parts)?
+            fill_promote_list(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)

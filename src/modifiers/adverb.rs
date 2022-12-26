@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
-use crate::cells::{flatten_list, flatten_list_cow};
+use crate::cells::{fill_promote_list, fill_promote_list_cow};
 use crate::modifiers::c_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
@@ -96,17 +96,17 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &Word::Noun(flatten_list_cow(chunk)?))
+                    u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))
                         .context("backslash (u)")?,
                 );
             }
-            flatten_list(piece).map(Word::Noun)
+            fill_promote_list(piece).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_list_cow(chunk)?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))?);
                 Ok(())
             };
 
@@ -121,7 +121,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                 }
             }
 
-            flatten_list(piece).map(Word::Noun)
+            fill_promote_list(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
@@ -134,9 +134,9 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_list_cow(&y[i..])?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(&y[i..])?))?);
             }
-            flatten_list(piece).map(Word::Noun)
+            fill_promote_list(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
