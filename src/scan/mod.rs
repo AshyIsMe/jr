@@ -180,8 +180,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
 }
 
 pub fn char_array(x: impl AsRef<str>) -> Result<Word> {
-    let v: Vec<char> = x.as_ref().chars().collect();
-    Word::noun(v)
+    Ok(Noun(JArray::from_char_array(x)))
 }
 
 fn scan_name(sentence: &str) -> Result<(usize, Word)> {
@@ -282,7 +281,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
 mod tests {
     use super::{scan, Word};
     use crate::scan::{identify_primitive, scan_litstring};
-    use crate::JError;
+    use crate::{JArray, JError};
 
     fn ident(sentence: &str) -> usize {
         // oh god please
@@ -332,6 +331,6 @@ mod tests {
         let result = dbg!(scan("i.2 3").unwrap());
         assert_eq!(2, result.len());
         assert!(matches!(result[0], Word::Verb(_, _)));
-        assert_eq!(result[1], Word::noun(vec![2i64, 3]).unwrap());
+        assert_eq!(result[1], Word::Noun(JArray::from_list(vec![2i64, 3])));
     }
 }

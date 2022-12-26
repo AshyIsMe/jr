@@ -24,13 +24,3 @@ impl<T: Clone, const N: usize> Arrayable<T> for [T; N] {
         self.to_vec()
     }
 }
-
-impl<T> Arrayable<T> for ArrayD<T> {
-    fn into_vec(self) -> Vec<T> {
-        self.into_raw_vec()
-    }
-
-    fn into_array(self) -> ArrayD<T> {
-        self
-    }
-}

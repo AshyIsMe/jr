@@ -9,14 +9,13 @@ use crate::arrays::{BoxArray, JArrayCow};
 use crate::number::{promote_to_array, Num};
 use crate::{Arrayable, Elem, HasEmpty, JArray, JError};
 
+// TODO: in reality, flatten() should probably be called flatten_list() and the reshape being outside?
+pub fn flatten_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
+    flatten(&items.into_iter().collect_vec().into_array())
+}
+
 pub fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
-    flatten(
-        &chunk
-            .iter()
-            .map(|arr| arr.to_owned())
-            .collect_vec()
-            .into_array(),
-    )
+    flatten_list(chunk.iter().map(|arr| arr.to_owned()))
 }
 
 pub fn flatten(results: &BoxArray) -> Result<JArray> {

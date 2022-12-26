@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, Ctx, Elem, HasEmpty, JArray, JError, Word};
+use crate::{arr0d, impl_array, Ctx, Elem, HasEmpty, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -23,7 +23,7 @@ use maff::*;
 pub use ranks::Rank;
 
 use crate::arrays::{Arrayable, JArrayCow};
-use crate::cells::flatten_partial;
+use crate::cells::{flatten_list, flatten_partial};
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
@@ -120,12 +120,7 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
     let mut y = y.outer_iter().collect_vec();
     y.reverse();
-    flatten(
-        &y.into_iter()
-            .map(|cow| cow.into_owned())
-            .collect_vec()
-            .into_array(),
-    )
+    flatten_list(y.into_iter().map(|cow| cow.into_owned()))
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -145,18 +140,13 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         y.rotate_left(distance)
     };
 
-    flatten(
-        &y.into_iter()
-            .map(|cow| cow.into_owned())
-            .collect_vec()
-            .into_array(),
-    )
+    flatten_list(y.into_iter().map(|cow| cow.into_owned()))
 }
 
 /// , (monad)
 pub fn v_ravel(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| {
-        Ok(arr.clone().into_raw_vec().into_array().into())
+        Ok(JArray::from_list(arr.clone().into_raw_vec()))
     })
 }
 

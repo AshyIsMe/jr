@@ -60,12 +60,12 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
         .map(|(k, _v)| k.to_string())
         .collect();
     names.sort();
-    Word::noun(
+    Ok(Word::Noun(JArray::from_list(
         names
             .into_iter()
             .map(|s| JArray::from_char_array(&s))
             .collect_vec(),
-    )
+    )))
 }
 
 fn name_code(w: &Word) -> Option<i64> {

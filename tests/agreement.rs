@@ -50,9 +50,9 @@ fn array_iter_2_3_2() -> Result<()> {
 fn test_agreement() {
     assert_eq!(
         scan_eval("10 20 + i.2 3").unwrap(),
-        Word::Noun(JArray::from(
+        Word::Noun(JArray::from(JArray::from(
             array![[10i64, 11, 12], [23, 24, 25]].into_dyn()
-        ))
+        )))
     );
 }
 
@@ -80,7 +80,7 @@ fn test_agreement_3() -> Result<()> {
 fn test_agreement_4() -> Result<()> {
     assert_eq!(
         scan_eval("$ (i.2 2) + i.2 2 2").unwrap(),
-        Word::Noun(JArray::from(array![2i64, 2, 2].into_dyn()))
+        Word::Noun(JArray::from(JArray::from(array![2i64, 2, 2].into_dyn())))
     );
     Ok(())
 }
@@ -100,7 +100,7 @@ fn test_agreement_reshape() -> Result<()> {
     let r1 = scan_eval("(2 2 $ 3) $ 1").unwrap();
     let r2 = scan_eval("2 3 3 $ 1").unwrap();
 
-    let correct_result = Word::noun(Array::from_elem(IxDyn(&[2, 3, 3]), 1u8)).unwrap();
+    let correct_result = Word::Noun(JArray::from(Array::from_elem(IxDyn(&[2, 3, 3]), 1u8)));
 
     assert_eq!(r1, correct_result);
     assert_eq!(r2, correct_result);
@@ -131,7 +131,7 @@ fn test_agreement_reshape_3() -> Result<()> {
         vec![0i64, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
     )?;
 
-    assert_eq!(r1, Word::noun(a).unwrap());
+    assert_eq!(r1, Word::Noun(JArray::from(a)));
 
     Ok(())
 }
@@ -140,21 +140,27 @@ fn test_agreement_reshape_3() -> Result<()> {
 fn test_reshape_atoms() -> Result<()> {
     let r1 = scan_eval("1 $ 1").unwrap();
     // Should be an array of length 1 containing 1
-    assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[1]), 1u8)).unwrap());
+    assert_eq!(
+        r1,
+        Word::Noun(JArray::from(Array::from_elem(IxDyn(&[1]), 1u8)))
+    );
     Ok(())
 }
 
 #[test]
 fn test_reshape_truncate() -> Result<()> {
     let r1 = scan_eval("1 $ 1 2 3").unwrap();
-    assert_eq!(r1, Word::noun(Array::from_elem(IxDyn(&[1]), 1i64)).unwrap());
+    assert_eq!(
+        r1,
+        Word::Noun(JArray::from(Array::from_elem(IxDyn(&[1]), 1i64)))
+    );
     Ok(())
 }
 
 #[test]
 fn test_reshape_cycle() -> Result<()> {
     let r1 = scan_eval("6 $ 1 2 3").unwrap();
-    assert_eq!(r1, Word::noun([1i64, 2, 3, 1, 2, 3]).unwrap());
+    assert_eq!(r1, Word::Noun(JArray::from_list([1i64, 2, 3, 1, 2, 3])));
     Ok(())
 }
 
@@ -163,7 +169,7 @@ fn test_idot_rank() -> Result<()> {
     let r1 = scan_eval("i.\"0 (2 2 2)").unwrap();
     assert_eq!(
         r1,
-        Word::noun(array![[0i64, 1], [0, 1], [0, 1]].into_dyn()).unwrap()
+        Word::Noun(JArray::from(array![[0i64, 1], [0, 1], [0, 1]].into_dyn()))
     );
     Ok(())
 }
@@ -173,7 +179,9 @@ fn framing_fill_miro() -> Result<()> {
     let r1 = scan_eval("(3 1 $ 2 3 4) $ 0 1 2 3").unwrap();
     assert_eq!(
         r1,
-        Word::noun(array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()).unwrap()
+        Word::Noun(JArray::from(
+            array![[0i64, 1, 0, 0], [0, 1, 2, 0], [0, 1, 2, 3]].into_dyn()
+        ))
     );
     Ok(())
 }

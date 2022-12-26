@@ -11,8 +11,9 @@ use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::{len_of_0, Arrayable};
+use crate::cells::flatten_list;
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, JArray, JError};
+use crate::{arr0d, impl_array, impl_homo, HasEmpty, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -154,17 +155,16 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
                 .into_array()
                 .into())
         }
-        (x, JArray::BoxArray(y)) => {
-            let parts = iter::once(x.clone())
+        (x, JArray::BoxArray(y)) => Ok(JArray::from_list(
+            iter::once(x.clone())
                 .chain(
                     y.outer_iter()
                         .into_iter()
                         .map(|x| x.iter().next().expect("non-empty").clone()),
                 )
-                .collect_vec();
-            Ok(parts.into_array().into())
-        }
-        (x, y) => Ok([x.clone(), y.clone()].into_array().into()),
+                .collect_vec(),
+        )),
+        (x, y) => Ok(JArray::from_list([x.clone(), y.clone()])),
     }
 }
 
@@ -287,14 +287,12 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                 if x <= y_len_zero {
                     y.select(Axis(0), &(0..x).collect_vec())
                 } else {
-                    flatten(
-                        &y.outer_iter()
+                    flatten_list(
+                        y.outer_iter()
                             .map(|cow| cow.into_owned())
                             // we can't use empty() here as its rank is higher than arr0, which matters
                             .chain(iter::repeat(JArray::atomic_zero()))
-                            .take(x)
-                            .collect_vec()
-                            .into_array(),
+                            .take(x),
                     )?
                 }
             }
