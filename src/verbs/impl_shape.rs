@@ -255,7 +255,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
             let x = usize::try_from(x.abs())
                 .map_err(|_| JError::NaNError)
                 .context("offset doesn't fit in memory")?;
-            let y_len_zero = y.len();
+            let y_len_zero = y.len_of_0();
 
             if x == 1 {
                 match y.shape() {
@@ -282,7 +282,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
                 }
             } else {
-                let y_len_zero = y.len();
+                let y_len_zero = y.len_of_0();
                 if x <= y_len_zero {
                     y.select(Axis(0), &(0..x).collect_vec())
                 } else {

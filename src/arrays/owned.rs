@@ -48,7 +48,7 @@ impl fmt::Debug for JArray {
 
 impl PartialEq for JArray {
     fn eq(&self, other: &Self) -> bool {
-        if self.shape() != other.shape() || self.len() != other.len() {
+        if self.shape() != other.shape() || self.len_of_0() != other.len_of_0() {
             return false;
         }
 
@@ -241,7 +241,7 @@ impl JArray {
     }
 
     pub fn single_elem(&self) -> Option<Elem> {
-        if self.len() != 1 {
+        if self.len_of_0() != 1 {
             return None;
         }
         Some(

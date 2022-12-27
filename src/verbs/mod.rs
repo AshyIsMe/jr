@@ -153,7 +153,7 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 /// ,. (monad)
 pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
     Ok(match y.shape().len() {
-        0 | 1 => y.to_shape(IxDyn(&[y.len(), 1]))?.into_owned(),
+        0 | 1 => y.to_shape(IxDyn(&[y.len_of_0(), 1]))?.into_owned(),
         2 => y.clone(),
         _ => {
             return Err(JError::NonceError)
@@ -218,7 +218,7 @@ pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// # (monad)
 pub fn v_tally(y: &JArray) -> Result<JArray> {
-    Ok(Num::from(i64::try_from(y.len()).map_err(|_| JError::LimitError)?).into())
+    Ok(Num::from(i64::try_from(y.len_of_0()).map_err(|_| JError::LimitError)?).into())
 }
 
 /// #. (monad)
@@ -458,7 +458,7 @@ pub fn v_raze_in(_y: &JArray) -> Result<JArray> {
 /// e. (dyad)
 pub fn v_member_in(x: &JArray, y: &JArray) -> Result<JArray> {
     let ido = v_index_of(y, x).context("member in idot")?;
-    let tally = Num::Int(i64::try_from(y.len())?);
+    let tally = Num::Int(i64::try_from(y.len_of_0())?);
     ensure!(ido.shape().len() <= 1);
 
     Ok(JArray::from_list(
