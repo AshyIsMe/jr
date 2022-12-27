@@ -41,13 +41,14 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
         return Err(JError::NonceError).context("unable to list locales");
     }
 
-    // TODO: Only works for the anon names (inner function locals) currently
-
+    // TODO: Current locale only.
+    // TODO: Locale specific filtering: nl_z_ i. 4
     let mut names: Vec<String> = ctx
         .eval()
         .locales
         .anon
         .iter()
+        .chain(ctx.eval().locales.inner.values())
         .flat_map(|n| {
             n.0.iter()
                 .filter(|(k, _v)| x.as_ref().map(|x| k.starts_with(x)).unwrap_or(true))

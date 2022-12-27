@@ -12,7 +12,7 @@ pub struct Eval {
 
 #[derive(Debug)]
 pub struct Locales {
-    inner: HashMap<String, Names>,
+    pub inner: HashMap<String, Names>,
     search_path: Vec<String>,
     pub anon: Vec<Names>,
 }
