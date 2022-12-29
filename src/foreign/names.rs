@@ -40,6 +40,12 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
     if y.contains(&6) {
         return Err(JError::NonceError).context("unable to list locales");
     }
+    // check for valid y values
+    for i in y.iter() {
+        if ![0, 1, 2, 3, 6].contains(i) {
+            return Err(JError::DomainError).context("invalid y value");
+        }
+    }
 
     // TODO: Current locale only.
     // TODO: Locale specific filtering: nl_z_ i. 4
