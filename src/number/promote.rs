@@ -9,7 +9,7 @@ use super::Num;
 use crate::arrays::{Elem, JArray, JArrayKind};
 use crate::error::JError;
 
-pub fn infer(parts: &[Elem]) -> JArrayKind {
+pub fn infer_kind_from_elems(parts: &[Elem]) -> JArrayKind {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
         JArrayKind::Box
@@ -37,11 +37,12 @@ pub fn infer(parts: &[Elem]) -> JArrayKind {
 }
 
 pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
-    let kind = infer(&parts);
-    elem_to_j(kind, parts)
+    let kind = infer_kind_from_elems(&parts);
+    elems_to_jarray(kind, parts)
 }
 
-pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
+/// panics if the kind isn't directly from [`infer_kind_from_elems`].
+pub fn elems_to_jarray(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     match kind {
         JArrayKind::Box => arrayise(parts.into_iter().map(|v| match v {
@@ -60,14 +61,14 @@ pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
             }),
         })),
         JArrayKind::Complex => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
                 Num::Complex(i) => i,
                 other => Complex64::new(other.approx_f64().expect("covered above"), 0.),
             })
         })),
         JArrayKind::Float => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
                 Num::Complex(_) => unreachable!("covered by above cases"),
                 Num::Float(i) => i,
@@ -75,9 +76,9 @@ pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
             })
         })),
         JArrayKind::Rational => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
-                Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
+                Num::Complex(_) | Num::Float(_) => unreachable!("checked by infer"),
                 Num::Rational(i) => i,
                 Num::ExtInt(i) => BigRational::new(i, 1.into()),
                 Num::Int(i) => BigRational::new(i.into(), 1.into()),
@@ -85,10 +86,10 @@ pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
             })
         })),
         JArrayKind::ExtInt => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) => {
-                    unreachable!("covered by above cases")
+                    unreachable!("checked by infer")
                 }
                 Num::ExtInt(i) => i,
                 Num::Int(i) => i.into(),
@@ -96,23 +97,23 @@ pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
             })
         })),
         JArrayKind::Int => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) | Num::ExtInt(_) => {
-                    unreachable!("covered by above cases")
+                    unreachable!("checked by infer")
                 }
                 Num::Int(i) => i,
                 Num::Bool(i) => i.into(),
             })
         })),
         JArrayKind::Bool => arrayise(parts.into_iter().map(|v| {
-            let Elem::Num(v) = v else { unreachable!("covered by above cases") };
+            let Elem::Num(v) = v else { unreachable!("checked by infer") };
             Ok(match v {
                 Num::Complex(_)
                 | Num::Float(_)
                 | Num::Rational(_)
                 | Num::ExtInt(_)
-                | Num::Int(_) => unreachable!("covered by above cases"),
+                | Num::Int(_) => unreachable!("checked by infer"),
                 Num::Bool(i) => i,
             })
         })),

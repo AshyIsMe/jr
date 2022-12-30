@@ -6,7 +6,7 @@ use itertools::Itertools;
 use num_traits::Zero;
 
 use crate::arrays::JArrayCow;
-use crate::number::{promote_to_array, Num};
+use crate::number::{elems_to_jarray, infer_kind_from_elems, Num};
 use crate::verbs::VerbResult;
 use crate::{Elem, JArray, JError};
 
@@ -82,16 +82,13 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
         push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
-    if big_daddy.is_empty() {
-        panic!("{data:#?}");
-    }
-
-    let mut nums = promote_to_array(big_daddy).context("flattening promotion")?;
-
+    let kind = infer_kind_from_elems(&big_daddy);
     if target_shape.iter().any(|dim| 0 == *dim) {
-        nums = nums.create_cleared();
+        big_daddy.clear();
     }
-    nums.into_shape(target_shape)
+    elems_to_jarray(kind, big_daddy)
+        .context("flattening promotion")?
+        .into_shape(target_shape)
         .context("flattening output shape")
 }
 
