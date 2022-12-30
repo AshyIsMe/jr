@@ -328,7 +328,8 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
 /// { (dyad)
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.is_empty() {
-        return v_shape(&JArray::from(Num::from(0i64)), y);
+        // I don't really understand why this works, but it does.
+        return Ok(JArray::BoxArray(arr0d(JArray::empty())));
     }
 
     let x = x.approx_i64_one().context("from's x")?;

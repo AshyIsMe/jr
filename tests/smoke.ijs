@@ -495,4 +495,5 @@ NB. empty should be fine
 }. 0$0
 {. 0$0
 (0$0) }. 1 2 3
+NB. weird special case in from, who knows
 (0$0) { 1 2 3
