@@ -326,10 +326,6 @@ pub fn c_assign_adverse(
     }
 }
 
-fn empty_box_array() -> BoxArray {
-    ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")
-}
-
 pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
@@ -351,7 +347,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 if part == key {
                     // copy-paste of below
                     let arg = if stack.is_empty() {
-                        JArray::BoxArray(empty_box_array())
+                        JArray::empty()
                     } else {
                         JArray::from_fill_promote(stack).context("flattening intermediate")?
                     };
@@ -394,7 +390,7 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 }
                 // copy-paste of above
                 let arg = if stack.is_empty() {
-                    JArray::BoxArray(empty_box_array())
+                    JArray::empty()
                 } else {
                     fill_promote_list(stack).context("flattening intermediate")?
                 };

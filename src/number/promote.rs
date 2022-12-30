@@ -38,47 +38,19 @@ pub fn infer_kind_from_elems(parts: &[Elem]) -> JArrayKind {
 
 pub fn infer_kind_from_boxes(parts: &[JArray]) -> JArrayKind {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
-    if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::BoxArray(_)))
-    {
+    if parts.iter().any(|n| matches!(n, JArray::BoxArray(_))) {
         JArrayKind::Box
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::CharArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::CharArray(_))) {
         JArrayKind::Char
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::ComplexArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::ComplexArray(_))) {
         JArrayKind::Complex
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::FloatArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::FloatArray(_))) {
         JArrayKind::Float
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::RationalArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::RationalArray(_))) {
         JArrayKind::Rational
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::ExtIntArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::ExtIntArray(_))) {
         JArrayKind::ExtInt
-    } else if parts
-        .iter()
-        .filter(|a| !a.is_empty())
-        .any(|n| matches!(n, JArray::IntArray(_)))
-    {
+    } else if parts.iter().any(|n| matches!(n, JArray::IntArray(_))) {
         JArrayKind::Int
     } else {
         JArrayKind::Bool
