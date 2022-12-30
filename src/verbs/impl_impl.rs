@@ -1,13 +1,12 @@
 use std::fmt;
 use std::ops::Deref;
 
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
-use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
 use crate::eval::eval_lines;
-use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Num, Word};
+use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
@@ -65,39 +64,18 @@ pub enum VerbImpl {
     Number(f64),
 }
 
+pub type VerbResult = (Vec<usize>, Vec<JArray>);
+
 fn exec_monad_inner(
     f: impl FnMut(&JArray) -> Result<JArray>,
     rank: Rank,
     y: &JArray,
-) -> Result<BoxArray> {
+) -> Result<VerbResult> {
     let (cells, frames) = monad_cells(y, rank)?;
 
-    println!("{frames:?} {cells:#?}");
+    let application_results = monad_apply(&cells, f)?;
 
-    let mut application_results = monad_apply(&cells, f)?;
-
-    // hack_empty_application_result(&frames, &mut application_results)?;
-
-    BoxArray::from_shape_vec(frames, application_results)
-        .context("monad_apply generated (probably an agreement bug)")
-}
-
-/// leeetle bit of a hack, we generate a frame of [0], instead of [],
-/// and an application result containing empty arrays, but can't reshape that,
-/// entirely unclear where this should be handled; in flatten? Flatten probably handles it.
-fn hack_empty_application_result(
-    frames: &[usize],
-    application_result: &mut Vec<JArray>,
-) -> Result<()> {
-    if frames.iter().product::<usize>() == 0 {
-        // this isn't true, 'cos we care about the result shape
-        // ensure!(
-        //     application_result.iter().all(|c| c.is_empty()),
-        //     "empty frame should generate only empty arrays: {frames:?} {application_result:?}"
-        // );
-        application_result.clear();
-    }
-    Ok(())
+    Ok((frames, application_results))
 }
 
 pub fn exec_monad(
@@ -118,14 +96,12 @@ pub fn exec_dyad_inner(
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<BoxArray> {
+) -> Result<VerbResult> {
     let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
-    let mut application_result =
-        apply_cells(&cells, f, rank).context("applying function to cells")?;
+    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
 
-    hack_empty_application_result(&frames, &mut application_result)?;
-    BoxArray::from_shape_vec(frames, application_result).context("apply_cells generated shape")
+    Ok((frames, application_result))
 }
 
 pub fn exec_dyad(
@@ -147,7 +123,7 @@ impl VerbImpl {
         fill_promote_reshape(&self.partial_exec(ctx, x, y)?)
     }
 
-    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<BoxArray> {
+    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<VerbResult> {
         use Word::*;
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
@@ -237,7 +213,7 @@ impl VerbImpl {
             },
             VerbImpl::Cap => Err(JError::DomainError)
                 .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
-            VerbImpl::Number(i) => Ok(arr0d(JArray::from(Num::Float(*i).demote()))),
+            VerbImpl::Number(i) => Ok((Vec::new(), vec![JArray::from(Num::Float(*i).demote())])),
         }
     }
 
@@ -265,9 +241,9 @@ impl VerbImpl {
     }
 }
 
-fn must_be_box(v: Word) -> Result<BoxArray> {
+fn must_be_box(v: Word) -> Result<VerbResult> {
     match v {
-        Word::Noun(arr) => Ok(arr0d(arr)),
+        Word::Noun(arr) => Ok((Vec::new(), vec![arr])),
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }

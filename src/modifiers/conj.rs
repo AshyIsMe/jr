@@ -6,8 +6,8 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::{map_result, BoxArray, JArrays};
-use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
+use crate::arrays::{BoxArray, JArrays};
+use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
@@ -216,9 +216,13 @@ pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -
 pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
-            let r = map_result(r, |a| u.exec(ctx, None, &Word::Noun(a.clone())))
-                .context("left half of c_at")?;
+            let mut r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
+            // surely this private field access indicates a design problem of some kind
+            r.1 =
+                r.1.into_iter()
+                    .map(|a| u.exec(ctx, None, &Word::Noun(a.clone())))
+                    .collect::<Result<Vec<_>>>()
+                    .context("left half of c_at")?;
             Ok(Word::Noun(
                 fill_promote_reshape(&r).context("expanding result of c_atop")?,
             ))
@@ -379,11 +383,11 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             if !is_end {
                 return Err(JError::NonceError).context("only end mode supported right now");
             }
-            let mut stack = empty_box_array();
-            let mut out = empty_box_array();
+            let mut stack = Vec::new();
+            let mut out = Vec::new();
             for (&x, part) in x.iter().zip(y.outer_iter()) {
                 if is_inclusive || x == 0 {
-                    stack.push(Axis(0), arr0d(part.into_owned()).view())?;
+                    stack.push(part.into_owned());
                 }
                 if x != 1 {
                     continue;
@@ -392,19 +396,15 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 let arg = if stack.is_empty() {
                     JArray::BoxArray(empty_box_array())
                 } else {
-                    fill_promote_reshape(&stack).context("flattening intermediate")?
+                    fill_promote_list(stack).context("flattening intermediate")?
                 };
                 out.push(
-                    Axis(0),
-                    arr0d(
-                        v.exec(ctx, None, &Noun(arg))
-                            .context("evaluating intermediate")?,
-                    )
-                    .view(),
-                )?;
-                stack = empty_box_array();
+                    v.exec(ctx, None, &Noun(arg))
+                        .context("evaluating intermediate")?,
+                );
+                stack = Vec::new();
             }
-            fill_promote_reshape(&out).map(Noun)
+            fill_promote_list(out).map(Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }

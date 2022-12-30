@@ -5,13 +5,15 @@ use anyhow::{Context, Result};
 use itertools::Itertools;
 use num_traits::Zero;
 
-use crate::arrays::{BoxArray, JArrayCow};
+use crate::arrays::JArrayCow;
 use crate::number::{promote_to_array, Num};
-use crate::{Elem, HasEmpty, IntoVec, JArray, JError};
+use crate::verbs::VerbResult;
+use crate::{Elem, HasEmpty, JArray, JError};
 
 /// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
-    fill_promote_reshape(&items.into_iter().collect_vec().into_array())
+    let vec = items.into_iter().collect_vec();
+    fill_promote_reshape(&(vec![vec.len()], vec))
 }
 
 /// [`fill_promote_list`] helper which takes the `Cow` version of our array.
@@ -30,14 +32,14 @@ pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
 // }
 /// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
 /// with the input, which is what the agreement internals want, but probably isn't what you want.
-pub fn fill_promote_reshape(results: &BoxArray) -> Result<JArray> {
-    if results.is_empty() {
+pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
+    if frame.iter().any(|v| *v == 0) {
         return Ok(JArray::empty()
-            .into_shape(results.shape())
+            .into_shape(frame.to_vec())
             .context("empty flatten shortcut")?);
     }
 
-    let max_rank = results
+    let max_rank = data
         .iter()
         .map(|x| x.shape().len())
         .max()
@@ -45,7 +47,10 @@ pub fn fill_promote_reshape(results: &BoxArray) -> Result<JArray> {
         .context("non-empty macrocells")?;
 
     // rank extend every child
-    let results = results.map(|arr| rank_extend(max_rank, arr));
+    let results = data
+        .into_iter()
+        .map(|arr| rank_extend(max_rank, arr))
+        .collect_vec();
 
     // max each dimension
     let target_inner_shape = results
@@ -64,8 +69,7 @@ pub fn fill_promote_reshape(results: &BoxArray) -> Result<JArray> {
         .to_vec();
 
     // common_frame + surplus_frame + max(all results)
-    let target_shape = results
-        .shape()
+    let target_shape = frame
         .iter()
         .chain(target_inner_shape.iter())
         .copied()
