@@ -70,12 +70,34 @@ fn exec_monad_inner(
     rank: Rank,
     y: &JArray,
 ) -> Result<BoxArray> {
-    let (cells, common_frame) = monad_cells(y, rank)?;
+    let (cells, frames) = monad_cells(y, rank)?;
 
-    let results = monad_apply(&cells, f)?;
+    println!("{frames:?} {cells:#?}");
 
-    BoxArray::from_shape_vec(common_frame, results)
+    let mut application_results = monad_apply(&cells, f)?;
+
+    // hack_empty_application_result(&frames, &mut application_results)?;
+
+    BoxArray::from_shape_vec(frames, application_results)
         .context("monad_apply generated (probably an agreement bug)")
+}
+
+/// leeetle bit of a hack, we generate a frame of [0], instead of [],
+/// and an application result containing empty arrays, but can't reshape that,
+/// entirely unclear where this should be handled; in flatten? Flatten probably handles it.
+fn hack_empty_application_result(
+    frames: &[usize],
+    application_result: &mut Vec<JArray>,
+) -> Result<()> {
+    if frames.iter().product::<usize>() == 0 {
+        // this isn't true, 'cos we care about the result shape
+        // ensure!(
+        //     application_result.iter().all(|c| c.is_empty()),
+        //     "empty frame should generate only empty arrays: {frames:?} {application_result:?}"
+        // );
+        application_result.clear();
+    }
+    Ok(())
 }
 
 pub fn exec_monad(
@@ -102,13 +124,7 @@ pub fn exec_dyad_inner(
     let mut application_result =
         apply_cells(&cells, f, rank).context("applying function to cells")?;
 
-    // leeetle bit of a hack, we generate a frame of [0], instead of [],
-    // and an application result containing empty arrays, but can't reshape that,
-    // entirely unclear where this should be handled; in flatten? Flatten probably handles it.
-    if frames.iter().product::<usize>() == 0 {
-        ensure!(application_result.iter().all(|c| c.is_empty()));
-        application_result.clear();
-    }
+    hack_empty_application_result(&frames, &mut application_result)?;
     BoxArray::from_shape_vec(frames, application_result).context("apply_cells generated shape")
 }
 

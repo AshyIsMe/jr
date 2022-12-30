@@ -464,6 +464,10 @@ NB. platform information
 NB. platform dependent actual result
 $ 9!:12 ''
 
+NB. agreement / empty
+{{ 3 4 5 }}"1 (0 5 $ 0)
+{."1 (0 1 $ 0)
+
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 
