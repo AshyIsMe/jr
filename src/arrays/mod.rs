@@ -12,7 +12,7 @@ pub use cow::{CowArrayD, JArrayCow};
 pub use elem::Elem;
 pub use into_vec::IntoVec;
 pub use nd_ext::*;
-pub use owned::{BoxArray, JArray};
+pub use owned::{BoxArray, JArray, JArrayKind};
 pub use plural::JArrays;
 pub use word::Word;
 

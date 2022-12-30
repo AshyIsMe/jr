@@ -18,6 +18,18 @@ use crate::{arr0d, map_to_cow, IntoVec, JError};
 
 pub type BoxArray = ArrayD<JArray>;
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum JArrayKind {
+    Bool,
+    Char,
+    Int,
+    ExtInt,
+    Rational,
+    Float,
+    Complex,
+    Box,
+}
+
 #[derive(Clone)]
 pub enum JArray {
     BoolArray(ArrayD<u8>),

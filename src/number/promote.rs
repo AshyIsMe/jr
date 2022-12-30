@@ -6,53 +6,75 @@ use num::rational::BigRational;
 use num_traits::Zero;
 
 use super::Num;
-use crate::arrays::{Elem, JArray};
+use crate::arrays::{Elem, JArray, JArrayKind};
 use crate::error::JError;
 
-pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
+pub fn infer(parts: &[Elem]) -> JArrayKind {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
-        arrayise(parts.into_iter().map(|v| match v {
+        JArrayKind::Box
+    } else if parts.iter().any(|n| matches!(n, Elem::Char(_))) {
+        JArrayKind::Char
+    } else if parts
+        .iter()
+        .any(|n| matches!(n, Elem::Num(Num::Complex(_))))
+    {
+        JArrayKind::Complex
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Float(_)))) {
+        JArrayKind::Float
+    } else if parts
+        .iter()
+        .any(|n| matches!(n, Elem::Num(Num::Rational(_))))
+    {
+        JArrayKind::Rational
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::ExtInt(_)))) {
+        JArrayKind::ExtInt
+    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Int(_)))) {
+        JArrayKind::Int
+    } else {
+        JArrayKind::Bool
+    }
+}
+
+pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
+    let kind = infer(&parts);
+    elem_to_j(kind, parts)
+}
+
+pub fn elem_to_j(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
+    // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
+    match kind {
+        JArrayKind::Box => arrayise(parts.into_iter().map(|v| match v {
             Elem::Boxed(b) => Ok(b),
             Elem::Num(n) => Ok(n.into()),
             other => Err(JError::NonceError).with_context(|| {
                 anyhow!("TODO: unable to arrayise partially boxed content: {other:?}")
             }),
-        }))
-    } else if parts.iter().any(|n| matches!(n, Elem::Char(_))) {
-        arrayise(parts.into_iter().map(|v| match v {
+        })),
+        JArrayKind::Char => arrayise(parts.into_iter().map(|v| match v {
             Elem::Char(c) => Ok(c),
             // we get here 'cos fill fills us with zeros, instead of with spaces, as it doesn't know?
             Elem::Num(n) if n.is_zero() => Ok(' '),
             other => Err(JError::NonceError).with_context(|| {
                 anyhow!("TODO: unable to arrayise partially char content: {other:?}")
             }),
-        }))
-    } else if parts
-        .iter()
-        .any(|n| matches!(n, Elem::Num(Num::Complex(_))))
-    {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::Complex => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(i) => i,
                 other => Complex64::new(other.approx_f64().expect("covered above"), 0.),
             })
-        }))
-    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Float(_)))) {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::Float => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) => unreachable!("covered by above cases"),
                 Num::Float(i) => i,
                 other => other.approx_f64().expect("covered above"),
             })
-        }))
-    } else if parts
-        .iter()
-        .any(|n| matches!(n, Elem::Num(Num::Rational(_))))
-    {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::Rational => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) => unreachable!("covered by above cases"),
@@ -61,9 +83,8 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
                 Num::Int(i) => BigRational::new(i.into(), 1.into()),
                 Num::Bool(i) => BigRational::new(i.into(), 1.into()),
             })
-        }))
-    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::ExtInt(_)))) {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::ExtInt => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) => {
@@ -73,9 +94,8 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
                 Num::Int(i) => i.into(),
                 Num::Bool(i) => i.into(),
             })
-        }))
-    } else if parts.iter().any(|n| matches!(n, Elem::Num(Num::Int(_)))) {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::Int => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_) | Num::Float(_) | Num::Rational(_) | Num::ExtInt(_) => {
@@ -84,9 +104,8 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
                 Num::Int(i) => i,
                 Num::Bool(i) => i.into(),
             })
-        }))
-    } else {
-        arrayise(parts.into_iter().map(|v| {
+        })),
+        JArrayKind::Bool => arrayise(parts.into_iter().map(|v| {
             let Elem::Num(v) = v else { unreachable!("covered by above cases") };
             Ok(match v {
                 Num::Complex(_)
@@ -96,7 +115,7 @@ pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
                 | Num::Int(_) => unreachable!("covered by above cases"),
                 Num::Bool(i) => i,
             })
-        }))
+        })),
     }
 }
 

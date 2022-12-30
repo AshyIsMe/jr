@@ -82,6 +82,10 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
         push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
+    if big_daddy.is_empty() {
+        panic!("{data:#?}");
+    }
+
     let mut nums = promote_to_array(big_daddy).context("flattening promotion")?;
 
     if target_shape.iter().any(|dim| 0 == *dim) {
