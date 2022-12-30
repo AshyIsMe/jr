@@ -8,7 +8,7 @@ use num_traits::Zero;
 use crate::arrays::JArrayCow;
 use crate::number::{promote_to_array, Num};
 use crate::verbs::VerbResult;
-use crate::{Elem, HasEmpty, JArray, JError};
+use crate::{Elem, JArray, JError};
 
 /// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
@@ -33,12 +33,6 @@ pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
 /// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
 /// with the input, which is what the agreement internals want, but probably isn't what you want.
 pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
-    if frame.iter().any(|v| *v == 0) {
-        return Ok(JArray::empty()
-            .into_shape(frame.to_vec())
-            .context("empty flatten shortcut")?);
-    }
-
     let max_rank = data
         .iter()
         .map(|x| x.shape().len())
@@ -88,11 +82,13 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
         push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
-    let nums = promote_to_array(big_daddy).context("flattening promotion")?;
-    Ok(nums
-        .to_shape(target_shape)
-        .context("flattening output shape")?
-        .into_owned())
+    let mut nums = promote_to_array(big_daddy).context("flattening promotion")?;
+
+    if target_shape.iter().any(|dim| 0 == *dim) {
+        nums = nums.create_cleared();
+    }
+    nums.into_shape(target_shape)
+        .context("flattening output shape")
 }
 
 fn rank_extend(target: usize, arr: &JArray) -> JArray {

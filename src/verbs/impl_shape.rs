@@ -12,7 +12,7 @@ use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::{len_of_0, IntoVec};
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, impl_array, impl_homo, HasEmpty, JArray, JError};
+use crate::{arr0d, impl_array, impl_homo, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -249,7 +249,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
     let x = x[0];
     Ok(match x.cmp(&0) {
-        Ordering::Equal => JArray::empty(),
+        Ordering::Equal => y.create_cleared(),
         Ordering::Less => {
             // negative x (take from right)
             let x = usize::try_from(x.abs())

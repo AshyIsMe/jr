@@ -86,6 +86,21 @@ macro_rules! impl_array {
     };
 }
 
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray(a) => JArray::BoolArray($func(a)),
+            JArray::CharArray(a) => JArray::CharArray($func(a)),
+            JArray::IntArray(a) => JArray::IntArray($func(a)),
+            JArray::ExtIntArray(a) => JArray::ExtIntArray($func(a)),
+            JArray::RationalArray(a) => JArray::RationalArray($func(a)),
+            JArray::FloatArray(a) => JArray::FloatArray($func(a)),
+            JArray::ComplexArray(a) => JArray::ComplexArray($func(a)),
+            JArray::BoxArray(a) => JArray::BoxArray($func(a)),
+        }
+    };
+}
+
 #[macro_export]
 macro_rules! impl_homo {
     ($x:ident, $y:ident, $func:expr) => {
@@ -171,6 +186,23 @@ impl JArray {
 
     pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
         impl_array!(self, |a: ArrayBase<_, _>| Ok(a.into_shape(shape)?.into()))
+    }
+
+    pub fn create_cleared(&self) -> JArray {
+        let empty_first = |shape: &[usize]| -> Vec<usize> {
+            if shape.is_empty() {
+                vec![0]
+            } else {
+                let mut shape = shape.to_vec();
+                shape[0] = 0;
+                shape
+            }
+        };
+        map_array!(self, |a: &ArrayBase<_, _>| ArrayD::from_shape_vec(
+            empty_first(a.shape()),
+            Vec::new()
+        )
+        .expect("static shape"))
     }
 
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {

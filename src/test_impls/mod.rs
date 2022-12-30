@@ -90,5 +90,5 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
         return Ok(());
     }
 
-    Err(anyhow!("incorrect data, we got:\n{arr:?}\n\nThey expect:\n{them:?}\n\njsoft would render this like this:\n{rendered}"))
+    Err(anyhow!("incorrect data, we got:\n{arr:#?}\n\nThey expect:\n{them:#?}\n\njsoft would render this like this:\n{rendered}"))
 }
