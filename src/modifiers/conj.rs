@@ -7,7 +7,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 
 use crate::arrays::JArrays;
-use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
+use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
@@ -329,74 +329,125 @@ pub fn c_assign_adverse(
 pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
+    let Verb(_, v) = n else { return Err(JError::DomainError).context("cut's verb arg"); };
+    let Noun(y) = y else { return Err(JError::DomainError).context("cut's y arg"); };
     let m = m.approx_i64_one().context("cut's m")?;
 
-    match (x, n, y) {
-        (None, Verb(_, v), Noun(y)) => {
-            let parts = y.outer_iter().collect_vec();
-            ensure!(!parts.is_empty());
-            match m {
-                -2 => (),
-                _ => return Err(JError::NonceError).context("only mode -2 is supported"),
-            }
+    let is_end = match m {
+        2 | -2 => true,
+        1 | -1 => false,
+        _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+    };
 
-            let key = &parts[parts.len() - 1];
-            let out = parts[..parts.len() - 1]
-                .split(|part| part == key)
-                .map(|sub| {
-                    let sub = if sub.is_empty() {
-                        JArray::empty()
-                    } else {
-                        JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
-                            .context("flattening intermediate")?
-                    };
-                    v.exec(ctx, None, &Noun(sub))
-                        .context("evaluating intermediate")
-                })
-                .collect::<Result<Vec<_>>>()?;
+    let is_inclusive = match m {
+        -2 | -1 => false,
+        2 | 1 => true,
+        _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+    };
 
-            JArray::from_fill_promote(out).map(Noun)
-        }
-        (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
-            let is_end = match m {
-                2 | -2 => true,
-                1 | -1 => false,
-                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
+    let parts = y.outer_iter().collect_vec();
+    ensure!(!parts.is_empty());
+
+    let frets: Vec<usize> = match x {
+        None => {
+            let key = if is_end {
+                &parts[parts.len() - 1]
+            } else {
+                &parts[0]
             };
-
-            let is_inclusive = match m {
-                -2 | -1 => false,
-                2 | 1 => true,
-                _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
-            };
-
+            let mut frets = parts.iter().positions(|part| part == key).collect_vec();
             if !is_end {
-                return Err(JError::NonceError).context("only end mode supported right now");
+                frets.push(parts.len());
             }
-            let mut stack = Vec::new();
-            let mut out = Vec::new();
-            for (&x, part) in x.iter().zip(y.outer_iter()) {
-                if is_inclusive || x == 0 {
-                    stack.push(part.into_owned());
-                }
-                if x != 1 {
-                    continue;
-                }
-                // copy-paste of above
-                let arg = if stack.is_empty() {
-                    JArray::empty()
-                } else {
-                    fill_promote_list(stack).context("flattening intermediate")?
-                };
-                out.push(
-                    v.exec(ctx, None, &Noun(arg))
-                        .context("evaluating intermediate")?,
-                );
-                stack = Vec::new();
-            }
-            fill_promote_list(out).map(Noun)
+            frets
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
+        Some(Noun(JArray::BoolArray(x))) if x.shape().len() == 1 => {
+            x.iter().positions(|part| *part == 1).collect()
+        }
+
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} ;. {m:?} {y:?}")),
+    };
+
+    let out = cut_frets(&frets, is_inclusive, is_end)
+        .into_iter()
+        .map(|(s, e)| &parts[s..e])
+        .map(|sub| {
+            let sub = if sub.is_empty() {
+                JArray::empty()
+            } else {
+                JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
+                    .context("flattening intermediate")?
+            };
+            v.exec(ctx, None, &Noun(sub))
+                .context("evaluating intermediate")
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    JArray::from_fill_promote(out).map(Noun)
+}
+
+fn cut_frets(frets: &[usize], is_inclusive: bool, is_end: bool) -> Vec<(usize, usize)> {
+    match (is_inclusive, is_end) {
+        (true, true) => iter::once(0)
+            .chain(frets.iter().map(|x| *x + 1))
+            .tuple_windows()
+            .collect(),
+        (false, true) => iter::once(0)
+            .chain(frets.iter().map(|x| *x + 1))
+            .tuple_windows()
+            .map(|(s, e)| (s, e - 1))
+            .collect(),
+        (true, false) => frets.iter().copied().tuple_windows().collect(),
+        (false, false) => frets
+            .iter()
+            .copied()
+            .tuple_windows()
+            .map(|(s, e)| (s + 1, e))
+            .collect(),
+    }
+}
+
+#[cfg(test)]
+mod test_cut {
+    use super::cut_frets;
+
+    #[test]
+    fn test_cut_inc_end() {
+        assert_eq!(
+            cut_frets(&[0, 3, 4, 6], true, true),
+            vec![(0, 1), (1, 4), (4, 5), (5, 7)]
+        );
+
+        assert_eq!(
+            cut_frets(&[3, 4, 6], true, true),
+            vec![(0, 4), (4, 5), (5, 7)]
+        );
+    }
+
+    #[test]
+    fn test_cut_exc_end() {
+        assert_eq!(
+            cut_frets(&[0, 3, 4, 6], false, true),
+            vec![(0, 0), (1, 3), (4, 4), (5, 6)]
+        );
+
+        assert_eq!(
+            cut_frets(&[3, 4, 6], false, true),
+            vec![(0, 3), (4, 4), (5, 6)]
+        );
+    }
+
+    #[test]
+    fn test_cut_inc_start() {
+        assert_eq!(
+            cut_frets(&[0, 3, 4, 6, 7], true, false),
+            vec![(0, 3), (3, 4), (4, 6), (6, 7)]
+        );
+
+        assert_eq!(
+            cut_frets(&[0, 3, 4, 6], true, false),
+            vec![(0, 3), (3, 4), (4, 6)]
+        );
     }
 }
 
