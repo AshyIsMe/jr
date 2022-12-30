@@ -341,25 +341,19 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             }
 
             let key = &parts[parts.len() - 1];
-            let mut stack = Vec::new();
-            let mut out = Vec::new();
-            for part in &parts {
-                if part == key {
-                    // copy-paste of below
-                    let arg = if stack.is_empty() {
+            let out = parts[..parts.len() - 1]
+                .split(|part| part == key)
+                .map(|sub| {
+                    let sub = if sub.is_empty() {
                         JArray::empty()
                     } else {
-                        JArray::from_fill_promote(stack).context("flattening intermediate")?
+                        JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
+                            .context("flattening intermediate")?
                     };
-                    out.push(
-                        v.exec(ctx, None, &Noun(arg))
-                            .context("evaluating intermediate")?,
-                    );
-                    stack = Vec::new();
-                } else {
-                    stack.push(part.to_owned())
-                }
-            }
+                    v.exec(ctx, None, &Noun(sub))
+                        .context("evaluating intermediate")
+                })
+                .collect::<Result<Vec<_>>>()?;
 
             JArray::from_fill_promote(out).map(Noun)
         }
