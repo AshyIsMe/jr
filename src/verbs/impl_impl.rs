@@ -74,7 +74,8 @@ fn exec_monad_inner(
 
     let results = monad_apply(&cells, f)?;
 
-    Ok(BoxArray::from_shape_vec(common_frame, results).expect("monad_apply generated"))
+    BoxArray::from_shape_vec(common_frame, results)
+        .context("monad_apply generated (probably an agreement bug)")
 }
 
 pub fn exec_monad(

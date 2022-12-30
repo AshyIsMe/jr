@@ -4,7 +4,7 @@ mod ctl_if;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::{Ctx, JArray};
+use crate::{arr0d, Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
@@ -480,9 +480,13 @@ fn string_assignment(names: JArray, w: Word) -> Result<(JArray, Vec<String>)> {
         .split_whitespace()
         .map(|s| s.to_string())
         .collect_vec();
+    if names.len() == 1 {
+        return Ok((JArray::BoxArray(arr0d(arr)), names));
+    }
+
     if arr.len_of_0() != names.len() {
         return Err(JError::LengthError).with_context(|| {
-            anyhow!("wrong number of names for an array: {arr:?} into {names:?}")
+            anyhow!("wrong number of names for an array: {arr:#?} into {names:?}")
         });
     }
     Ok((arr, names))

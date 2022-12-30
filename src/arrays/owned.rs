@@ -33,15 +33,28 @@ pub enum JArray {
 impl fmt::Debug for JArray {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use JArray::*;
-        match self {
-            BoolArray(a) => write!(f, "BoolArray({a})"),
-            CharArray(a) => write!(f, "CharArray({a})"),
-            IntArray(a) => write!(f, "IntArray({a:?})"),
-            ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
-            RationalArray(a) => write!(f, "RationalArray({a})"),
-            FloatArray(a) => write!(f, "FloatArray({a})"),
-            ComplexArray(a) => write!(f, "ComplexArray({a})"),
-            BoxArray(a) => write!(f, "BoxArray({a:?})"),
+        if f.alternate() {
+            match self {
+                BoolArray(a) => write!(f, "BoolArray({a:?})"),
+                CharArray(a) => write!(f, "CharArray({a:?})"),
+                IntArray(a) => write!(f, "IntArray({a:?})"),
+                ExtIntArray(a) => write!(f, "ExtIntArray({a:?})"),
+                RationalArray(a) => write!(f, "RationalArray({a:?})"),
+                FloatArray(a) => write!(f, "FloatArray({a:?})"),
+                ComplexArray(a) => write!(f, "ComplexArray({a:?})"),
+                BoxArray(a) => write!(f, "BoxArray({a:?})"),
+            }
+        } else {
+            match self {
+                BoolArray(a) => write!(f, "BoolArray({a})"),
+                CharArray(a) => write!(f, "CharArray({a})"),
+                IntArray(a) => write!(f, "IntArray({a})"),
+                ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
+                RationalArray(a) => write!(f, "RationalArray({a})"),
+                FloatArray(a) => write!(f, "FloatArray({a})"),
+                ComplexArray(a) => write!(f, "ComplexArray({a})"),
+                BoxArray(a) => write!(f, "BoxArray({a:?})"),
+            }
         }
     }
 }
