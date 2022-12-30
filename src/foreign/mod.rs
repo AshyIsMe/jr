@@ -41,6 +41,7 @@ pub fn foreign(ctx: &mut Ctx, l: i64, r: i64, x: Option<&Word>, y: &Word) -> Res
         (3, _) => unsupported("conversion"),
         (4, 0) => f_name_status(ctx, y),
         (4, 1) => f_name_namelist(ctx, x, y),
+        (4, 55) => f_name_erase(ctx, y),
         (5, _) => unsupported("representation"),
         (6, _) => unsupported("time"),
         (7, _) => unsupported("space"),

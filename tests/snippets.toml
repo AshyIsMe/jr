@@ -215,6 +215,24 @@ e3,01,01,02,01,01,01'''
 
 [[runs]]
 expr = '''
+foo =: 5
+del =: 4!:55 <'foo'
+missing =: 4!:55 <'quux'
+status =: 4!:0 <'foo'
+status; del; missing
+'''
+output = '''
+┌──┬─┬─┐
+│_1│1│1│
+└──┴─┴─┘'''
+encoded = '''
+e3,2,03,01,03,4,68,9,
+e3,04,01,,ffffffffffffffff,
+e3,01,01,,01,
+e3,01,01,,01'''
+
+[[runs]]
+expr = '''
 n1 =: 5
 n2 =: 'potato'
 v1 =: +

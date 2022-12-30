@@ -70,6 +70,14 @@ impl Locales {
         Ok(())
     }
 
+    pub fn erase(&mut self, n: impl AsRef<str>) -> Result<()> {
+        let (n, ns) = parse_name(n.as_ref())?;
+        let ns = ns.unwrap_or_else(|| self.search_path.last().expect("non-empty search path"));
+        let Some(names) = self.inner.get_mut(ns) else { return Ok(()); };
+        names.0.remove(n);
+        Ok(())
+    }
+
     pub fn lookup(&self, n: impl AsRef<str>) -> Result<Option<&Word>> {
         let (n, ns) = parse_name(n.as_ref())?;
 
