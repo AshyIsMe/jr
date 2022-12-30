@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::{BoxArray, JArrays};
+use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;

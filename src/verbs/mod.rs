@@ -490,7 +490,7 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
 }
 /// i. (dyad)
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() != 1 {
+    if x.shape().len() > 1 {
         return Err(JError::NonceError)
             .with_context(|| anyhow!("input x must be a list, not {x:?} for {y:?}"));
     }

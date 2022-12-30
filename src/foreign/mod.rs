@@ -10,10 +10,10 @@ use log::warn;
 
 use crate::{Ctx, HasEmpty, JArray, JError, Word};
 
-use crate::foreign::host::f_shell_out;
 use conversion::*;
 use files::*;
 use global_param::*;
+use host::*;
 use names::*;
 use scripts::*;
 
@@ -33,6 +33,7 @@ pub fn foreign(ctx: &mut Ctx, l: i64, r: i64, x: Option<&Word>, y: &Word) -> Res
         (1, 1) => f_read_file(y).context("reading file"),
         (1, _) => unsupported("file"),
         (2, 0) => f_shell_out(y),
+        (2, 5) => f_getenv(y),
         (2, _) => unsupported("host"),
         (3, 3) => f_dump_hex(x, y),
         (3, 4) => f_int_bytes(x, y),
