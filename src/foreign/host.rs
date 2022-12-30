@@ -27,3 +27,9 @@ pub fn f_getenv(y: &Word) -> Result<Word> {
         }
     }
 }
+
+pub fn f_getpid() -> Result<Word> {
+    Ok(Word::Noun(JArray::from(arr0d(i64::from(
+        std::process::id(),
+    )))))
+}
