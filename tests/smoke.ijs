@@ -386,6 +386,10 @@ NB. do
 NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. format
+": 5
+": 17.7
+
 NB. agenda
 5 (+`-@.1) 2
 5 (+`-@.0) 2

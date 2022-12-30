@@ -426,8 +426,8 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// ": (monad)
-pub fn v_default_format(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_default_format(y: &JArray) -> Result<JArray> {
+    Ok(JArray::from_string(format!("{y}")))
 }
 /// ": (dyad)
 pub fn v_format(_x: &JArray, _y: &JArray) -> Result<JArray> {
