@@ -13,7 +13,7 @@ use winit::platform::run_return::EventLoopExtRunReturn as _;
 #[cfg(feature = "glutin-x11")]
 use winit::platform::unix::{WindowBuilderExtUnix, XWindowType};
 
-use crate::{arr0d, IntoJArray, JArray, JError};
+use crate::{arr0d, JArray, JError};
 
 #[derive(Copy, Clone, Debug)]
 struct Rect {
