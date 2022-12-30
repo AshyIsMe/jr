@@ -6,7 +6,7 @@ use itertools::Itertools;
 use num_traits::Zero;
 
 use crate::arrays::JArrayCow;
-use crate::number::{elems_to_jarray, infer_kind_from_elems, Num};
+use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
 use crate::verbs::VerbResult;
 use crate::{Elem, JArray, JError};
 
@@ -69,6 +69,8 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
         .copied()
         .collect_vec();
 
+    let kind = infer_kind_from_boxes(&results);
+
     // flatten
     let mut big_daddy: Vec<Elem> = Vec::new();
     for arr in results {
@@ -82,7 +84,6 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
         push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
-    let kind = infer_kind_from_elems(&big_daddy);
     if target_shape.iter().any(|dim| 0 == *dim) {
         big_daddy.clear();
     }
