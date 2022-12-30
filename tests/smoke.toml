@@ -28,11 +28,6 @@ output = '5'
 encoded = 'e3,02,01,01,01,35'
 
 [[runs]]
-expr = '": 5 6'
-output = '5 6'
-encoded = 'e3,02,03,01,03,352036'
-
-[[runs]]
 expr = "# (&.>) < 'foo'"
 output = '''
 ┌─┐

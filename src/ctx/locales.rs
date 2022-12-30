@@ -33,7 +33,7 @@ impl Locales {
         Self {
             inner: HashMap::with_capacity(8),
             search_path: vec!["z".to_string(), "base".to_string()],
-            anon: Vec::new(),
+            anon: vec![Names::default()],
         }
     }
 
