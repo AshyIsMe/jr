@@ -9,7 +9,7 @@ use log::info;
 use super::files::arg_to_fs_path;
 use crate::{feed, Ctx, EvalOutput, HasEmpty, JArray, JError, Word};
 
-pub fn f_load_script(ctx: &mut Ctx, k: usize, y: &Word) -> Result<Word> {
+pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &Word) -> Result<Word> {
     let [src, err, display]: [char; 3] = format!("{k:03}")
         .chars()
         .collect_vec()

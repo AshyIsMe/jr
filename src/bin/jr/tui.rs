@@ -33,7 +33,7 @@ pub fn drive() -> Result<()> {
     }
     rl.set_auto_add_history(true);
 
-    let mut ctx = Ctx::empty();
+    let mut ctx = Ctx::root();
 
     let mut state = EvalState::Regular;
 

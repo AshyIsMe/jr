@@ -14,10 +14,10 @@ mod verbs;
 mod plot;
 
 pub mod test_impls;
+use crate::test_impls::scan_eval;
 
 // laziness
-pub use arrays::{Elem, IntoJArray, JArray, Word};
-pub use cells::flatten;
+pub use arrays::{Elem, JArray, Word};
 pub use empty::HasEmpty;
 
 // public API
@@ -29,7 +29,7 @@ pub use crate::eval::{eval, feed, EvalOutput};
 pub use scan::{scan, scan_with_locations};
 
 // TODO: helper function for tests, not really public
-pub use crate::arrays::Arrayable;
+pub use crate::arrays::IntoVec;
 pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
 pub use crate::modifiers::collect_nouns;
@@ -208,11 +208,10 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
             // ]
             // .concat();
             let ascii_ints: Vec<u8> = (0..=255u8).collect();
-            char_array(ascii_ints.iter().map(|i| *i as char).collect::<String>()).unwrap()
+            char_array(ascii_ints.iter().map(|i| *i as char).collect::<String>())
         }
-        //"a:" => Word::Noun(JArray::BoxArray(arr0d([]))),
         // TODO declare a: properly instead of the scan hack
-        "a:" => scan("<0$0").unwrap()[0].clone(),
+        "a:" => scan_eval("<0$0").unwrap(),
         _ => return None,
     })
 }

@@ -10,9 +10,9 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::{len_of_0, Arrayable};
+use crate::arrays::{len_of_0, IntoVec};
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, flatten, impl_array, impl_homo, HasEmpty, IntoJArray, JArray, JError};
+use crate::{arr0d, impl_array, impl_homo, JArray, JError};
 
 pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
@@ -69,7 +69,12 @@ pub fn v_transpose_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
 
 /// $ (monad)
 pub fn v_shape_of(y: &JArray) -> Result<JArray> {
-    Ok(y.shape().into_array()?.into_jarray())
+    Ok(y.shape()
+        .iter()
+        .map(|v| Ok(i64::try_from(*v)?))
+        .collect::<Result<Vec<i64>>>()?
+        .into_array()
+        .into())
 }
 
 /// $ (dyad)
@@ -80,7 +85,7 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
                 Err(JError::DomainError).context("cannot reshape to negative shapes")
             } else {
                 debug!("v_shape: x: {x}, y: {y}");
-                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into_jarray()))
+                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into()))
             }
         }
         _ => Err(JError::DomainError)
@@ -146,20 +151,19 @@ pub fn v_link(x: &JArray, y: &JArray) -> Result<JArray> {
         // always box x, only box y if not already boxed
         (x, JArray::BoxArray(y)) if y.shape().is_empty() && !y.is_empty() => {
             Ok(vec![x.clone(), y.iter().cloned().next().expect("len == 1")]
-                .into_array()?
-                .into_jarray())
+                .into_array()
+                .into())
         }
-        (x, JArray::BoxArray(y)) => {
-            let parts = iter::once(x.clone())
+        (x, JArray::BoxArray(y)) => Ok(JArray::from_list(
+            iter::once(x.clone())
                 .chain(
                     y.outer_iter()
                         .into_iter()
                         .map(|x| x.iter().next().expect("non-empty").clone()),
                 )
-                .collect_vec();
-            Ok(parts.into_array().context("noun")?.into_jarray())
-        }
-        (x, y) => Ok([x.clone(), y.clone()].into_array()?.into_jarray()),
+                .collect_vec(),
+        )),
+        (x, y) => Ok(JArray::from_list([x.clone(), y.clone()])),
     }
 }
 
@@ -171,16 +175,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 
     // x is a list of offsets
-    let mut x = x
-        .clone()
-        .into_nums()
-        .ok_or(JError::DomainError)
-        .context("non-numerics as indexes")?
-        .into_iter()
-        .map(|x| x.value_len())
-        .collect::<Option<Vec<usize>>>()
-        .ok_or(JError::DomainError)
-        .context("non-sizes as indexes")?;
+    let mut x = x.approx_usize_list().context("copy's x")?;
 
     impl_array!(y, |y: &ArrayBase<_, _>| {
         // y is a list of items
@@ -217,7 +212,7 @@ pub fn v_copy(x: &JArray, y: &JArray) -> Result<JArray> {
                     .with_context(|| anyhow!("push: {y:?})"))?;
             }
         }
-        Ok(output.into_jarray())
+        Ok(output.into())
     })
 }
 
@@ -245,16 +240,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
         return v_shape(&JArray::from(Num::from(0i64)), y);
     }
 
-    let x = x
-        .clone()
-        .into_nums()
-        .ok_or(JError::DomainError)
-        .context("take expecting numeric x")?
-        .into_iter()
-        .map(|n| n.value_i64())
-        .collect::<Option<Vec<i64>>>()
-        .ok_or(JError::DomainError)
-        .context("take expecting integer-like x")?;
+    let x = x.approx_i64_list().context("take's x")?;
 
     if 1 != x.len() {
         return Err(JError::NonceError)
@@ -263,13 +249,13 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
     let x = x[0];
     Ok(match x.cmp(&0) {
-        Ordering::Equal => JArray::empty(),
+        Ordering::Equal => y.create_cleared(),
         Ordering::Less => {
             // negative x (take from right)
             let x = usize::try_from(x.abs())
                 .map_err(|_| JError::NaNError)
                 .context("offset doesn't fit in memory")?;
-            let y_len_zero = y.len();
+            let y_len_zero = y.len_of_0();
 
             if x == 1 {
                 match y.shape() {
@@ -296,18 +282,16 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                     _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
                 }
             } else {
-                let y_len_zero = y.len();
+                let y_len_zero = y.len_of_0();
                 if x <= y_len_zero {
                     y.select(Axis(0), &(0..x).collect_vec())
                 } else {
-                    flatten(
-                        &y.outer_iter()
+                    JArray::from_fill_promote(
+                        y.outer_iter()
                             .map(|cow| cow.into_owned())
                             // we can't use empty() here as its rank is higher than arr0, which matters
                             .chain(iter::repeat(JArray::atomic_zero()))
-                            .take(x)
-                            .collect_vec()
-                            .into_array()?,
+                            .take(x),
                     )?
                 }
             }
@@ -364,7 +348,7 @@ pub fn v_behead(y: &JArray) -> Result<JArray> {
     impl_array!(y, |arr: &ArrayD<_>| Ok(arr
         .slice_axis(Axis(0), Slice::from(1isize..))
         .into_owned()
-        .into_jarray()))
+        .into()))
 }
 /// }. (dyad)
 pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -386,7 +370,7 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
                 0 => impl_array!(y, |arr: &ArrayD<_>| {
                     let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
                     Ok(match x.cmp(&0) {
-                        Ordering::Equal => arr.clone().into_owned().into_jarray(),
+                        Ordering::Equal => arr.clone().into_owned().into(),
                         Ordering::Less => {
                             //    (_2 }. 1 2 3 4)  NB. equivalent to (2 {. 1 2 3 4)
                             // 3 4

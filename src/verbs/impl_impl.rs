@@ -1,13 +1,12 @@
 use std::fmt;
 use std::ops::Deref;
 
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
-use crate::arrays::BoxArray;
-use crate::cells::{apply_cells, flatten, generate_cells, monad_apply, monad_cells};
+use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
 use crate::eval::eval_lines;
-use crate::{arr0d, primitive_verbs, Ctx, JArray, JError, Num, Word};
+use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
 
 #[derive(Copy, Clone)]
 pub struct Monad {
@@ -65,16 +64,18 @@ pub enum VerbImpl {
     Number(f64),
 }
 
+pub type VerbResult = (Vec<usize>, Vec<JArray>);
+
 fn exec_monad_inner(
     f: impl FnMut(&JArray) -> Result<JArray>,
     rank: Rank,
     y: &JArray,
-) -> Result<BoxArray> {
-    let (cells, common_frame) = monad_cells(y, rank)?;
+) -> Result<VerbResult> {
+    let (cells, frames) = monad_cells(y, rank)?;
 
-    let results = monad_apply(&cells, f)?;
+    let application_results = monad_apply(&cells, f)?;
 
-    Ok(BoxArray::from_shape_vec(common_frame, results).expect("monad_apply generated"))
+    Ok((frames, application_results))
 }
 
 pub fn exec_monad(
@@ -87,7 +88,7 @@ pub fn exec_monad(
     }
 
     let r = exec_monad_inner(f, rank, y)?;
-    flatten(&r)
+    fill_promote_reshape(&r)
 }
 
 pub fn exec_dyad_inner(
@@ -95,20 +96,12 @@ pub fn exec_dyad_inner(
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
-) -> Result<BoxArray> {
+) -> Result<VerbResult> {
     let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
-    let mut application_result =
-        apply_cells(&cells, f, rank).context("applying function to cells")?;
+    let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;
 
-    // leeetle bit of a hack, we generate a frame of [0], instead of [],
-    // and an application result containing empty arrays, but can't reshape that,
-    // entirely unclear where this should be handled; in flatten? Flatten probably handles it.
-    if frames.iter().product::<usize>() == 0 {
-        ensure!(application_result.iter().all(|c| c.is_empty()));
-        application_result.clear();
-    }
-    BoxArray::from_shape_vec(frames, application_result).context("apply_cells generated shape")
+    Ok((frames, application_result))
 }
 
 pub fn exec_dyad(
@@ -122,15 +115,15 @@ pub fn exec_dyad(
     }
 
     let r = exec_dyad_inner(f, rank, x, y)?;
-    flatten(&r)
+    fill_promote_reshape(&r)
 }
 
 impl VerbImpl {
     pub fn exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<JArray> {
-        flatten(&self.partial_exec(ctx, x, y)?)
+        fill_promote_reshape(&self.partial_exec(ctx, x, y)?)
     }
 
-    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<BoxArray> {
+    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<VerbResult> {
         use Word::*;
         match self {
             VerbImpl::Primitive(imp) => match (x, y) {
@@ -151,21 +144,20 @@ impl VerbImpl {
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
             VerbImpl::Anonymous(dyadic, words) => {
-                // TODO: wrong, should have access to the global context
-                let mut ctx = Ctx::empty();
+                let mut ctx = ctx.nest();
                 if let Some(x) = x {
                     if !dyadic {
                         return Err(JError::DomainError)
                             .context("x provided for a monad-only verb");
                     }
-                    ctx.alias("x", x.clone());
+                    ctx.eval_mut().locales.assign_local("x", x.clone())?;
                 } else {
                     if *dyadic {
                         return Err(JError::DomainError)
                             .context("no x provided for a dyad-only verb");
                     }
                 }
-                ctx.alias("y", y.clone());
+                ctx.eval_mut().locales.assign_local("y", y.clone())?;
                 eval_lines(words, &mut ctx)
                     .and_then(must_be_box)
                     .context("anonymous")
@@ -221,7 +213,7 @@ impl VerbImpl {
             },
             VerbImpl::Cap => Err(JError::DomainError)
                 .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
-            VerbImpl::Number(i) => Ok(arr0d(JArray::from(Num::Float(*i).demote()))),
+            VerbImpl::Number(i) => Ok((Vec::new(), vec![JArray::from(Num::Float(*i).demote())])),
         }
     }
 
@@ -249,9 +241,9 @@ impl VerbImpl {
     }
 }
 
-fn must_be_box(v: Word) -> Result<BoxArray> {
+fn must_be_box(v: Word) -> Result<VerbResult> {
     match v {
-        Word::Noun(arr) => Ok(arr0d(arr)),
+        Word::Noun(arr) => Ok((Vec::new(), vec![arr])),
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }

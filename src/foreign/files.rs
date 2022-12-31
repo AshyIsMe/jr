@@ -4,17 +4,16 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
-use itertools::Itertools;
 
 use crate::arrays::BoxArray;
-use crate::{Arrayable, IntoJArray, JArray, JError, Word};
+use crate::{JArray, JError, Word};
 
 // 1!:1
 pub fn f_read_file(y: &Word) -> Result<Word> {
     let path = arg_to_fs_path(y)?;
 
     match fs::read_to_string(&path) {
-        Ok(s) => Ok(s.chars().collect_vec().into_array()?.into_noun()),
+        Ok(s) => Ok(Word::Noun(JArray::from_string(s))),
         Err(e) => Err(JError::FileNameError)
             .context(e)
             .with_context(|| anyhow!("reading {path:?}")),

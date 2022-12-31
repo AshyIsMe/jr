@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
-use itertools::Itertools;
 
-use crate::{flatten, Arrayable, IntoJArray, JArray, JError, Num, Word};
+use crate::{JArray, JError, Num, Word};
 
 pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
     if cfg!(not(target_pointer_width = "64")) {
@@ -44,19 +43,12 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
         _ => return Err(JError::NonceError).context("only int arrays (don't ask)"),
     }
 
-    let result = result
-        .into_iter()
-        .map(|x| {
-            format!("{:016x}", x.to_be())
-                .chars()
-                .collect_vec()
-                .into_array()
-                .expect("infalliable for vec")
-                .into_jarray()
-        })
-        .collect_vec();
-
-    flatten(&result.into_array()?).map(Word::Noun)
+    JArray::from_fill_promote(
+        result
+            .into_iter()
+            .map(|x| JArray::from_string(format!("{:016x}", x.to_be()))),
+    )
+    .map(Word::Noun)
 }
 
 pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
@@ -72,10 +64,8 @@ pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
         return Err(JError::NonceError).context("ascii only");
     }
 
-    Ok(Word::Noun(JArray::CharArray(
+    Ok(Word::Noun(JArray::from_list(
         // thanks, I hate it
-        vec![y as u8 as char, '\0', '\0', '\0']
-            .into_array()
-            .expect("infallible"),
+        vec![y as u8 as char, '\0', '\0', '\0'],
     )))
 }

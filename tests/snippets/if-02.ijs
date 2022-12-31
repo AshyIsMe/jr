@@ -1,4 +1,4 @@
-double_greater =: {{)d
+a =: {{)d
   if. x > y do.
     b =: x
   else.
@@ -6,4 +6,4 @@ double_greater =: {{)d
   end.
   b * 2
 }}
-(6 double_greater 5); (4 double_greater 3)
+(6 a 5); (4 a 3)

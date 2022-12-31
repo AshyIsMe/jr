@@ -4,11 +4,11 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
-use crate::cells::flatten_partial;
+use crate::cells::fill_promote_list_cow;
 use crate::modifiers::c_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
-use crate::{flatten, Arrayable, Ctx, JError, Word};
+use crate::{Ctx, JArray, JError, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -96,23 +96,17 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &Word::Noun(flatten_partial(chunk)?))
+                    u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))
                         .context("backslash (u)")?,
                 );
             }
-            flatten(&piece.into_array()?).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
-            let x = x
-                .single_math_num()
-                .ok_or(JError::DomainError)
-                .context("infix needs a number")?
-                .value_i64()
-                .ok_or(JError::DomainError)
-                .context("infix needs an int")?;
+            let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(chunk)?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))?);
                 Ok(())
             };
 
@@ -127,7 +121,7 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
                 }
             }
 
-            flatten(&piece.into_array()?).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
@@ -140,9 +134,9 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &Word::Noun(flatten_partial(&y[i..])?))?);
+                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(&y[i..])?))?);
             }
-            flatten(&piece.into_array()?).map(Word::Noun)
+            JArray::from_fill_promote(piece).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
     }
@@ -155,16 +149,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result
         (Some(Noun(x)), Noun(u), Noun(y))
             if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
         {
-            let u = u
-                .clone()
-                .into_nums()
-                .ok_or(JError::DomainError)
-                .context("non-numerics as indexes")?
-                .into_iter()
-                .map(|x| x.value_len())
-                .collect::<Option<Vec<usize>>>()
-                .ok_or(JError::DomainError)
-                .context("non-sizes as indexes")?;
+            let u = u.approx_usize_list()?;
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
 

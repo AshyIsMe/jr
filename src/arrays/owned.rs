@@ -1,6 +1,7 @@
 use std::{fmt, iter};
 
-use anyhow::{ensure, Result};
+use anyhow::{anyhow, ensure, Context, Result};
+use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
 use ndarray::{IntoDimension, Slice};
@@ -11,10 +12,23 @@ use num_traits::ToPrimitive;
 use super::nd_ext::len_of_0;
 use super::{CowArrayD, JArrayCow};
 use crate::arrays::elem::Elem;
+use crate::cells::fill_promote_list;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, Word};
+use crate::{arr0d, map_to_cow, IntoVec, JError};
 
 pub type BoxArray = ArrayD<JArray>;
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum JArrayKind {
+    Bool,
+    Char,
+    Int,
+    ExtInt,
+    Rational,
+    Float,
+    Complex,
+    Box,
+}
 
 #[derive(Clone)]
 pub enum JArray {
@@ -31,22 +45,35 @@ pub enum JArray {
 impl fmt::Debug for JArray {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use JArray::*;
-        match self {
-            BoolArray(a) => write!(f, "BoolArray({a})"),
-            CharArray(a) => write!(f, "CharArray({a})"),
-            IntArray(a) => write!(f, "IntArray({a:?})"),
-            ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
-            RationalArray(a) => write!(f, "RationalArray({a})"),
-            FloatArray(a) => write!(f, "FloatArray({a})"),
-            ComplexArray(a) => write!(f, "ComplexArray({a})"),
-            BoxArray(a) => write!(f, "BoxArray({a:?})"),
+        if f.alternate() {
+            match self {
+                BoolArray(a) => write!(f, "BoolArray({a:?})"),
+                CharArray(a) => write!(f, "CharArray({a:?})"),
+                IntArray(a) => write!(f, "IntArray({a:?})"),
+                ExtIntArray(a) => write!(f, "ExtIntArray({a:?})"),
+                RationalArray(a) => write!(f, "RationalArray({a:?})"),
+                FloatArray(a) => write!(f, "FloatArray({a:?})"),
+                ComplexArray(a) => write!(f, "ComplexArray({a:?})"),
+                BoxArray(a) => write!(f, "BoxArray({a:?})"),
+            }
+        } else {
+            match self {
+                BoolArray(a) => write!(f, "BoolArray({a})"),
+                CharArray(a) => write!(f, "CharArray({a})"),
+                IntArray(a) => write!(f, "IntArray({a})"),
+                ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
+                RationalArray(a) => write!(f, "RationalArray({a})"),
+                FloatArray(a) => write!(f, "FloatArray({a})"),
+                ComplexArray(a) => write!(f, "ComplexArray({a})"),
+                BoxArray(a) => write!(f, "BoxArray({a:?})"),
+            }
         }
     }
 }
 
 impl PartialEq for JArray {
     fn eq(&self, other: &Self) -> bool {
-        if self.shape() != other.shape() || self.len() != other.len() {
+        if self.shape() != other.shape() || self.len_of_0() != other.len_of_0() {
             return false;
         }
 
@@ -67,6 +94,21 @@ macro_rules! impl_array {
             JArray::FloatArray(a) => $func(a),
             JArray::ComplexArray(a) => $func(a),
             JArray::BoxArray(a) => $func(a),
+        }
+    };
+}
+
+macro_rules! map_array {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray(a) => JArray::BoolArray($func(a)),
+            JArray::CharArray(a) => JArray::CharArray($func(a)),
+            JArray::IntArray(a) => JArray::IntArray($func(a)),
+            JArray::ExtIntArray(a) => JArray::ExtIntArray($func(a)),
+            JArray::RationalArray(a) => JArray::RationalArray($func(a)),
+            JArray::FloatArray(a) => JArray::FloatArray($func(a)),
+            JArray::ComplexArray(a) => JArray::ComplexArray($func(a)),
+            JArray::BoxArray(a) => JArray::BoxArray($func(a)),
         }
     };
 }
@@ -99,12 +141,24 @@ impl JArray {
         JArray::BoolArray(arr0d(0))
     }
 
+    /// does the array contain zero elements, regardless of shape
     pub fn is_empty(&self) -> bool {
         impl_array!(self, |a: &ArrayBase<_, _>| { a.is_empty() })
     }
 
+    #[deprecated = "different from ndarray: returns len_of_0(), not tally()"]
     pub fn len(&self) -> usize {
+        self.len_of_0()
+    }
+
+    /// the length of the outermost axis, the length of `outer_iter`.
+    pub fn len_of_0(&self) -> usize {
         impl_array!(self, len_of_0)
+    }
+
+    /// the number of elements in the array; the product of the shape (1 for atoms)
+    pub fn tally(&self) -> usize {
+        impl_array!(self, ArrayBase::len)
     }
 
     pub fn len_of(&self, axis: Axis) -> usize {
@@ -144,6 +198,23 @@ impl JArray {
 
     pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
         impl_array!(self, |a: ArrayBase<_, _>| Ok(a.into_shape(shape)?.into()))
+    }
+
+    pub fn create_cleared(&self) -> JArray {
+        let empty_first = |shape: &[usize]| -> Vec<usize> {
+            if shape.is_empty() {
+                vec![0]
+            } else {
+                let mut shape = shape.to_vec();
+                shape[0] = 0;
+                shape
+            }
+        };
+        map_array!(self, |a: &ArrayBase<_, _>| ArrayD::from_shape_vec(
+            empty_first(a.shape()),
+            Vec::new()
+        )
+        .expect("static shape"))
     }
 
     pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
@@ -203,11 +274,7 @@ impl JArray {
             impl_array!(self, |x: &ArrayBase<_, _>| x
                 .exact_chunks(IxDyn(&iter_shape))
                 .into_iter()
-                .map(|x| x
-                    .into_shape(surplus.clone())
-                    .unwrap()
-                    .into_owned()
-                    .into_jarray())
+                .map(|x| x.into_shape(surplus.clone()).unwrap().into_owned().into())
                 .collect())
         }
     }
@@ -231,7 +298,7 @@ impl JArray {
     }
 
     pub fn single_elem(&self) -> Option<Elem> {
-        if self.len() != 1 {
+        if self.len_of_0() != 1 {
             return None;
         }
         Some(
@@ -244,12 +311,195 @@ impl JArray {
     }
 
     pub fn single_math_num(&self) -> Option<Num> {
-        if self.len() != 1 {
+        if self.tally() != 1 {
             return None;
         }
         self.clone()
             .into_nums()
             .map(|v| v.into_iter().next().expect("checked"))
+    }
+
+    pub fn approx_i64_list(&self) -> Result<Vec<i64>> {
+        if self.is_empty() {
+            return Ok(Vec::new());
+        }
+        if self.shape().len() > 1 {
+            return Err(JError::DomainError).context("non-list in list context");
+        }
+
+        self.clone()
+            .into_nums()
+            .ok_or(JError::DomainError)
+            .context("expected a list of integers, found non-numbers")?
+            .into_iter()
+            .map(|x| x.value_i64())
+            .collect::<Option<Vec<i64>>>()
+            .ok_or(JError::DomainError)
+            .context("expected a list of integers, found non-integers")
+    }
+
+    pub fn approx_usize_list(&self) -> Result<Vec<usize>> {
+        self.approx_i64_list()?
+            .into_iter()
+            .map(usize_or_domain_err)
+            .collect()
+    }
+
+    pub fn approx_i64_one(&self) -> Result<i64> {
+        let tally = self.tally();
+        if tally != 1 {
+            return Err(JError::DomainError)
+                .with_context(|| anyhow!("expected a single integer, found {tally} items"));
+        }
+
+        self.single_math_num()
+            .and_then(|num| num.value_i64())
+            .ok_or(JError::DomainError)
+            .context("expected integers, found non-integers")
+    }
+
+    pub fn approx_usize_one(&self) -> Result<usize> {
+        self.approx_i64_one().and_then(usize_or_domain_err)
+    }
+
+    pub fn when_string(&self) -> Option<String> {
+        if self.shape().len() > 1 {
+            return None;
+        }
+        Some(self.when_char()?.into_iter().collect())
+    }
+}
+
+fn usize_or_domain_err(v: i64) -> Result<usize> {
+    usize::try_from(v)
+        .map_err(|_| JError::DomainError)
+        .context("unexpectedly negative")
+}
+
+impl JArray {
+    /// For any of our plain data types (`i64`, `f64`, `char`, `Complex64`, ..), produce a list of plain data.
+    ///
+    /// This operation is cheap. [`JArray::into_shape`] on the result is cheap.
+    ///
+    /// This will not touch nested JArrays, and will form a `BoxArray`.
+    ///
+    /// This will always return a list, including an empty list, and never an atom.
+    ///
+    /// If you have mixed or multi-dimensional data, consider [`JArray::from_fill_promote`].
+    ///
+    /// ### Examples
+    /// ```
+    /// # use itertools::Itertools;
+    /// # use ndarray::{array, ArrayD, IxDyn};
+    /// # use jr::{arr0d, JArray};
+    /// assert_eq!(
+    ///     JArray::from_list([5i64, 6, 7]),
+    ///     JArray::IntArray(array![5, 6, 7].into_dyn()),
+    /// );
+    ///
+    /// assert_eq!(
+    ///     JArray::from_list(Vec::<i64>::new()),
+    ///     JArray::IntArray(ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")),
+    /// );
+    ///
+    /// // construct a box array
+    /// let items = [
+    ///     JArray::from(arr0d(6.3)),
+    ///     JArray::from_list([5i64, 6, 7]),
+    ///   ];
+    /// assert_eq!(
+    ///    JArray::from_list(items),
+    ///    JArray::BoxArray(array![
+    ///       JArray::from(arr0d(6.3)),
+    ///       JArray::from_list([5i64, 6, 7]),
+    ///     ].into_dyn()),
+    ///   );
+    /// ```
+    pub fn from_list<T>(v: impl IntoVec<T>) -> JArray
+    where
+        JArray: From<ArrayD<T>>,
+    {
+        JArray::from(v.into_array())
+    }
+
+    /// Lay out a list of `JArray`s as components in a bigger array.
+    ///
+    /// This "unboxes" the input, it is performing: `> (<1 2 3), (<3)` -> `2 3 $ 1 2 3 4 0 0`:
+    /// ```text
+    ///    > (<1 2 3), (<3)
+    /// 1 2 3
+    /// 4 0 0
+    /// ```
+    ///
+    /// The input list represents the outer dimension, the returned `shape()` will
+    /// always start with the len() of the input.
+    ///
+    /// This operation is *not* cheap, if you have plain data, please use [`JArray::from_list`].
+    ///
+    /// If you want to construct a box array, use [`JArray::from_list`] on the `Vec<JArray>` directly.
+    ///
+    /// This is multiple phases:
+    /// Takes multiple arrays,
+    /// fills them out to the same size,
+    /// promotes them to the same type,
+    /// and adds a dimension to represent the outer iterator
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// # use itertools::Itertools;
+    /// use ndarray::{array, ArrayD};
+    /// # use jr::{arr0d, IntoVec, JArray};
+    /// # fn atom<T>(v: T) -> JArray where JArray: From<ArrayD<T>> { JArray::from(arr0d(v)) }
+    /// # fn list<T: Clone>(v: &[T]) -> JArray where JArray: From<ArrayD<T>> { JArray::from_list(v.to_vec()) }
+    /// let items = [atom(5i64), list(&[2i64, 3, 4])];
+    /// let outer_dimension = items.len();
+    /// let fpl = JArray::from_fill_promote(items).unwrap();
+    /// assert_eq!(fpl.shape()[0], outer_dimension);
+    /// assert_eq!(fpl.shape(), &[2, 3]);
+    /// assert_eq!(
+    ///     fpl,
+    ///     JArray::IntArray(array![
+    ///         // the atom and its fill
+    ///         [5, 0, 0],
+    ///         // the list, which has forced the shape of the 'inner' array
+    ///         [2, 3, 4],
+    ///     ].into_dyn())
+    /// );
+    ///
+    ///
+    /// let items = [atom(6.3), atom(5i64)];
+    /// let outer_dimension = items.len();
+    /// let fpl = JArray::from_fill_promote(items).unwrap();
+    /// assert_eq!(fpl.shape()[0], outer_dimension);
+    /// assert_eq!(fpl.shape(), &[2]);
+    /// assert_eq!(
+    ///     fpl,
+    ///     JArray::FloatArray(array![
+    ///         // note, no inner array, the atoms are expanded in-place
+    ///         6.3,
+    ///         // the 5i64 has been promoted to a 5.0f64
+    ///         5.0,
+    ///     ].into_dyn())
+    /// );
+    /// ```
+    pub fn from_fill_promote(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
+        fill_promote_list(items)
+    }
+
+    /// Produce a 1D char array from a Rust String-like
+    ///
+    /// ### Examples
+    ///
+    /// ```
+    /// # use ndarray::array;
+    /// # use jr::JArray;
+    /// assert_eq!(
+    ///     JArray::from_string("hello"),
+    ///     JArray::CharArray(array!['h', 'e', 'l', 'l', 'o'].into_dyn()),
+    /// );
+    pub fn from_string(s: impl AsRef<str>) -> JArray {
+        JArray::from_list(s.as_ref().chars().collect_vec())
     }
 }
 
@@ -373,38 +623,6 @@ impl fmt::Display for JArray {
         }
     }
 }
-
-pub trait IntoJArray {
-    fn into_jarray(self) -> JArray;
-    fn into_noun(self) -> Word
-    where
-        Self: Sized,
-    {
-        Word::Noun(self.into_jarray())
-    }
-}
-
-macro_rules! impl_into_jarray {
-    ($t:ty, $j:path) => {
-        impl IntoJArray for $t {
-            /// free for ArrayD<>, clones for unowned CowArrayD<>
-            fn into_jarray(self) -> JArray {
-                $j(self.into_owned())
-            }
-        }
-    };
-}
-
-// these also cover the CowArrayD<> conversions because both are just aliases
-// for ArrayBase<T> and the compiler lets us get away without lifetimes for some reason.
-impl_into_jarray!(ArrayD<u8>, JArray::BoolArray);
-impl_into_jarray!(ArrayD<char>, JArray::CharArray);
-impl_into_jarray!(ArrayD<i64>, JArray::IntArray);
-impl_into_jarray!(ArrayD<BigInt>, JArray::ExtIntArray);
-impl_into_jarray!(ArrayD<BigRational>, JArray::RationalArray);
-impl_into_jarray!(ArrayD<f64>, JArray::FloatArray);
-impl_into_jarray!(ArrayD<Complex64>, JArray::ComplexArray);
-impl_into_jarray!(ArrayD<JArray>, JArray::BoxArray);
 
 macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {

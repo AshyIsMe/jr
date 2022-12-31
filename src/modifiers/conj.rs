@@ -6,13 +6,13 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::{map_result, Arrayable, BoxArray, JArrays};
-use crate::cells::{apply_cells, monad_cells};
+use crate::arrays::JArrays;
+use crate::cells::{apply_cells, fill_promote_list, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
-use crate::{flatten, reduce_arrays, HasEmpty, JArray, JError, Word};
+use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
 
@@ -186,13 +186,7 @@ pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -
     use Word::*;
 
     let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
-    let v = v
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("agenda's index must be numeric")?
-        .value_len()
-        .ok_or(JError::DomainError)
-        .context("agenda's index must be a len")?;
+    let v = v.approx_i64_one().context("agenda's v")?;
 
     // TODO: complete hack, only handling a tiny case
     if v != 0 && v != 1 {
@@ -222,11 +216,15 @@ pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -
 pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
-            let r = map_result(r, |a| u.exec(ctx, None, &Word::Noun(a.clone())))
-                .context("left half of c_at")?;
+            let mut r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
+            // surely this private field access indicates a design problem of some kind
+            r.1 =
+                r.1.into_iter()
+                    .map(|a| u.exec(ctx, None, &Word::Noun(a.clone())))
+                    .collect::<Result<Vec<_>>>()
+                    .context("left half of c_at")?;
             Ok(Word::Noun(
-                flatten(&r).context("expanding result of c_atop")?,
+                fill_promote_reshape(&r).context("expanding result of c_atop")?,
             ))
         }
         _ => Err(JError::DomainError)
@@ -239,7 +237,7 @@ pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Re
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
             let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-            let r = flatten(&r).context("expanding result of c_atop")?;
+            let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
             u.exec(ctx, None, &Word::Noun(r))
                 .context("left half of c_at")
                 .map(Word::Noun)
@@ -273,10 +271,9 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 match x {
                     None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
                     Some(x) => {
-                        // TODO: wrong, this should be a sub-context
-                        let mut ctx = ctx.clone();
-                        ctx.alias("x", x.clone());
-                        ctx.alias("y", y.clone());
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut().locales.assign_local("x", x.clone())?;
+                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
                         let mut words =
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
                         if !resolve_controls(&mut words)? {
@@ -291,8 +288,8 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                 match x {
                     None => {
                         // TODO: wrong, this should be a sub-context
-                        let mut ctx = ctx.clone();
-                        ctx.alias("y", y.clone());
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
                         let mut words =
                             crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
                         if !resolve_controls(&mut words)? {
@@ -329,20 +326,10 @@ pub fn c_assign_adverse(
     }
 }
 
-fn empty_box_array() -> BoxArray {
-    ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")
-}
-
 pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
-    let m = m
-        .single_math_num()
-        .ok_or(JError::DomainError)
-        .context("mathematical modes")?
-        .value_i64()
-        .ok_or(JError::DomainError)
-        .context("integer modes")?;
+    let m = m.approx_i64_one().context("cut's m")?;
 
     match (x, n, y) {
         (None, Verb(_, v), Noun(y)) => {
@@ -354,33 +341,27 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             }
 
             let key = &parts[parts.len() - 1];
-            let mut stack = empty_box_array();
-            let mut out = empty_box_array();
+            let mut stack = Vec::new();
+            let mut out = Vec::new();
             for part in &parts {
                 if part == key {
                     // copy-paste of below
                     let arg = if stack.is_empty() {
-                        JArray::BoxArray(empty_box_array())
+                        JArray::empty()
                     } else {
-                        flatten(&stack).context("flattening intermediate")?
+                        JArray::from_fill_promote(stack).context("flattening intermediate")?
                     };
                     out.push(
-                        Axis(0),
-                        arr0d(
-                            v.exec(ctx, None, &Noun(arg))
-                                .context("evaluating intermediate")?,
-                        )
-                        .view(),
-                    )?;
-                    stack = empty_box_array();
+                        v.exec(ctx, None, &Noun(arg))
+                            .context("evaluating intermediate")?,
+                    );
+                    stack = Vec::new();
                 } else {
-                    stack
-                        .push(Axis(0), arr0d(part.to_owned()).view())
-                        .context("push")?;
+                    stack.push(part.to_owned())
                 }
             }
 
-            flatten(&out).map(Noun)
+            JArray::from_fill_promote(out).map(Noun)
         }
         (Some(Noun(JArray::BoolArray(x))), Verb(_, v), Noun(y)) if x.shape().len() == 1 => {
             let is_end = match m {
@@ -398,32 +379,28 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
             if !is_end {
                 return Err(JError::NonceError).context("only end mode supported right now");
             }
-            let mut stack = empty_box_array();
-            let mut out = empty_box_array();
+            let mut stack = Vec::new();
+            let mut out = Vec::new();
             for (&x, part) in x.iter().zip(y.outer_iter()) {
                 if is_inclusive || x == 0 {
-                    stack.push(Axis(0), arr0d(part.into_owned()).view())?;
+                    stack.push(part.into_owned());
                 }
                 if x != 1 {
                     continue;
                 }
                 // copy-paste of above
                 let arg = if stack.is_empty() {
-                    JArray::BoxArray(empty_box_array())
+                    JArray::empty()
                 } else {
-                    flatten(&stack).context("flattening intermediate")?
+                    fill_promote_list(stack).context("flattening intermediate")?
                 };
                 out.push(
-                    Axis(0),
-                    arr0d(
-                        v.exec(ctx, None, &Noun(arg))
-                            .context("evaluating intermediate")?,
-                    )
-                    .view(),
-                )?;
-                stack = empty_box_array();
+                    v.exec(ctx, None, &Noun(arg))
+                        .context("evaluating intermediate")?,
+                );
+                stack = Vec::new();
             }
-            flatten(&out).map(Noun)
+            fill_promote_list(out).map(Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} {m:?} {y:?}")),
     }
@@ -432,16 +409,8 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
 pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
     match (n, m) {
         (Word::Noun(n), Word::Noun(m)) => {
-            let n = n
-                .single_math_num()
-                .and_then(|n| n.value_len())
-                .ok_or(JError::DomainError)
-                .context("left foreign takes numerics")?;
-            let m = m
-                .single_math_num()
-                .and_then(|m| m.value_len())
-                .ok_or(JError::DomainError)
-                .context("right foreign takes numerics")?;
+            let n = n.approx_i64_one().context("foreign's left")?;
+            let m = m.approx_i64_one().context("foreign's right")?;
             foreign(ctx, n, m, x, y)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
@@ -487,7 +456,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                     .context("under dual vi")?;
                 parts.push(vi);
             }
-            flatten(&parts.into_array()?)?
+            JArray::from_fill_promote(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)
@@ -518,7 +487,7 @@ pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
                 },
                 vr,
             )?;
-            flatten(&parts.into_array()?)?
+            JArray::from_fill_promote(parts)?
                 .to_shape(frame)
                 .map(|cow| cow.to_owned())
                 .map(Word::Noun)

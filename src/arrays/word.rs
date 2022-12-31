@@ -6,7 +6,6 @@ use std::fmt;
 use anyhow::Result;
 use ndarray::prelude::*;
 
-use super::{Arrayable, IntoJArray};
 use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
 use crate::{impl_array, primitive_verbs, JArray, JError};
@@ -51,13 +50,6 @@ pub enum Word {
 }
 
 impl Word {
-    pub fn noun<T>(v: impl Arrayable<T>) -> Result<Word>
-    where
-        ArrayD<T>: IntoJArray,
-    {
-        Ok(Word::Noun(v.into_array()?.into_jarray()))
-    }
-
     /// primarily intended for asserts, hence the "static", and the PANIC on invalid input
     pub fn static_verb(v: &'static str) -> Word {
         Word::Verb(
@@ -94,7 +86,7 @@ impl Word {
         }
         Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
             .outer_iter()
-            .map(|a| Word::Noun(a.into_owned().into_jarray()))
+            .map(|a| Word::Noun(a.into_owned().into()))
             .collect()))
     }
 }

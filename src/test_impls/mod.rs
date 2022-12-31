@@ -44,7 +44,7 @@ fn run_j_inner(expr: &str) -> Result<String> {
 }
 
 pub fn scan_eval(sentence: &str) -> Result<Word> {
-    let mut ctx = Ctx::empty();
+    let mut ctx = Ctx::root();
     // always overwritten?
     let mut last = EvalOutput::Regular(Word::StartOfLine);
     for line in sentence.trim().split('\n') {
@@ -90,5 +90,5 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
         return Ok(());
     }
 
-    Err(anyhow!("incorrect data, we got:\n{arr:?}\n\nThey expect:\n{them:?}\n\njsoft would render this like this:\n{rendered}"))
+    Err(anyhow!("incorrect data, we got:\n{arr:#?}\n\nThey expect:\n{them:#?}\n\njsoft would render this like this:\n{rendered}"))
 }

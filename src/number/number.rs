@@ -78,7 +78,7 @@ impl Num {
         }
     }
 
-    /// the `i64` in the value, regardless of typ
+    /// the `i64` in the value, regardless of type
     pub fn value_i64(&self) -> Option<i64> {
         use Num::*;
         match self {
@@ -171,7 +171,7 @@ impl_from_atom!(Complex64, Num::Complex);
 #[inline]
 fn to_f64_panic(v: impl ToPrimitive) -> f64 {
     v.to_f64()
-        .expect("float conversion is infalliable on supported types")
+        .expect("float conversion is infallible on supported types")
 }
 
 #[inline]

@@ -358,6 +358,9 @@ $;._2 (1 2 0 0 1 0)
 0 0 1 0 1 1 0 ,;.2 i. 7
 0 0 1 0 1 1 0 ,;._2 i. 7
 
+NB. shape
+2 0 $ <''
+
 NB. nub
 ~. (3 3 $ 1 2 3 1 2 3 4 5 6)
 ~. 2 3 4 3 2 5 4 1
@@ -382,6 +385,10 @@ NB. do
 ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
+
+NB. format
+": 5
+": 17.7
 
 NB. agenda
 5 (+`-@.1) 2
@@ -450,14 +457,26 @@ NB. foreign
 3!:3 ] 2
 3!:3 ] 2 4 7 _2
 2 (3!:4) 97
+
+NB. name list
+{{ 4!:1 [ 0 1 2 3 [ a =. 4 5 6 [ b =. 7 8 9 }} ''
+NB. jsoft bug, apparently nothing starts with an empty string: {{ '' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+{{ 'a' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+{{ 'ab' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+
+NB. platform information
 NB. platform dependent actual result
 $ 9!:12 ''
+
+NB. agreement / empty
+{{ 3 4 5 }}"1 (0 5 $ 0)
+{."1 (0 1 $ 0)
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
 
 NB. AoC
-><;._2 (0".><;._2 ('1000',LF,'2000',LF,'3000',LF,LF,'4000',LF,LF,'5000',LF,'6000',LF,LF,'7000',LF,'8000',LF,'9000',LF,LF,'10000',LF,LF))
+><;._2 (0".><;._2 ('1000',' ','2000',' ','3000',' ',' ','4000',' ',' ','5000',' ','6000',' ',' ','7000',' ','8000',' ','9000',' ',' ','10000',' ',' '))
 >./ +/ "1 >        ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 >./ +/ &>          ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
 +/ 3 {. \:~ +/ &>  ". '1000 2000 3000;4000;5000 6000;7000 8000 9000;10000'
@@ -480,4 +499,5 @@ NB. empty should be fine
 }. 0$0
 {. 0$0
 (0$0) }. 1 2 3
+NB. weird special case in from, who knows
 (0$0) { 1 2 3

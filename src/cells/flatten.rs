@@ -5,28 +5,35 @@ use anyhow::{Context, Result};
 use itertools::Itertools;
 use num_traits::Zero;
 
-use crate::arrays::{BoxArray, JArrayCow};
-use crate::number::{promote_to_array, Num};
-use crate::{Arrayable, Elem, HasEmpty, JArray, JError};
+use crate::arrays::JArrayCow;
+use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
+use crate::verbs::VerbResult;
+use crate::{Elem, JArray, JError};
 
-pub fn flatten_partial(chunk: &[JArrayCow]) -> Result<JArray> {
-    flatten(
-        &chunk
-            .iter()
-            .map(|arr| arr.to_owned())
-            .collect_vec()
-            .into_array()?,
-    )
+/// See [`JArray::from_fill_promote`].
+pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
+    let vec = items.into_iter().collect_vec();
+    fill_promote_reshape(&(vec![vec.len()], vec))
 }
 
-pub fn flatten(results: &BoxArray) -> Result<JArray> {
-    if results.is_empty() {
-        return Ok(JArray::empty()
-            .into_shape(results.shape())
-            .context("empty flatten shortcut")?);
-    }
+/// [`fill_promote_list`] helper which takes the `Cow` version of our array.
+pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
+    fill_promote_list(chunk.iter().map(|arr| arr.to_owned()))
+}
 
-    let max_rank = results
+// concat_promo_fill(&[JArrayCow]) -> JArray
+// concat_promo_fill(x).shape()[0] == x.len()
+// fn flatten_reshaping(prefix: Shape, l: &[JArrayCow]) {
+//   let cpf = concat_promo_fill(l)?;
+//   let s = concat_promo_fill(l)?.shape();
+//   s.remove(0);
+//   s.unshift(prefix);
+//   cpf.into_shape(s)
+// }
+/// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
+/// with the input, which is what the agreement internals want, but probably isn't what you want.
+pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
+    let max_rank = data
         .iter()
         .map(|x| x.shape().len())
         .max()
@@ -34,7 +41,10 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         .context("non-empty macrocells")?;
 
     // rank extend every child
-    let results = results.map(|arr| rank_extend(max_rank, arr));
+    let results = data
+        .into_iter()
+        .map(|arr| rank_extend(max_rank, arr))
+        .collect_vec();
 
     // max each dimension
     let target_inner_shape = results
@@ -53,12 +63,13 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         .to_vec();
 
     // common_frame + surplus_frame + max(all results)
-    let target_shape = results
-        .shape()
+    let target_shape = frame
         .iter()
         .chain(target_inner_shape.iter())
         .copied()
         .collect_vec();
+
+    let kind = infer_kind_from_boxes(&results);
 
     // flatten
     let mut big_daddy: Vec<Elem> = Vec::new();
@@ -73,11 +84,13 @@ pub fn flatten(results: &BoxArray) -> Result<JArray> {
         push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
     }
 
-    let nums = promote_to_array(big_daddy).context("flattening promotion")?;
-    Ok(nums
-        .to_shape(target_shape)
-        .context("flattening output shape")?
-        .into_owned())
+    if target_shape.iter().any(|dim| 0 == *dim) {
+        big_daddy.clear();
+    }
+    elems_to_jarray(kind, big_daddy)
+        .context("flattening promotion")?
+        .into_shape(target_shape)
+        .context("flattening output shape")
 }
 
 fn rank_extend(target: usize, arr: &JArray) -> JArray {
