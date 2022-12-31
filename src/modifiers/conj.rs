@@ -386,40 +386,44 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
     JArray::from_fill_promote(out).map(Noun)
 }
 
-fn cut_frets(frets: &[usize], is_inclusive: bool, is_end: bool) -> Vec<(usize, usize)> {
-    match (is_inclusive, is_end) {
-        (true, true) => iter::once(0)
+fn cut_frets(
+    frets: &[usize],
+    is_inclusive: bool,
+    is_end: bool,
+) -> Box<dyn Iterator<Item = (usize, usize)> + '_> {
+    if is_end {
+        let it = iter::once(0)
             .chain(frets.iter().map(|x| *x + 1))
-            .tuple_windows()
-            .collect(),
-        (false, true) => iter::once(0)
-            .chain(frets.iter().map(|x| *x + 1))
-            .tuple_windows()
-            .map(|(s, e)| (s, e - 1))
-            .collect(),
-        (true, false) => frets.iter().copied().tuple_windows().collect(),
-        (false, false) => frets
-            .iter()
-            .copied()
-            .tuple_windows()
-            .map(|(s, e)| (s + 1, e))
-            .collect(),
+            .tuple_windows();
+        if is_inclusive {
+            Box::new(it)
+        } else {
+            Box::new(it.map(|(s, e)| (s, e - 1)))
+        }
+    } else {
+        let it = frets.iter().copied().tuple_windows();
+        if is_inclusive {
+            Box::new(it)
+        } else {
+            Box::new(it.map(|(s, e)| (s + 1, e)))
+        }
     }
 }
 
 #[cfg(test)]
 mod test_cut {
     use super::cut_frets;
+    use itertools::Itertools;
 
     #[test]
     fn test_cut_inc_end() {
         assert_eq!(
-            cut_frets(&[0, 3, 4, 6], true, true),
+            cut_frets(&[0, 3, 4, 6], true, true).collect_vec(),
             vec![(0, 1), (1, 4), (4, 5), (5, 7)]
         );
 
         assert_eq!(
-            cut_frets(&[3, 4, 6], true, true),
+            cut_frets(&[3, 4, 6], true, true).collect_vec(),
             vec![(0, 4), (4, 5), (5, 7)]
         );
     }
@@ -427,12 +431,12 @@ mod test_cut {
     #[test]
     fn test_cut_exc_end() {
         assert_eq!(
-            cut_frets(&[0, 3, 4, 6], false, true),
+            cut_frets(&[0, 3, 4, 6], false, true).collect_vec(),
             vec![(0, 0), (1, 3), (4, 4), (5, 6)]
         );
 
         assert_eq!(
-            cut_frets(&[3, 4, 6], false, true),
+            cut_frets(&[3, 4, 6], false, true).collect_vec(),
             vec![(0, 3), (4, 4), (5, 6)]
         );
     }
@@ -440,12 +444,12 @@ mod test_cut {
     #[test]
     fn test_cut_inc_start() {
         assert_eq!(
-            cut_frets(&[0, 3, 4, 6, 7], true, false),
+            cut_frets(&[0, 3, 4, 6, 7], true, false).collect_vec(),
             vec![(0, 3), (3, 4), (4, 6), (6, 7)]
         );
 
         assert_eq!(
-            cut_frets(&[0, 3, 4, 6], true, false),
+            cut_frets(&[0, 3, 4, 6], true, false).collect_vec(),
             vec![(0, 3), (3, 4), (4, 6)]
         );
     }
