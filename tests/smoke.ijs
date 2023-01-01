@@ -75,6 +75,11 @@ NB. less than
 5 < 37r2
 NB. domain error: 5.1 < 6j3
 
+NB. less than or equal
+1 <: 3
+1 2 3 <: 4 5 6
+4 5 6 <: 1 2 3
+
 NB. floor
 <. 4.6 4 _4 _4.6
 3 <. 4 _4
