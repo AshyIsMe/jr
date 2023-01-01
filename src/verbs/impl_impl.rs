@@ -136,7 +136,7 @@ impl VerbImpl {
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
                     exec_dyad_inner(dyad.f, dyad.rank, x, y)
-                        .with_context(|| anyhow!("x: {y:?}"))
+                        .with_context(|| anyhow!("x: {x:?}"))
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }

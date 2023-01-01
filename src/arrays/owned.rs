@@ -59,7 +59,11 @@ impl fmt::Debug for JArray {
         } else {
             match self {
                 BoolArray(a) => write!(f, "BoolArray({a})"),
-                CharArray(a) => write!(f, "CharArray({a})"),
+                CharArray(a) => if a.shape().len() <= 1 {
+                    write!(f, "CharArray({:?})", a.iter().collect::<String>())
+                } else {
+                    write!(f, "CharArray({a})")
+                },
                 IntArray(a) => write!(f, "IntArray({a})"),
                 ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
                 RationalArray(a) => write!(f, "RationalArray({a})"),
