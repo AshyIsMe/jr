@@ -482,6 +482,10 @@ NB. jsoft bug, apparently nothing starts with an empty string: {{ '' 4!:1 [ 0 [ 
 {{ 'a' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
 {{ 'ab' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
 
+NB. name erase
+4!:55 <'a'
+4!:55 'a';'b'
+
 NB. platform information
 NB. platform dependent actual result
 $ 9!:12 ''

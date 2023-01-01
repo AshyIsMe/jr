@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
-use crate::foreign::files::arg_to_string;
+use crate::foreign::files::{arg_to_string, arg_to_string_list};
 use crate::{arr0d, Ctx, JArray, JError, Word};
 
 // 4!:0
@@ -78,9 +78,15 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
 // 4!:55
 pub fn f_name_erase(ctx: &mut Ctx, y: &Word) -> Result<Word> {
     let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::DomainError).context("boxed name please"); };
-    let name = arg_to_string(y)?;
-    let ret = ctx.eval_mut().locales.erase(&name).is_ok();
-    Ok(Word::Noun(JArray::from(arr0d(ret as u8))))
+    let mut ret = Vec::new();
+    for name in arg_to_string_list(y)? {
+        ret.push(ctx.eval_mut().locales.erase(&name).is_ok() as u8);
+    }
+    Ok(Word::Noun(if ret.len() == 1 {
+        JArray::BoolArray(arr0d(ret[0]))
+    } else {
+        JArray::from_list(ret)
+    }))
 }
 
 fn name_code(w: &Word) -> Option<i64> {

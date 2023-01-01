@@ -1315,6 +1315,16 @@ output = '1 1 1'
 encoded = 'e3,01,03,01,03,010101'
 
 [[runs]]
+expr = "4!:55 'a';'b'"
+output = '1 1'
+encoded = 'e3,01,02,01,02,0101'
+
+[[runs]]
+expr = "4!:55 <'a'"
+output = '1'
+encoded = 'e3,01,01,,01'
+
+[[runs]]
 expr = '5 (+`-@.0) 2'
 output = '7'
 encoded = 'e3,04,01,,07'
