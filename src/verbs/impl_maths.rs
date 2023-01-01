@@ -114,8 +114,13 @@ pub fn v_increment(y: &JArray) -> Result<JArray> {
 }
 
 /// >: (dyad)
-pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_larger_or_equal(x: &JArray, y: &JArray) -> Result<JArray> {
+    d00erb(x, y, |x, y| match x.partial_cmp(&y) {
+        Some(Ordering::Greater) => Ok(true),
+        Some(Ordering::Equal) => Ok(true),
+        None => Err(JError::DomainError).context("non-comparable number"),
+        _ => Ok(false),
+    })
 }
 
 /// + (monad)

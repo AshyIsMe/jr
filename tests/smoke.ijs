@@ -99,6 +99,11 @@ NB. box
 NB. larger than
 1 2 3 4 5  >  5 4 3 2 1
 
+NB. larger than or equal
+2 >: 1
+4 5 6 >: 1 2 3
+1 2 3 >: 4 5 6
+
 NB. ceil
 >. 4.6 4 _4 _4.6
 3>.4 _4
