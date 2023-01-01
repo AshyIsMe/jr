@@ -100,7 +100,7 @@ impl fmt::Display for Word {
             Word::Conjunction(sc, _) => write!(f, "{}", sc),
             Word::Nothing => Ok(()),
             //_ => write!(f, "{:+}", self),
-            _ => todo!("Display for Word {:?}", self),
+            _ => write!(f, "XXX TODO: unable to Display Word::{:?}", self),
         }
     }
 }

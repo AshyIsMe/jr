@@ -319,7 +319,19 @@ pub fn v_curtail(y: &JArray) -> Result<JArray> {
 
 /// {:: (dyad)
 pub fn v_fetch(x: &JArray, y: &JArray) -> Result<JArray> {
-    let x = x.approx_usize_list()?;
+    if !x.shape().is_empty() {
+        return Err(JError::NonceError).context("only atomic x (please box lists)");
+    }
+    let x = match x {
+        // an atomic box containing a list of integers
+        JArray::BoxArray(b) => b
+            .iter()
+            .next()
+            .expect("just checked: atomic")
+            .approx_usize_list()?,
+        // a list of integers of length 1
+        _ => vec![x.approx_usize_list()?[0]],
+    };
 
     let mut here = y.clone();
     for x in x {
