@@ -520,9 +520,7 @@ pub fn resolve_names(
         match w {
             IsGlobal => break,
             IsLocal => break,
-            Name(ref n) => {
-                resolved_words.push(ctx.eval().locales.lookup(n)?.unwrap_or(&fragment.0).clone())
-            }
+            Name(ref n) => resolved_words.push(ctx.eval().locales.lookup(n)?.unwrap_or(w).clone()),
             _ => resolved_words.push(w.clone()),
         }
     }

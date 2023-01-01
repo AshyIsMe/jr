@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
+use crate::ctx::Names;
 use crate::foreign::files::{arg_to_string, arg_to_string_list};
 use crate::{arr0d, Ctx, JArray, JError, Word};
 
@@ -47,22 +48,26 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
         }
     }
 
-    // TODO: Current locale only.
-    // TODO: Locale specific filtering: nl_z_ i. 4
-    let mut names: Vec<String> = ctx
-        .eval()
-        .locales
+    let locales = &ctx.eval().locales;
+    let mut names: Vec<String> = locales
         .anon
+        .last()
+        .expect("there's always an anonymous locale")
+        .0
         .iter()
-        .chain(ctx.eval().locales.inner.values())
-        .flat_map(|n| {
-            n.0.iter()
-                .filter(|(k, _v)| x.as_ref().map(|x| k.starts_with(x)).unwrap_or(true))
-                .filter(|(_k, v)| {
-                    name_code(v)
-                        .map(|code| y.contains(&code))
-                        .unwrap_or_default()
-                })
+        .chain(
+            locales
+                .inner
+                .get(locales.current.as_str())
+                .unwrap_or(&Names::default())
+                .0
+                .iter(),
+        )
+        .filter(|(k, _v)| x.as_ref().map(|x| k.starts_with(x)).unwrap_or(true))
+        .filter(|(_k, v)| {
+            name_code(v)
+                .map(|code| y.contains(&code))
+                .unwrap_or_default()
         })
         .map(|(k, _v)| k.to_string())
         .collect();

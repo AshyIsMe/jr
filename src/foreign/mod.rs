@@ -2,6 +2,7 @@ mod conversion;
 mod files;
 mod global_param;
 mod host;
+mod locales;
 mod names;
 mod scripts;
 
@@ -14,6 +15,7 @@ use conversion::*;
 use files::*;
 use global_param::*;
 use host::*;
+use locales::*;
 use names::*;
 use scripts::*;
 
@@ -23,6 +25,7 @@ pub fn foreign(ctx: &mut Ctx, l: i64, r: i64, x: Option<&Word>, y: &Word) -> Res
         Err(JError::NonceError).with_context(|| anyhow!("unsupported {name} foreign: {l}!:{r}"))
     };
 
+    #[allow(unused)]
     let stub = |name: &'static str| -> Result<Word> {
         warn!("stubbed out foreign {l}!:{r}: {name}");
         Ok(Word::Noun(JArray::empty()))
@@ -50,7 +53,7 @@ pub fn foreign(ctx: &mut Ctx, l: i64, r: i64, x: Option<&Word>, y: &Word) -> Res
         (9, _) => unsupported("global param"),
         (13, _) => unsupported("debug"),
         (15, _) => unsupported("dll"),
-        (18, 4) => stub("set locales"),
+        (18, 4) => f_locales_set(ctx, y),
         (18, _) => unsupported("locales"),
         (128, _) => unsupported("misc"),
         _ => unsupported("major"),

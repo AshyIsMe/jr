@@ -3,9 +3,12 @@ mod locales;
 use anyhow::{ensure, Context, Result};
 use std::ops::{Deref, DerefMut};
 
-use crate::ctx::locales::{Eval, Names};
+use crate::ctx::locales::Eval;
 use crate::eval::Qs;
 use crate::JError;
+
+// :(
+pub use locales::Names;
 
 #[derive(Debug)]
 pub struct Ctx {
