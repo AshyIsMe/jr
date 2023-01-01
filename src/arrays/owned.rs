@@ -59,11 +59,13 @@ impl fmt::Debug for JArray {
         } else {
             match self {
                 BoolArray(a) => write!(f, "BoolArray({a})"),
-                CharArray(a) => if a.shape().len() <= 1 {
-                    write!(f, "CharArray({:?})", a.iter().collect::<String>())
-                } else {
-                    write!(f, "CharArray({a})")
-                },
+                CharArray(a) => {
+                    if a.shape().len() <= 1 {
+                        write!(f, "CharArray({:?})", a.iter().collect::<String>())
+                    } else {
+                        write!(f, "CharArray({a})")
+                    }
+                }
                 IntArray(a) => write!(f, "IntArray({a})"),
                 ExtIntArray(a) => write!(f, "ExtIntArray({a})"),
                 RationalArray(a) => write!(f, "RationalArray({a})"),
@@ -606,6 +608,12 @@ impl JArray {
     pub fn when_rational(&self) -> Option<&ArrayD<BigRational>> {
         match self {
             JArray::RationalArray(arr) => Some(arr),
+            _ => None,
+        }
+    }
+    pub fn when_box(&self) -> Option<&ArrayD<JArray>> {
+        match self {
+            JArray::BoxArray(arr) => Some(arr),
             _ => None,
         }
     }

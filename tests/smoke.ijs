@@ -306,8 +306,13 @@ NB. fetch
 0 {:: ((<5);(<<4))
 1 {:: ((<5);(<<4))
 (2 1 $ ((<5);(<<4)))
-NB. broken, not willing to implicitly box: 0 {:: 5
-NB. broken, they maintain the outer shape somehows: 0 {:: (2 1 $ ((<5);(<<4)))
+0 {:: 5
+0 {:: (2 1 $ ((<5);(<<4)))
+;/"1 i.4 4
+0 0 {:: ;/"1 i.4 4
+0 2 {:: ;/"1 i.4 4
+1 2 {:: ;/"1 i.4 4
+2 0 {:: ;/"1 i.4 4
 
 NB. rank
 (5"_) 0
