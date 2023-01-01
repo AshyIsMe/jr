@@ -53,6 +53,15 @@ _9: 5
 _: 5
 5 _: 5
 _ _: _
+16bff
+16b0e
+16b16
+16b0
+16b1
+16b12
+16b123
+16bffffffff
+3b012
 
 NB. literal promotions
 1 0.5 2j3

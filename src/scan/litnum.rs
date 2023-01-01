@@ -10,6 +10,7 @@ use crate::{Elem, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     assert!(!sentence.contains('\n'));
+    assert!(!sentence.is_empty());
 
     // an array *potentially* extends until the first symbol character
     let sentence = match sentence.find(|c: char| {
@@ -29,7 +30,11 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let (term, _) = parts
         .last()
         .ok_or(JError::SyntaxError)
-        .context("must find at least one num")?;
+        .context("a sentence starting with a digit must contain a valid number")
+        .with_context(|| {
+            let first_word = sentence.split_whitespace().next().expect("non-empty");
+            scan_num_token(first_word).unwrap_err()
+        })?;
     let l = term.as_ptr() as usize - sentence.as_ptr() as usize + term.len() - 1;
 
     // promote_to_array wants the input to be Elem-wrapped
@@ -47,6 +52,8 @@ pub fn scan_num_token(term: &str) -> Result<Num> {
     }
     Ok(if let Some(inf) = parse_infinity(term) {
         Num::Float(inf)
+    } else if let Some((base, val)) = term.split_once('b') {
+        Num::Int(parse_base(base, val)?)
     } else if term.contains('j') {
         Num::Complex(parse_complex(term)?)
     } else if term.contains('r') {
@@ -124,6 +131,16 @@ fn parse_bigint_plain(term: &str) -> Result<BigInt> {
         v.parse()
             .with_context(|| anyhow!("parsing {v:?} as a bigint"))
     })
+}
+
+fn parse_base(base: &str, val: &str) -> Result<i64> {
+    let base = sign_lift(base, |base| base.parse::<i64>().context("base"))?;
+    if base < 2 || base > 36 {
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("base {base} is not in supported range (2-36)"));
+    }
+    i64::from_str_radix(val, u32::try_from(base).expect("just checked"))
+        .with_context(|| anyhow!("parsing {val:?} in base {base}"))
 }
 
 /// adapts an existing parse function, `f`, to handle leading `_` as negative
