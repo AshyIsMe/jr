@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, impl_array, Ctx, Elem, HasEmpty, JArray, JError, Word};
+use crate::{arr0d, impl_array, scan_with_locations, Ctx, Elem, HasEmpty, JArray, JError, Word};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -208,8 +208,19 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
 }
 
 /// ;: (monad)
-pub fn v_words(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_words(y: &JArray) -> Result<JArray> {
+    if y.shape().len() > 1 {
+        return Err(JError::NonceError).context("multi-line words");
+    }
+    let JArray::CharArray(y) = y else { return Err(JError::DomainError).context("words only takes strings"); };
+    let y = y.iter().collect::<String>();
+    let items = scan_with_locations(&y)?;
+    Ok(JArray::from_list(
+        items
+            .into_iter()
+            .map(|((s, e), _)| JArray::from_string(&y[s..=e]))
+            .collect_vec(),
+    ))
 }
 /// ;: (dyad)
 pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
