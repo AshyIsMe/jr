@@ -411,7 +411,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             {
                 debug!("7 Is Global Name w");
                 ctx.eval_mut().locales.assign_global(n, w.clone())?;
-                Ok(vec![any])
+                Ok(vec![w, any])
             }
             (Noun(names), IsGlobal, w, any)
                 if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
@@ -462,8 +462,11 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
     }
     match new_stack.pop_front() {
         Some(val) if new_stack.is_empty() => Ok(EvalOutput::Regular(val)),
-        _ => Err(JError::SyntaxError)
-            .with_context(|| anyhow!("expected a single output value but found {new_stack:?}")),
+        Some(val) => Err(JError::SyntaxError).with_context(|| {
+            anyhow!("expected a single output value but found {val:#?} followed by {new_stack:#?}")
+        }),
+        None => Err(JError::SyntaxError)
+            .with_context(|| anyhow!("expected a single output value but found nothing")),
     }
 }
 
