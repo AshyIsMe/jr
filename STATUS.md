@@ -128,8 +128,6 @@ This file auto-generated: just get-impl-status
         "t." => conj("t.", c_not_implemented),
 
 ```
-pub fn v_less_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_larger_or_equal(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_gcd_or(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_matrix_inverse(_y: &JArray) -> Result<JArray> {
 pub fn v_matrix_divide(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -169,7 +167,6 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
 pub fn v_map(_y: &JArray) -> Result<JArray> {
 pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
-pub fn v_default_format(_y: &JArray) -> Result<JArray> {
 pub fn v_format(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_anagram_index(_y: &JArray) -> Result<JArray> {
 pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<JArray> {
