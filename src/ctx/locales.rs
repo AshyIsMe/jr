@@ -102,9 +102,11 @@ impl Locales {
 }
 
 pub fn parse_name(name: &str) -> Result<(&str, Option<&str>)> {
+    if !name.ends_with('_') {
+        return Ok((name, None));
+    }
     let parts = name.split('_').collect_vec();
     Ok(match parts.len() {
-        1 => (parts[0], None),
         3 if parts[2].is_empty() => (parts[0], Some(parts[1])),
         _ => return Err(JError::IllFormedName).with_context(|| anyhow!("{name:?}")),
     })
