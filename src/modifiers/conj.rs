@@ -8,7 +8,7 @@ use ndarray::prelude::*;
 
 use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
-use crate::eval::{eval_lines, resolve_controls};
+use crate::eval::{create_def, eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
@@ -280,47 +280,27 @@ fn nothing_to_empty(w: Word) -> Word {
     }
 }
 
-pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     use crate::arrays::JArray::*;
-    match (n, m) {
-        (Word::Noun(IntArray(n)), Word::Noun(CharArray(jcode))) => {
-            if n == Array::from_elem(IxDyn(&[]), 4) {
-                match x {
-                    None => Err(JError::DomainError).with_context(|| anyhow!("dyad")),
-                    Some(x) => {
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut().locales.assign_local("x", x.clone())?;
-                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
-                        let jcode = jcode.clone().into_raw_vec().iter().collect::<String>();
-                        let mut words = crate::scan(&jcode)?;
-                        if !resolve_controls(&mut words)? {
-                            return Err(JError::SyntaxError).context("unable to resolve controls");
-                        }
-                        eval_lines(&words, &mut ctx)
-                            .with_context(|| anyhow!("evaluating {:?}", jcode))
-                            .map(nothing_to_empty)
-                    }
-                }
-            } else if n == Array::from_elem(IxDyn(&[]), 3) {
-                match x {
-                    None => {
-                        // TODO: wrong, this should be a sub-context
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut().locales.assign_local("y", y.clone())?;
-                        let jcode = jcode.clone().into_raw_vec().iter().collect::<String>();
-                        let mut words = crate::scan(&jcode)?;
-                        if !resolve_controls(&mut words)? {
-                            return Err(JError::SyntaxError).context("unable to resolve controls");
-                        }
-                        eval_lines(&words, &mut ctx)
-                            .with_context(|| anyhow!("evaluating {:?}", jcode))
-                            .map(nothing_to_empty)
-                    }
-                    _ => Err(JError::DomainError).with_context(|| anyhow!("monad")),
-                }
-            } else {
-                Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}"))
+    let Word::Noun(n) = n else { return Err(JError::DomainError).context("cor's n") };
+    let n = n.approx_i64_one()?;
+    if n == 0 {
+        return Ok(m.clone());
+    }
+    match m {
+        Word::Noun(CharArray(jcode)) if jcode.shape().len() <= 1 => {
+            let n = match n {
+                3 => 'm',
+                4 => 'd',
+                _ => return Err(JError::NonceError).context("unsupported cor mode"),
+            };
+            let jcode = jcode.iter().collect::<String>();
+            let mut words = crate::scan(&jcode)?;
+            if !resolve_controls(&mut words)? {
+                return Err(JError::SyntaxError).context("unable to resolve controls in cor");
             }
+
+            create_def(n, words)
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
     }

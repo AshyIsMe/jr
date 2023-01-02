@@ -234,10 +234,9 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     Some(match sentence {
         "^:" => conj("^:", c_hatco),
         "." => conj(".", c_not_implemented),
-        ":" => ModifierImpl::Conjunction(SimpleConjunction {
+        ":" => ModifierImpl::FormingConjunction(FormingConjunction {
             name: ":",
             f: c_cor,
-            farcical: c_cor_farcical,
         }),
         ":." => conj(":.", c_not_implemented),
         "::" => conj("::", c_assign_adverse),

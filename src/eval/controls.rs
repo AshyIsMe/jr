@@ -161,7 +161,7 @@ fn infer_type(def: &[Word]) -> Result<char> {
     })
 }
 
-fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
+pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
         'm' => Word::Verb(
