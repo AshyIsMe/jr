@@ -1,6 +1,7 @@
 use std::fmt;
 use std::iter;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -10,7 +11,7 @@ use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, DyadOwned, MonadOwned, PartialImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -23,6 +24,12 @@ pub struct SimpleConjunction {
     pub farcical: fn(&JArray, &JArray) -> Result<bool>,
 }
 
+#[derive(Clone)]
+pub struct FormingConjunction {
+    pub name: &'static str,
+    pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
+}
+
 impl PartialEq for SimpleConjunction {
     fn eq(&self, other: &Self) -> bool {
         self.name.eq(other.name)
@@ -32,6 +39,18 @@ impl PartialEq for SimpleConjunction {
 impl fmt::Debug for SimpleConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SimpleAdverb({:?})", self.name)
+    }
+}
+
+impl PartialEq for FormingConjunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for FormingConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FormingConjunction({:?})", self.name)
     }
 }
 
@@ -461,12 +480,33 @@ mod test_cut {
     }
 }
 
-pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
-    match (n, m) {
-        (Word::Noun(n), Word::Noun(m)) => {
-            let n = n.approx_i64_one().context("foreign's left")?;
-            let m = m.approx_i64_one().context("foreign's right")?;
-            foreign(ctx, n, m, x, y)
+pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
+    match (l, r) {
+        (Word::Noun(l), Word::Noun(r)) => {
+            let l = l.approx_i64_one().context("foreign's left")?;
+            let r = r.approx_i64_one().context("foreign's right")?;
+            Ok(Word::Verb(
+                format!("{l}!:{r}"),
+                VerbImpl::Partial(PartialImpl {
+                    name: format!("{l}!:{r}"),
+                    monad: Some(MonadOwned {
+                        f: Arc::new(move |ctx, y| foreign(ctx, l, r, None, &Word::Noun(y.clone()))),
+                        rank: Rank::infinite(),
+                    }),
+                    dyad: Some(DyadOwned {
+                        f: Arc::new(move |ctx, x, y| {
+                            foreign(
+                                ctx,
+                                l,
+                                r,
+                                Some(&Word::Noun(x.clone())),
+                                &Word::Noun(y.clone()),
+                            )
+                        }),
+                        rank: Rank::infinite_infinite(),
+                    }),
+                }),
+            ))
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }
