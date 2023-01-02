@@ -254,8 +254,7 @@ pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> 
 pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-            let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
+            let r = v.exec(ctx, x, y).context("right half of c_at")?;
             u.exec(ctx, None, &Word::Noun(r))
                 .context("left half of c_at")
                 .map(Word::Noun)

@@ -1,6 +1,7 @@
 #![allow(clippy::enum_variant_names)]
 
 mod cow;
+pub mod display;
 mod elem;
 mod into_vec;
 mod nd_ext;
