@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::Deref;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
@@ -174,7 +174,7 @@ impl VerbImpl {
                 {
                     c.exec(ctx, x, l, r, y).and_then(must_be_box)
                 }
-                _ => panic!("invalid DerivedVerb {:?}", self),
+                _ => bail!("invalid {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
