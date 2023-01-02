@@ -3,19 +3,19 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use crate::JArray;
+use crate::{Ctx, JArray, Word};
 
 use super::ranks::{DyadRank, Rank};
 
 #[derive(Clone)]
 pub struct MonadOwned {
-    pub f: Arc<dyn Fn(&JArray) -> Result<JArray>>,
+    pub f: Arc<dyn Fn(&mut Ctx, &JArray) -> Result<Word>>,
     pub rank: Rank,
 }
 
 #[derive(Clone)]
 pub struct DyadOwned {
-    pub f: Arc<dyn Fn(&JArray, &JArray) -> Result<JArray>>,
+    pub f: Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<Word>>,
     pub rank: DyadRank,
 }
 
