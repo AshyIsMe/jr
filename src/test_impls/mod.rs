@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::{Ctx, EvalOutput, JArray, Word};
+use crate::{display, Ctx, EvalOutput, JArray, Word};
 
 pub use jsoft_runs::{Lookup, Run, RunList};
 
@@ -86,8 +86,15 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
     let us = scan_eval(expr).context("running expression in smoke test")?;
     let Word::Noun(arr) = us else { bail!("unexpected non-array from eval: {us:?}") };
 
+    let mut s = String::with_capacity(rendered.len());
+    display::jsoft(&mut s, &arr)?;
+    let s = s.trim_end_matches('\n');
+
     if &arr == them {
-        return Ok(());
+        if s == *rendered {
+            return Ok(());
+        }
+        return Err(anyhow!("incorrect rendering, data:\n{arr:#?}\n\nWe rendered:\n{s}\n\njsoft would render this like this:\n{rendered}"));
     }
 
     Err(anyhow!("incorrect data, we got:\n{arr:#?}\n\nThey expect:\n{them:#?}\n\njsoft would render this like this:\n{rendered}"))
