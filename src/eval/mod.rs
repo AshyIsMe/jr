@@ -211,47 +211,20 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![fragment.0, Verb(verb_str, dv), any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, Verb(su, u), Conjunction(sc, c), Verb(sv, v))
+            (ref w, l, Conjunction(sc, c), r)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
-                ) =>
+                ) && matches!(l, Verb(_, _) | Noun(_) | Name(_))
+                    && matches!(r, Verb(_, _) | Noun(_) | Name(_))
+                    // hack: noun noun conj handled by the parser
+                    && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
             {
-                debug!("4 Conj V C V");
-                let verb_str = format!("{} {} {}", su, sc, sv);
+                debug!("4 Conj");
+                let verb_str = format!("? {sc} ?");
                 let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Verb(su, u.clone())),
-                    r: Box::new(Verb(sv, v.clone())),
-                    m: Box::new(Conjunction(sc, c)),
-                };
-                Ok(vec![fragment.0, Verb(verb_str, dv)])
-            }
-            (ref w, Verb(su, u), Conjunction(sc, c), Noun(n))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
-                ) =>
-            {
-                debug!("4 Conj V C N");
-                let verb_str = format!("{} {}", su, sc);
-                let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Verb(su, u.clone())),
-                    r: Box::new(Noun(n)),
-                    m: Box::new(Conjunction(sc, c)),
-                };
-                Ok(vec![fragment.0, Verb(verb_str, dv)])
-            }
-            (ref w, Noun(m), Conjunction(sc, c), Verb(sv, v))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
-                ) =>
-            {
-                debug!("4 Conj N C V");
-                let verb_str = format!("m {} {}", sc, sv);
-                let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Noun(m)),
-                    r: Box::new(Verb(sv, v.clone())),
+                    l: Box::new(l),
+                    r: Box::new(r),
                     m: Box::new(Conjunction(sc, c)),
                 };
                 Ok(vec![fragment.0, Verb(verb_str, dv)])
@@ -520,9 +493,7 @@ pub fn resolve_names(
         match w {
             IsGlobal => break,
             IsLocal => break,
-            Name(ref n) => {
-                resolved_words.push(ctx.eval().locales.lookup(n)?.unwrap_or(&fragment.0).clone())
-            }
+            Name(ref n) => resolved_words.push(ctx.eval().locales.lookup(n)?.unwrap_or(w).clone()),
             _ => resolved_words.push(w.clone()),
         }
     }

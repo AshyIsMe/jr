@@ -319,24 +319,37 @@ pub fn v_curtail(y: &JArray) -> Result<JArray> {
 
 /// {:: (dyad)
 pub fn v_fetch(x: &JArray, y: &JArray) -> Result<JArray> {
-    let JArray::BoxArray(y) = y else { return Err(JError::NonceError).context("boxed y"); };
-    if y.shape().len() > 1 {
-        return Err(JError::NonceError).context("multi-dimensional shape output is missing");
+    if !x.shape().is_empty() {
+        return Err(JError::NonceError).context("only atomic x (please box lists)");
+    }
+    let x = match x {
+        // an atomic box containing a list of integers
+        JArray::BoxArray(b) => b
+            .iter()
+            .next()
+            .expect("just checked: atomic")
+            .approx_usize_list()?,
+        // a list of integers of length 1
+        _ => vec![x.approx_usize_list()?[0]],
+    };
+
+    let mut here = y.clone();
+    for x in x {
+        // let JArray::BoxArray(next) = here else { return Err(JError::NonceError).context("boxed component"); };
+        let next = here
+            .outer_iter()
+            .nth(x)
+            .ok_or(JError::IndexError)
+            .context("path component past end")?;
+        here = next.to_owned();
     }
 
-    let x = x
-        .single_math_num()
-        .ok_or(JError::NonceError)
-        .context("numeric x")?
-        .value_len()
-        .ok_or(JError::NonceError)
-        .context("positive integer x")?;
-
-    Ok(y.iter()
-        .nth(x)
-        .ok_or(JError::IndexError)
-        .context("x past end of atoms")?
-        .to_owned())
+    if here.shape().is_empty() {
+        if let JArray::BoxArray(arr) = here {
+            return Ok(arr.into_iter().next().expect("just checked"));
+        }
+    }
+    Ok(here)
 }
 
 /// }. (monad)

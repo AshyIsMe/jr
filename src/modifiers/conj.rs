@@ -274,8 +274,8 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                         let mut ctx = ctx.nest();
                         ctx.eval_mut().locales.assign_local("x", x.clone())?;
                         ctx.eval_mut().locales.assign_local("y", y.clone())?;
-                        let mut words =
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        let jcode = jcode.clone().into_raw_vec().iter().collect::<String>();
+                        let mut words = crate::scan(&jcode)?;
                         if !resolve_controls(&mut words)? {
                             return Err(JError::SyntaxError).context("unable to resolve controls");
                         }
@@ -290,8 +290,8 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
                         // TODO: wrong, this should be a sub-context
                         let mut ctx = ctx.nest();
                         ctx.eval_mut().locales.assign_local("y", y.clone())?;
-                        let mut words =
-                            crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?;
+                        let jcode = jcode.clone().into_raw_vec().iter().collect::<String>();
+                        let mut words = crate::scan(&jcode)?;
                         if !resolve_controls(&mut words)? {
                             return Err(JError::SyntaxError).context("unable to resolve controls");
                         }

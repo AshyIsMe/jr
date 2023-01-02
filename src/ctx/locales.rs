@@ -13,7 +13,11 @@ pub struct Eval {
 #[derive(Debug)]
 pub struct Locales {
     pub inner: HashMap<String, Names>,
-    search_path: Vec<String>,
+    pub search_paths: HashMap<String, Vec<String>>,
+    pub current: String,
+
+    // TODO: this should probably be as part of `nest`'s return value,
+    // TODO: instead of an explicitly managed stack?
     pub anon: Vec<Names>,
 }
 
@@ -32,7 +36,8 @@ impl Locales {
     pub fn new() -> Self {
         Self {
             inner: HashMap::with_capacity(8),
-            search_path: vec!["z".to_string(), "base".to_string()],
+            search_paths: HashMap::with_capacity(8),
+            current: "base".to_string(),
             anon: vec![Names::default()],
         }
     }
@@ -40,12 +45,7 @@ impl Locales {
     pub fn assign_global(&mut self, n: impl ToString, v: Word) -> Result<()> {
         let n = n.to_string();
         let (n, ns) = parse_name(&n)?;
-        let ns = ns.unwrap_or(
-            self.search_path
-                .last()
-                .expect("non-empty search path")
-                .as_str(),
-        );
+        let ns = ns.unwrap_or(self.current.as_str());
 
         self.inner
             .entry(ns.to_string())
@@ -55,9 +55,9 @@ impl Locales {
         Ok(())
     }
 
-    pub fn assign_local(&mut self, n: impl ToString, v: Word) -> Result<()> {
-        let n = n.to_string();
-        if n.contains('_') {
+    pub fn assign_local(&mut self, n: impl AsRef<str>, v: Word) -> Result<()> {
+        let (n, ns) = parse_name(n.as_ref())?;
+        if ns.is_some() {
             return Err(JError::NonceError).context("namespaced names");
         }
 
@@ -66,13 +66,13 @@ impl Locales {
             .ok_or(JError::DomainError)
             .context("local assignment with no local scope")?
             .0
-            .insert(n, v);
+            .insert(n.to_string(), v);
         Ok(())
     }
 
     pub fn erase(&mut self, n: impl AsRef<str>) -> Result<()> {
         let (n, ns) = parse_name(n.as_ref())?;
-        let ns = ns.unwrap_or_else(|| self.search_path.last().expect("non-empty search path"));
+        let ns = ns.unwrap_or(self.current.as_str());
         let Some(names) = self.inner.get_mut(ns) else { return Ok(()); };
         names.0.remove(n);
         Ok(())
@@ -91,7 +91,13 @@ impl Locales {
             }
         }
 
-        for ns in self.search_path.iter().rev() {
+        for ns in self
+            .search_paths
+            .get(self.current.as_str())
+            .unwrap_or(&vec!["z".to_string(), self.current.to_string()])
+            .iter()
+            .rev()
+        {
             if let Some(v) = self.inner.get(ns).and_then(|ns| ns.0.get(n)) {
                 return Ok(Some(v));
             }
@@ -102,6 +108,9 @@ impl Locales {
 }
 
 pub fn parse_name(name: &str) -> Result<(&str, Option<&str>)> {
+    if name.contains("__") {
+        return Err(JError::NonceError).context("resolved names");
+    }
     if !name.ends_with('_') {
         return Ok((name, None));
     }
