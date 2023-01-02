@@ -363,6 +363,10 @@ NB. link
 (<'abc');(<'def');(<'ghi')
 (<'abc');(<'def');<(<'ghi')
 
+NB. words
+;: '<;._1'
+;: 'Fine, easy as 1 2 3?'
+
 NB. raze
 ; <1
 ; 1 2 3; 4 5 6; 7 8 9
