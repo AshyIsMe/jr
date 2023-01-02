@@ -40,6 +40,9 @@ pub use crate::verbs::Rank;
 // TODO: is this too much? it's necessary to construct atoms atm
 pub use crate::number::Num;
 
+// TODO: maybe as helper methods on JArray?
+pub use crate::arrays::display;
+
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
