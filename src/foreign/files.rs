@@ -9,8 +9,8 @@ use crate::arrays::BoxArray;
 use crate::{JArray, JError, Word};
 
 // 1!:1
-pub fn f_read_file(y: &Word) -> Result<Word> {
-    let path = arg_to_fs_path(y)?;
+pub fn f_read_file(y: &JArray) -> Result<Word> {
+    let path = noun_to_fs_path(y)?;
 
     match fs::read_to_string(&path) {
         Ok(s) => Ok(Word::Noun(JArray::from_string(s))),
@@ -46,8 +46,8 @@ pub fn arg_to_string(y: &BoxArray) -> Result<String> {
         .expect("just checked"))
 }
 
-pub fn arg_to_fs_path(y: &Word) -> Result<PathBuf> {
-    let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::NonceError).context("only support <'filepath' loading"); };
+pub fn noun_to_fs_path(y: &JArray) -> Result<PathBuf> {
+    let JArray::BoxArray(y) = y else { return Err(JError::NonceError).context("only support <'filepath' loading"); };
     let path = arg_to_string(y)?;
     fs::canonicalize(&path).with_context(|| anyhow!("canonicalising {path}"))
 }

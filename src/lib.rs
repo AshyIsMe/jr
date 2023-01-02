@@ -1,3 +1,5 @@
+extern crate core;
+
 mod arrays;
 mod cells;
 mod ctx;
