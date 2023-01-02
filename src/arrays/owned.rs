@@ -621,7 +621,7 @@ impl JArray {
 
 impl fmt::Display for JArray {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        display::nd(f, self)
+        display::jsoft(f, self)
     }
 }
 
