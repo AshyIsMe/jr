@@ -8,8 +8,8 @@ use crate::foreign::files::{arg_to_string, arg_to_string_list};
 use crate::{arr0d, Ctx, JArray, JError, Word};
 
 // 4!:0
-pub fn f_name_status(ctx: &Ctx, y: &Word) -> Result<Word> {
-    let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::DomainError).context("boxed name please"); };
+pub fn f_name_status(ctx: &Ctx, y: &JArray) -> Result<Word> {
+    let JArray::BoxArray(y) = y else { return Err(JError::DomainError).context("boxed name please"); };
     let name = arg_to_string(y)?;
     let result = match ctx.eval().locales.lookup(&name) {
         Ok(Some(w)) => name_code(w)
@@ -23,18 +23,14 @@ pub fn f_name_status(ctx: &Ctx, y: &Word) -> Result<Word> {
 }
 
 // 4!:1
-pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
-    let Word::Noun(y) = y else { return Err(JError::DomainError).context("non-noun y"); };
+pub fn f_name_namelist(ctx: &Ctx, x: Option<&JArray>, y: &JArray) -> Result<Word> {
     let y = y.approx_i64_list().context("name list's y")?;
     let x = match x {
-        Some(x) => {
-            let Word::Noun(x) = x else { return Err(JError::DomainError).context("non-noun x"); };
-            Some(
-                x.when_string()
-                    .ok_or(JError::DomainError)
-                    .context("single string for x")?,
-            )
-        }
+        Some(x) => Some(
+            x.when_string()
+                .ok_or(JError::DomainError)
+                .context("single string for x")?,
+        ),
         None => None,
     };
 
@@ -81,8 +77,8 @@ pub fn f_name_namelist(ctx: &Ctx, x: Option<&Word>, y: &Word) -> Result<Word> {
 }
 
 // 4!:55
-pub fn f_name_erase(ctx: &mut Ctx, y: &Word) -> Result<Word> {
-    let Word::Noun(JArray::BoxArray(y)) = y else { return Err(JError::DomainError).context("boxed name please"); };
+pub fn f_name_erase(ctx: &mut Ctx, y: &JArray) -> Result<Word> {
+    let JArray::BoxArray(y) = y else { return Err(JError::DomainError).context("boxed name please"); };
     let mut ret = Vec::new();
     for name in arg_to_string_list(y)? {
         ret.push(ctx.eval_mut().locales.erase(&name).is_ok() as u8);

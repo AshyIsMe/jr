@@ -7,15 +7,19 @@ use crate::{Ctx, JArray, Word};
 
 use super::ranks::{DyadRank, Rank};
 
+pub type MonadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray) -> Result<Word>>;
+
 #[derive(Clone)]
 pub struct MonadOwned {
-    pub f: Arc<dyn Fn(&mut Ctx, &JArray) -> Result<Word>>,
+    pub f: MonadOwnedF,
     pub rank: Rank,
 }
 
+pub type DyadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<Word>>;
+
 #[derive(Clone)]
 pub struct DyadOwned {
-    pub f: Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<Word>>,
+    pub f: DyadOwnedF,
     pub rank: DyadRank,
 }
 

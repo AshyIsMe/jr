@@ -1,9 +1,9 @@
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 
 use crate::{arr0d, JArray, JError, Word};
 
-pub fn f_shell_out(y: &Word) -> Result<Word> {
-    let Word::Noun(JArray::CharArray(y)) = y else { return Err(JError::NonceError).context("string required") };
+pub fn f_shell_out(y: &JArray) -> Result<Word> {
+    let JArray::CharArray(y) = y else { return Err(JError::NonceError).context("string required") };
     // TODO: new lines
     let y = y.iter().collect::<String>();
     let result = match y.as_str() {
@@ -14,9 +14,9 @@ pub fn f_shell_out(y: &Word) -> Result<Word> {
     Ok(Word::Noun(JArray::from_string(result)))
 }
 
-pub fn f_getenv(y: &Word) -> Result<Word> {
-    let Word::Noun(JArray::CharArray(y)) = y else { return Err(JError::NonceError).context("string required") };
-    // TODO: new lines
+pub fn f_getenv(y: &JArray) -> Result<Word> {
+    ensure!(y.shape().len() <= 1, "rank 0");
+    let JArray::CharArray(y) = y else { return Err(JError::NonceError).context("string required") };
     let y = y.iter().collect::<String>();
     use std::env::VarError;
     match std::env::var(y) {

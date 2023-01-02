@@ -6,10 +6,10 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::info;
 
-use super::files::arg_to_fs_path;
+use crate::foreign::files::noun_to_fs_path;
 use crate::{feed, Ctx, EvalOutput, HasEmpty, JArray, JError, Word};
 
-pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &Word) -> Result<Word> {
+pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<Word> {
     let [src, err, display]: [char; 3] = format!("{k:03}")
         .chars()
         .collect_vec()
@@ -36,7 +36,7 @@ pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &Word) -> Result<Word> {
         _ => return Err(JError::NonceError).context("unrecognised 'err' option"),
     }
 
-    let path = arg_to_fs_path(y)?;
+    let path = noun_to_fs_path(y)?;
 
     let mut last = EvalOutput::Regular(Word::Nothing);
     for (off, line) in fs::read_to_string(&path)

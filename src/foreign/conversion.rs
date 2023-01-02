@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 
 use crate::{JArray, JError, Num, Word};
 
-pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
+pub fn f_dump_hex(x: Option<&JArray>, y: &JArray) -> Result<Word> {
     if cfg!(not(target_pointer_width = "64")) {
         return Err(JError::NonceError).context("only support 64-bit (laziness)");
     }
@@ -12,18 +12,12 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
     }
 
     match x {
-        Some(Word::Noun(x)) => match x.single_math_num() {
+        Some(x) => match x.single_math_num() {
             Some(x) if x == Num::Int(3) || x == Num::Int(11) => (),
             _ => return Err(JError::NonceError).context("unsupported mode"),
         },
         None => (),
-        _ => return Err(JError::DomainError).context("invalid mode"),
     }
-
-    let y = match y {
-        Word::Noun(arr) => arr,
-        _ => return Err(JError::NounResultWasRequired).context("can only serialise data"),
-    };
 
     let mut result = Vec::with_capacity(8);
     result.push(0xe3); // 64-bit, reversed
@@ -51,9 +45,8 @@ pub fn f_dump_hex(x: Option<&Word>, y: &Word) -> Result<Word> {
     .map(Word::Noun)
 }
 
-pub fn f_int_bytes(x: Option<&Word>, y: &Word) -> Result<Word> {
-    let Some(Word::Noun(x)) = x else { return Err(JError::DomainError).context("invalid mode type"); };
-    let Word::Noun(y) = y else { return Err(JError::DomainError).context("invalid data"); };
+pub fn f_int_bytes(x: Option<&JArray>, y: &JArray) -> Result<Word> {
+    let Some(x) = x else { return Err(JError::DomainError).context("invalid mode type"); };
     match x.single_math_num() {
         Some(x) if x == Num::Int(2) => (),
         _ => return Err(JError::NonceError).context("unsupported mode"),

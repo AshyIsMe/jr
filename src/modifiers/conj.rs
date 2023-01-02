@@ -1,7 +1,6 @@
 use std::fmt;
 use std::iter;
 use std::ops::Deref;
-use std::sync::Arc;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -11,7 +10,7 @@ use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, DyadOwned, MonadOwned, PartialImpl, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -487,25 +486,7 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
             let r = r.approx_i64_one().context("foreign's right")?;
             Ok(Word::Verb(
                 format!("{l}!:{r}"),
-                VerbImpl::Partial(PartialImpl {
-                    name: format!("{l}!:{r}"),
-                    monad: Some(MonadOwned {
-                        f: Arc::new(move |ctx, y| foreign(ctx, l, r, None, &Word::Noun(y.clone()))),
-                        rank: Rank::infinite(),
-                    }),
-                    dyad: Some(DyadOwned {
-                        f: Arc::new(move |ctx, x, y| {
-                            foreign(
-                                ctx,
-                                l,
-                                r,
-                                Some(&Word::Noun(x.clone())),
-                                &Word::Noun(y.clone()),
-                            )
-                        }),
-                        rank: Rank::infinite_infinite(),
-                    }),
-                }),
+                VerbImpl::Partial(foreign(l, r)?),
             ))
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
