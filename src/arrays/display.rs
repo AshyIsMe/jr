@@ -32,22 +32,29 @@ fn width(s: impl AsRef<str>) -> usize {
     s.as_ref().width()
 }
 
-fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
-    if arr.shape().is_empty() {
-        return write!(
-            f,
-            "{}\n",
-            arr.first().expect("atom has an element").j_format()
-        );
-    }
+fn short_array_cases<T: JFormat>(arr: &ArrayViewD<T>) -> Option<String> {
     if arr.is_empty() {
         // what on earth is even going on
-        return if arr.shape().len() == 1 {
-            write!(f, "\n")
+        Some(if arr.shape().len() == 1 {
+            "\n".to_string()
         } else {
-            write!(f, "")
-        };
+            String::new()
+        })
+    } else if arr.shape().is_empty() {
+        Some(format!(
+            "{}\n",
+            arr.first().expect("atom has an element").j_format()
+        ))
+    } else {
+        None
     }
+}
+
+fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
+    if let Some(s) = short_array_cases(&arr) {
+        return write!(f, "{s}");
+    }
+
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
     let iter = arr.rows().into_iter().enumerate().take(limit);
@@ -74,16 +81,7 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
         })
         .expect("non-empty rows");
 
-    let multiples = arr
-        .shape()
-        .iter()
-        .rev()
-        .skip(1)
-        .fold(Vec::<usize>::new(), |mut acc, &x| {
-            let t: usize = acc.iter().product();
-            acc.push(x * t);
-            acc
-        });
+    let multiples = compute_dimension_spacing(&arr);
 
     let last = table.last().expect("non-empty").0;
 
@@ -104,13 +102,30 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
         if rn == last {
             break;
         }
-        for &m in &multiples {
-            if (rn + 1) % m == 0 {
-                write!(f, "\n")?;
-            }
-        }
+        print_dimension_markings(&mut f, rn, &multiples)?;
     }
 
+    Ok(())
+}
+
+fn compute_dimension_spacing<T>(arr: &ArrayViewD<T>) -> Vec<usize> {
+    arr.shape()
+        .iter()
+        .rev()
+        .skip(1)
+        .fold(Vec::<usize>::new(), |mut acc, &x| {
+            let t: usize = acc.iter().product();
+            acc.push(x * t);
+            acc
+        })
+}
+
+fn print_dimension_markings(mut f: impl fmt::Write, rn: usize, multiples: &[usize]) -> fmt::Result {
+    for &m in multiples {
+        if (rn + 1) % m == 0 {
+            write!(f, "\n")?;
+        }
+    }
     Ok(())
 }
 
