@@ -1,4 +1,3 @@
-use std::fmt;
 use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -6,34 +5,10 @@ use anyhow::{anyhow, bail, Context, Result};
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
 use crate::eval::eval_lines;
+use crate::verbs::partial::PartialImpl;
+use crate::verbs::primitive::PrimitiveImpl;
+use crate::verbs::DyadRank;
 use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
-
-#[derive(Copy, Clone)]
-pub struct Monad {
-    // TODO: NOT public
-    pub f: fn(&JArray) -> Result<JArray>,
-    pub rank: Rank,
-}
-
-pub type DyadF = fn(&JArray, &JArray) -> Result<JArray>;
-pub type DyadRank = (Rank, Rank);
-
-#[derive(Copy, Clone)]
-pub struct Dyad {
-    pub f: DyadF,
-    pub rank: DyadRank,
-}
-
-#[derive(Copy, Clone)]
-pub struct PrimitiveImpl {
-    // TODO: NOT public
-    pub name: &'static str,
-    // TODO: NOT public
-    pub monad: Monad,
-    // TODO: NOT public
-    pub dyad: Option<Dyad>,
-    pub inverse: Option<&'static str>,
-}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
@@ -41,6 +16,8 @@ pub enum VerbImpl {
 
     // dyadic
     Anonymous(bool, Vec<Word>),
+
+    Partial(PartialImpl),
 
     //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
     //Modifiers take a left and right argument refered to as either
@@ -142,6 +119,31 @@ impl VerbImpl {
                 }
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
+            },
+            VerbImpl::Partial(imp) => match (x, y) {
+                (None, Noun(y)) => {
+                    let monad = imp
+                        .monad
+                        .as_ref()
+                        .ok_or(JError::DomainError)
+                        .with_context(|| anyhow!("there is no monadic partial {:?}", imp.name))?;
+                    exec_monad_inner(monad.f.as_ref(), monad.rank, y)
+                        .with_context(|| anyhow!("y: {y:?}"))
+                        .with_context(|| anyhow!("monadic partial {:?}", imp.name))
+                }
+                (Some(Noun(x)), Noun(y)) => {
+                    let dyad = imp
+                        .dyad
+                        .as_ref()
+                        .ok_or(JError::DomainError)
+                        .with_context(|| anyhow!("there is no dyadic partial {:?}", imp.name))?;
+                    exec_dyad_inner(dyad.f.as_ref(), dyad.rank, x, y)
+                        .with_context(|| anyhow!("x: {x:?}"))
+                        .with_context(|| anyhow!("y: {y:?}"))
+                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
+                }
+                other => Err(JError::DomainError)
+                    .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
             },
             VerbImpl::Anonymous(dyadic, words) => {
                 let mut ctx = ctx.nest();
@@ -246,52 +248,5 @@ fn must_be_box(v: Word) -> Result<VerbResult> {
         Word::Noun(arr) => Ok((Vec::new(), vec![arr])),
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
-    }
-}
-
-impl PrimitiveImpl {
-    pub fn monad(name: &'static str, f: fn(&JArray) -> Result<JArray>) -> Self {
-        Self {
-            name,
-            monad: Monad {
-                f,
-                rank: Rank::infinite(),
-            },
-            dyad: None,
-            inverse: None,
-        }
-    }
-
-    pub const fn new(
-        name: &'static str,
-        monad: fn(&JArray) -> Result<JArray>,
-        dyad: fn(&JArray, &JArray) -> Result<JArray>,
-        ranks: (Rank, Rank, Rank),
-        inverse: Option<&'static str>,
-    ) -> Self {
-        Self {
-            name,
-            monad: Monad {
-                f: monad,
-                rank: ranks.0,
-            },
-            dyad: Some(Dyad {
-                f: dyad,
-                rank: (ranks.1, ranks.2),
-            }),
-            inverse,
-        }
-    }
-}
-
-impl fmt::Debug for PrimitiveImpl {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PrimitiveImpl({})", self.name)
-    }
-}
-
-impl PartialEq for PrimitiveImpl {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
     }
 }
