@@ -979,6 +979,46 @@ output = '0.2'
 encoded = 'e3,08,01,,9a9999999999c93f'
 
 [[runs]]
+expr = '16b0'
+output = '0'
+encoded = 'e3,04,01,,'
+
+[[runs]]
+expr = '16b0e'
+output = '14'
+encoded = 'e3,04,01,,0e'
+
+[[runs]]
+expr = '16b1'
+output = '1'
+encoded = 'e3,04,01,,01'
+
+[[runs]]
+expr = '16b12'
+output = '18'
+encoded = 'e3,04,01,,12'
+
+[[runs]]
+expr = '16b123'
+output = '291'
+encoded = 'e3,04,01,,2301'
+
+[[runs]]
+expr = '16b16'
+output = '22'
+encoded = 'e3,04,01,,16'
+
+[[runs]]
+expr = '16bff'
+output = '255'
+encoded = 'e3,04,01,,ff'
+
+[[runs]]
+expr = '16bffffffff'
+output = '4294967295'
+encoded = 'e3,04,01,,ffffffff'
+
+[[runs]]
 expr = '1: 5'
 output = '1'
 encoded = 'e3,01,01,,01'
@@ -1274,6 +1314,11 @@ output = '27'
 encoded = 'e3,08,01,,0000000000003b4'
 
 [[runs]]
+expr = '3b012'
+output = '5'
+encoded = 'e3,04,01,,05'
+
+[[runs]]
 expr = '3e1'
 output = '30'
 encoded = 'e3,04,01,,1e'
@@ -1313,6 +1358,16 @@ encoded = 'e3,01,03,01,03,'
 expr = '4 5 6 >: 1 2 3'
 output = '1 1 1'
 encoded = 'e3,01,03,01,03,010101'
+
+[[runs]]
+expr = "4!:55 'a';'b'"
+output = '1 1'
+encoded = 'e3,01,02,01,02,0101'
+
+[[runs]]
+expr = "4!:55 <'a'"
+output = '1'
+encoded = 'e3,01,01,,01'
 
 [[runs]]
 expr = '5 (+`-@.0) 2'

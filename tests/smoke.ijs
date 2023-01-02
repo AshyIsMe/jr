@@ -53,6 +53,15 @@ _9: 5
 _: 5
 5 _: 5
 _ _: _
+16bff
+16b0e
+16b16
+16b0
+16b1
+16b12
+16b123
+16bffffffff
+3b012
 
 NB. literal promotions
 1 0.5 2j3
@@ -481,6 +490,10 @@ NB. name list
 NB. jsoft bug, apparently nothing starts with an empty string: {{ '' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
 {{ 'a' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
 {{ 'ab' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''
+
+NB. name erase
+4!:55 <'a'
+4!:55 'a';'b'
 
 NB. platform information
 NB. platform dependent actual result

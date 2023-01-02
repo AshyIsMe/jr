@@ -1,79 +1,59 @@
 use std::ops;
 
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-use lazy_static::lazy_static;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
-use regex::{Match, Regex};
 
 use crate::number::{promote_to_array, Num};
 use crate::{Elem, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     assert!(!sentence.contains('\n'));
-    lazy_static! {
-        static ref LITNUM: Regex = Regex::new(
-            r#"(?x)     # allow comments and ignore whitespace
-            ^(?:        # from the start,
-            \s*         # optional leading whitespace
-            _?          # minus
-            (?:_|\d)    # infinity, or a leading number
-            [\d._ejrx]* # a bunch more number bits
-            (?:\s*|\b)  # trailing whitespace, or the end of the string
-            )+          # repeatedly
-            :?          # a trailing colon, to help the function recogniser below
-            "#
-        )
-        .expect("static regex");
-        static ref DIGIT_FUNC: Regex = Regex::new(
-            r#"(?x)     # allow comments and ignore whitespace
-            (?:         # (
-            _ |         #   lone _, or
-            _?[0-9]     #   optional leading _, digit
-            ):          # ), with a colon
-            (?:\s*|\b)  # trailing whitespace, or the end of the string
-            "#
-        )
-        .expect("static regex");
-    }
-    let m: Match = LITNUM
-        .find(sentence)
-        .ok_or_else(|| anyhow!("at least the first number should match"))?;
-    let sentence = m.as_str();
+    assert!(!sentence.is_empty());
 
-    // if there's a digit function in the string at all, remove it.
-    // it should always be right at the end
-    let sentence: &str = match DIGIT_FUNC.find(sentence) {
-        Some(m) => &sentence[..m.start()],
+    // an array *potentially* extends until the first symbol character
+    let sentence = match sentence.find(|c: char| {
+        !(c.is_ascii_alphanumeric() || c.is_ascii_whitespace() || ['.', '_', ':'].contains(&c))
+    }) {
+        Some(c) => &sentence[..c],
         None => sentence,
     };
 
-    // if there's still a colon right at the end, which wasn't a digit function, remove it
-    let sentence = match sentence.strip_suffix(':') {
-        Some(x) => x,
-        None => sentence,
-    };
-
-    ensure!(
-        !sentence.is_empty(),
-        "should have extracted at least one number"
-    );
-
-    let l = sentence.len() - 1;
-
+    // split on the whitespace, and try to parse each 'word', stopping when we can't parse a word
     let parts = sentence
         .split_whitespace()
-        .map(|term| scan_num_token(term).with_context(|| anyhow!("parsing {term:?}")))
-        .map_ok(Elem::Num)
-        .collect::<Result<Vec<_>>>()?;
+        .map_while(|term| scan_num_token(term).ok().map(|x| (term, x)))
+        .collect_vec();
+
+    // the end is the end of the last successfully parsed term
+    let (term, _) = parts
+        .last()
+        .ok_or(JError::SyntaxError)
+        .context("a sentence starting with a digit must contain a valid number")
+        .with_context(|| {
+            let first_word = sentence.split_whitespace().next().expect("non-empty");
+            scan_num_token(first_word).unwrap_err()
+        })?;
+    let l = term.as_ptr() as usize - sentence.as_ptr() as usize + term.len() - 1;
+
+    // promote_to_array wants the input to be Elem-wrapped
+    let parts = parts
+        .into_iter()
+        .map(|(_term, num)| Elem::Num(num))
+        .collect();
 
     Ok((l, Word::Noun(promote_to_array(parts)?)))
 }
 
 pub fn scan_num_token(term: &str) -> Result<Num> {
+    if term.contains(':') {
+        return Err(anyhow!("colons are not valid in numbers"));
+    }
     Ok(if let Some(inf) = parse_infinity(term) {
         Num::Float(inf)
+    } else if let Some((base, val)) = term.split_once('b') {
+        Num::Int(parse_base(base, val)?)
     } else if term.contains('j') {
         Num::Complex(parse_complex(term)?)
     } else if term.contains('r') {
@@ -151,6 +131,16 @@ fn parse_bigint_plain(term: &str) -> Result<BigInt> {
         v.parse()
             .with_context(|| anyhow!("parsing {v:?} as a bigint"))
     })
+}
+
+fn parse_base(base: &str, val: &str) -> Result<i64> {
+    let base = sign_lift(base, |base| base.parse::<i64>().context("base"))?;
+    if base < 2 || base > 36 {
+        return Err(JError::NonceError)
+            .with_context(|| anyhow!("base {base} is not in supported range (2-36)"));
+    }
+    i64::from_str_radix(val, u32::try_from(base).expect("just checked"))
+        .with_context(|| anyhow!("parsing {val:?} in base {base}"))
 }
 
 /// adapts an existing parse function, `f`, to handle leading `_` as negative
@@ -357,7 +347,7 @@ mod tests {
                 Word::Noun(arr) => arr,
                 _ => unreachable!(),
             };
-            (s.len() - l, arr.when_i64().expect("i64").clone())
+            (s.len() - l - 1, arr.when_i64().expect("i64").clone())
         };
 
         assert!(

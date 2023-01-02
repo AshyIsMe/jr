@@ -20,18 +20,30 @@ pub fn f_read_file(y: &Word) -> Result<Word> {
     }
 }
 
+pub fn arg_to_string_list(y: &BoxArray) -> Result<Vec<String>> {
+    if y.shape().len() > 1 {
+        return Err(JError::NonceError).context("only list-y args'");
+    }
+
+    y.iter().map(|path| {
+        let JArray::CharArray(path) = path else { return Err(JError::NonceError).context("string required") };
+        if path.shape().len() > 1 {
+            return Err(JError::NonceError).context("single string required");
+        }
+
+        Ok(path.iter().collect::<String>())
+    }).collect()
+}
+
 pub fn arg_to_string(y: &BoxArray) -> Result<String> {
     if y.len() != 1 {
         return Err(JError::NonceError).context("only one arg please");
     }
 
-    let path = y.iter().next().expect("just checked");
-    let JArray::CharArray(path) = path else { return Err(JError::NonceError).context("string required") };
-    if path.shape().len() != 1 {
-        return Err(JError::NonceError).context("single string required");
-    }
-
-    Ok(path.iter().collect::<String>())
+    Ok(arg_to_string_list(y)?
+        .into_iter()
+        .next()
+        .expect("just checked"))
 }
 
 pub fn arg_to_fs_path(y: &Word) -> Result<PathBuf> {
