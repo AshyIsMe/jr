@@ -370,7 +370,7 @@ pub fn v_map(_y: &JArray) -> Result<JArray> {
 /// ". (monad)
 pub fn v_do(y: &JArray) -> Result<JArray> {
     match y {
-        JArray::CharArray(jcode) if jcode.shape().len() == 1 => {
+        JArray::CharArray(jcode) if jcode.shape().len() <= 1 => {
             let mut ctx = Ctx::root();
             let word = crate::eval(
                 crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
