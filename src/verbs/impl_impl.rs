@@ -4,7 +4,6 @@ use anyhow::{anyhow, bail, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
-use crate::eval::eval_lines;
 use crate::verbs::partial::PartialImpl;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::DyadRank;
@@ -13,9 +12,6 @@ use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
     Primitive(PrimitiveImpl),
-
-    // dyadic
-    Anonymous(bool, Vec<Word>),
 
     Partial(PartialImpl),
 
@@ -150,25 +146,6 @@ impl VerbImpl {
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
             },
-            VerbImpl::Anonymous(dyadic, words) => {
-                let mut ctx = ctx.nest();
-                if let Some(x) = x {
-                    if !dyadic {
-                        return Err(JError::DomainError)
-                            .context("x provided for a monad-only verb");
-                    }
-                    ctx.eval_mut().locales.assign_local("x", x.clone())?;
-                } else {
-                    if *dyadic {
-                        return Err(JError::DomainError)
-                            .context("no x provided for a dyad-only verb");
-                    }
-                }
-                ctx.eval_mut().locales.assign_local("y", y.clone())?;
-                eval_lines(words, &mut ctx)
-                    .and_then(must_be_box)
-                    .context("anonymous")
-            }
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
                 (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
                     a.exec(ctx, x, u, &Nothing, y).and_then(must_be_box)

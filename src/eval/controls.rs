@@ -1,9 +1,11 @@
-use crate::verbs::VerbImpl;
+use crate::verbs::{DyadOwned, MonadOwned, PartialImpl, VerbImpl};
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use std::collections::HashSet;
+use std::sync::Arc;
 
-use crate::{JError, Word};
+use crate::eval::eval_lines;
+use crate::{JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -162,8 +164,43 @@ fn infer_type(def: &[Word]) -> Result<char> {
 fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
-        'm' => Word::Verb("anon".to_string(), VerbImpl::Anonymous(false, def)),
-        'd' => Word::Verb("anon".to_string(), VerbImpl::Anonymous(true, def)),
+        'm' => Word::Verb(
+            "anon".to_string(),
+            VerbImpl::Partial(PartialImpl {
+                name: "anon".to_string(),
+                dyad: None,
+                monad: Some(MonadOwned {
+                    f: Arc::new(move |ctx, y| {
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut()
+                            .locales
+                            .assign_local("y", Word::Noun(y.clone()))?;
+                        eval_lines(&def, &mut ctx).context("anonymous")
+                    }),
+                    rank: Rank::infinite(),
+                }),
+            }),
+        ),
+        'd' => Word::Verb(
+            "anon".to_string(),
+            VerbImpl::Partial(PartialImpl {
+                name: "anon".to_string(),
+                monad: None,
+                dyad: Some(DyadOwned {
+                    f: Arc::new(move |ctx, x, y| {
+                        let mut ctx = ctx.nest();
+                        ctx.eval_mut()
+                            .locales
+                            .assign_local("x", Word::Noun(x.clone()))?;
+                        ctx.eval_mut()
+                            .locales
+                            .assign_local("y", Word::Noun(y.clone()))?;
+                        eval_lines(&def, &mut ctx).context("anonymous")
+                    }),
+                    rank: Rank::infinite_infinite(),
+                }),
+            }),
+        ),
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))
