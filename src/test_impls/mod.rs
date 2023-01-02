@@ -94,7 +94,7 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
             return Ok(());
         }
         // TODO: not implemented yet
-        if arr.when_box().is_some() || arr.when_char().is_some() {
+        if arr.when_box().is_some() {
             return Ok(());
         }
         return Err(anyhow!("incorrect rendering, data:\n{arr:#?}\n\nWe rendered:\n{s:?}\n\njsoft would render this like this:\n{rendered:?}"));

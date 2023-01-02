@@ -19,7 +19,7 @@ pub fn nd(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
 pub fn jsoft(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
     match arr {
         JArray::BoxArray(_) => nd(f, arr),
-        // _ => js(&mut f, arr.shape(), &arr.clone().into_elems()),
+        JArray::CharArray(arr) => br_char(f, arr.view()),
         _ => impl_array!(arr, |arr: &ArrayBase<_, _>| br(&mut f, arr.view())),
     }
 }
@@ -99,6 +99,42 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
             write!(f, "{item}")?;
         }
         write!(f, "\n")?;
+        if rn == last {
+            break;
+        }
+        print_dimension_markings(&mut f, rn, &multiples)?;
+    }
+
+    Ok(())
+}
+
+fn br_char(mut f: impl fmt::Write, arr: ArrayViewD<char>) -> fmt::Result {
+    if let Some(s) = short_array_cases(&arr) {
+        return write!(f, "{s}");
+    }
+
+    let limit = 128usize;
+    // TODO: jsoft takes from the end, not the start, for some reason
+    let iter = arr.rows().into_iter().enumerate().take(limit);
+    let table = iter
+        .map(|(p, x)| {
+            (
+                p,
+                x.into_iter()
+                    .take(limit)
+                    // look, just don't ask
+                    .filter(|c| **c != '\0')
+                    .collect::<String>(),
+            )
+        })
+        .collect_vec();
+
+    let multiples = compute_dimension_spacing(&arr);
+
+    let last = table.last().expect("non-empty").0;
+
+    for (rn, row) in table {
+        write!(f, "{row}\n")?;
         if rn == last {
             break;
         }
