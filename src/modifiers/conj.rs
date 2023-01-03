@@ -14,32 +14,12 @@ use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
-pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
-
-#[derive(Clone)]
-pub struct SimpleConjunction {
-    pub name: &'static str,
-    pub f: ConjunctionFn,
-    pub farcical: fn(&JArray, &JArray) -> Result<bool>,
-}
-
 #[derive(Clone)]
 pub struct FormingConjunction {
     pub name: &'static str,
     pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
 }
 
-impl PartialEq for SimpleConjunction {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.eq(other.name)
-    }
-}
-
-impl fmt::Debug for SimpleConjunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleAdverb({:?})", self.name)
-    }
-}
 
 impl PartialEq for FormingConjunction {
     fn eq(&self, other: &Self) -> bool {

@@ -213,7 +213,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![fragment.0, Verb(verb_str, dv), any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, l, Conjunction(sc, c), r)
+            (ref w, l, Conjunction(_sc, c), r)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)

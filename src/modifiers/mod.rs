@@ -7,7 +7,7 @@ mod conj;
 use anyhow::{anyhow, bail, Context, Result};
 use std::ops::Deref;
 
-use crate::{Ctx, JArray, JError, Word};
+use crate::{Ctx, JError, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -15,7 +15,6 @@ pub use conj::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
-    Conjunction(SimpleConjunction),
     FormingConjunction(FormingConjunction),
     Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
@@ -33,9 +32,6 @@ impl ModifierImpl {
         match self {
             ModifierImpl::Adverb(a) => {
                 (a.f)(ctx, x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
-            }
-            ModifierImpl::Conjunction(c) => {
-                (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
             ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
                 // TODO: hot garbage, working around adverbs not being forming, I think?
@@ -65,12 +61,5 @@ impl ModifierImpl {
             ModifierImpl::FormingConjunction(c) => (false, (c.f)(ctx, u, v)?),
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
         })
-    }
-
-    pub fn farcical(&self, m: &JArray, n: &JArray) -> Result<bool> {
-        match self {
-            ModifierImpl::Conjunction(c) => (c.farcical)(m, n),
-            _ => Ok(false),
-        }
     }
 }
