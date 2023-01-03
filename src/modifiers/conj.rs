@@ -210,9 +210,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 return Err(JError::NonceError).context("only infinite ranks");
             }
             let u = u.clone();
-            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| {
-                Ok(Word::Noun(u.clone()))
-            })
+            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| Ok(Word::Noun(u.clone())))
         }
         _ => {
             return Err(JError::NonceError)
@@ -273,23 +271,47 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_atop(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let mut r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
-            // surely this private field access indicates a design problem of some kind
-            r.1 =
-                r.1.into_iter()
-                    .map(|a| u.exec(ctx, None, &Word::Noun(a.clone())))
-                    .collect::<Result<Vec<_>>>()
-                    .context("left half of c_at")?;
-            Ok(Word::Noun(
-                fill_promote_reshape(&r).context("expanding result of c_atop")?,
+            let u = u.clone();
+            let v = v.clone();
+            let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+                let x = x.cloned().map(Word::Noun);
+                let y = Word::Noun(y.clone());
+
+                do_atop(ctx, x.as_ref(), &u, &v, &y).map(Word::Noun)
+            });
+            Ok(Word::Verb(
+                "atop".to_string(),
+                VerbImpl::Partial(PartialImpl {
+                    name: "atop".to_string(),
+                    monad,
+                    dyad,
+                }),
             ))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
     }
+}
+
+pub fn do_atop(
+    ctx: &mut Ctx,
+    x: Option<&Word>,
+    u: &VerbImpl,
+    v: &VerbImpl,
+    y: &Word,
+) -> Result<JArray> {
+    let mut r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
+    // surely this private field access indicates a design problem of some kind
+    r.1 =
+        r.1.into_iter()
+            .map(|a| u.exec(ctx, None, &Word::Noun(a.clone())))
+            .collect::<Result<Vec<_>>>()
+            .context("left half of c_at")?;
+
+    fill_promote_reshape(&r).context("expanding result of c_atop")
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
@@ -557,7 +579,7 @@ pub fn c_bondo(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) ->
             .exec(ctx, Some(&Word::Noun(n.clone())), y)
             .context("monad bondo NV")
             .map(Word::Noun),
-        (None, n @ Word::Verb(_, _), m @ Word::Verb(_, _)) => c_atop(ctx, x, n, m, y),
+        (None, Word::Verb(_, u), Word::Verb(_, v)) => do_atop(ctx, x, u, v, y).map(Word::Noun),
         (Some(x), Word::Verb(_, u), Word::Verb(_, v)) => {
             let l = v.exec(ctx, None, x).context("left bondo NVV")?;
             let r = v.exec(ctx, None, y).context("right bondo NVV")?;

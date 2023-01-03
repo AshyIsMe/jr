@@ -248,7 +248,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         // matched on in the c_agenda implementation
         "`" => form("`", c_tie),
         "`:" => form("`:", c_not_implemented),
-        "@" => conj("@", c_atop),
+        "@" => form("@", c_atop),
         "@." => form("@.", c_agenda),
         "@:" => conj("@:", c_at),
         "&" => conj("&", c_bondo),

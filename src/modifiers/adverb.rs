@@ -5,10 +5,10 @@ use itertools::Itertools;
 
 use crate::arrays::JArrayCow;
 use crate::cells::fill_promote_list_cow;
-use crate::modifiers::c_atop;
+use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
 use crate::verbs::v_self_classify;
-use crate::{Ctx, JArray, JError, Word};
+use crate::{primitive_verbs, Ctx, JArray, JError, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
 
@@ -72,16 +72,18 @@ pub fn a_slash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Wo
 }
 
 pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+    let Word::Verb(_, u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
     match (x, y) {
         (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
             let classification = v_self_classify(x).context("classify")?;
-            c_atop(
+            do_atop(
                 ctx,
                 Some(&Word::Noun(classification)),
-                u,
-                &Word::static_verb("#"),
+                &u,
+                &primitive_verbs("#").expect("tally always exists"),
                 &Word::Noun(y.clone()),
             )
+            .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     }
