@@ -37,11 +37,19 @@ impl ModifierImpl {
                 (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
             }
             ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
-                (Word::Conjunction(cn, c), r) => c
-                    .exec(ctx, x, u, r, y)
-                    .with_context(|| anyhow!("derived adverb conjunction {cn:?}")),
+                // TODO: hot garbage, working around adverbs not being forming, I think?
+                // TODO: expecting DerivedAdverbs to go with forming adverbs
+                (Word::Conjunction(_cn, c@ ModifierImpl::FormingConjunction(_)), r) => {
+                    let verb = c.form(ctx, u, r)?.expect("forming conjunctions always form");
+                    match verb {
+                        Word::Verb(_, v) => v.exec(ctx, x, y).map(Word::Noun),
+                        _ => bail!(
+                            "TODO: forming DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
+                        ),
+                    }
+                }
                 _ => bail!(
-                    "TODO: DerivedAdverb l: {l:?} r: {r:?} x: {x:?} u: {u:?} v: {v:?} y: {y:?}"
+                    "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
                 ),
             },
             ModifierImpl::FormingConjunction(_) => bail!("shouldn't be calling these"),

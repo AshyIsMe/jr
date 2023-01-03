@@ -220,13 +220,6 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
 
 fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
-    let conj = |name, f| {
-        ModifierImpl::Conjunction(SimpleConjunction {
-            name,
-            f,
-            farcical: not_farcical,
-        })
-    };
     let form = |name, f| ModifierImpl::FormingConjunction(FormingConjunction { name, f });
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
@@ -252,7 +245,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "@." => form("@.", c_agenda),
         "@:" => form("@:", c_at),
         "&" => form("&", c_bondo),
-        "&." => conj("&.", c_under),
+        "&." => form("&.", c_under),
         "&:" => form("&:", c_not_implemented),
         "&.:" => form("&.:", c_not_implemented),
         "d." => form("d.", c_not_implemented),

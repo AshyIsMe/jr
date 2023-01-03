@@ -53,10 +53,6 @@ impl fmt::Debug for FormingConjunction {
     }
 }
 
-pub fn not_farcical(_n: &JArray, _m: &JArray) -> Result<bool> {
-    Ok(false)
-}
-
 pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
@@ -632,59 +628,70 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     ))
 }
 
-pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
-    match (x, n, m, y) {
-        (None, Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
-            let (cells, frame) = monad_cells(y, Rank::zero())?;
-            let vi = v
-                .obverse()
-                .ok_or(JError::NonceError)
-                .context("lacking obverse")?;
-            let mut parts = Vec::new();
-            for y in cells {
-                let v = v.exec(ctx, None, &Word::Noun(y)).context("under dual v")?;
-                let u = u.exec(ctx, None, &Word::Noun(v)).context("under dual u")?;
-                let vi = vi
-                    .exec(ctx, None, &Word::Noun(u))
-                    .context("under dual vi")?;
-                parts.push(vi);
-            }
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
-                .map(Word::Noun)
+pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+    let (u, v) = match (n, m) {
+        (Word::Verb(_, n), Word::Verb(_, m)) => (n, m),
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
+    };
+    let vi = v
+        .obverse()
+        .ok_or(JError::NonceError)
+        .context("lacking obverse")?;
+    let mu = u.clone();
+    let mv = v.clone();
+    let mvi = vi.clone();
+    let monad = PartialImpl::mi(Arc::new(move |ctx, y| {
+        let (cells, frame) = monad_cells(y, Rank::zero())?;
+        let mut parts = Vec::new();
+        for y in cells {
+            let v = mv.exec(ctx, None, &Word::Noun(y)).context("under dual v")?;
+            let u = mu.exec(ctx, None, &Word::Noun(v)).context("under dual u")?;
+            let vi = mvi
+                .exec(ctx, None, &Word::Noun(u))
+                .context("under dual vi")?;
+            parts.push(vi);
         }
-        (Some(Word::Noun(x)), Word::Verb(_, u), Word::Verb(_, v), Word::Noun(y)) => {
-            let vi = v
-                .obverse()
-                .ok_or(JError::NonceError)
-                .context("lacking obverse")?;
-            let vr = v
-                .dyad_rank()
-                .ok_or(JError::NonceError)
-                .context("missing rank for dyad")?;
-            let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
-            let parts = apply_cells(
-                &cells,
-                |x, y| {
-                    let l = v
-                        .exec(ctx, None, &Word::Noun(x.clone()))
-                        .context("under dual l")?;
-                    let r = v
-                        .exec(ctx, None, &Word::Noun(y.clone()))
-                        .context("under dual r")?;
-                    let u = u
-                        .exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
-                        .context("under dual u")?;
-                    vi.exec(ctx, None, &Word::Noun(u)).context("under dual vi")
-                },
-                vr,
-            )?;
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
-                .map(Word::Noun)
-        }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("under dual x:{x:?} n:{n:?} m:{m:?}")),
-    }
+        JArray::from_fill_promote(parts)?
+            .to_shape(frame)
+            .map(|cow| cow.to_owned())
+            .map(Word::Noun)
+    }));
+    let du = u.clone();
+    let dv = v.clone();
+    let dvi = vi.clone();
+    let dyad = PartialImpl::di(Arc::new(move |ctx, x, y| {
+        let vr = dv
+            .dyad_rank()
+            .ok_or(JError::NonceError)
+            .context("missing rank for dyad")?;
+        let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+        let parts = apply_cells(
+            &cells,
+            |x, y| {
+                let l = dv
+                    .exec(ctx, None, &Word::Noun(x.clone()))
+                    .context("under dual l")?;
+                let r = dv
+                    .exec(ctx, None, &Word::Noun(y.clone()))
+                    .context("under dual r")?;
+                let u = du
+                    .exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
+                    .context("under dual u")?;
+                dvi.exec(ctx, None, &Word::Noun(u)).context("under dual vi")
+            },
+            vr,
+        )?;
+        JArray::from_fill_promote(parts)?
+            .to_shape(frame)
+            .map(|cow| cow.to_owned())
+            .map(Word::Noun)
+    }));
+    Ok(Word::Verb(
+        "under".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "under".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
