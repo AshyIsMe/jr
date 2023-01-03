@@ -172,6 +172,18 @@ fn test_power_conjunction_noun_arg() {
 }
 
 #[test]
+fn test_power_conjunction_verb_arg() {
+    assert_eq!(scan_eval("+:^:(6&<) 12").unwrap(), Word::from(24));
+
+    assert_eq!(
+        scan_eval("+:^:(6&<)\"0 (0 3 6 12)").unwrap(),
+        Noun(IntArray(
+            Array::from_shape_vec(IxDyn(&[4]), vec![0i64, 3, 6, 24]).unwrap(),
+        )),
+    );
+}
+
+#[test]
 fn test_collect_int_nouns() {
     let v = [2i64, 3];
     let v1 = [0i64, 1];
