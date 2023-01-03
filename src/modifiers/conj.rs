@@ -15,19 +15,18 @@ use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
-pub struct FormingConjunction {
+pub struct SimpleConjunction {
     pub name: &'static str,
     pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
 }
 
-
-impl PartialEq for FormingConjunction {
+impl PartialEq for SimpleConjunction {
     fn eq(&self, other: &Self) -> bool {
         self.name.eq(other.name)
     }
 }
 
-impl fmt::Debug for FormingConjunction {
+impl fmt::Debug for SimpleConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "FormingConjunction({:?})", self.name)
     }

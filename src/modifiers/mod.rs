@@ -15,7 +15,7 @@ pub use conj::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
-    FormingConjunction(FormingConjunction),
+    Conjunction(SimpleConjunction),
     Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
 }
@@ -36,7 +36,7 @@ impl ModifierImpl {
             ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
                 // TODO: hot garbage, working around adverbs not being forming, I think?
                 // TODO: expecting DerivedAdverbs to go with forming adverbs
-                (Word::Conjunction(_cn, c@ ModifierImpl::FormingConjunction(_)), r) => {
+                (Word::Conjunction(_cn, c@ ModifierImpl::Conjunction(_)), r) => {
                     let (farcical, verb) = c.form(ctx, u, r)?;
                     assert!(!farcical);
                     match verb {
@@ -51,14 +51,14 @@ impl ModifierImpl {
                 ),
             },
             ModifierImpl::Cor |
-            ModifierImpl::FormingConjunction(_) => bail!("shouldn't be calling these"),
+            ModifierImpl::Conjunction(_) => bail!("shouldn't be calling these"),
         }
     }
 
     pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
-            ModifierImpl::FormingConjunction(c) => (false, (c.f)(ctx, u, v)?),
+            ModifierImpl::Conjunction(c) => (false, (c.f)(ctx, u, v)?),
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
         })
     }
