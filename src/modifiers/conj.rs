@@ -9,7 +9,7 @@ use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, PartialImpl, PrimitiveImpl, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -380,11 +380,10 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     }
 }
 
-pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
+pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
-    let Verb(_, v) = n else { return Err(JError::DomainError).context("cut's verb arg"); };
-    let Noun(y) = y else { return Err(JError::DomainError).context("cut's y arg"); };
+    let Verb(_, v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
     let m = m.approx_i64_one().context("cut's m")?;
 
     let is_end = match m {
@@ -399,45 +398,56 @@ pub fn c_cut(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
         _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
     };
 
-    let parts = y.outer_iter().collect_vec();
-    ensure!(!parts.is_empty());
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+        let parts = y.outer_iter().collect_vec();
+        ensure!(!parts.is_empty());
 
-    let frets: Vec<usize> = match x {
-        None => {
-            let key = if is_end {
-                &parts[parts.len() - 1]
-            } else {
-                &parts[0]
-            };
-            let mut frets = parts.iter().positions(|part| part == key).collect_vec();
-            if !is_end {
-                frets.push(parts.len());
+        let frets: Vec<usize> = match x {
+            None => {
+                let key = if is_end {
+                    &parts[parts.len() - 1]
+                } else {
+                    &parts[0]
+                };
+                let mut frets = parts.iter().positions(|part| part == key).collect_vec();
+                if !is_end {
+                    frets.push(parts.len());
+                }
+                frets
             }
-            frets
-        }
-        Some(Noun(JArray::BoolArray(x))) if x.shape().len() == 1 => {
-            x.iter().positions(|part| *part == 1).collect()
-        }
+            Some(JArray::BoolArray(x)) if x.shape().len() == 1 => {
+                x.iter().positions(|part| *part == 1).collect()
+            }
 
-        _ => return Err(JError::NonceError).with_context(|| anyhow!("{x:?} {n:?} ;. {m:?} {y:?}")),
-    };
+            _ => return Err(JError::NonceError).with_context(|| anyhow!("{x:?} ? ;. ? {y:?}")),
+        };
 
-    let out = cut_frets(&frets, is_inclusive, is_end)
-        .into_iter()
-        .map(|(s, e)| &parts[s..e])
-        .map(|sub| {
-            let sub = if sub.is_empty() {
-                JArray::empty()
-            } else {
-                JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
-                    .context("flattening intermediate")?
-            };
-            v.exec(ctx, None, &Noun(sub))
-                .context("evaluating intermediate")
-        })
-        .collect::<Result<Vec<_>>>()?;
+        let out = cut_frets(&frets, is_inclusive, is_end)
+            .into_iter()
+            .map(|(s, e)| &parts[s..e])
+            .map(|sub| {
+                let sub = if sub.is_empty() {
+                    JArray::empty()
+                } else {
+                    JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
+                        .context("flattening intermediate")?
+                };
+                v.exec(ctx, None, &Noun(sub))
+                    .context("evaluating intermediate")
+            })
+            .collect::<Result<Vec<_>>>()?;
 
-    JArray::from_fill_promote(out).map(Noun)
+        JArray::from_fill_promote(out).map(Noun)
+    });
+
+    Ok(Word::Verb(
+        "?;.?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "?;.?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 fn cut_frets(
