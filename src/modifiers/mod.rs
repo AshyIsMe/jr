@@ -7,7 +7,7 @@ mod conj;
 use anyhow::{anyhow, bail, Context, Result};
 use std::ops::Deref;
 
-use crate::{Ctx, JArray, Word};
+use crate::{Ctx, JArray, JError, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -17,6 +17,7 @@ pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
     FormingConjunction(FormingConjunction),
+    Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
 }
 
@@ -40,7 +41,8 @@ impl ModifierImpl {
                 // TODO: hot garbage, working around adverbs not being forming, I think?
                 // TODO: expecting DerivedAdverbs to go with forming adverbs
                 (Word::Conjunction(_cn, c@ ModifierImpl::FormingConjunction(_)), r) => {
-                    let verb = c.form(ctx, u, r)?.expect("forming conjunctions always form");
+                    let (farcical, verb) = c.form(ctx, u, r)?;
+                    assert!(!farcical);
                     match verb {
                         Word::Verb(_, v) => v.exec(ctx, x, y).map(Word::Noun),
                         _ => bail!(
@@ -52,15 +54,17 @@ impl ModifierImpl {
                     "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
                 ),
             },
+            ModifierImpl::Cor |
             ModifierImpl::FormingConjunction(_) => bail!("shouldn't be calling these"),
         }
     }
 
-    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Option<Word>> {
-        Ok(Some(match self {
-            ModifierImpl::FormingConjunction(c) => (c.f)(ctx, u, v)?,
-            _ => return Ok(None),
-        }))
+    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
+        Ok(match self {
+            ModifierImpl::Cor => c_cor(ctx, u, v)?,
+            ModifierImpl::FormingConjunction(c) => (false, (c.f)(ctx, u, v)?),
+            _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
+        })
     }
 
     pub fn farcical(&self, m: &JArray, n: &JArray) -> Result<bool> {
