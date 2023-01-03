@@ -1,5 +1,6 @@
 use std::fmt;
 use std::iter;
+use std::sync::Arc;
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -323,7 +324,9 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let x = x.cloned().map(Word::Noun);
                 let y = Word::Noun(y.clone());
-                let r = v.partial_exec(ctx, x.as_ref(), &y).context("right half of c_at")?;
+                let r = v
+                    .partial_exec(ctx, x.as_ref(), &y)
+                    .context("right half of c_at")?;
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
                 u.exec(ctx, None, &Word::Noun(r))
                     .context("left half of c_at")
@@ -583,26 +586,50 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
     }
 }
 
-pub fn c_bondo(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
-    match (x, n, m) {
-        (None, Word::Verb(_, n), Word::Noun(m)) => n
-            .exec(ctx, Some(&Word::Noun(m.clone())), y)
-            .context("monad bondo VN")
-            .map(Word::Noun),
-        (None, Word::Noun(n), Word::Verb(_, m)) => m
-            .exec(ctx, Some(&Word::Noun(n.clone())), y)
-            .context("monad bondo NV")
-            .map(Word::Noun),
-        (None, Word::Verb(_, u), Word::Verb(_, v)) => do_atop(ctx, x, u, v, y).map(Word::Noun),
-        (Some(x), Word::Verb(_, u), Word::Verb(_, v)) => {
-            let l = v.exec(ctx, None, x).context("left bondo NVV")?;
-            let r = v.exec(ctx, None, y).context("right bondo NVV")?;
-            u.exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
+pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+    // TODO: some of these are presumably obviously monads or dyads
+    let (monad, dyad) = match (n.clone(), m.clone()) {
+        (Word::Verb(_, n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+            n.exec(ctx, Some(&Word::Noun(m.clone())), &Word::Noun(y.clone()))
+                .context("monad bondo VN")
                 .map(Word::Noun)
-                .context("central bondo NVV")
+        }),
+        (Word::Noun(n), Word::Verb(_, m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+            m.exec(ctx, Some(&Word::Noun(n.clone())), &Word::Noun(y.clone()))
+                .context("monad bondo NV")
+                .map(Word::Noun)
+        }),
+        (Word::Verb(_, u), Word::Verb(_, v)) => {
+            // TODO: EW
+            let u2 = u.clone();
+            let v2 = v.clone();
+            (
+                PartialImpl::mi(Arc::new(move |ctx, y| {
+                    let y = Word::Noun(y.clone());
+                    do_atop(ctx, None, &u, &v, &y).map(Word::Noun)
+                })),
+                PartialImpl::di(Arc::new(move |ctx, x, y| {
+                    let x = Word::Noun(x.clone());
+                    let y = Word::Noun(y.clone());
+
+                    let l = v2.exec(ctx, None, &x).context("left bondo NVV")?;
+                    let r = v2.exec(ctx, None, &y).context("right bondo NVV")?;
+                    u2.exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
+                        .map(Word::Noun)
+                        .context("central bondo NVV")
+                })),
+            )
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("bondo x:{x:?} n:{n:?} m:{m:?}")),
-    }
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
+    };
+    Ok(Word::Verb(
+        "bondo".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "bondo".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 pub fn c_under(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
