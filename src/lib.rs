@@ -228,7 +228,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     let form = |name, f| ModifierImpl::FormingConjunction(FormingConjunction { name, f });
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
-        "^:" => conj("^:", c_hatco),
+        "^:" => form("^:", c_hatco),
         "." => form(".", c_not_implemented),
         ":" => ModifierImpl::Conjunction(SimpleConjunction {
             name: ":",

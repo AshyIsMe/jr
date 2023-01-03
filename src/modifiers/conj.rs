@@ -9,7 +9,7 @@ use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, PartialImpl, PrimitiveImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -60,33 +60,51 @@ pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
-pub fn c_hatco(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
-    match (u, v) {
+    let u = u.clone();
+    let v = v.clone();
+    let (monad, dyad) = match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
-            let n = ja.to_i64().ok_or(JError::DomainError)?;
-            Ok(collect_nouns(
-                n.iter()
-                    .map(|i| -> Result<_> {
-                        let mut t = y.clone();
-                        for _ in 0..*i {
-                            t = u.exec(ctx, x, &t).map(Word::Noun)?;
-                        }
-                        Ok(t)
-                    })
-                    .collect::<Result<_, _>>()?,
-            )?)
+            let n = ja.to_i64().ok_or(JError::DomainError)?.to_owned();
+            PartialImpl::from_legacy_inf(move |ctx, x, y| {
+                let x = x.cloned().map(Word::Noun);
+                let y = Word::Noun(y.clone());
+                Ok(collect_nouns(
+                    n.iter()
+                        .map(|i| -> Result<_> {
+                            let mut t = y.clone();
+                            for _ in 0..*i {
+                                t = u.exec(ctx, x.as_ref(), &t).map(Word::Noun)?;
+                            }
+                            Ok(t)
+                        })
+                        .collect::<Result<_, _>>()?,
+                )?)
+            })
         }
-        (Word::Verb(_, u), Word::Verb(_, v)) => {
+        (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
+            let x = x.cloned().map(Word::Noun);
+            let y = Word::Noun(y.clone());
+
             if v.exec(ctx, None, &y.clone())? == JArray::from(Num::from(1u8)) {
-                Ok(Word::Noun(u.exec(ctx, x, &y.clone())?))
+                Ok(Word::Noun(u.exec(ctx, x.as_ref(), &y.clone())?))
             } else {
                 Ok(y.clone())
             }
-        }
-        _ => Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
-    }
+        }),
+        (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
+    };
+
+    Ok(Word::Verb(
+        "hatco".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "hatco".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
