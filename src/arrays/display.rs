@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use std::cmp::max;
 use std::fmt;
 
 use ndarray::{ArrayBase, ArrayViewD};
@@ -18,7 +19,7 @@ pub fn nd(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
 
 pub fn jsoft(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
     match arr {
-        JArray::BoxArray(_) => nd(f, arr),
+        JArray::BoxArray(arr) => br_box(f, arr.view()),
         JArray::CharArray(arr) => br_char(f, arr.view()),
         _ => impl_array!(arr, |arr: &ArrayBase<_, _>| br(&mut f, arr.view())),
     }
@@ -76,7 +77,7 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
         .reduce(|l, r| {
             l.into_iter()
                 .zip(r.into_iter())
-                .map(|(l, r)| l.max(r))
+                .map(|(l, r)| max(l, r))
                 .collect_vec()
         })
         .expect("non-empty rows");
@@ -87,6 +88,108 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
 
     for (rn, row) in table {
         for (col, (target, item)) in widths.iter().zip(row.into_iter()).enumerate() {
+            let len = width(&item);
+            write!(
+                f,
+                "{}",
+                (0..(target - len)).map(|_| ' ').collect::<String>()
+            )?;
+            if col != 0 {
+                write!(f, " ")?;
+            }
+            write!(f, "{item}")?;
+        }
+        write!(f, "\n")?;
+        if rn == last {
+            break;
+        }
+        print_dimension_markings(&mut f, rn, &multiples)?;
+    }
+
+    Ok(())
+}
+
+fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
+    if let Some(s) = short_array_cases(&arr) {
+        return write!(f, "{s}");
+    }
+    let corners = ['┌', '┐', '└', '┘'];
+    let walls = ['─', '│', '┼'];
+    let limit = 128usize;
+    // TODO: jsoft takes from the end, not the start, for some reason
+    let iter = arr.rows().into_iter().enumerate().take(limit);
+    let table = iter
+        .map(|(p, x)| {
+            (
+                p,
+                x.into_iter()
+                    .take(limit)
+                    .map(|x| x.j_format())
+                    .collect_vec(),
+            )
+        })
+        .collect_vec();
+
+    let widths: Vec<usize> = table
+        .iter()
+        .map(|(_, row)| {
+            row.iter()
+                .map(|item| item.split('\n').map(width).max().unwrap_or_default())
+                .collect_vec()
+        })
+        .reduce(|l, r| {
+            l.into_iter()
+                .zip(r.into_iter())
+                .map(|(l, r)| max(l, r))
+                .collect_vec()
+        })
+        .expect("non-empty rows");
+
+    let widths: Vec<usize> = table
+        .iter()
+        .map(|(_, row)| {
+            row.iter()
+                .map(|item| item.split('\n').map(width).max().unwrap_or_default())
+                .collect_vec()
+        })
+        .reduce(|l, r| {
+            l.into_iter()
+                .zip(r.into_iter())
+                .map(|(l, r)| max(l, r))
+                .collect_vec()
+        })
+        .expect("non-empty rows");
+
+    // let row_sizes = table
+    //     .iter()
+    //     .map(|(_, row)| {
+    //         row.iter()
+    //             .map(|item| {
+    //                 let lines = item.split('\n').count();
+    //                 let max_width = item
+    //                     .split('\n')
+    //                     .map(|line| width(line))
+    //                     .max()
+    //                     .unwrap_or_default();
+    //                 (lines, max_width)
+    //             })
+    //             .collect_vec()
+    //     }).collect_vec();
+    // let widths = row_sizes.iter().map(|(_lines, width)| width)
+    //     .reduce(|l, r| {
+    //         l.into_iter()
+    //             .zip(r.into_iter())
+    //             .map(|(l, r)| *l.max(r))
+    //             .collect_vec()
+    //     })
+    //     .expect("non-empty rows");
+
+    let multiples = compute_dimension_spacing(&arr);
+
+    let last = table.last().expect("non-empty").0;
+
+    for (rn, row) in table {
+        for (col, (target, item)) in row_sizes.iter().zip(row.into_iter()).enumerate() {
             let len = width(&item);
             write!(
                 f,
@@ -213,7 +316,9 @@ impl JFormat for f64 {
 
 impl JFormat for JArray {
     fn j_format(&self) -> String {
-        unreachable!()
+        let mut ret = String::with_capacity(self.tally() * 2);
+        jsoft(&mut ret, self).expect("TODO: nested array panic?");
+        ret
     }
 }
 
