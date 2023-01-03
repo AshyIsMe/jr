@@ -16,6 +16,7 @@ pub use conj::*;
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
+    FormingConjunction(FormingConjunction),
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
 }
 
@@ -43,7 +44,15 @@ impl ModifierImpl {
                     "TODO: DerivedAdverb l: {l:?} r: {r:?} x: {x:?} u: {u:?} v: {v:?} y: {y:?}"
                 ),
             },
+            ModifierImpl::FormingConjunction(_) => bail!("shouldn't be calling these"),
         }
+    }
+
+    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Option<Word>> {
+        Ok(Some(match self {
+            ModifierImpl::FormingConjunction(c) => (c.f)(ctx, u, v)?,
+            _ => return Ok(None),
+        }))
     }
 
     pub fn farcical(&self, m: &JArray, n: &JArray) -> Result<bool> {

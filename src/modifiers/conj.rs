@@ -23,6 +23,12 @@ pub struct SimpleConjunction {
     pub farcical: fn(&JArray, &JArray) -> Result<bool>,
 }
 
+#[derive(Clone)]
+pub struct FormingConjunction {
+    pub name: &'static str,
+    pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
+}
+
 impl PartialEq for SimpleConjunction {
     fn eq(&self, other: &Self) -> bool {
         self.name.eq(other.name)
@@ -32,6 +38,18 @@ impl PartialEq for SimpleConjunction {
 impl fmt::Debug for SimpleConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SimpleAdverb({:?})", self.name)
+    }
+}
+
+impl PartialEq for FormingConjunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for FormingConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "FormingConjunction({:?})", self.name)
     }
 }
 
@@ -461,12 +479,15 @@ mod test_cut {
     }
 }
 
-pub fn c_foreign(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> Result<Word> {
-    match (n, m) {
-        (Word::Noun(n), Word::Noun(m)) => {
-            let n = n.approx_i64_one().context("foreign's left")?;
-            let m = m.approx_i64_one().context("foreign's right")?;
-            foreign(ctx, n, m, x, y)
+pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
+    match (l, r) {
+        (Word::Noun(l), Word::Noun(r)) => {
+            let l = l.approx_i64_one().context("foreign's left")?;
+            let r = r.approx_i64_one().context("foreign's right")?;
+            Ok(Word::Verb(
+                format!("{l}!:{r}"),
+                VerbImpl::Partial(foreign(l, r)?),
+            ))
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }

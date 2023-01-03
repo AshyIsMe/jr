@@ -2,6 +2,8 @@ mod impl_impl;
 mod impl_maths;
 mod impl_shape;
 mod maff;
+mod partial;
+mod primitive;
 mod ranks;
 
 use std::collections::VecDeque;
@@ -20,13 +22,16 @@ use try_partialord::TrySort;
 use JArray::*;
 
 use maff::*;
-pub use ranks::Rank;
+pub use ranks::{DyadRank, Rank};
 
 use crate::arrays::{IntoVec, JArrayCow};
 use crate::cells::fill_promote_list_cow;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
+
+pub use partial::*;
+pub use primitive::*;
 
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())

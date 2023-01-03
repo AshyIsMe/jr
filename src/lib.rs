@@ -1,3 +1,5 @@
+extern crate core;
+
 mod arrays;
 mod cells;
 mod ctx;
@@ -238,7 +240,10 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "::" => conj("::", c_assign_adverse),
         ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
-        "!:" => conj("!:", c_foreign),
+        "!:" => ModifierImpl::FormingConjunction(FormingConjunction {
+            name: "!:",
+            f: c_foreign,
+        }),
         "[." => conj("[.", c_not_implemented),
         "]." => conj("].", c_not_implemented),
         "\"" => conj("\"", c_quote),

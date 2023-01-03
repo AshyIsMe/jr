@@ -4,6 +4,7 @@ use crate::JError;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Rank(u8);
+pub type DyadRank = (Rank, Rank);
 
 impl Rank {
     pub fn new(val: u32) -> Result<Self> {
