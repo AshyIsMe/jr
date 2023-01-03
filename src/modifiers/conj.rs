@@ -315,14 +315,28 @@ pub fn do_atop(
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_at(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
+pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     match (u, v) {
         (Word::Verb(_, u), Word::Verb(_, v)) => {
-            let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-            let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
-            u.exec(ctx, None, &Word::Noun(r))
-                .context("left half of c_at")
-                .map(Word::Noun)
+            let u = u.clone();
+            let v = v.clone();
+            let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+                let x = x.cloned().map(Word::Noun);
+                let y = Word::Noun(y.clone());
+                let r = v.partial_exec(ctx, x.as_ref(), &y).context("right half of c_at")?;
+                let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
+                u.exec(ctx, None, &Word::Noun(r))
+                    .context("left half of c_at")
+                    .map(Word::Noun)
+            });
+            Ok(Word::Verb(
+                "at".to_string(),
+                VerbImpl::Partial(PartialImpl {
+                    name: "at".to_string(),
+                    monad,
+                    dyad,
+                }),
+            ))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @: verb, not {u:?} @: {v:?}")),
