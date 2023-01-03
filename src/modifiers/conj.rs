@@ -67,7 +67,13 @@ pub fn c_hatco(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                     .collect::<Result<_, _>>()?,
             )?)
         }
-        (Word::Verb(_, _), Word::Verb(_, _)) => bail!("power conjunction verb right argument"),
+        (Word::Verb(_, u), Word::Verb(_, v)) => {
+            if v.exec(ctx, None, &y.clone())? == JArray::from(Num::from(1u8)) {
+                Ok(Word::Noun(u.exec(ctx, x, &y.clone())?))
+            } else {
+                Ok(y.clone())
+            }
+        }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     }
 }
