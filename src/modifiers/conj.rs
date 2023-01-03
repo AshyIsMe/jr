@@ -9,7 +9,7 @@ use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
@@ -337,20 +337,28 @@ pub fn c_cor(ctx: &mut Ctx, x: Option<&Word>, n: &Word, m: &Word, y: &Word) -> R
     }
 }
 
-pub fn c_assign_adverse(
-    ctx: &mut Ctx,
-    x: Option<&Word>,
-    n: &Word,
-    m: &Word,
-    y: &Word,
-) -> Result<Word> {
+pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     match (n, m) {
-        (Word::Verb(_, n), Word::Verb(_, m)) => n
-            .exec(ctx, x, y)
-            .or_else(|_| m.exec(ctx, x, y))
-            .map(Word::Noun),
-        _ => Err(JError::NonceError)
-            .with_context(|| anyhow!("\nx: {x:?}\nn: {n:?}\nm: {m:?}\ny: {y:?}")),
+        (Word::Verb(_, n), Word::Verb(_, m)) => {
+            let n = n.clone();
+            let m = m.clone();
+            let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+                let x = x.map(|v| Word::Noun(v.clone()));
+                let y = Word::Noun(y.clone());
+                n.exec(ctx, x.as_ref(), &y)
+                    .or_else(|_| m.exec(ctx, x.as_ref(), &y))
+                    .map(Word::Noun)
+            });
+            Ok(Word::Verb(
+                format!("?::?"),
+                VerbImpl::Partial(PartialImpl {
+                    name: format!("?::?"),
+                    monad,
+                    dyad,
+                }),
+            ))
+        }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("\nn: {n:?}\nm: {m:?}")),
     }
 }
 
