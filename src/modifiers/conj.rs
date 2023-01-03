@@ -1,7 +1,7 @@
 use std::fmt;
 use std::iter;
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
@@ -147,8 +147,8 @@ fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
     Ok(result)
 }
 
-pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-    match (u, v) {
+pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+    let (monad, dyad) = match (u, v) {
         (Word::Verb(_, u), Word::Noun(n)) => {
             let n = n
                 .approx()
@@ -176,8 +176,9 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                 Rank::from_approx(ranks[2])?,
             );
 
-            match (x, y) {
-                (None, Word::Noun(y)) => exec_monad(
+            let u = u.clone();
+            PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+                None => exec_monad(
                     |y| {
                         u.exec(ctx, None, &Word::Noun(y.clone()))
                             .context("running monadic u inside re-rank")
@@ -187,7 +188,7 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                 )
                 .map(Word::Noun)
                 .context("monadic rank drifting"),
-                (Some(Word::Noun(x)), Word::Noun(y)) => exec_dyad(
+                Some(x) => exec_dyad(
                     |x, y| {
                         u.exec(ctx, Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
                             .context("running dyadic u inside re-rank")
@@ -198,9 +199,7 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
                 )
                 .map(Word::Noun)
                 .context("dyadic rank drifting"),
-                _ => Err(JError::NonceError)
-                    .with_context(|| anyhow!("can't rank non-nouns, {x:?} {y:?}")),
-            }
+            })
         }
         (Word::Noun(u), Word::Noun(n)) => {
             let n = n
@@ -210,10 +209,25 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
             if n != arr0d(f32::INFINITY) {
                 return Err(JError::NonceError).context("only infinite ranks");
             }
-            Ok(Word::Noun(u.clone()))
+            let u = u.clone();
+            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| {
+                Ok(Word::Noun(u.clone()))
+            })
         }
-        _ => bail!("rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"),
-    }
+        _ => {
+            return Err(JError::NonceError)
+                .with_context(|| "rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}")
+        }
+    };
+
+    Ok(Word::Verb(
+        "\"".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "\"".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {

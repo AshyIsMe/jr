@@ -244,7 +244,7 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
         "!:" => form("!:", c_foreign),
         "[." => form("[.", c_not_implemented),
         "]." => form("].", c_not_implemented),
-        "\"" => conj("\"", c_quote),
+        "\"" => form("\"", c_quote),
         // matched on in the c_agenda implementation
         "`" => form("`", c_tie),
         "`:" => form("`:", c_not_implemented),
