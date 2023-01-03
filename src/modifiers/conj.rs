@@ -1,6 +1,5 @@
 use std::fmt;
 use std::iter;
-use std::ops::Deref;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
@@ -11,7 +10,7 @@ use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{eval_lines, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, Rank, VerbImpl};
-use crate::{arr0d, generate_cells, Ctx, Num};
+use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
 pub type ConjunctionFn = fn(&mut Ctx, Option<&Word>, &Word, &Word, &Word) -> Result<Word>;
@@ -57,13 +56,7 @@ pub fn not_farcical(_n: &JArray, _m: &JArray) -> Result<bool> {
     Ok(false)
 }
 
-pub fn c_not_implemented(
-    _ctx: &mut Ctx,
-    _x: Option<&Word>,
-    _u: &Word,
-    _v: &Word,
-    _y: &Word,
-) -> Result<Word> {
+pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
@@ -205,35 +198,46 @@ pub fn c_quote(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) ->
     }
 }
 
-pub fn c_agenda(ctx: &mut Ctx, x: Option<&Word>, u: &Word, v: &Word, y: &Word) -> Result<Word> {
-    use VerbImpl::*;
+pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+    match (u, v) {
+        (Word::Verb(l, VerbImpl::Primitive(_)), Word::Verb(r, VerbImpl::Primitive(_))) => {
+            Ok(Word::Noun(JArray::from_list(vec![
+                JArray::from_string(l),
+                JArray::from_string(r),
+            ])))
+        }
+        _ => return Err(JError::NonceError).context("can only tie primitives"),
+    }
+}
+
+pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     use Word::*;
 
     let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
-    let v = v.approx_i64_one().context("agenda's v")?;
+    let v = v.approx_usize_one().context("agenda's v")?;
 
-    // TODO: complete hack, only handling a tiny case
-    if v != 0 && v != 1 {
-        return Err(JError::NonceError).context("@. only implemented for 2-gerunds");
+    let Noun(JArray::BoxArray(u)) = u else { return Err(JError::DomainError).context("agenda's box array"); };
+
+    if u.shape().len() > 1 {
+        return Err(JError::NonceError).context("@. only implemented for lists");
     }
 
-    match u {
-        Verb(_, DerivedVerb { l, r, m }) => match (l.deref(), r.deref(), m.deref()) {
-            // TODO: complete hack, matching on the *name* of the verb
-            (Verb(_, l), Verb(_, r), Conjunction(name, _)) if name == "`" => {
-                if v == 0 {
-                    return l.exec(ctx, x, y).map(Noun).context("agenda l");
-                } else if v == 1 {
-                    return r.exec(ctx, x, y).map(Noun).context("agenda r");
-                } else {
-                    unreachable!("checked above")
-                }
-            }
-            _ => (),
-        },
-        _ => (),
+    let verb = u
+        .iter()
+        .nth(v)
+        .ok_or(JError::IndexError)
+        .context("gerund out of bounds")?;
+    let JArray::CharArray(verb) = verb else { return Err(JError::DomainError).context("gerunds are strings"); };
+    if verb.len() > 1 {
+        return Err(JError::DomainError).context("gerunds are single strings");
     }
-    Err(JError::NonceError).with_context(|| anyhow!("\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"))
+
+    let name = verb.iter().collect::<String>();
+    let verb = primitive_verbs(&name)
+        .ok_or(JError::NonceError)
+        .context("unable to match *primitive* verb")?;
+
+    Ok(Verb(name, verb))
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
