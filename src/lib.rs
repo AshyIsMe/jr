@@ -170,18 +170,19 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
 
 fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
-    let adverb = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
+    let legacy = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
+    let adverb = |name, f| ModifierImpl::Adverb2(SimpleAdverb2 { name, f });
     Some(match sentence {
         "~" => adverb("~", a_tilde),
-        "/" => adverb("/", a_slash),
-        "/." => adverb("/.", a_slash_dot),
-        "\\" => adverb("\\", a_backslash),
-        "\\." => adverb("\\.", a_suffix_outfix),
-        "]:" => adverb("]:", a_not_implemented),
-        "}" => adverb("}", a_curlyrt),
-        "b." => adverb("b.", a_not_implemented),
-        "f." => adverb("f.", a_not_implemented),
-        "M." => adverb("M.", a_not_implemented),
+        "/" => legacy("/", a_slash),
+        "/." => legacy("/.", a_slash_dot),
+        "\\" => legacy("\\", a_backslash),
+        "\\." => legacy("\\.", a_suffix_outfix),
+        "]:" => legacy("]:", a_not_implemented),
+        "}" => legacy("}", a_curlyrt),
+        "b." => legacy("b.", a_not_implemented),
+        "f." => legacy("f.", a_not_implemented),
+        "M." => legacy("M.", a_not_implemented),
         _ => return None,
     })
 }

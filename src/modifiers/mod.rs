@@ -15,6 +15,7 @@ pub use conj::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
+    Adverb2(SimpleAdverb2),
     Conjunction(SimpleConjunction),
     Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
@@ -50,6 +51,7 @@ impl ModifierImpl {
                     "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
                 ),
             },
+            ModifierImpl::Adverb2(_) |
             ModifierImpl::Cor |
             ModifierImpl::Conjunction(_) => bail!("shouldn't be calling these"),
         }
@@ -60,6 +62,17 @@ impl ModifierImpl {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
             ModifierImpl::Conjunction(c) => (false, (c.f)(ctx, u, v)?),
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
+        })
+    }
+    pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Option<Word>> {
+        Ok(match self {
+            ModifierImpl::Adverb(_) => None,
+            ModifierImpl::Adverb2(c) => Some((c.f)(ctx, u)?),
+            ModifierImpl::DerivedAdverb { .. } => None,
+            _ => {
+                return Err(JError::SyntaxError)
+                    .with_context(|| anyhow!("non-adverb in adverb context: {self:?}"))
+            }
         })
     }
 }

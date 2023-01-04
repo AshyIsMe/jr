@@ -205,6 +205,7 @@ impl VerbImpl {
     pub fn monad_rank(&self) -> Option<Rank> {
         match self {
             Self::Primitive(p) => Some(p.monad.rank),
+            Self::Partial(p) => p.monad.as_ref().map(|p| p.rank),
             _ => None,
         }
     }
@@ -213,6 +214,7 @@ impl VerbImpl {
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
             Self::Primitive(p) => p.dyad.map(|d| d.rank),
+            Self::Partial(p) => p.dyad.as_ref().map(|d| d.rank),
             _ => None,
         }
     }

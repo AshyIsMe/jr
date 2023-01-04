@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
@@ -7,10 +8,11 @@ use crate::arrays::JArrayCow;
 use crate::cells::fill_promote_list_cow;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
-use crate::verbs::v_self_classify;
-use crate::{primitive_verbs, Ctx, JArray, JError, Word};
+use crate::verbs::{v_self_classify, DyadOwned, MonadOwned, PartialImpl, VerbImpl};
+use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
 
 pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
+pub type AdverbFn2 = fn(&mut Ctx, &Word) -> Result<Word>;
 
 #[derive(Clone)]
 pub struct SimpleAdverb {
@@ -30,23 +32,70 @@ impl fmt::Debug for SimpleAdverb {
     }
 }
 
+#[derive(Clone)]
+pub struct SimpleAdverb2 {
+    pub name: &'static str,
+    pub f: AdverbFn2,
+}
+
+impl PartialEq for SimpleAdverb2 {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for SimpleAdverb2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SimpleAdverb2({:?})", self.name)
+    }
+}
+
 pub fn a_not_implemented(_ctx: &mut Ctx, _x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
-pub fn a_tilde(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match u {
-            Word::Verb(_, u) => u.exec(ctx, Some(y), y).map(Word::Noun),
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
-        },
-        Some(x) => match u {
-            Word::Verb(_, u) => u.exec(ctx, Some(y), x).map(Word::Noun),
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
-        },
-    }
+pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(su, u) = u else { return Err(JError::DomainError)
+        .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
+
+    let mu = u.clone();
+
+    // are we supposed to be, like, not generating these functions if they don't exist?
+    let monad = Some(MonadOwned {
+        // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
+        rank: Rank::infinite(),
+        // rank: mu
+        //     .monad_rank()
+        //     .ok_or(JError::NonceError)
+        //     .context("can only ~ ranked verbs")?,
+        f: Arc::new(move |ctx, y| {
+            let y = Word::Noun(y.clone());
+            mu.exec(ctx, Some(&y), &y).map(Word::Noun)
+        }),
+    });
+
+    let du = u.clone();
+    let dyad = Some(DyadOwned {
+        rank: Rank::infinite_infinite(),
+        // rank: du
+        //     .dyad_rank()
+        //     .ok_or(JError::NonceError)
+        //     .context("can only ~ ranked verbs")?,
+        f: Arc::new(move |ctx, x, y| {
+            let x = Word::Noun(x.clone());
+            let y = Word::Noun(y.clone());
+            du.exec(ctx, Some(&y), &x).map(Word::Noun)
+        }),
+    });
+
+    Ok(Word::Verb(
+        format!("{su}~"),
+        VerbImpl::Partial(PartialImpl {
+            name: format!("{su}~"),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 pub fn a_slash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
