@@ -208,9 +208,12 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 }
 
 /// (_ 0 _)
-pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match (x, u, y) {
-        (None, Word::Verb(_, u), Word::Noun(y)) => {
+pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
+
+    let u = u.clone();
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        None => {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
@@ -218,8 +221,17 @@ pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> R
             }
             JArray::from_fill_promote(piece).map(Word::Noun)
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
-    }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\. {y:?}")),
+    });
+
+    Ok(Word::Verb(
+        "\\.?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "\\.?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 /// (_ _ _)
