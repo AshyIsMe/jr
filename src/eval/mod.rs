@@ -8,11 +8,13 @@ use crate::{arr0d, Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
-use num_traits::Zero;
 
 use crate::error::JError;
 // TODO: oh come on, this is clearly an eval concept
+pub use crate::eval::controls::create_def;
+// TODO: oh come on, this is clearly an eval concept
 pub use crate::eval::controls::resolve_controls;
+
 use crate::eval::ctl_if::control_if;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
@@ -211,7 +213,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![fragment.0, Verb(verb_str, dv), any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, l, Conjunction(sc, c), r)
+            (ref w, l, Conjunction(_sc, c), r)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
@@ -221,58 +223,32 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
             {
                 debug!("4 Conj");
-                if let Some(formed) = c.form(ctx, &l, &r)? {
-                    Ok(vec![fragment.0, formed])
-                } else {
-                    let verb_str = format!("? {sc} ?");
-                    let dv = VerbImpl::DerivedVerb {
-                        l: Box::new(l),
-                        r: Box::new(r),
-                        m: Box::new(Conjunction(sc, c)),
-                    };
-                    Ok(vec![fragment.0, Verb(verb_str, dv)])
-                }
+                let (farcical, formed) = c.form(ctx, &l, &r)?;
+                assert!(!farcical);
+                Ok(vec![fragment.0, formed])
             }
-            (ref w, Noun(ref m), Conjunction(ref sc, ref c), Noun(n))
+            (ref w, Noun(ref m), Conjunction(ref _sc, ref c), Noun(n))
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 debug!("4 Conj N C N");
-                if let Some(formed) = c.form(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))? {
+                let (farcical, formed) =
+                    c.form(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))?;
+                if !farcical {
                     Ok(vec![fragment.0, formed])
                 } else {
-                    if c.farcical(&m, &n)? {
-                        queue.push_back(fragment.0);
-                        stack.push_front(fragment.2);
-                        stack.push_front(fragment.1);
-                        debug!("suspending {queue:?} {stack:?}");
-                        ctx.input_buffers
-                            .as_mut()
-                            .ok_or(JError::ControlError)
-                            .context("suspension without buffers")?
-                            .suspend(Qs { queue, stack })?;
-                        return Ok(EvalOutput::Suspension);
-                    }
-                    // circumventing c_cor's implementation for nouns, but.. there's no way for a conj
-                    // to otherwise get "called", which is the observed behaviour; implicit call at eval
-                    // time
-                    let noun_hack = match (m.single_math_num(), sc.as_str()) {
-                        (Some(n), ":") if n.is_zero() => true,
-                        _ => false,
-                    };
-                    if noun_hack {
-                        Ok(vec![fragment.0, Noun(n)])
-                    } else {
-                        let verb_str = format!("m {} n", sc);
-                        let dv = VerbImpl::DerivedVerb {
-                            l: Box::new(Noun(m.clone())),
-                            r: Box::new(Noun(n)),
-                            m: Box::new(Conjunction(sc.clone(), c.clone())),
-                        };
-                        Ok(vec![fragment.0, Verb(verb_str, dv)])
-                    }
+                    queue.push_back(fragment.0);
+                    stack.push_front(fragment.2);
+                    stack.push_front(fragment.1);
+                    debug!("suspending {queue:?} {stack:?}");
+                    ctx.input_buffers
+                        .as_mut()
+                        .ok_or(JError::ControlError)
+                        .context("suspension without buffers")?
+                        .suspend(Qs { queue, stack })?;
+                    return Ok(EvalOutput::Suspension);
                 }
             }
             //// (V|N) V V - 5 Fork

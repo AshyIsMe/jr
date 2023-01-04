@@ -7,7 +7,7 @@ mod conj;
 use anyhow::{anyhow, bail, Context, Result};
 use std::ops::Deref;
 
-use crate::{Ctx, JArray, Word};
+use crate::{Ctx, JError, Word};
 
 pub use adverb::*;
 pub use conj::*;
@@ -16,7 +16,7 @@ pub use conj::*;
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
-    FormingConjunction(FormingConjunction),
+    Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
 }
 
@@ -33,32 +33,33 @@ impl ModifierImpl {
             ModifierImpl::Adverb(a) => {
                 (a.f)(ctx, x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
             }
-            ModifierImpl::Conjunction(c) => {
-                (c.f)(ctx, x, u, v, y).with_context(|| anyhow!("conjunction: {:?}", c.name))
-            }
             ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
-                (Word::Conjunction(cn, c), r) => c
-                    .exec(ctx, x, u, r, y)
-                    .with_context(|| anyhow!("derived adverb conjunction {cn:?}")),
+                // TODO: hot garbage, working around adverbs not being forming, I think?
+                // TODO: expecting DerivedAdverbs to go with forming adverbs
+                (Word::Conjunction(_cn, c@ ModifierImpl::Conjunction(_)), r) => {
+                    let (farcical, verb) = c.form(ctx, u, r)?;
+                    assert!(!farcical);
+                    match verb {
+                        Word::Verb(_, v) => v.exec(ctx, x, y).map(Word::Noun),
+                        _ => bail!(
+                            "TODO: forming DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
+                        ),
+                    }
+                }
                 _ => bail!(
-                    "TODO: DerivedAdverb l: {l:?} r: {r:?} x: {x:?} u: {u:?} v: {v:?} y: {y:?}"
+                    "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
                 ),
             },
-            ModifierImpl::FormingConjunction(_) => bail!("shouldn't be calling these"),
+            ModifierImpl::Cor |
+            ModifierImpl::Conjunction(_) => bail!("shouldn't be calling these"),
         }
     }
 
-    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Option<Word>> {
-        Ok(Some(match self {
-            ModifierImpl::FormingConjunction(c) => (c.f)(ctx, u, v)?,
-            _ => return Ok(None),
-        }))
-    }
-
-    pub fn farcical(&self, m: &JArray, n: &JArray) -> Result<bool> {
-        match self {
-            ModifierImpl::Conjunction(c) => (c.farcical)(m, n),
-            _ => Ok(false),
-        }
+    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
+        Ok(match self {
+            ModifierImpl::Cor => c_cor(ctx, u, v)?,
+            ModifierImpl::Conjunction(c) => (false, (c.f)(ctx, u, v)?),
+            _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
+        })
     }
 }

@@ -220,35 +220,22 @@ pub fn primitive_nouns(sentence: &str) -> Option<Word> {
 
 fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
-    let conj = |name, f| {
-        ModifierImpl::Conjunction(SimpleConjunction {
-            name,
-            f,
-            farcical: not_farcical,
-        })
-    };
+    let conj = |name, f| ModifierImpl::Conjunction(SimpleConjunction { name, f });
     // https://code.jsoftware.com/wiki/NuVoc
     Some(match sentence {
         "^:" => conj("^:", c_hatco),
         "." => conj(".", c_not_implemented),
-        ":" => ModifierImpl::Conjunction(SimpleConjunction {
-            name: ":",
-            f: c_cor,
-            farcical: c_cor_farcical,
-        }),
+        ":" => ModifierImpl::Cor,
         ":." => conj(":.", c_not_implemented),
         "::" => conj("::", c_assign_adverse),
         ";." => conj(";.", c_cut),
         "!." => conj("!.", c_not_implemented),
-        "!:" => ModifierImpl::FormingConjunction(FormingConjunction {
-            name: "!:",
-            f: c_foreign,
-        }),
+        "!:" => conj("!:", c_foreign),
         "[." => conj("[.", c_not_implemented),
         "]." => conj("].", c_not_implemented),
         "\"" => conj("\"", c_quote),
         // matched on in the c_agenda implementation
-        "`" => conj("`", c_not_implemented),
+        "`" => conj("`", c_tie),
         "`:" => conj("`:", c_not_implemented),
         "@" => conj("@", c_atop),
         "@." => conj("@.", c_agenda),
