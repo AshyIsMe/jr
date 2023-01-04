@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
@@ -15,11 +15,6 @@ pub enum VerbImpl {
 
     Partial(PartialImpl),
 
-    // Something to do with the internals of adverb chains
-    DerivedVerb {
-        l: Box<Word>,
-        m: Box<Word>,
-    },
     Fork {
         f: Box<Word>,
         g: Box<Word>,
@@ -142,9 +137,6 @@ impl VerbImpl {
                 }
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
-            },
-            VerbImpl::DerivedVerb { l, m } => match (l.deref(), m.deref()) {
-                _ => bail!("invalid {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {

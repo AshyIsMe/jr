@@ -182,43 +182,22 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, u @ Verb(_, _), Adverb(sa, a), any)
+            (ref w, u @ Verb(_, _), Adverb(_, a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 debug!("3 adverb V A _");
-                if let Some(formed) = a.form_adverb(ctx, &u)? {
-                    Ok(vec![fragment.0, formed, any])
-                } else {
-                    let Verb(sv, v) = u else { unreachable!("matched") };
-                    let verb_str = format!("{}{}", sv, sa);
-                    let dv = VerbImpl::DerivedVerb {
-                        l: Box::new(Verb(sv, v.clone())),
-                        m: Box::new(Adverb(sa, a)),
-                    };
-                    Ok(vec![fragment.0, Verb(verb_str, dv), any])
-                }
+                Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
             }
-            (ref w, n @ Noun(_), Adverb(sa, a), any)
+            (ref w, n @ Noun(_), Adverb(_, a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
-                if let Some(formed) = a.form_adverb(ctx, &n)? {
-                    Ok(vec![fragment.0, formed, any])
-                } else {
-                    let Noun(n) = n else { unreachable!("matched") };
-                    debug!("3 adverb N A _");
-                    let verb_str = format!("m{}", sa);
-                    let dv = VerbImpl::DerivedVerb {
-                        l: Box::new(Noun(n)),
-                        m: Box::new(Adverb(sa, a)),
-                    };
-                    Ok(vec![fragment.0, Verb(verb_str, dv), any])
-                }
+                Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
             (ref w, l, Conjunction(_sc, c), r)
