@@ -4,6 +4,7 @@ use anyhow::{anyhow, bail, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
+use crate::modifiers::ModifierImpl;
 use crate::verbs::partial::PartialImpl;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::DyadRank;
@@ -147,16 +148,21 @@ impl VerbImpl {
                     .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
             },
             VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
-                (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
-                    a.exec(ctx, x, u, &Nothing, y).and_then(must_be_box)
-                }
-                (m @ Noun(_), Nothing, Adverb(_, a)) => {
-                    a.exec(ctx, x, m, &Nothing, y).and_then(must_be_box)
-                }
-                (l, r, Conjunction(_, c))
-                    if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
+                (u, Nothing, Adverb(_, ModifierImpl::DerivedAdverb { l, r }))
+                    if matches!(u, Noun(_) | Verb(_, _)) =>
                 {
-                    c.exec(ctx, x, l, r, y).and_then(must_be_box)
+                    match (l.deref(), r.deref()) {
+                        // TODO: hot garbage, working around adverbs not being forming, I think?
+                        (Conjunction(_cn, c@ ModifierImpl::Conjunction(_)), r) => {
+                            let (farcical, verb) = c.form(ctx, u, r)?;
+                            assert!(!farcical);
+                            match verb {
+                                Verb(_, v) => v.exec(ctx, x, y).map(Noun).map(must_be_box)?,
+                                _ => bail!("TODO: forming DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\ny: {y:?}"),
+                            }
+                        }
+                        _ => bail!("TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\n\ny: {y:?}"),
+                    }
                 }
                 _ => bail!("invalid {:?}", self),
             },

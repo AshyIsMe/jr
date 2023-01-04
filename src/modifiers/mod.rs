@@ -4,8 +4,7 @@
 mod adverb;
 mod conj;
 
-use anyhow::{anyhow, bail, Context, Result};
-use std::ops::Deref;
+use anyhow::{anyhow, Context, Result};
 
 use crate::{Ctx, JError, Word};
 
@@ -21,38 +20,6 @@ pub enum ModifierImpl {
 }
 
 impl ModifierImpl {
-    pub fn exec(
-        &self,
-        ctx: &mut Ctx,
-        x: Option<&Word>,
-        u: &Word,
-        v: &Word,
-        y: &Word,
-    ) -> Result<Word> {
-        match self {
-            ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
-                // TODO: hot garbage, working around adverbs not being forming, I think?
-                // TODO: expecting DerivedAdverbs to go with forming adverbs
-                (Word::Conjunction(_cn, c@ ModifierImpl::Conjunction(_)), r) => {
-                    let (farcical, verb) = c.form(ctx, u, r)?;
-                    assert!(!farcical);
-                    match verb {
-                        Word::Verb(_, v) => v.exec(ctx, x, y).map(Word::Noun),
-                        _ => bail!(
-                            "TODO: forming DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
-                        ),
-                    }
-                }
-                _ => bail!(
-                    "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
-                ),
-            },
-            ModifierImpl::Adverb(_) |
-            ModifierImpl::Cor |
-            ModifierImpl::Conjunction(_) => bail!("shouldn't be calling these"),
-        }
-    }
-
     pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
@@ -60,6 +27,7 @@ impl ModifierImpl {
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
         })
     }
+
     pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Option<Word>> {
         Ok(match self {
             ModifierImpl::Adverb(c) => Some((c.f)(ctx, u)?),
