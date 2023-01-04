@@ -545,3 +545,4 @@ NB. weird special case in from, who knows
 NB. power conjunction
 >:^:1 2 4 (5)
 2 *^:< 1 2 3
+2 *^:< i.2 2

@@ -88,17 +88,20 @@ fn do_hatco(
     n: &ArrayD<i64>,
     y: &Word,
 ) -> Result<Word> {
-    Ok(collect_nouns(
+    fill_promote_reshape(&(
+        n.shape().to_vec(),
         n.iter()
             .map(|i| -> Result<_> {
                 let mut t = y.clone();
                 for _ in 0..*i {
                     t = u.exec(ctx, x, &t).map(Word::Noun)?;
                 }
+                let Word::Noun(t) = t else { unreachable!("we just wrapped it") };
                 Ok(t)
             })
-            .collect::<Result<_, _>>()?,
-    )?)
+            .collect::<Result<Vec<JArray>>>()?,
+    ))
+    .map(Word::Noun)
 }
 
 pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
