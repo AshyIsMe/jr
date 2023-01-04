@@ -176,7 +176,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
         "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
         "/." => adverb("/.", a_slash_dot),
-        "\\" => legacy("\\", a_backslash),
+        "\\" => adverb("\\", a_backslash),
         "\\." => legacy("\\.", a_suffix_outfix),
         "]:" => adverb("]:", a_not_implemented),
         "}" => legacy("}", a_curlyrt),
