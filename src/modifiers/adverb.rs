@@ -131,10 +131,11 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     ))
 }
 
-pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(_, u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
-    match (x, y) {
-        (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        Some(x) if x.shape().len() <= 1 && y.shape().len() <= 1 => {
             let classification = v_self_classify(x).context("classify")?;
             do_atop(
                 ctx,
@@ -146,7 +147,15 @@ pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
             .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
-    }
+    });
+    Ok(Word::Verb(
+        "/.?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "/.?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 /// (0 _)
