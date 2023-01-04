@@ -15,7 +15,6 @@ pub use conj::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
-    Adverb2(SimpleAdverb2),
     Conjunction(SimpleConjunction),
     Cor,
     DerivedAdverb { l: Box<Word>, r: Box<Word> },
@@ -31,9 +30,6 @@ impl ModifierImpl {
         y: &Word,
     ) -> Result<Word> {
         match self {
-            ModifierImpl::Adverb(a) => {
-                (a.f)(ctx, x, u, y).with_context(|| anyhow!("adverb: {:?}", a.name))
-            }
             ModifierImpl::DerivedAdverb { l, r } => match (l.deref(), r.deref()) {
                 // TODO: hot garbage, working around adverbs not being forming, I think?
                 // TODO: expecting DerivedAdverbs to go with forming adverbs
@@ -51,7 +47,7 @@ impl ModifierImpl {
                     "TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\nv: {v:?}\ny: {y:?}"
                 ),
             },
-            ModifierImpl::Adverb2(_) |
+            ModifierImpl::Adverb(_) |
             ModifierImpl::Cor |
             ModifierImpl::Conjunction(_) => bail!("shouldn't be calling these"),
         }
@@ -66,8 +62,7 @@ impl ModifierImpl {
     }
     pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Option<Word>> {
         Ok(match self {
-            ModifierImpl::Adverb(_) => None,
-            ModifierImpl::Adverb2(c) => Some((c.f)(ctx, u)?),
+            ModifierImpl::Adverb(c) => Some((c.f)(ctx, u)?),
             ModifierImpl::DerivedAdverb { .. } => None,
             _ => {
                 return Err(JError::SyntaxError)

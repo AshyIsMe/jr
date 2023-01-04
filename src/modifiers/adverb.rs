@@ -11,8 +11,7 @@ use crate::number::promote_to_array;
 use crate::verbs::{v_self_classify, DyadOwned, MonadOwned, PartialImpl, VerbImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
 
-pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
-pub type AdverbFn2 = fn(&mut Ctx, &Word) -> Result<Word>;
+pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<Word>;
 
 #[derive(Clone)]
 pub struct SimpleAdverb {
@@ -27,24 +26,6 @@ impl PartialEq for SimpleAdverb {
 }
 
 impl fmt::Debug for SimpleAdverb {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleAdverb({:?})", self.name)
-    }
-}
-
-#[derive(Clone)]
-pub struct SimpleAdverb2 {
-    pub name: &'static str,
-    pub f: AdverbFn2,
-}
-
-impl PartialEq for SimpleAdverb2 {
-    fn eq(&self, other: &Self) -> bool {
-        self.name.eq(other.name)
-    }
-}
-
-impl fmt::Debug for SimpleAdverb2 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "SimpleAdverb2({:?})", self.name)
     }
@@ -241,10 +222,8 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         return Err(JError::NonceError).context("u must be a list");
     }
     let u = u.approx_usize_list()?;
-    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
-        Some(x)
-            if x.shape().len() <= 1 && y.shape().len() == 1 =>
-        {
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |_ctx, x, y| match x {
+        Some(x) if x.shape().len() <= 1 && y.shape().len() == 1 => {
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
 

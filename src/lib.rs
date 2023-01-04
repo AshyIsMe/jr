@@ -170,8 +170,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
 
 fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     use modifiers::*;
-    let legacy = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
-    let adverb = |name, f| ModifierImpl::Adverb2(SimpleAdverb2 { name, f });
+    let adverb = |name, f| ModifierImpl::Adverb(SimpleAdverb { name, f });
     Some(match sentence {
         "~" => adverb("~", a_tilde),
         "/" => adverb("/", a_slash),
