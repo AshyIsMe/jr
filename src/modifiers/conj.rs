@@ -47,17 +47,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let x = x.cloned().map(Word::Noun);
                 let y = Word::Noun(y.clone());
-                Ok(collect_nouns(
-                    n.iter()
-                        .map(|i| -> Result<_> {
-                            let mut t = y.clone();
-                            for _ in 0..*i {
-                                t = u.exec(ctx, x.as_ref(), &t).map(Word::Noun)?;
-                            }
-                            Ok(t)
-                        })
-                        .collect::<Result<_, _>>()?,
-                )?)
+                do_hatco(ctx, x.as_ref(), &u, &n, &y)
             })
         }
         (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
@@ -81,6 +71,26 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             dyad,
         }),
     ))
+}
+
+fn do_hatco(
+    ctx: &mut Ctx,
+    x: Option<&Word>,
+    u: &VerbImpl,
+    n: &ArrayD<i64>,
+    y: &Word,
+) -> Result<Word> {
+    Ok(collect_nouns(
+        n.iter()
+            .map(|i| -> Result<_> {
+                let mut t = y.clone();
+                for _ in 0..*i {
+                    t = u.exec(ctx, x, &t).map(Word::Noun)?;
+                }
+                Ok(t)
+            })
+            .collect::<Result<_, _>>()?,
+    )?)
 }
 
 pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
