@@ -174,15 +174,15 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
     let adverb = |name, f| ModifierImpl::Adverb2(SimpleAdverb2 { name, f });
     Some(match sentence {
         "~" => adverb("~", a_tilde),
-        "/" => legacy("/", a_slash),
+        "/" => adverb("/", a_slash),
         "/." => legacy("/.", a_slash_dot),
         "\\" => legacy("\\", a_backslash),
         "\\." => legacy("\\.", a_suffix_outfix),
-        "]:" => legacy("]:", a_not_implemented),
+        "]:" => adverb("]:", a_not_implemented),
         "}" => legacy("}", a_curlyrt),
-        "b." => legacy("b.", a_not_implemented),
-        "f." => legacy("f.", a_not_implemented),
-        "M." => legacy("M.", a_not_implemented),
+        "b." => adverb("b.", a_not_implemented),
+        "f." => adverb("f.", a_not_implemented),
+        "M." => adverb("M.", a_not_implemented),
         _ => return None,
     })
 }

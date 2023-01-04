@@ -50,7 +50,7 @@ impl fmt::Debug for SimpleAdverb2 {
     }
 }
 
-pub fn a_not_implemented(_ctx: &mut Ctx, _x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
+pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
@@ -98,26 +98,37 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     ))
 }
 
-pub fn a_slash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match u {
-            Word::Verb(_, u) => match y {
-                Word::Noun(_) => y
-                    .to_cells()?
-                    .into_iter()
-                    .map(Ok)
-                    .rev()
-                    // Reverse to force right to left execution.
-                    // Required for (;/i.5) to work correctly.
-                    // Yes we flipped y and x args in the lambda below:
-                    .reduce(|y, x| u.exec(ctx, Some(&x?), &y?).map(Word::Noun))
-                    .ok_or(JError::DomainError)?,
-                _ => Err(JError::custom("noun expected")),
-            },
-            _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
-        },
-        Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
-    }
+pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
+    let u = u.clone();
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+        if x.is_some() {
+            return Err(JError::NonceError).context("dyadic / not implemented yet");
+        }
+        y.outer_iter()
+            .collect_vec()
+            .into_iter()
+            .map(|x| Ok(x.to_owned()))
+            .rev()
+            // Reverse to force right to left execution.
+            // Required for (;/i.5) to work correctly.
+            // Yes we flipped y and x args in the lambda below:
+            .reduce(|y, x| {
+                let x = x?;
+                let y = y?;
+                u.exec(ctx, Some(&Word::Noun(x)), &Word::Noun(y))
+            })
+            .ok_or(JError::DomainError)?
+            .map(Word::Noun)
+    });
+    Ok(Word::Verb(
+        "/?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "/?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
