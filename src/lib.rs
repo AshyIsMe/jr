@@ -34,7 +34,6 @@ pub use scan::{scan, scan_with_locations};
 pub use crate::arrays::IntoVec;
 pub use crate::cells::generate_cells;
 pub use crate::eval::resolve_names;
-pub use crate::modifiers::collect_nouns;
 pub use crate::scan::char_array;
 pub use crate::verbs::Rank;
 

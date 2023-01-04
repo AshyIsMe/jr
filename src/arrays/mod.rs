@@ -5,7 +5,6 @@ mod elem;
 mod into_vec;
 mod nd_ext;
 mod owned;
-mod plural;
 mod word;
 
 pub use cow::{CowArrayD, JArrayCow};
@@ -13,7 +12,6 @@ pub use elem::Elem;
 pub use into_vec::IntoVec;
 pub use nd_ext::*;
 pub use owned::{BoxArray, JArray, JArrayKind};
-pub use plural::JArrays;
 pub use word::Word;
 
 // All terminology should match J terminology:

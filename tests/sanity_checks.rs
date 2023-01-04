@@ -1,12 +1,12 @@
 use anyhow::Result;
 use ndarray::prelude::*;
 use num::complex::Complex64;
-use num::{BigInt, BigRational};
+use num::BigRational;
 
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
 use jr::Word::*;
-use jr::{arr0d, collect_nouns, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
+use jr::{arr0d, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
 
 pub fn scan_eval_unwrap(sentence: impl AsRef<str>) -> Word {
     let sentence = sentence.as_ref();
@@ -179,61 +179,6 @@ fn test_power_conjunction_verb_arg() {
         scan_eval("+:^:(6&<)\"0 (0 3 6 12)").unwrap(),
         Noun(IntArray(
             Array::from_shape_vec(IxDyn(&[4]), vec![0i64, 3, 6, 24]).unwrap(),
-        )),
-    );
-}
-
-#[test]
-fn test_collect_int_nouns() {
-    let v = [2i64, 3];
-    let v1 = [0i64, 1];
-    let a = vec![
-        Word::Noun(JArray::from_list(v1)),
-        Word::Noun(JArray::from_list(v)),
-    ];
-    let result = collect_nouns(a).unwrap();
-    println!("result: {:?}", result);
-    assert_eq!(
-        result,
-        Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec![0, 1, 2, 3]).unwrap(),
-        )),
-    );
-}
-
-#[test]
-fn test_collect_extint_nouns() {
-    let v = [BigInt::from(2), BigInt::from(3)];
-    let v1 = [BigInt::from(0), BigInt::from(1)];
-    let a = vec![
-        Word::Noun(JArray::from_list(v1)),
-        Word::Noun(JArray::from_list(v)),
-    ];
-    let result = collect_nouns(a).unwrap();
-    println!("result: {:?}", result);
-    assert_eq!(
-        result,
-        Noun(ExtIntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec![0.into(), 1.into(), 2.into(), 3.into()])
-                .unwrap(),
-        )),
-    );
-}
-
-#[test]
-fn test_collect_char_nouns() {
-    let v = ['c', 'd'];
-    let v1 = ['a', 'b'];
-    let a = vec![
-        Word::Noun(JArray::from_list(v1)),
-        Word::Noun(JArray::from_list(v)),
-    ];
-    let result = collect_nouns(a).unwrap();
-    println!("result: {:?}", result);
-    assert_eq!(
-        result,
-        Noun(CharArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'c', 'd']).unwrap(),
         )),
     );
 }
