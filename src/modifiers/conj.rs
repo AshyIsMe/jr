@@ -11,7 +11,7 @@ use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
-use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
+use crate::{arr0d, generate_cells, primitive_verbs, Ctx};
 use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
@@ -43,7 +43,12 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     let v = v.clone();
     let (monad, dyad) = match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
-            let n = ja.to_i64().ok_or(JError::DomainError)?.to_owned();
+            // TODO: this should support _infinite
+            let n = ja
+                .to_i64()
+                .ok_or(JError::DomainError)
+                .context("hatco's noun should be integers")?
+                .into_owned();
             PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let x = x.cloned().map(Word::Noun);
                 let y = Word::Noun(y.clone());
@@ -53,12 +58,15 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
             let x = x.cloned().map(Word::Noun);
             let y = Word::Noun(y.clone());
+            let n = v.exec(ctx, x.as_ref(), &y.clone())?;
+            // TODO: this should support _infinite
+            let n = n
+                .to_i64()
+                .ok_or(JError::DomainError)
+                .context("hatco's (derived) noun should be integers")?
+                .into_owned();
 
-            if v.exec(ctx, None, &y.clone())? == JArray::from(Num::from(1u8)) {
-                Ok(Word::Noun(u.exec(ctx, x.as_ref(), &y.clone())?))
-            } else {
-                Ok(y.clone())
-            }
+            do_hatco(ctx, x.as_ref(), &u, &n, &y)
         }),
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };

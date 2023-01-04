@@ -523,13 +523,12 @@ impl JArray {
         })
     }
 
+    /// coerce bool arrays into int arrays, and return int arrays as-is; shape preserved
     pub fn to_i64(&self) -> Option<CowArrayD<i64>> {
         use JArray::*;
         Some(match self {
             BoolArray(a) => a.map(|&v| i64::from(v)).into(),
-            CharArray(a) => a.map(|&v| i64::from(v as u32)).into(),
             IntArray(a) => a.into(),
-            // TODO: attempt coercion of other types? .map(try_from).collect::<Result<ArrayD<>>>?
             _ => return None,
         })
     }
