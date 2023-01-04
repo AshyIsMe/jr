@@ -16,11 +16,11 @@ pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
     Cor,
-    DerivedAdverb { l: Box<Word>, r: Box<Word> },
+    DerivedAdverb { c: Box<ModifierImpl>, u: Box<Word> },
 }
 
 impl ModifierImpl {
-    pub fn form(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
+    pub fn form_conjunction(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
             ModifierImpl::Conjunction(c) => (false, (c.f)(ctx, u, v)?),
@@ -31,7 +31,11 @@ impl ModifierImpl {
     pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Option<Word>> {
         Ok(match self {
             ModifierImpl::Adverb(c) => Some((c.f)(ctx, u)?),
-            ModifierImpl::DerivedAdverb { .. } => None,
+            ModifierImpl::DerivedAdverb { c, u: v } => {
+                let (farcical, word) = c.form_conjunction(ctx, u, v)?;
+                assert!(!farcical);
+                Some(word)
+            }
             _ => {
                 return Err(JError::SyntaxError)
                     .with_context(|| anyhow!("non-adverb in adverb context: {self:?}"))

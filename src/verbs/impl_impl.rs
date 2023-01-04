@@ -4,7 +4,6 @@ use anyhow::{anyhow, bail, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
-use crate::modifiers::ModifierImpl;
 use crate::verbs::partial::PartialImpl;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::DyadRank;
@@ -16,12 +15,9 @@ pub enum VerbImpl {
 
     Partial(PartialImpl),
 
-    //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
-    //Modifiers take a left and right argument refered to as either
-    //u and v if verbs or m and n if nouns (or combinations of either).
+    // Something to do with the internals of adverb chains
     DerivedVerb {
         l: Box<Word>,
-        r: Box<Word>,
         m: Box<Word>,
     },
     Fork {
@@ -147,23 +143,7 @@ impl VerbImpl {
                 other => Err(JError::DomainError)
                     .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
             },
-            VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
-                (u, Nothing, Adverb(_, ModifierImpl::DerivedAdverb { l, r }))
-                    if matches!(u, Noun(_) | Verb(_, _)) =>
-                {
-                    match (l.deref(), r.deref()) {
-                        // TODO: hot garbage, working around adverbs not being forming, I think?
-                        (Conjunction(_cn, c@ ModifierImpl::Conjunction(_)), r) => {
-                            let (farcical, verb) = c.form(ctx, u, r)?;
-                            assert!(!farcical);
-                            match verb {
-                                Verb(_, v) => v.exec(ctx, x, y).map(Noun).map(must_be_box)?,
-                                _ => bail!("TODO: forming DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\ny: {y:?}"),
-                            }
-                        }
-                        _ => bail!("TODO: DerivedAdverb\nl: {l:?}\nr: {r:?}\nx: {x:?}\nu: {u:?}\n\ny: {y:?}"),
-                    }
-                }
+            VerbImpl::DerivedVerb { l, m } => match (l.deref(), m.deref()) {
                 _ => bail!("invalid {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
@@ -239,8 +219,4 @@ fn must_be_noun(v: Word) -> Result<JArray> {
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }
-}
-
-fn must_be_box(v: Word) -> Result<VerbResult> {
-    Ok((Vec::new(), vec![must_be_noun(v)?]))
 }
