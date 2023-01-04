@@ -235,24 +235,36 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 }
 
 /// (_ _ _)
-pub fn a_curlyrt(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    use Word::Noun;
-    match (x, u, y) {
-        (Some(Noun(x)), Noun(u), Noun(y))
-            if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
+pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Noun(u) = u else { return Err(JError::DomainError).context("}'s u must be a noun"); };
+    if u.shape().len() > 1 {
+        return Err(JError::NonceError).context("u must be a list");
+    }
+    let u = u.approx_usize_list()?;
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        Some(x)
+            if x.shape().len() <= 1 && y.shape().len() == 1 =>
         {
-            let u = u.approx_usize_list()?;
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
 
-            for u in u {
-                *y.get_mut(u)
+            for u in &u {
+                *y.get_mut(*u)
                     .ok_or(JError::IndexError)
                     .context("index out of bounds")? = x[u % x.len()].clone();
             }
 
-            promote_to_array(y).map(Noun)
+            promote_to_array(y).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
-    }
+    });
+
+    Ok(Word::Verb(
+        "?}".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "?}".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
