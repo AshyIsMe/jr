@@ -36,7 +36,7 @@ pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<Word> {
 }
 
 pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
-    let Word::Verb(su, u) = u else { return Err(JError::DomainError)
+    let Word::Verb(u) = u else { return Err(JError::DomainError)
         .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
 
     let mu = u.clone();
@@ -62,18 +62,15 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         f: Arc::new(move |ctx, x, y| du.exec(ctx, Some(y), x).map(Word::Noun)),
     });
 
-    Ok(Word::Verb(
-        format!("{su}~"),
-        VerbImpl::Partial(PartialImpl {
-            name: format!("{su}~"),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: format!("?~"),
+        monad,
+        dyad,
+    })))
 }
 
 pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
-    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
+    let Word::Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
     let u = u.clone();
     let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
         if x.is_some() {
@@ -95,18 +92,15 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             .ok_or(JError::DomainError)?
             .map(Word::Noun)
     });
-    Ok(Word::Verb(
-        "/?".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "/?".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "/?".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
-    let Word::Verb(_, u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
+    let Word::Verb(u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
 
     let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
         Some(x) if x.shape().len() <= 1 && y.shape().len() <= 1 => {
@@ -122,19 +116,16 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     });
-    Ok(Word::Verb(
-        "/.?".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "/.?".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "/.?".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 /// (0 _)
 pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
-    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
+    let Word::Verb(u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
     let u = u.clone();
     let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
         None => {
@@ -171,19 +162,16 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             JArray::from_fill_promote(piece).map(Word::Noun)
         }
     });
-    Ok(Word::Verb(
-        "\\?".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "\\?".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "\\?".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 /// (_ 0 _)
 pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
-    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
+    let Word::Verb(u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
 
     let u = u.clone();
     let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
@@ -198,14 +186,11 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\. {y:?}")),
     });
 
-    Ok(Word::Verb(
-        "\\.?".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "\\.?".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "\\.?".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 /// (_ _ _)
@@ -231,12 +216,9 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
     });
 
-    Ok(Word::Verb(
-        "?}".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "?}".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "?}".to_string(),
+        monad,
+        dyad,
+    })))
 }

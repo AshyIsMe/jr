@@ -95,7 +95,7 @@ fn name_code(w: &Word) -> Option<i64> {
         Word::Noun(_) => 0i64,
         Word::Adverb(_, _) => 1,
         Word::Conjunction(_, _) => 2,
-        Word::Verb(_, _) => 3,
+        Word::Verb(_) => 3,
         _ => return None,
     })
 }

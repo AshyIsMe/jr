@@ -144,7 +144,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 // TODO: actually assert
                 Ok(vec![b, c, d])
             }
-            (ref w, Verb(_, v), Noun(y), any)
+            (ref w, Verb(v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("0 monad");
@@ -154,23 +154,23 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     any,
                 ])
             }
-            (ref w, Verb(us, ref u), Verb(_, ref v), Noun(y))
+            (ref w, Verb(ref u), Verb(ref v), Noun(y))
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("1 monad");
                 Ok(vec![
                     fragment.0,
-                    Verb(us, u.clone()),
+                    Verb(u.clone()),
                     v.exec(ctx, None, &y).map(Word::Noun)?,
                 ])
             }
-            (ref w, Noun(x), Verb(_, ref v), Noun(y))
+            (ref w, Noun(x), Verb(ref v), Noun(y))
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("2 dyad");
@@ -182,10 +182,10 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, u @ Verb(_, _), Adverb(_, a), any)
+            (ref w, u @ Verb(_), Adverb(_, a), any)
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("3 adverb V A _");
@@ -194,7 +194,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (ref w, n @ Noun(_), Adverb(_, a), any)
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
@@ -203,9 +203,9 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (ref w, l, Conjunction(_sc, c), r)
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
-                ) && matches!(l, Verb(_, _) | Noun(_) | Name(_))
-                    && matches!(r, Verb(_, _) | Noun(_) | Name(_))
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
+                ) && matches!(l, Verb(_) | Noun(_) | Name(_))
+                    && matches!(r, Verb(_) | Noun(_) | Name(_))
                     // hack: noun noun conj handled by the parser
                     && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
             {
@@ -217,7 +217,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             (ref w, Noun(ref m), Conjunction(ref _sc, ref c), Noun(n))
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("4 Conj N C N");
@@ -239,35 +239,33 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 }
             }
             //// (V|N) V V - 5 Fork
-            (ref w, Verb(sf, f), Verb(sg, g), Verb(sh, h))
+            (ref w, Verb(f), Verb(g), Verb(h))
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("5 Fork V V V");
-                let verb_str = format!("{} {} {}", sf, sg, sh);
                 let fork = VerbImpl::Fork {
-                    f: Box::new(Verb(sf, f.clone())),
-                    g: Box::new(Verb(sg, g.clone())),
-                    h: Box::new(Verb(sh, h.clone())),
+                    f: Box::new(Verb(f.clone())),
+                    g: Box::new(Verb(g.clone())),
+                    h: Box::new(Verb(h.clone())),
                 };
-                Ok(vec![fragment.0, Verb(verb_str, fork)])
+                Ok(vec![fragment.0, Verb(fork)])
             }
-            (ref w, Noun(m), Verb(sg, g), Verb(sh, h))
+            (ref w, Noun(m), Verb(g), Verb(h))
                 if matches!(
                     w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
+                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_) | Noun(_)
                 ) =>
             {
                 debug!("5 Fork N V V");
-                let verb_str = format!("n {} {}", sg, sh);
                 let fork = VerbImpl::Fork {
                     f: Box::new(Noun(m)),
-                    g: Box::new(Verb(sg, g.clone())),
-                    h: Box::new(Verb(sh, h.clone())),
+                    g: Box::new(Verb(g.clone())),
+                    h: Box::new(Verb(h.clone())),
                 };
-                Ok(vec![fragment.0, Verb(verb_str, fork)])
+                Ok(vec![fragment.0, Verb(fork)])
             }
             // TODO: The new (old) modifier tridents and bidents:
             // https://code.jsoftware.com/wiki/Vocabulary/Parsing#The_Parsing_Table
@@ -300,46 +298,44 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 };
                 Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(sc, c), Verb(sv, v), any)
+            (ref w, Conjunction(_, c), Verb(v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C V _");
-                let adverb_str = format!("{} {}", sc, sv);
                 let da = ModifierImpl::DerivedAdverb {
                     c: Box::new(c),
-                    u: Box::new(Verb(sv, v.clone())),
+                    u: Box::new(Verb(v.clone())),
                 };
-                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
+                Ok(vec![fragment.0, Adverb("adverb".to_string(), da), any])
             }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
-            //(w, Verb(_, u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (ref w, Verb(su, u), Verb(sv, v), any)
+            //(w, Verb(u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
+            (ref w, Verb(u), Verb(v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb V V _");
-                let verb_str = format!("{} {}", su, sv);
                 let hook = VerbImpl::Hook {
-                    l: Box::new(Verb(su, u.clone())),
-                    r: Box::new(Verb(sv, v.clone())),
+                    l: Box::new(Verb(u.clone())),
+                    r: Box::new(Verb(v.clone())),
                 };
-                Ok(vec![fragment.0, Verb(verb_str, hook), any])
+                Ok(vec![fragment.0, Verb(hook), any])
             }
-            //(w, Verb(_, u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
-            //(w, Verb(_, u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
+            //(w, Verb(u), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb V A _"),
+            //(w, Verb(u), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb V N _"),
             //(w, Noun(n), Adverb(b), _) => println!("SYNTAX ERROR 6 Hook/Adverb N A _"),
-            //(w, Noun(n), Verb(_, v), _) => println!("SYNTAX ERROR 6 Hook/Adverb N V _"),
+            //(w, Noun(n), Verb(v), _) => println!("SYNTAX ERROR 6 Hook/Adverb N V _"),
             //(w, Noun(n), Noun(m), _) => println!("SYNTAX ERROR 6 Hook/Adverb N N _"),
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
             (Name(n), IsLocal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
                 ctx.eval_mut().locales.assign_local(n, w.clone())?;
                 Ok(vec![w.clone(), any])
             }
             (Noun(names), IsLocal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Local Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -352,14 +348,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![any])
             }
             (Name(n), IsGlobal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Global Name w");
                 ctx.eval_mut().locales.assign_global(n, w.clone())?;
                 Ok(vec![w, any])
             }
             (Noun(names), IsGlobal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Global Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -373,7 +369,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
             (LP, w, RP, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_, _) | Noun(_)) =>
+                if matches!(w, Conjunction(_, _) | Adverb(_, _) | Verb(_) | Noun(_)) =>
             {
                 debug!("8 Paren");
                 Ok(vec![w.clone(), any])

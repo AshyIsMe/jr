@@ -164,43 +164,37 @@ fn infer_type(def: &[Word]) -> Result<char> {
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
-        'm' => Word::Verb(
-            "anon".to_string(),
-            VerbImpl::Partial(PartialImpl {
-                name: "anon".to_string(),
-                dyad: None,
-                monad: Some(MonadOwned {
-                    f: Arc::new(move |ctx, y| {
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("y", Word::Noun(y.clone()))?;
-                        eval_lines(&def, &mut ctx).context("anonymous")
-                    }),
-                    rank: Rank::infinite(),
+        'm' => Word::Verb(VerbImpl::Partial(PartialImpl {
+            name: "anon".to_string(),
+            dyad: None,
+            monad: Some(MonadOwned {
+                f: Arc::new(move |ctx, y| {
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx).context("anonymous")
                 }),
+                rank: Rank::infinite(),
             }),
-        ),
-        'd' => Word::Verb(
-            "anon".to_string(),
-            VerbImpl::Partial(PartialImpl {
-                name: "anon".to_string(),
-                monad: None,
-                dyad: Some(DyadOwned {
-                    f: Arc::new(move |ctx, x, y| {
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("x", Word::Noun(x.clone()))?;
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("y", Word::Noun(y.clone()))?;
-                        eval_lines(&def, &mut ctx).context("anonymous")
-                    }),
-                    rank: Rank::infinite_infinite(),
+        })),
+        'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
+            name: "anon".to_string(),
+            monad: None,
+            dyad: Some(DyadOwned {
+                f: Arc::new(move |ctx, x, y| {
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("x", Word::Noun(x.clone()))?;
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx).context("anonymous")
                 }),
+                rank: Rank::infinite_infinite(),
             }),
-        ),
+        })),
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))

@@ -41,7 +41,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     let u = u.clone();
     let v = v.clone();
     let (monad, dyad) = match (u, v) {
-        (Word::Verb(_, u), Word::Noun(ja)) => {
+        (Word::Verb(u), Word::Noun(ja)) => {
             // TODO: this should support _infinite
             let n = ja
                 .to_i64()
@@ -52,7 +52,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 do_hatco(ctx, x, &u, &n, y).map(Word::Noun)
             })
         }
-        (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
+        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
             let n = v.exec(ctx, x, y)?;
             // TODO: this should support _infinite
             let n = n
@@ -66,14 +66,11 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
 
-    Ok(Word::Verb(
-        "hatco".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "hatco".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "hatco".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 fn do_hatco(
@@ -99,7 +96,7 @@ fn do_hatco(
 
 pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     let (monad, dyad) = match (u, v) {
-        (Word::Verb(_, u), Word::Noun(n)) => {
+        (Word::Verb(u), Word::Noun(n)) => {
             let n = n
                 .approx()
                 .ok_or(JError::DomainError)
@@ -168,25 +165,19 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         }
     };
 
-    Ok(Word::Verb(
-        "\"".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "\"".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "\"".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     match (u, v) {
-        (Word::Verb(l, VerbImpl::Primitive(_)), Word::Verb(r, VerbImpl::Primitive(_))) => {
-            Ok(Word::Noun(JArray::from_list(vec![
-                JArray::from_string(l),
-                JArray::from_string(r),
-            ])))
+        (Word::Verb(VerbImpl::Primitive(_)), Word::Verb(VerbImpl::Primitive(_))) => {
+            Err(JError::NonceError).context("j/k can't tie at all")
         }
-        _ => return Err(JError::NonceError).context("can only tie primitives"),
+        _ => Err(JError::NonceError).context("can only tie primitives"),
     }
 }
 
@@ -217,26 +208,23 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         .ok_or(JError::NonceError)
         .context("unable to match *primitive* verb")?;
 
-    Ok(Verb(name, verb))
+    Ok(Verb(verb))
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
 pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     match (u, v) {
-        (Word::Verb(_, u), Word::Verb(_, v)) => {
+        (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 do_atop(ctx, x, &u, &v, y).map(Word::Noun)
             });
-            Ok(Word::Verb(
-                "atop".to_string(),
-                VerbImpl::Partial(PartialImpl {
-                    name: "atop".to_string(),
-                    monad,
-                    dyad,
-                }),
-            ))
+            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+                name: "atop".to_string(),
+                monad,
+                dyad,
+            })))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
@@ -264,7 +252,7 @@ pub fn do_atop(
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
 pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     match (u, v) {
-        (Word::Verb(_, u), Word::Verb(_, v)) => {
+        (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
@@ -274,14 +262,11 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                     .context("left half of c_at")
                     .map(Word::Noun)
             });
-            Ok(Word::Verb(
-                "at".to_string(),
-                VerbImpl::Partial(PartialImpl {
-                    name: "at".to_string(),
-                    monad,
-                    dyad,
-                }),
-            ))
+            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+                name: "at".to_string(),
+                monad,
+                dyad,
+            })))
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @: verb, not {u:?} @: {v:?}")),
@@ -317,7 +302,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
 
 pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     match (n, m) {
-        (Word::Verb(_, n), Word::Verb(_, m)) => {
+        (Word::Verb(n), Word::Verb(m)) => {
             let n = n.clone();
             let m = m.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
@@ -325,14 +310,11 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
                     .or_else(|_| m.exec(ctx, x, y))
                     .map(Word::Noun)
             });
-            Ok(Word::Verb(
-                format!("?::?"),
-                VerbImpl::Partial(PartialImpl {
-                    name: format!("?::?"),
-                    monad,
-                    dyad,
-                }),
-            ))
+            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+                name: format!("?::?"),
+                monad,
+                dyad,
+            })))
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("\nn: {n:?}\nm: {m:?}")),
     }
@@ -341,7 +323,7 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
 pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
-    let Verb(_, v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
+    let Verb(v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
     let m = m.approx_i64_one().context("cut's m")?;
 
     let is_end = match m {
@@ -397,14 +379,11 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         JArray::from_fill_promote(out).map(Noun)
     });
 
-    Ok(Word::Verb(
-        "?;.?".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "?;.?".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "?;.?".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 fn cut_frets(
@@ -481,10 +460,7 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
         (Word::Noun(l), Word::Noun(r)) => {
             let l = l.approx_i64_one().context("foreign's left")?;
             let r = r.approx_i64_one().context("foreign's right")?;
-            Ok(Word::Verb(
-                format!("{l}!:{r}"),
-                VerbImpl::Partial(foreign(l, r)?),
-            ))
+            Ok(Word::Verb(VerbImpl::Partial(foreign(l, r)?)))
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }
@@ -493,17 +469,17 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
 pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     // TODO: some of these are presumably obviously monads or dyads
     let (monad, dyad) = match (n.clone(), m.clone()) {
-        (Word::Verb(_, n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+        (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
             n.exec(ctx, Some(&m), &y.clone())
                 .context("monad bondo VN")
                 .map(Word::Noun)
         }),
-        (Word::Noun(n), Word::Verb(_, m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+        (Word::Noun(n), Word::Verb(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
             m.exec(ctx, Some(&n), y)
                 .context("monad bondo NV")
                 .map(Word::Noun)
         }),
-        (Word::Verb(_, u), Word::Verb(_, v)) => {
+        (Word::Verb(u), Word::Verb(v)) => {
             // TODO: EW
             let u2 = u.clone();
             let v2 = v.clone();
@@ -522,19 +498,16 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         }
         _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
     };
-    Ok(Word::Verb(
-        "bondo".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "bondo".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "bondo".to_string(),
+        monad,
+        dyad,
+    })))
 }
 
 pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     let (u, v) = match (n, m) {
-        (Word::Verb(_, n), Word::Verb(_, m)) => (n, m),
+        (Word::Verb(n), Word::Verb(m)) => (n, m),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
     };
     let vi = v
@@ -582,12 +555,9 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             .map(|cow| cow.to_owned())
             .map(Word::Noun)
     }));
-    Ok(Word::Verb(
-        "under".to_string(),
-        VerbImpl::Partial(PartialImpl {
-            name: "under".to_string(),
-            monad,
-            dyad,
-        }),
-    ))
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        name: "under".to_string(),
+        monad,
+        dyad,
+    })))
 }

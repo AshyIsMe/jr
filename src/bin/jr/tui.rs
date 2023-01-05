@@ -81,7 +81,7 @@ impl Highlighter for DiHigh {
         let mut buf = line.to_string();
         for (pos, word) in v.into_iter().rev() {
             let colour = match word {
-                Word::Verb(_, _) => Color::BrightGreen,
+                Word::Verb(_) => Color::BrightGreen,
                 Word::Noun(_) => Color::BrightBlue,
                 Word::Adverb(_, _) => Color::BrightRed,
                 Word::Name(_) => Color::BrightWhite,
@@ -138,8 +138,16 @@ impl Hinter for DIYHinter {
 
         let mut helped = HashSet::with_capacity(4);
         let it = v.into_iter().rev().flat_map(|w| match w {
-            Word::Verb(token, _) if helped.insert(token.clone()) => {
-                help(&token).into_iter().collect()
+            Word::Verb(imp) => {
+                if let Some(token) = imp.token() {
+                    if helped.insert(token.to_string()) {
+                        help(token).into_iter().collect()
+                    } else {
+                        Vec::new()
+                    }
+                } else {
+                    Vec::new()
+                }
             }
             Word::Name(name) if name.len() >= 3 => {
                 search_help(&name).into_iter().map(|(_, c)| c).collect()
