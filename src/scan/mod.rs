@@ -245,7 +245,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     } else if let Some(a) = primitive_adverbs(sentence) {
         Word::Adverb(a)
     } else if let Some(c) = primitive_conjunctions(sentence) {
-        Word::Conjunction(sentence.to_string(), c)
+        Word::Conjunction(c)
     } else {
         if let Some(x) = sentence.strip_prefix("for_") {
             if let Some(x) = x.strip_suffix(".") {

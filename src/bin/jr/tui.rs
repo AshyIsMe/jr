@@ -85,7 +85,7 @@ impl Highlighter for DiHigh {
                 Word::Noun(_) => Color::BrightBlue,
                 Word::Adverb(_) => Color::BrightRed,
                 Word::Name(_) => Color::BrightWhite,
-                Word::Conjunction(_, _) => Color::BrightCyan,
+                Word::Conjunction(_) => Color::BrightCyan,
                 _ => continue,
             };
 
