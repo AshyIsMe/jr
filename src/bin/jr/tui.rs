@@ -83,7 +83,7 @@ impl Highlighter for DiHigh {
             let colour = match word {
                 Word::Verb(_) => Color::BrightGreen,
                 Word::Noun(_) => Color::BrightBlue,
-                Word::Adverb(_, _) => Color::BrightRed,
+                Word::Adverb(_) => Color::BrightRed,
                 Word::Name(_) => Color::BrightWhite,
                 Word::Conjunction(_, _) => Color::BrightCyan,
                 _ => continue,

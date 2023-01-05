@@ -243,7 +243,7 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     } else if let Some(v) = primitive_verbs(sentence) {
         Word::Verb(v)
     } else if let Some(a) = primitive_adverbs(sentence) {
-        Word::Adverb(sentence.to_string(), a)
+        Word::Adverb(a)
     } else if let Some(c) = primitive_conjunctions(sentence) {
         Word::Conjunction(sentence.to_string(), c)
     } else {
