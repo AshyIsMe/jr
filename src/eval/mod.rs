@@ -200,7 +200,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, l, Conjunction(_sc, c), r)
+            (ref w, l, Conjunction(c), r)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
@@ -214,7 +214,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 assert!(!farcical);
                 Ok(vec![fragment.0, formed])
             }
-            (ref w, Noun(ref m), Conjunction(ref _sc, ref c), Noun(n))
+            (ref w, Noun(ref m), Conjunction(ref c), Noun(n))
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
@@ -287,7 +287,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 // };
                 // Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
-            (ref w, Conjunction(_, c), Noun(n), any)
+            (ref w, Conjunction(c), Noun(n), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C N _");
@@ -297,7 +297,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 };
                 Ok(vec![fragment.0, Adverb(da), any])
             }
-            (ref w, Conjunction(_, c), Verb(v), any)
+            (ref w, Conjunction(c), Verb(v), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb C V _");
@@ -327,14 +327,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
             (Name(n), IsLocal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Local Name w");
                 ctx.eval_mut().locales.assign_local(n, w.clone())?;
                 Ok(vec![w.clone(), any])
             }
             (Noun(names), IsLocal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Local Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -347,14 +347,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![any])
             }
             (Name(n), IsGlobal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Global Name w");
                 ctx.eval_mut().locales.assign_global(n, w.clone())?;
                 Ok(vec![w, any])
             }
             (Noun(names), IsGlobal, w, any)
-                if matches!(w, Conjunction(_, _) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
             {
                 debug!("7 Is Global Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -367,7 +367,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![any])
             }
             //// LP (C|A|V|N) RP anything - 8 Paren
-            (LP, w, RP, any) if matches!(w, Conjunction(_, _) | Adverb(_) | Verb(_) | Noun(_)) => {
+            (LP, w, RP, any) if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) => {
                 debug!("8 Paren");
                 Ok(vec![w.clone(), any])
             }

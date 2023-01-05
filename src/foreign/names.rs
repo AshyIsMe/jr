@@ -94,7 +94,7 @@ fn name_code(w: &Word) -> Option<i64> {
     Some(match w {
         Word::Noun(_) => 0i64,
         Word::Adverb(_) => 1,
-        Word::Conjunction(_, _) => 2,
+        Word::Conjunction(_) => 2,
         Word::Verb(_) => 3,
         _ => return None,
     })
