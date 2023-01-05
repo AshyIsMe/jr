@@ -49,10 +49,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         //     .monad_rank()
         //     .ok_or(JError::NonceError)
         //     .context("can only ~ ranked verbs")?,
-        f: Arc::new(move |ctx, y| {
-            let y = Word::Noun(y.clone());
-            mu.exec(ctx, Some(&y), &y).map(Word::Noun)
-        }),
+        f: Arc::new(move |ctx, y| mu.exec(ctx, Some(y), y).map(Word::Noun)),
     });
 
     let du = u.clone();
@@ -62,11 +59,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         //     .dyad_rank()
         //     .ok_or(JError::NonceError)
         //     .context("can only ~ ranked verbs")?,
-        f: Arc::new(move |ctx, x, y| {
-            let x = Word::Noun(x.clone());
-            let y = Word::Noun(y.clone());
-            du.exec(ctx, Some(&y), &x).map(Word::Noun)
-        }),
+        f: Arc::new(move |ctx, x, y| du.exec(ctx, Some(y), x).map(Word::Noun)),
     });
 
     Ok(Word::Verb(
@@ -97,7 +90,7 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             .reduce(|y, x| {
                 let x = x?;
                 let y = y?;
-                u.exec(ctx, Some(&Word::Noun(x)), &Word::Noun(y))
+                u.exec(ctx, Some(&x), &y)
             })
             .ok_or(JError::DomainError)?
             .map(Word::Noun)
@@ -120,10 +113,10 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             let classification = v_self_classify(x).context("classify")?;
             do_atop(
                 ctx,
-                Some(&Word::Noun(classification)),
+                Some(&classification),
                 &u,
                 &primitive_verbs("#").expect("tally always exists"),
-                &Word::Noun(y.clone()),
+                y,
             )
             .map(Word::Noun)
         }
@@ -150,7 +143,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))
+                    u.exec(ctx, None, &fill_promote_list_cow(chunk)?)
                         .context("backslash (u)")?,
                 );
             }
@@ -160,7 +153,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))?);
+                piece.push(u.exec(ctx, None, &fill_promote_list_cow(chunk)?)?);
                 Ok(())
             };
 
@@ -198,7 +191,7 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(&y[i..])?))?);
+                piece.push(u.exec(ctx, None, &fill_promote_list_cow(&y[i..])?)?);
             }
             JArray::from_fill_promote(piece).map(Word::Noun)
         }

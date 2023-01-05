@@ -84,18 +84,23 @@ pub fn exec_dyad(
 }
 
 impl VerbImpl {
-    pub fn exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<JArray> {
+    pub fn exec(&self, ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
         fill_promote_reshape(&self.partial_exec(ctx, x, y)?)
     }
 
-    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<VerbResult> {
+    pub fn partial_exec(
+        &self,
+        ctx: &mut Ctx,
+        x: Option<&JArray>,
+        y: &JArray,
+    ) -> Result<VerbResult> {
         use Word::*;
         match self {
-            VerbImpl::Primitive(imp) => match (x, y) {
-                (None, Noun(y)) => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
+            VerbImpl::Primitive(imp) => match x {
+                None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
                     .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("monadic {:?}", imp.name)),
-                (Some(Noun(x)), Noun(y)) => {
+                Some(x) => {
                     let dyad = imp
                         .dyad
                         .ok_or(JError::DomainError)
@@ -105,11 +110,9 @@ impl VerbImpl {
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
-                other => Err(JError::DomainError)
-                    .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
-            VerbImpl::Partial(imp) => match (x, y) {
-                (None, Noun(y)) => {
+            VerbImpl::Partial(imp) => match x {
+                None => {
                     let monad = imp
                         .monad
                         .as_ref()
@@ -119,7 +122,7 @@ impl VerbImpl {
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("monadic partial {:?}", imp.name))
                 }
-                (Some(Noun(x)), Noun(y)) => {
+                Some(x) => {
                     let dyad = imp
                         .dyad
                         .as_ref()
@@ -135,8 +138,6 @@ impl VerbImpl {
                     .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
                 }
-                other => Err(JError::DomainError)
-                    .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
@@ -145,25 +146,25 @@ impl VerbImpl {
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
                     let f = match f {
                         VerbImpl::Cap => None,
-                        _ => Some(f.exec(ctx, x, y).map(Word::Noun).context("fork impl (f)")?),
+                        _ => Some(f.exec(ctx, x, y).context("fork impl (f)")?),
                     };
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
-                    let ny = h.exec(ctx, x, y).map(Word::Noun).context("fork impl (h)")?;
+                    let ny = h.exec(ctx, x, y).context("fork impl (h)")?;
                     g.partial_exec(ctx, f.as_ref(), &ny)
                         .context("fork impl (g)")
                 }
                 (Noun(m), Verb(_, g), Verb(_, h)) => {
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
-                    let ny = h.exec(ctx, x, y).map(Word::Noun)?;
-                    g.partial_exec(ctx, Some(&Noun(m.clone())), &ny)
+                    let ny = h.exec(ctx, x, y)?;
+                    g.partial_exec(ctx, Some(m), &ny)
                 }
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => {
-                    let ny = v.exec(ctx, None, y).map(Word::Noun)?;
+                    let ny = v.exec(ctx, None, y)?;
                     match x {
                         // TODO: it's very unclear to me that this should be a recursive call,
                         // TODO: and not exec() with some mapping like elsewhere

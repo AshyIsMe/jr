@@ -150,7 +150,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("0 monad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &y).map(Word::Noun)?,
                     any,
                 ])
             }
@@ -164,7 +164,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![
                     fragment.0,
                     Verb(us, u.clone()),
-                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &y).map(Word::Noun)?,
                 ])
             }
             (ref w, Noun(x), Verb(_, ref v), Noun(y))
@@ -176,7 +176,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("2 dyad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(ctx, Some(&Noun(x)), &Noun(y))
+                    v.exec(ctx, Some(&x), &y)
                         .context("evaluating 2 dyad")
                         .map(Word::Noun)?,
                 ])
