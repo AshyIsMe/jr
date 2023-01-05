@@ -427,8 +427,8 @@ NB. format
 ": 17.7
 
 NB. agenda
-5 (+`-@.1) 2
-5 (+`-@.0) 2
+NB. tie is gone: 5 (+`-@.1) 2
+NB. tie is gone: 5 (+`-@.0) 2
 
 NB. atop / at
 #@> 'Newton';'Einstein'

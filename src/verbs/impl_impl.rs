@@ -140,7 +140,7 @@ impl VerbImpl {
                 }
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
-                (Verb(_, f), Verb(_, g), Verb(_, h)) => {
+                (Verb(f), Verb(g), Verb(h)) => {
                     log::debug!("Fork {:?} {:?} {:?}", f, g, h);
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(ctx, x, y));
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
@@ -154,7 +154,7 @@ impl VerbImpl {
                     g.partial_exec(ctx, f.as_ref(), &ny)
                         .context("fork impl (g)")
                 }
-                (Noun(m), Verb(_, g), Verb(_, h)) => {
+                (Noun(m), Verb(g), Verb(h)) => {
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
                     let ny = h.exec(ctx, x, y)?;
@@ -163,7 +163,7 @@ impl VerbImpl {
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
-                (Verb(_, u), Verb(_, v)) => {
+                (Verb(u), Verb(v)) => {
                     let ny = v.exec(ctx, None, y)?;
                     match x {
                         // TODO: it's very unclear to me that this should be a recursive call,
@@ -203,6 +203,10 @@ impl VerbImpl {
             VerbImpl::Primitive(imp) => imp.inverse.and_then(primitive_verbs),
             _ => None,
         }
+    }
+
+    pub fn token(&self) -> Option<&str> {
+        None
     }
 }
 
