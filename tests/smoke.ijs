@@ -427,8 +427,8 @@ NB. format
 ": 17.7
 
 NB. tie
-NB. tie is gone: *`+
-NB. tie is gone: *`0:
+*`+
+*`0:
 NB. +&>`0:
 NB. +&.>`0:
 

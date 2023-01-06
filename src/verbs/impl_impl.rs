@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
+use crate::number::float_is_int;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::{DyadRank, PartialImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
@@ -190,5 +191,22 @@ impl VerbImpl {
 
     pub fn token(&self) -> Option<&str> {
         None
+    }
+
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        use VerbImpl::*;
+        Ok(match self {
+            Primitive(imp) => JArray::from_string(imp.name),
+            // TODO: invalid for inf, negatives
+            Number(i) => JArray::from_string(match float_is_int(*i) {
+                Some(i) if i >= 0 => format!("{i}:"),
+                Some(i) => format!("_{i}:"),
+                None => return Err(JError::NonceError).context("super lazy about infinity"),
+            }),
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't VerbImpl::boxed_ar {self:?}"))
+            }
+        })
     }
 }

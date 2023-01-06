@@ -183,8 +183,11 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     })
 }
 
-pub fn c_tie(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
-    Err(JError::NonceError).context("can't tie at all")
+pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+    Ok(Word::Noun(JArray::from_list(vec![
+        u.boxed_ar()?,
+        v.boxed_ar()?,
+    ])))
 }
 
 pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {

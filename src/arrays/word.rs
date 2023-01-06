@@ -3,7 +3,7 @@ use num::{BigInt, BigRational};
 use std::convert::From;
 use std::fmt;
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 
 use crate::modifiers::ModifierImpl;
@@ -119,3 +119,13 @@ impl_from_atom!(BigInt, JArray::ExtIntArray);
 impl_from_atom!(BigRational, JArray::RationalArray);
 impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
+
+impl Word {
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        use Word::*;
+        match self {
+            Verb(v) => v.boxed_ar(),
+            _ => Err(JError::NonceError).with_context(|| anyhow!("can't boxed_ar {self:?}")),
+        }
+    }
+}
