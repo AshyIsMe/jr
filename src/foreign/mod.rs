@@ -61,7 +61,9 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (2, 1) => security_violation("shell out (forked)"),
         (2, 5) => (zii, BivalentOwned::from_monad(|_, y| f_getenv(y))),
         (2, 6) => (iii, BivalentOwned::from_monad(|_, _| f_getpid())),
+        (2, 55) => return unimplemented("terminate session"),
         (2, _) => return unsupported("host"),
+        (3, 0) => return unimplemented("type"),
         (3, 3) => (
             iii,
             BivalentOwned::from_bivalent(|_ctx, x, y| f_dump_hex(x, y)),

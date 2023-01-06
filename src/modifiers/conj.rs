@@ -257,7 +257,7 @@ pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
     };
 
-    append_nd(&dbg!(u), &dbg!(v)).map(Word::Noun)
+    append_nd(&u, &v).map(Word::Noun)
 }
 
 pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
