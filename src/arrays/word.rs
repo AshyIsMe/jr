@@ -125,7 +125,8 @@ impl Word {
         use Word::*;
         match self {
             Verb(v) => v.boxed_ar(),
-            _ => Err(JError::NonceError).with_context(|| anyhow!("can't boxed_ar {self:?}")),
+            Conjunction(m) => m.boxed_ar(),
+            _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::boxed_ar {self:?}")),
         }
     }
 }

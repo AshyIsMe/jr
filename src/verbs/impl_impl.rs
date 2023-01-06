@@ -203,6 +203,16 @@ impl VerbImpl {
                 Some(i) => format!("_{i}:"),
                 None => return Err(JError::NonceError).context("super lazy about infinity"),
             }),
+            Partial(PartialImpl { def, .. }) if def.is_some() => {
+                let def = def.as_ref().expect("wtb if-let in match");
+                match def.len() {
+                    3 => JArray::from_list(vec![
+                        def[1].boxed_ar()?,
+                        JArray::from_list(vec![def[0].boxed_ar()?, def[2].boxed_ar()?]),
+                    ]),
+                    _ => return Err(JError::NonceError).context("boxed_ar of an adverb?"),
+                }
+            }
             _ => {
                 return Err(JError::NonceError)
                     .with_context(|| anyhow!("can't VerbImpl::boxed_ar {self:?}"))

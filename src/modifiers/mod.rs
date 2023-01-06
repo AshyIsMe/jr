@@ -6,7 +6,7 @@ mod conj;
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::{Ctx, JError, Word};
+use crate::{Ctx, JArray, JError, Word};
 
 use crate::verbs::{PartialImpl, VerbImpl};
 pub use adverb::*;
@@ -33,7 +33,7 @@ impl ModifierImpl {
                     false,
                     Word::Verb(VerbImpl::Partial(PartialImpl {
                         imp: partial,
-                        def: Some(vec![Word::Conjunction(self.clone()), u.clone(), v.clone()]),
+                        def: Some(vec![u.clone(), Word::Conjunction(self.clone()), v.clone()]),
                     })),
                 )
             }
@@ -55,6 +55,18 @@ impl ModifierImpl {
             _ => {
                 return Err(JError::SyntaxError)
                     .with_context(|| anyhow!("non-adverb in adverb context: {self:?}"))
+            }
+        })
+    }
+
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        use ModifierImpl::*;
+        Ok(match self {
+            Adverb(a) => JArray::from_string(a.name),
+            Conjunction(c) => JArray::from_string(c.name),
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't ModifierImpl::boxed_ar {self:?}"))
             }
         })
     }
