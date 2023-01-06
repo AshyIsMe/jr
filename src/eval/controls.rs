@@ -167,6 +167,8 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         'm' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
             dyad: None,
+            biv: None,
+            ranks: Rank::inf_inf_inf(),
             monad: Some(MonadOwned {
                 f: Arc::new(move |ctx, y| {
                     let mut ctx = ctx.nest();
@@ -183,6 +185,8 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
             monad: None,
+            biv: None,
+            ranks: Rank::inf_inf_inf(),
             dyad: Some(DyadOwned {
                 f: Arc::new(move |ctx, x, y| {
                     let mut ctx = ctx.nest();

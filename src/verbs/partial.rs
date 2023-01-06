@@ -16,6 +16,7 @@ pub struct MonadOwned {
 }
 
 pub type DyadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<JArray>>;
+pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray>>;
 
 #[derive(Clone)]
 pub struct DyadOwned {
@@ -28,6 +29,8 @@ pub struct PartialImpl {
     pub name: String,
     pub monad: Option<MonadOwned>,
     pub dyad: Option<DyadOwned>,
+    pub ranks: (Rank, DyadRank),
+    pub biv: Option<BivalentOwnedF>,
 }
 
 impl fmt::Debug for PartialImpl {
