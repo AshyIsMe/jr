@@ -215,6 +215,20 @@ e3,01,01,02,01,01,01'''
 
 [[runs]]
 expr = '''
+f =: {{)m
+  a =: 0
+  try.
+    a =: 6
+  catch. end.
+}} ''
+
+a
+'''
+output = '6'
+encoded = 'e3,04,01,,06'
+
+[[runs]]
+expr = '''
 foo =: 5
 del =: 4!:55 <'foo'
 missing =: 4!:55 <'quux'
