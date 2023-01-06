@@ -14,7 +14,7 @@ use crate::arrays::{len_of_0, IntoVec};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0d, impl_array, impl_homo, JArray, JError};
 
-pub fn reshape<T>(x: &ArrayD<i64>, y: &ArrayD<T>) -> Result<ArrayD<T>>
+pub fn reshape<T>(x: &[i64], y: &ArrayD<T>) -> Result<ArrayD<T>>
 where
     T: Debug + Clone,
 {
@@ -77,19 +77,14 @@ pub fn v_shape_of(y: &JArray) -> Result<JArray> {
         .into())
 }
 
-/// $ (dyad)
+/// $ (dyad) (1 _)
 pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
-    match x.to_i64() {
-        Some(x) => {
-            if x.product() < 0 {
-                Err(JError::DomainError).context("cannot reshape to negative shapes")
-            } else {
-                debug!("v_shape: x: {x}, y: {y}");
-                impl_array!(y, |y| reshape(&x.to_owned(), y).map(|x| x.into()))
-            }
-        }
-        _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("shapes must appear to be integers, {x:?}")),
+    let x = x.approx_i64_list().context("reshape takes an int list")?;
+    if x.iter().product::<i64>() < 0 {
+        Err(JError::DomainError).context("cannot reshape to negative shapes")
+    } else {
+        debug!("v_shape: x: {x:?}, y: {y}");
+        impl_array!(y, |y| reshape(&x, y).map(|x| x.into()))
     }
 }
 
@@ -414,7 +409,7 @@ mod tests {
     #[test]
     fn test_reshape_helper() {
         let y = Array::from_elem(IxDyn(&[1]), 1);
-        let r = reshape(&Array::from_elem(IxDyn(&[1]), 4), &y).unwrap();
+        let r = reshape(&vec![4], &y).unwrap();
         assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
     }
 }

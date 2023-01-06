@@ -607,13 +607,9 @@ pub fn v_extend_precision(_y: &JArray) -> Result<JArray> {
 }
 /// x: (dyad)
 pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
-    if !x.shape().is_empty() {
-        return Err(JError::RankError).context("num denum requires atomic x");
-    }
-    let mode = match x.to_i64() {
-        Some(x) => x.into_iter().next().expect("len == 1"),
-        None => return Err(JError::DomainError).context("num denom requires int-like x"),
-    };
+    let mode = x
+        .approx_i64_one()
+        .context("num denum requires atomic integer x")?;
 
     match mode {
         2 => match y.to_rat() {

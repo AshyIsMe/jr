@@ -6,13 +6,12 @@ use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
-use crate::arrays::JArrays;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
 use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
-use crate::{arr0d, generate_cells, primitive_verbs, Ctx, Num};
-use crate::{reduce_arrays, HasEmpty, JArray, JError, Word};
+use crate::{arr0d, generate_cells, primitive_verbs, Ctx};
+use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
 pub struct SimpleConjunction {
@@ -43,32 +42,30 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     let v = v.clone();
     let (monad, dyad) = match (u, v) {
         (Word::Verb(_, u), Word::Noun(ja)) => {
-            let n = ja.to_i64().ok_or(JError::DomainError)?.to_owned();
+            // TODO: this should support _infinite
+            let n = ja
+                .to_i64()
+                .ok_or(JError::DomainError)
+                .context("hatco's noun should be integers")?
+                .into_owned();
             PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let x = x.cloned().map(Word::Noun);
                 let y = Word::Noun(y.clone());
-                Ok(collect_nouns(
-                    n.iter()
-                        .map(|i| -> Result<_> {
-                            let mut t = y.clone();
-                            for _ in 0..*i {
-                                t = u.exec(ctx, x.as_ref(), &t).map(Word::Noun)?;
-                            }
-                            Ok(t)
-                        })
-                        .collect::<Result<_, _>>()?,
-                )?)
+                do_hatco(ctx, x.as_ref(), &u, &n, &y)
             })
         }
         (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
             let x = x.cloned().map(Word::Noun);
             let y = Word::Noun(y.clone());
+            let n = v.exec(ctx, x.as_ref(), &y.clone())?;
+            // TODO: this should support _infinite
+            let n = n
+                .to_i64()
+                .ok_or(JError::DomainError)
+                .context("hatco's (derived) noun should be integers")?
+                .into_owned();
 
-            if v.exec(ctx, None, &y.clone())? == JArray::from(Num::from(1u8)) {
-                Ok(Word::Noun(u.exec(ctx, x.as_ref(), &y.clone())?))
-            } else {
-                Ok(y.clone())
-            }
+            do_hatco(ctx, x.as_ref(), &u, &n, &y)
         }),
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
@@ -83,44 +80,27 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     ))
 }
 
-pub fn collect_nouns(n: Vec<Word>) -> Result<Word> {
-    // Collect a Vec<Word::Noun> into a single Word::Noun.
-    // Must all be the same JArray type. ie. IntArray, etc
-
-    let arr = n
-        .iter()
-        .map(|w| match w {
-            Word::Noun(arr) => Ok(arr),
-            _ => Err(JError::DomainError).with_context(|| anyhow!("{w:?}")),
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    let arrs = JArrays::from_homo(&arr)?;
-
-    Ok(Word::Noun(reduce_arrays!(arrs, collect)))
-}
-
-fn collect<T: Clone + HasEmpty>(arr: &[ArrayViewD<T>]) -> Result<ArrayD<T>> {
-    // TODO: this special cases the atom/scalar case, as the reshape algorithm mangles it
-    if arr.len() == 1 && arr[0].shape().is_empty() {
-        return Ok(arr[0].to_owned());
-    }
-    let cell_shape = arr
-        .iter()
-        .map(|arr| arr.shape())
-        .max()
-        .ok_or(JError::DomainError)?;
-    let empty_shape = iter::once(0)
-        .chain(cell_shape.iter().copied())
-        .collect::<Vec<_>>();
-
-    let mut result = Array::from_elem(empty_shape, T::empty());
-    for item in arr {
-        result
-            .push(Axis(0), item.view())
-            .map_err(JError::ShapeError)?;
-    }
-    Ok(result)
+fn do_hatco(
+    ctx: &mut Ctx,
+    x: Option<&Word>,
+    u: &VerbImpl,
+    n: &ArrayD<i64>,
+    y: &Word,
+) -> Result<Word> {
+    fill_promote_reshape(&(
+        n.shape().to_vec(),
+        n.iter()
+            .map(|i| -> Result<_> {
+                let mut t = y.clone();
+                for _ in 0..*i {
+                    t = u.exec(ctx, x, &t).map(Word::Noun)?;
+                }
+                let Word::Noun(t) = t else { unreachable!("we just wrapped it") };
+                Ok(t)
+            })
+            .collect::<Result<Vec<JArray>>>()?,
+    ))
+    .map(Word::Noun)
 }
 
 pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
