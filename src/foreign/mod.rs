@@ -32,8 +32,6 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
         });
         Ok(PartialImpl {
             name: name.to_string(),
-            monad: None,
-            dyad: None,
             biv,
             ranks: Rank::inf_inf_inf(),
         })
@@ -86,11 +84,5 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
         _ => return unsupported("major"),
     };
 
-    Ok(PartialImpl {
-        name,
-        monad: None,
-        dyad: None,
-        biv,
-        ranks,
-    })
+    Ok(PartialImpl { name, biv, ranks })
 }

@@ -112,11 +112,7 @@ impl VerbImpl {
                 }
             },
             VerbImpl::Partial(imp) => {
-                let biv = imp
-                    .biv
-                    .as_ref()
-                    .ok_or(JError::SyntaxError)
-                    .context("always available")?;
+                let biv = &imp.biv;
                 match x {
                     None => exec_monad_inner(|y| biv(ctx, None, y), imp.ranks.0, y)
                         .with_context(|| anyhow!("y: {y:?}"))
@@ -172,7 +168,7 @@ impl VerbImpl {
     pub fn monad_rank(&self) -> Option<Rank> {
         match self {
             Self::Primitive(p) => Some(p.monad.rank),
-            Self::Partial(p) => p.monad.as_ref().map(|p| p.rank),
+            Self::Partial(p) => Some(p.ranks.0),
             _ => None,
         }
     }
@@ -181,7 +177,7 @@ impl VerbImpl {
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
             Self::Primitive(p) => p.dyad.map(|d| d.rank),
-            Self::Partial(p) => p.dyad.as_ref().map(|d| d.rank),
+            Self::Partial(p) => Some(p.ranks.1),
             _ => None,
         }
     }

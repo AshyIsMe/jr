@@ -46,8 +46,6 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: format!("?~"),
-        monad: None,
-        dyad: None,
         biv,
         // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
         ranks: Rank::inf_inf_inf(),
@@ -78,8 +76,6 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "/?".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -103,8 +99,6 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "/.?".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -151,8 +145,6 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "\\?".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -177,8 +169,6 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "\\.?".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -209,8 +199,6 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "?}".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
