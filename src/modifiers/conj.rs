@@ -191,7 +191,7 @@ pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     ])))
 }
 
-pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     use Word::*;
 
     let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
@@ -209,7 +209,39 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         .ok_or(JError::IndexError)
         .context("gerund out of bounds")?;
 
+    untie(ctx, verb)
+}
+
+fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
+    use Word::*;
     Ok(match verb {
+        JArray::BoxArray(b) => match b.len() {
+            2 => match &b[1] {
+                JArray::BoxArray(r) if r.len() == 2 => {
+                    let op = untie(ctx, &b[0])?;
+                    let u = untie(ctx, &r[0])?;
+                    let v = untie(ctx, &r[1])?;
+                    let (farcical, conj) = match op {
+                        Conjunction(c) => c.form_conjunction(ctx, &u, &v)?,
+                        other => {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("non-conjunction in conjunction context: {other:?}")
+                            })
+                        }
+                    };
+                    ensure!(!farcical);
+                    conj
+                }
+                _ => {
+                    return Err(JError::NonceError)
+                        .with_context(|| anyhow!("unable to un-tie box: {b:?}"))
+                }
+            },
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("unable to un-tie box: {b:?}"))
+            }
+        },
         JArray::CharArray(verb) if verb.shape().len() <= 1 => {
             let name = verb.iter().collect::<String>();
             if let Some(primitive) = str_to_primitive(&name)? {

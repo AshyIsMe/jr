@@ -729,6 +729,16 @@ output = '''
 encoded = 'e3,04,03,02,03,01,,01,02'
 
 [[runs]]
+expr = '-&>`0:@.0 [ _5'
+output = '5'
+encoded = 'e3,04,01,,05'
+
+[[runs]]
+expr = '-&>`0:@.1 [ _5'
+output = '0'
+encoded = 'e3,01,01,,'
+
+[[runs]]
 expr = '-. 0'
 output = '1'
 encoded = 'e3,01,01,,01'
