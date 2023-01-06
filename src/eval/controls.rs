@@ -177,7 +177,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 }),
                 ranks: Rank::inf_inf_inf(),
             };
-            Word::Verb(VerbImpl::Partial(PartialImpl { imp }))
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
         }
         'd' => {
             let imp = BivalentOwned {
@@ -198,7 +198,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 }),
                 ranks: Rank::inf_inf_inf(),
             };
-            Word::Verb(VerbImpl::Partial(PartialImpl { imp }))
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
         }
         other => {
             return Err(JError::NonceError)
