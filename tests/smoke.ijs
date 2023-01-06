@@ -426,6 +426,12 @@ NB. format
 ": 5
 ": 17.7
 
+NB. tie
+NB. tie is gone: *`+
+NB. tie is gone: *`0:
+NB. +&>`0:
+NB. +&.>`0:
+
 NB. agenda
 NB. tie is gone: 5 (+`-@.1) 2
 NB. tie is gone: 5 (+`-@.0) 2
@@ -546,3 +552,4 @@ NB. power conjunction
 >:^:1 2 4 (5)
 2 *^:< 1 2 3
 2 *^:< i.2 2
+

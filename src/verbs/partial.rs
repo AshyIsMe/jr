@@ -3,11 +3,11 @@ use std::sync::Arc;
 
 use anyhow::Result;
 
-use crate::{Ctx, JArray, Word};
+use crate::{Ctx, JArray};
 
 use super::ranks::{DyadRank, Rank};
 
-pub type MonadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray) -> Result<Word>>;
+pub type MonadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray) -> Result<JArray>>;
 
 #[derive(Clone)]
 pub struct MonadOwned {
@@ -15,7 +15,7 @@ pub struct MonadOwned {
     pub rank: Rank,
 }
 
-pub type DyadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<Word>>;
+pub type DyadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<JArray>>;
 
 #[derive(Clone)]
 pub struct DyadOwned {
@@ -44,7 +44,7 @@ impl PartialEq for PartialImpl {
 
 impl PartialImpl {
     pub fn from_legacy_inf(
-        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<Word> + 'static + Clone,
+        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone,
     ) -> (Option<MonadOwned>, Option<DyadOwned>) {
         let j = f.clone();
         (

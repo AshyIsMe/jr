@@ -118,7 +118,7 @@ impl VerbImpl {
                         .as_ref()
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no monadic partial {:?}", imp.name))?;
-                    exec_monad_inner(|y| (monad.f)(ctx, y).and_then(must_be_noun), monad.rank, y)
+                    exec_monad_inner(|y| (monad.f)(ctx, y), monad.rank, y)
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("monadic partial {:?}", imp.name))
                 }
@@ -128,15 +128,10 @@ impl VerbImpl {
                         .as_ref()
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic partial {:?}", imp.name))?;
-                    exec_dyad_inner(
-                        |x, y| (dyad.f)(ctx, x, y).and_then(must_be_noun),
-                        dyad.rank,
-                        x,
-                        y,
-                    )
-                    .with_context(|| anyhow!("x: {x:?}"))
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
+                    exec_dyad_inner(|x, y| (dyad.f)(ctx, x, y), dyad.rank, x, y)
+                        .with_context(|| anyhow!("x: {x:?}"))
+                        .with_context(|| anyhow!("y: {y:?}"))
+                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
                 }
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
@@ -207,13 +202,5 @@ impl VerbImpl {
 
     pub fn token(&self) -> Option<&str> {
         None
-    }
-}
-
-fn must_be_noun(v: Word) -> Result<JArray> {
-    match v {
-        Word::Noun(arr) => Ok(arr),
-        _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }
 }
