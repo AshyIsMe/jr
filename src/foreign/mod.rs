@@ -31,13 +31,10 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
                 .with_context(|| anyhow!("unimplemented {name:?} foreign ({l}!:{r})"))
         });
         Ok(BivalentOwned {
-            name: name.to_string(),
             biv,
             ranks: Rank::inf_inf_inf(),
         })
     };
-
-    let name = format!("{l}!:{r}");
 
     let iii = Rank::inf_inf_inf();
     let zii = (Rank::zero(), Rank::infinite_infinite());
@@ -93,5 +90,5 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         _ => return unsupported("major"),
     };
 
-    Ok(BivalentOwned { name, biv, ranks })
+    Ok(BivalentOwned { biv, ranks })
 }

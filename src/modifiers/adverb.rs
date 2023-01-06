@@ -45,7 +45,6 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     });
 
     Ok(BivalentOwned {
-        name: format!("?~"),
         biv,
         // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
         ranks: Rank::inf_inf_inf(),
@@ -75,7 +74,6 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
             .ok_or(JError::DomainError)?
     });
     Ok(BivalentOwned {
-        name: "/?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -98,7 +96,6 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     });
     Ok(BivalentOwned {
-        name: "/.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -144,7 +141,6 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
         }
     });
     Ok(BivalentOwned {
-        name: "\\?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -168,7 +164,6 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     });
 
     Ok(BivalentOwned {
-        name: "\\.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -198,7 +193,6 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     });
 
     Ok(BivalentOwned {
-        name: "?}".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })

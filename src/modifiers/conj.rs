@@ -82,7 +82,6 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     };
 
     Ok(BivalentOwned {
-        name: "hatco".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -179,7 +178,6 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     };
 
     Ok(BivalentOwned {
-        name: "\"".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -230,7 +228,6 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
             let v = v.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
             Ok(BivalentOwned {
-                name: "atop".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })
@@ -270,7 +267,6 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                 u.exec(ctx, None, &r).context("left half of c_at")
             });
             Ok(BivalentOwned {
-                name: "at".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })
@@ -316,7 +312,6 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOw
                 n.exec(ctx, x, y).or_else(|_| m.exec(ctx, x, y))
             });
             Ok(BivalentOwned {
-                name: format!("?::?"),
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })
@@ -385,7 +380,6 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     });
 
     Ok(BivalentOwned {
-        name: "?;.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -491,7 +485,6 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
         _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
     };
     Ok(BivalentOwned {
-        name: "bondo".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
@@ -545,7 +538,6 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
         }
     });
     Ok(BivalentOwned {
-        name: "under".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
