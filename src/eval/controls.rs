@@ -1,9 +1,10 @@
-use crate::verbs::{PartialImpl, VerbImpl};
-use anyhow::{anyhow, bail, ensure, Context, Result};
-use itertools::Itertools;
 use std::collections::HashSet;
 
+use anyhow::{anyhow, bail, ensure, Context, Result};
+use itertools::Itertools;
+
 use crate::eval::eval_lines;
+use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
 use crate::{JArray, JError, Rank, Word};
 
 enum Resolution {
@@ -163,38 +164,44 @@ fn infer_type(def: &[Word]) -> Result<char> {
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
-        'm' => Word::Verb(VerbImpl::Partial(PartialImpl {
-            name: "anon".to_string(),
-            biv: PartialImpl::from_monad(move |ctx, y| {
-                let mut ctx = ctx.nest();
-                ctx.eval_mut()
-                    .locales
-                    .assign_local("y", Word::Noun(y.clone()))?;
-                eval_lines(&def, &mut ctx)
-                    .context("anonymous")
-                    .and_then(must_be_noun)
-            }),
-            ranks: Rank::inf_inf_inf(),
-        })),
-        'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
-            name: "anon".to_string(),
-            biv: PartialImpl::from_bivalent(move |ctx, x, y| {
-                let Some(x) = x else {
-                    return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad")
-                };
-                let mut ctx = ctx.nest();
-                ctx.eval_mut()
-                    .locales
-                    .assign_local("x", Word::Noun(x.clone()))?;
-                ctx.eval_mut()
-                    .locales
-                    .assign_local("y", Word::Noun(y.clone()))?;
-                eval_lines(&def, &mut ctx)
-                    .context("anonymous")
-                    .and_then(must_be_noun)
-            }),
-            ranks: Rank::inf_inf_inf(),
-        })),
+        'm' => {
+            let imp = BivalentOwned {
+                name: "anon".to_string(),
+                biv: BivalentOwned::from_monad(move |ctx, y| {
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .and_then(must_be_noun)
+                }),
+                ranks: Rank::inf_inf_inf(),
+            };
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp }))
+        }
+        'd' => {
+            let imp = BivalentOwned {
+                name: "anon".to_string(),
+                biv: BivalentOwned::from_bivalent(move |ctx, x, y| {
+                    let Some(x) = x else {
+                        return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad");
+                    };
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("x", Word::Noun(x.clone()))?;
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .and_then(must_be_noun)
+                }),
+                ranks: Rank::inf_inf_inf(),
+            };
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp }))
+        }
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))

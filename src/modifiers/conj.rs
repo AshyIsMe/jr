@@ -8,14 +8,14 @@ use ndarray::prelude::*;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, PartialImpl, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, BivalentOwned, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, primitive_verbs, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
 pub struct SimpleConjunction {
     pub name: &'static str,
-    pub f: fn(&mut Ctx, &Word, &Word) -> Result<PartialImpl>,
+    pub f: fn(&mut Ctx, &Word, &Word) -> Result<BivalentOwned>,
 }
 
 impl PartialEq for SimpleConjunction {
@@ -48,11 +48,11 @@ impl fmt::Debug for WordyConjunction {
     }
 }
 
-pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<PartialImpl> {
+pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<BivalentOwned> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
-pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
+pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     let u = u.clone();
@@ -65,9 +65,9 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
                 .ok_or(JError::DomainError)
                 .context("hatco's noun should be integers")?
                 .into_owned();
-            PartialImpl::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
+            BivalentOwned::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
         }
-        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_bivalent(move |ctx, x, y| {
+        (Word::Verb(u), Word::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| {
             let n = v.exec(ctx, x, y)?;
             // TODO: this should support _infinite
             let n = n
@@ -81,7 +81,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
 
-    Ok(PartialImpl {
+    Ok(BivalentOwned {
         name: "hatco".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
@@ -109,7 +109,7 @@ fn do_hatco(
     ))
 }
 
-pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
+pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     let biv = match (u, v) {
         (Word::Verb(u), Word::Noun(n)) => {
             let n = n
@@ -139,7 +139,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
             );
 
             let u = u.clone();
-            PartialImpl::from_bivalent(move |ctx, x, y| match x {
+            BivalentOwned::from_bivalent(move |ctx, x, y| match x {
                 None => exec_monad(
                     |y| {
                         u.exec(ctx, None, y)
@@ -170,7 +170,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
                 return Err(JError::NonceError).context("only infinite ranks");
             }
             let u = u.clone();
-            PartialImpl::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
+            BivalentOwned::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
         }
         _ => {
             return Err(JError::NonceError)
@@ -178,7 +178,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
         }
     };
 
-    Ok(PartialImpl {
+    Ok(BivalentOwned {
         name: "\"".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
@@ -223,13 +223,13 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
+pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     match (u, v) {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
-            let biv = PartialImpl::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
-            Ok(PartialImpl {
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
+            Ok(BivalentOwned {
                 name: "atop".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
@@ -259,17 +259,17 @@ pub fn do_atop(
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
+pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     match (u, v) {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
-            let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
                 let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
                 u.exec(ctx, None, &r).context("left half of c_at")
             });
-            Ok(PartialImpl {
+            Ok(BivalentOwned {
                 name: "at".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
@@ -307,15 +307,15 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
     }
 }
 
-pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
+pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     match (n, m) {
         (Word::Verb(n), Word::Verb(m)) => {
             let n = n.clone();
             let m = m.clone();
-            let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
                 n.exec(ctx, x, y).or_else(|_| m.exec(ctx, x, y))
             });
-            Ok(PartialImpl {
+            Ok(BivalentOwned {
                 name: format!("?::?"),
                 biv,
                 ranks: Rank::inf_inf_inf(),
@@ -325,7 +325,7 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImp
     }
 }
 
-pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
+pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
     let Verb(v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
@@ -343,7 +343,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
         _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
     };
 
-    let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
+    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
         let parts = y.outer_iter().collect_vec();
         ensure!(!parts.is_empty());
 
@@ -384,7 +384,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
         JArray::from_fill_promote(out)
     });
 
-    Ok(PartialImpl {
+    Ok(BivalentOwned {
         name: "?;.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
@@ -460,7 +460,7 @@ mod test_cut {
     }
 }
 
-pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<PartialImpl> {
+pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<BivalentOwned> {
     match (l, r) {
         (Word::Noun(l), Word::Noun(r)) => {
             let l = l.approx_i64_one().context("foreign's left")?;
@@ -471,16 +471,16 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<PartialImpl> {
     }
 }
 
-pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
+pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     // TODO: some of these are presumably obviously monads or dyads
     let biv = match (n.clone(), m.clone()) {
-        (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_bivalent(move |ctx, _x, y| {
+        (Word::Verb(n), Word::Noun(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
             n.exec(ctx, Some(&m), &y.clone()).context("monad bondo VN")
         }),
-        (Word::Noun(n), Word::Verb(m)) => PartialImpl::from_bivalent(move |ctx, _x, y| {
+        (Word::Noun(n), Word::Verb(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
             m.exec(ctx, Some(&n), y).context("monad bondo NV")
         }),
-        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_bivalent(move |ctx, x, y| match x {
+        (Word::Verb(u), Word::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| match x {
             None => do_atop(ctx, None, &u, &v, &y),
             Some(x) => {
                 let l = v.exec(ctx, None, &x).context("left bondo NVV")?;
@@ -490,14 +490,14 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
         }),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
     };
-    Ok(PartialImpl {
+    Ok(BivalentOwned {
         name: "bondo".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
     })
 }
 
-pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
+pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     let (u, v) = match (n, m) {
         (Word::Verb(n), Word::Verb(m)) => (n, m),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
@@ -509,7 +509,7 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
     let u = u.clone();
     let v = v.clone();
     let vi = vi.clone();
-    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
+    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
         None => {
             let (cells, frame) = monad_cells(y, Rank::zero())?;
             let mut parts = Vec::new();
@@ -544,7 +544,7 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
                 .map(|cow| cow.to_owned())
         }
     });
-    Ok(PartialImpl {
+    Ok(BivalentOwned {
         name: "under".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),

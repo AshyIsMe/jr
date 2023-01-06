@@ -5,9 +5,8 @@ use anyhow::{anyhow, Context, Result};
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
 use crate::number::float_is_int;
-use crate::verbs::partial::PartialImpl;
 use crate::verbs::primitive::PrimitiveImpl;
-use crate::verbs::DyadRank;
+use crate::verbs::{DyadRank, PartialImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,16 +111,16 @@ impl VerbImpl {
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
             },
-            VerbImpl::Partial(imp) => {
-                let biv = &imp.biv;
+            VerbImpl::Partial(p) => {
+                let biv = &p.imp.biv;
                 match x {
-                    None => exec_monad_inner(|y| biv(ctx, None, y), imp.ranks.0, y)
+                    None => exec_monad_inner(|y| biv(ctx, None, y), p.imp.ranks.0, y)
                         .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("monadic partial {:?}", imp.name)),
-                    Some(x) => exec_dyad_inner(|x, y| biv(ctx, Some(x), y), imp.ranks.1, x, y)
+                        .with_context(|| anyhow!("monadic partial {:?}", p.name())),
+                    Some(x) => exec_dyad_inner(|x, y| biv(ctx, Some(x), y), p.imp.ranks.1, x, y)
                         .with_context(|| anyhow!("x: {x:?}"))
                         .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name)),
+                        .with_context(|| anyhow!("dyadic partial {:?}", p.name())),
                 }
             }
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
@@ -169,7 +168,7 @@ impl VerbImpl {
     pub fn monad_rank(&self) -> Option<Rank> {
         match self {
             Self::Primitive(p) => Some(p.monad.rank),
-            Self::Partial(p) => Some(p.ranks.0),
+            Self::Partial(PartialImpl { imp }) => Some(imp.ranks.0),
             _ => None,
         }
     }
@@ -178,7 +177,7 @@ impl VerbImpl {
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
             Self::Primitive(p) => p.dyad.map(|d| d.rank),
-            Self::Partial(p) => Some(p.ranks.1),
+            Self::Partial(PartialImpl { imp }) => Some(imp.ranks.1),
             _ => None,
         }
     }
