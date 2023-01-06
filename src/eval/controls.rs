@@ -165,7 +165,6 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         // sorry not sorry
         'm' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
-            dyad: None,
             biv: PartialImpl::from_monad(move |ctx, y| {
                 let mut ctx = ctx.nest();
                 ctx.eval_mut()
@@ -176,12 +175,9 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                     .and_then(must_be_noun)
             }),
             ranks: Rank::inf_inf_inf(),
-            monad: None,
         })),
         'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
-            monad: None,
-            dyad: None,
             biv: PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let Some(x) = x else {
                     return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad")

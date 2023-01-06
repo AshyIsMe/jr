@@ -65,8 +65,6 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "hatco".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -164,8 +162,6 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "\"".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -217,8 +213,6 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: "atop".to_string(),
-                monad: None,
-                dyad: None,
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })))
@@ -259,8 +253,6 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             });
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: "at".to_string(),
-                monad: None,
-                dyad: None,
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })))
@@ -307,8 +299,6 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             });
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: format!("?::?"),
-                monad: None,
-                dyad: None,
                 biv,
                 ranks: Rank::inf_inf_inf(),
             })))
@@ -378,8 +368,6 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "?;.?".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -486,8 +474,6 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     };
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "bondo".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
@@ -542,8 +528,6 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "under".to_string(),
-        monad: None,
-        dyad: None,
         biv,
         ranks: Rank::inf_inf_inf(),
     })))
