@@ -194,6 +194,7 @@ impl VerbImpl {
     }
 
     pub fn boxed_ar(&self) -> Result<JArray> {
+        // https://code.jsoftware.com/wiki/Vocabulary/Foreigns#m5
         use VerbImpl::*;
         Ok(match self {
             Primitive(imp) => JArray::from_string(imp.name),
@@ -213,6 +214,10 @@ impl VerbImpl {
                     _ => return Err(JError::NonceError).context("boxed_ar of an adverb?"),
                 }
             }
+            Fork { f, g, h } => JArray::from_list([
+                JArray::from_string("3"),
+                JArray::from_list([f.boxed_ar()?, g.boxed_ar()?, h.boxed_ar()?]),
+            ]),
             _ => {
                 return Err(JError::NonceError)
                     .with_context(|| anyhow!("can't VerbImpl::boxed_ar {self:?}"))
