@@ -31,7 +31,10 @@ impl ModifierImpl {
                 let partial = (c.f)(ctx, u, v)?;
                 (
                     false,
-                    Word::Verb(VerbImpl::Partial(PartialImpl { imp: partial })),
+                    Word::Verb(VerbImpl::Partial(PartialImpl {
+                        imp: partial,
+                        def: Some(vec![Word::Conjunction(self.clone()), u.clone(), v.clone()]),
+                    })),
                 )
             }
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
@@ -42,6 +45,7 @@ impl ModifierImpl {
         Ok(match self {
             ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial(PartialImpl {
                 imp: (c.f)(ctx, u)?,
+                def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
             })),
             ModifierImpl::DerivedAdverb { c, u: v } => {
                 let (farcical, word) = c.form_conjunction(ctx, u, v)?;

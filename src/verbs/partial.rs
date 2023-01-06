@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::{Ctx, JArray, JError};
+use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
 
@@ -12,6 +12,7 @@ pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Resu
 #[derive(Clone)]
 pub struct PartialImpl {
     pub imp: BivalentOwned,
+    pub def: Option<Vec<Word>>,
 }
 
 #[derive(Clone)]
