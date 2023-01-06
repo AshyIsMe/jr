@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 use crate::eval::eval_lines;
 use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
-use crate::{JArray, JError, Rank, Word};
+use crate::{HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -173,6 +173,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&def, &mut ctx)
                         .context("anonymous")
+                        .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
                 ranks: Rank::inf_inf_inf(),
@@ -194,6 +195,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&def, &mut ctx)
                         .context("anonymous")
+                        .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
                 ranks: Rank::inf_inf_inf(),
@@ -205,6 +207,15 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 .with_context(|| anyhow!("unsupported direct def: {other}"))
         }
     })
+}
+
+// TODO: this is typically called from partial_exec which has a panic
+// TODO: attack about Nothing; this is a big lie
+fn nothing_to_empty(w: Word) -> Word {
+    match w {
+        Word::Nothing => Word::Noun(JArray::empty()),
+        other => other,
+    }
 }
 
 fn must_be_noun(v: Word) -> Result<JArray> {
