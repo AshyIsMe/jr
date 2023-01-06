@@ -29,7 +29,7 @@ impl PartialImpl {
 
 impl fmt::Debug for PartialImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PartialImpl({:?})", self.name())
+        write!(f, "PartialImpl")
     }
 }
 
