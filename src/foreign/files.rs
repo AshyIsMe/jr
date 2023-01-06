@@ -6,14 +6,14 @@ use std::path::PathBuf;
 use anyhow::{anyhow, Context, Result};
 
 use crate::arrays::BoxArray;
-use crate::{JArray, JError, Word};
+use crate::{JArray, JError};
 
 // 1!:1
-pub fn f_read_file(y: &JArray) -> Result<Word> {
+pub fn f_read_file(y: &JArray) -> Result<JArray> {
     let path = noun_to_fs_path(y)?;
 
     match fs::read_to_string(&path) {
-        Ok(s) => Ok(Word::Noun(JArray::from_string(s))),
+        Ok(s) => Ok(JArray::from_string(s)),
         Err(e) => Err(JError::FileNameError)
             .context(e)
             .with_context(|| anyhow!("reading {path:?}")),

@@ -48,9 +48,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .ok_or(JError::DomainError)
                 .context("hatco's noun should be integers")?
                 .into_owned();
-            PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                do_hatco(ctx, x, &u, &n, y).map(Word::Noun)
-            })
+            PartialImpl::from_legacy_inf(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
         }
         (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
             let n = v.exec(ctx, x, y)?;
@@ -61,7 +59,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .context("hatco's (derived) noun should be integers")?
                 .into_owned();
 
-            do_hatco(ctx, x, &u, &n, y).map(Word::Noun)
+            do_hatco(ctx, x, &u, &n, y)
         }),
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
@@ -133,7 +131,6 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                     ranks.0,
                     y,
                 )
-                .map(Word::Noun)
                 .context("monadic rank drifting"),
                 Some(x) => exec_dyad(
                     |x, y| {
@@ -144,7 +141,6 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                     x,
                     y,
                 )
-                .map(Word::Noun)
                 .context("dyadic rank drifting"),
             })
         }
@@ -157,7 +153,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 return Err(JError::NonceError).context("only infinite ranks");
             }
             let u = u.clone();
-            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| Ok(Word::Noun(u.clone())))
+            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| Ok(u.clone()))
         }
         _ => {
             return Err(JError::NonceError)
@@ -173,12 +169,10 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 }
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
-    match (u, v) {
-        (Word::Verb(VerbImpl::Primitive(_)), Word::Verb(VerbImpl::Primitive(_))) => {
-            Err(JError::NonceError).context("j/k can't tie at all")
-        }
-        _ => Err(JError::NonceError).context("can only tie primitives"),
-    }
+    Ok(Word::Noun(JArray::from_list(vec![
+        u.boxed_ar()?,
+        v.boxed_ar()?,
+    ])))
 }
 
 pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
@@ -217,9 +211,8 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
-            let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                do_atop(ctx, x, &u, &v, y).map(Word::Noun)
-            });
+            let (monad, dyad) =
+                PartialImpl::from_legacy_inf(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: "atop".to_string(),
                 monad,
@@ -258,9 +251,7 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
                 let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
-                u.exec(ctx, None, &r)
-                    .context("left half of c_at")
-                    .map(Word::Noun)
+                u.exec(ctx, None, &r).context("left half of c_at")
             });
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: "at".to_string(),
@@ -306,9 +297,7 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             let n = n.clone();
             let m = m.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                n.exec(ctx, x, y)
-                    .or_else(|_| m.exec(ctx, x, y))
-                    .map(Word::Noun)
+                n.exec(ctx, x, y).or_else(|_| m.exec(ctx, x, y))
             });
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: format!("?::?"),
@@ -376,7 +365,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             })
             .collect::<Result<Vec<_>>>()?;
 
-        JArray::from_fill_promote(out).map(Noun)
+        JArray::from_fill_promote(out)
     });
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
@@ -470,29 +459,21 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     // TODO: some of these are presumably obviously monads or dyads
     let (monad, dyad) = match (n.clone(), m.clone()) {
         (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
-            n.exec(ctx, Some(&m), &y.clone())
-                .context("monad bondo VN")
-                .map(Word::Noun)
+            n.exec(ctx, Some(&m), &y.clone()).context("monad bondo VN")
         }),
         (Word::Noun(n), Word::Verb(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
-            m.exec(ctx, Some(&n), y)
-                .context("monad bondo NV")
-                .map(Word::Noun)
+            m.exec(ctx, Some(&n), y).context("monad bondo NV")
         }),
         (Word::Verb(u), Word::Verb(v)) => {
             // TODO: EW
             let u2 = u.clone();
             let v2 = v.clone();
             (
-                PartialImpl::mi(Arc::new(move |ctx, y| {
-                    do_atop(ctx, None, &u, &v, &y).map(Word::Noun)
-                })),
+                PartialImpl::mi(Arc::new(move |ctx, y| do_atop(ctx, None, &u, &v, &y))),
                 PartialImpl::di(Arc::new(move |ctx, x, y| {
                     let l = v2.exec(ctx, None, &x).context("left bondo NVV")?;
                     let r = v2.exec(ctx, None, &y).context("right bondo NVV")?;
-                    u2.exec(ctx, Some(&l), &r)
-                        .map(Word::Noun)
-                        .context("central bondo NVV")
+                    u2.exec(ctx, Some(&l), &r).context("central bondo NVV")
                 })),
             )
         }
@@ -529,7 +510,6 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         JArray::from_fill_promote(parts)?
             .to_shape(frame)
             .map(|cow| cow.to_owned())
-            .map(Word::Noun)
     }));
     let du = u.clone();
     let dv = v.clone();
@@ -553,7 +533,6 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         JArray::from_fill_promote(parts)?
             .to_shape(frame)
             .map(|cow| cow.to_owned())
-            .map(Word::Noun)
     }));
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "under".to_string(),

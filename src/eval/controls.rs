@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::eval::eval_lines;
-use crate::{JError, Rank, Word};
+use crate::{JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -173,7 +173,9 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                     ctx.eval_mut()
                         .locales
                         .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx).context("anonymous")
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .and_then(must_be_noun)
                 }),
                 rank: Rank::infinite(),
             }),
@@ -190,7 +192,9 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                     ctx.eval_mut()
                         .locales
                         .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx).context("anonymous")
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .and_then(must_be_noun)
                 }),
                 rank: Rank::infinite_infinite(),
             }),
@@ -200,4 +204,12 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 .with_context(|| anyhow!("unsupported direct def: {other}"))
         }
     })
+}
+
+fn must_be_noun(v: Word) -> Result<JArray> {
+    match v {
+        Word::Noun(arr) => Ok(arr),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+    }
 }

@@ -49,7 +49,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         //     .monad_rank()
         //     .ok_or(JError::NonceError)
         //     .context("can only ~ ranked verbs")?,
-        f: Arc::new(move |ctx, y| mu.exec(ctx, Some(y), y).map(Word::Noun)),
+        f: Arc::new(move |ctx, y| mu.exec(ctx, Some(y), y)),
     });
 
     let du = u.clone();
@@ -59,7 +59,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         //     .dyad_rank()
         //     .ok_or(JError::NonceError)
         //     .context("can only ~ ranked verbs")?,
-        f: Arc::new(move |ctx, x, y| du.exec(ctx, Some(y), x).map(Word::Noun)),
+        f: Arc::new(move |ctx, x, y| du.exec(ctx, Some(y), x)),
     });
 
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
@@ -90,7 +90,6 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
                 u.exec(ctx, Some(&x), &y)
             })
             .ok_or(JError::DomainError)?
-            .map(Word::Noun)
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
         name: "/?".to_string(),
@@ -112,7 +111,6 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
                 &primitive_verbs("#").expect("tally always exists"),
                 y,
             )
-            .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     });
@@ -138,7 +136,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
                         .context("backslash (u)")?,
                 );
             }
-            JArray::from_fill_promote(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece)
         }
         Some(x) => {
             let x = x.approx_i64_one().context("backslash's x")?;
@@ -159,7 +157,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
                 }
             }
 
-            JArray::from_fill_promote(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece)
         }
     });
     Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
@@ -181,7 +179,7 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             for i in 0..y.len() {
                 piece.push(u.exec(ctx, None, &fill_promote_list_cow(&y[i..])?)?);
             }
-            JArray::from_fill_promote(piece).map(Word::Noun)
+            JArray::from_fill_promote(piece)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\. {y:?}")),
     });
@@ -211,7 +209,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
                     .context("index out of bounds")? = x[u % x.len()].clone();
             }
 
-            promote_to_array(y).map(Word::Noun)
+            promote_to_array(y)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
     });

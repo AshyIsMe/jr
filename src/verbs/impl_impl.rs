@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
+use crate::number::float_is_int;
 use crate::verbs::partial::PartialImpl;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::DyadRank;
@@ -118,7 +119,7 @@ impl VerbImpl {
                         .as_ref()
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no monadic partial {:?}", imp.name))?;
-                    exec_monad_inner(|y| (monad.f)(ctx, y).and_then(must_be_noun), monad.rank, y)
+                    exec_monad_inner(|y| (monad.f)(ctx, y), monad.rank, y)
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("monadic partial {:?}", imp.name))
                 }
@@ -128,15 +129,10 @@ impl VerbImpl {
                         .as_ref()
                         .ok_or(JError::DomainError)
                         .with_context(|| anyhow!("there is no dyadic partial {:?}", imp.name))?;
-                    exec_dyad_inner(
-                        |x, y| (dyad.f)(ctx, x, y).and_then(must_be_noun),
-                        dyad.rank,
-                        x,
-                        y,
-                    )
-                    .with_context(|| anyhow!("x: {x:?}"))
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
+                    exec_dyad_inner(|x, y| (dyad.f)(ctx, x, y), dyad.rank, x, y)
+                        .with_context(|| anyhow!("x: {x:?}"))
+                        .with_context(|| anyhow!("y: {y:?}"))
+                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
                 }
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
@@ -208,12 +204,21 @@ impl VerbImpl {
     pub fn token(&self) -> Option<&str> {
         None
     }
-}
 
-fn must_be_noun(v: Word) -> Result<JArray> {
-    match v {
-        Word::Noun(arr) => Ok(arr),
-        _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        use VerbImpl::*;
+        Ok(match self {
+            Primitive(imp) => JArray::from_string(imp.name),
+            // TODO: invalid for inf, negatives
+            Number(i) => JArray::from_string(match float_is_int(*i) {
+                Some(i) if i >= 0 => format!("{i}:"),
+                Some(i) => format!("_{i}:"),
+                None => return Err(JError::NonceError).context("super lazy about infinity"),
+            }),
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't VerbImpl::boxed_ar {self:?}"))
+            }
+        })
     }
 }
