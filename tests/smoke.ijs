@@ -440,6 +440,7 @@ NB. tie
 NB. agenda
 5 (+`-@.1) 2
 5 (+`-@.0) 2
+*`0:@.1 ''
 
 NB. atop / at
 #@> 'Newton';'Einstein'

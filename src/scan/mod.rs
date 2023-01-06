@@ -237,7 +237,7 @@ fn identify_primitive(sentence: &str) -> usize {
     .count()
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
+pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     Ok(Some(if let Some(n) = primitive_nouns(sentence) {
         n
     } else if let Some(v) = primitive_verbs(sentence) {

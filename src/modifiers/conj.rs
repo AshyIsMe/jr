@@ -8,8 +8,9 @@ use ndarray::prelude::*;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
+use crate::scan::str_to_primitive;
 use crate::verbs::{exec_dyad, exec_monad, BivalentOwned, Rank, VerbImpl};
-use crate::{arr0d, generate_cells, primitive_verbs, Ctx};
+use crate::{arr0d, generate_cells, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
@@ -207,17 +208,24 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         .nth(v)
         .ok_or(JError::IndexError)
         .context("gerund out of bounds")?;
-    let JArray::CharArray(verb) = verb else { return Err(JError::DomainError).context("gerunds are strings"); };
-    if verb.len() > 1 {
-        return Err(JError::DomainError).context("gerunds are single strings");
-    }
 
-    let name = verb.iter().collect::<String>();
-    let verb = primitive_verbs(&name)
-        .ok_or(JError::NonceError)
-        .context("unable to match *primitive* verb")?;
-
-    Ok(Verb(verb))
+    Ok(match verb {
+        JArray::CharArray(verb) if verb.shape().len() <= 1 => {
+            let name = verb.iter().collect::<String>();
+            if let Some(primitive) = str_to_primitive(&name)? {
+                primitive
+            } else {
+                match name.as_ref() {
+                    "0:" => Verb(VerbImpl::Number(0.)),
+                    _ => {
+                        return Err(JError::NonceError)
+                            .with_context(|| anyhow!("unable to un-tie char list {name:?}"))
+                    }
+                }
+            }
+        }
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("unable to un-tie {verb:?}")),
+    })
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
