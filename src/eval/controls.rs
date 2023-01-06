@@ -1,8 +1,7 @@
-use crate::verbs::{DyadOwned, MonadOwned, PartialImpl, VerbImpl};
+use crate::verbs::{PartialImpl, VerbImpl};
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use crate::eval::eval_lines;
 use crate::{JArray, JError, Rank, Word};
@@ -167,41 +166,38 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         'm' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
             dyad: None,
-            biv: None,
-            ranks: Rank::inf_inf_inf(),
-            monad: Some(MonadOwned {
-                f: Arc::new(move |ctx, y| {
-                    let mut ctx = ctx.nest();
-                    ctx.eval_mut()
-                        .locales
-                        .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx)
-                        .context("anonymous")
-                        .and_then(must_be_noun)
-                }),
-                rank: Rank::infinite(),
+            biv: PartialImpl::from_monad(move |ctx, y| {
+                let mut ctx = ctx.nest();
+                ctx.eval_mut()
+                    .locales
+                    .assign_local("y", Word::Noun(y.clone()))?;
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .and_then(must_be_noun)
             }),
+            ranks: Rank::inf_inf_inf(),
+            monad: None,
         })),
         'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
             monad: None,
-            biv: None,
-            ranks: Rank::inf_inf_inf(),
-            dyad: Some(DyadOwned {
-                f: Arc::new(move |ctx, x, y| {
-                    let mut ctx = ctx.nest();
-                    ctx.eval_mut()
-                        .locales
-                        .assign_local("x", Word::Noun(x.clone()))?;
-                    ctx.eval_mut()
-                        .locales
-                        .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx)
-                        .context("anonymous")
-                        .and_then(must_be_noun)
-                }),
-                rank: Rank::infinite_infinite(),
+            dyad: None,
+            biv: PartialImpl::from_legacy_inf(move |ctx, x, y| {
+                let Some(x) = x else {
+                    return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad")
+                };
+                let mut ctx = ctx.nest();
+                ctx.eval_mut()
+                    .locales
+                    .assign_local("x", Word::Noun(x.clone()))?;
+                ctx.eval_mut()
+                    .locales
+                    .assign_local("y", Word::Noun(y.clone()))?;
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .and_then(must_be_noun)
             }),
+            ranks: Rank::inf_inf_inf(),
         })),
         other => {
             return Err(JError::NonceError)

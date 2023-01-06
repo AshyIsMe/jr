@@ -1,9 +1,9 @@
 use std::fmt;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
-use crate::{Ctx, JArray};
+use crate::{Ctx, JArray, JError};
 
 use super::ranks::{DyadRank, Rank};
 
@@ -48,32 +48,23 @@ impl PartialEq for PartialImpl {
 impl PartialImpl {
     pub fn from_legacy_inf(
         f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone,
-    ) -> (Option<MonadOwned>, Option<DyadOwned>) {
-        let j = f.clone();
-        (
-            Self::mi(Arc::new(move |ctx, y| f(ctx, None, y))),
-            Self::di(Arc::new(move |ctx, x, y| j(ctx, Some(x), y))),
-        )
+    ) -> Option<BivalentOwnedF> {
+        Some(Arc::new(move |ctx, x, y| f(ctx, x, y)))
     }
 
-    pub fn mi(f: MonadOwnedF) -> Option<MonadOwned> {
-        Some(MonadOwned {
-            f,
-            rank: Rank::infinite(),
-        })
+    pub fn from_monad(
+        f: impl Fn(&mut Ctx, &JArray) -> Result<JArray> + 'static + Clone,
+    ) -> Option<BivalentOwnedF> {
+        Some(Arc::new(move |ctx, x, y| {
+            ensure_monad(x)?;
+            f(ctx, y)
+        }))
     }
+}
 
-    pub fn m0(f: MonadOwnedF) -> Option<MonadOwned> {
-        Some(MonadOwned {
-            f,
-            rank: Rank::zero(),
-        })
-    }
-
-    pub fn di(f: DyadOwnedF) -> Option<DyadOwned> {
-        Some(DyadOwned {
-            f,
-            rank: Rank::infinite_infinite(),
-        })
+fn ensure_monad(x: Option<&JArray>) -> Result<()> {
+    match x {
+        Some(_) => Err(JError::DomainError).context("dyadic invocation of monad-only verb"),
+        None => Ok(()),
     }
 }

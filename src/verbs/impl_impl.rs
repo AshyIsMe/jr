@@ -112,29 +112,22 @@ impl VerbImpl {
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
             },
-            VerbImpl::Partial(imp) => match x {
-                None => {
-                    let monad = imp
-                        .monad
-                        .as_ref()
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("there is no monadic partial {:?}", imp.name))?;
-                    exec_monad_inner(|y| (monad.f)(ctx, y), monad.rank, y)
+            VerbImpl::Partial(imp) => {
+                let biv = imp
+                    .biv
+                    .as_ref()
+                    .ok_or(JError::SyntaxError)
+                    .context("always available")?;
+                match x {
+                    None => exec_monad_inner(|y| biv(ctx, None, y), imp.ranks.0, y)
                         .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("monadic partial {:?}", imp.name))
-                }
-                Some(x) => {
-                    let dyad = imp
-                        .dyad
-                        .as_ref()
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("there is no dyadic partial {:?}", imp.name))?;
-                    exec_dyad_inner(|x, y| (dyad.f)(ctx, x, y), dyad.rank, x, y)
+                        .with_context(|| anyhow!("monadic partial {:?}", imp.name)),
+                    Some(x) => exec_dyad_inner(|x, y| biv(ctx, Some(x), y), imp.ranks.1, x, y)
                         .with_context(|| anyhow!("x: {x:?}"))
                         .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
+                        .with_context(|| anyhow!("dyadic partial {:?}", imp.name)),
                 }
-            },
+            }
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(f), Verb(g), Verb(h)) => {
                     log::debug!("Fork {:?} {:?} {:?}", f, g, h);
