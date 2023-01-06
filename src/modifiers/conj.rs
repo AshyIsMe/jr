@@ -215,46 +215,56 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
     use Word::*;
     Ok(match verb {
-        JArray::BoxArray(b) => match b.len() {
-            2 => match &b[1] {
-                JArray::BoxArray(r) if r.len() == 2 => {
-                    let op = untie(ctx, &b[0])?;
-                    let u = untie(ctx, &r[0])?;
-                    let v = untie(ctx, &r[1])?;
-                    let (farcical, conj) = match op {
-                        Conjunction(c) => c.form_conjunction(ctx, &u, &v)?,
-                        other => {
-                            return Err(JError::DomainError).with_context(|| {
-                                anyhow!("non-conjunction in conjunction context: {other:?}")
-                            })
-                        }
-                    };
-                    ensure!(!farcical);
-                    conj
-                }
+        JArray::BoxArray(b) => {
+            let op = match &b[0] {
+                JArray::CharArray(arr) if arr.shape().len() <= 1 => arr.iter().collect::<String>(),
                 _ => {
                     return Err(JError::NonceError)
-                        .with_context(|| anyhow!("unable to un-tie box: {b:?}"))
+                        .with_context(|| anyhow!("unrecognised 'op' type in box array: {b:?}"));
                 }
-            },
-            _ => {
-                return Err(JError::NonceError)
-                    .with_context(|| anyhow!("unable to un-tie box: {b:?}"))
+            };
+
+            match op.as_ref() {
+                "0" => {
+                    return Err(JError::NonceError).context("noun");
+                }
+                _ => match str_to_primitive(&op)? {
+                    Some(Word::Conjunction(c)) => {
+                        if b.shape() != [2] {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction but non-conjunction shaped box: {b:?}")
+                            });
+                        }
+
+                        let JArray::BoxArray(r) = &b[1] else {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction argument should be a box, not {:?}", &b[1])
+                            });
+                        };
+
+                        if r.shape() != [2] {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction but non-conjunction shaped argument: {b:?}")
+                            });
+                        }
+
+                        let u = untie(ctx, &r[0])?;
+                        let v = untie(ctx, &r[1])?;
+                        let (farcical, conj) = c.form_conjunction(ctx, &u, &v)?;
+                        ensure!(!farcical);
+                        conj
+                    }
+                    _ => {
+                        return Err(JError::NonceError).context("primitive");
+                    }
+                },
             }
-        },
+        }
         JArray::CharArray(verb) if verb.shape().len() <= 1 => {
             let name = verb.iter().collect::<String>();
-            if let Some(primitive) = str_to_primitive(&name)? {
-                primitive
-            } else {
-                match name.as_ref() {
-                    "0:" => Verb(VerbImpl::Number(0.)),
-                    _ => {
-                        return Err(JError::NonceError)
-                            .with_context(|| anyhow!("unable to un-tie char list {name:?}"))
-                    }
-                }
-            }
+            str_to_primitive(&name)?
+                .ok_or(JError::NonceError)
+                .with_context(|| anyhow!("unable to un-tie char list {name:?}"))?
         }
         _ => return Err(JError::NonceError).with_context(|| anyhow!("unable to un-tie {verb:?}")),
     })

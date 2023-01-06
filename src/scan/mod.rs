@@ -266,6 +266,7 @@ pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "while." => Word::While,
             "assert." => Word::Assert,
             "NB." => Word::Comment,
+            "0:" => Verb(VerbImpl::Number(0.)),
             _ => return Ok(None),
         }
     }))
