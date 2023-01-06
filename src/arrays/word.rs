@@ -124,6 +124,7 @@ impl Word {
     pub fn boxed_ar(&self) -> Result<JArray> {
         use Word::*;
         match self {
+            Noun(a) => Ok(JArray::from_list([JArray::from_string("0"), a.clone()])),
             Verb(v) => v.boxed_ar(),
             Conjunction(m) => m.boxed_ar(),
             _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::boxed_ar {self:?}")),
