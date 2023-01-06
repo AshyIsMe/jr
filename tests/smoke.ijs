@@ -436,6 +436,7 @@ NB. tie
 +&.>`0:
 (}. , {.)`0:
 (0 ~: 5&(+&>))`0:
+NB. not serialising bodies: {{ x + y }}`0:
 
 NB. agenda
 5 (+`-@.1) 2

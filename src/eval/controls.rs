@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 use crate::eval::eval_lines;
 use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
-use crate::{HasEmpty, JArray, JError, Rank, Word};
+use crate::{arr0d, primitive_conjunctions, HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -165,22 +165,27 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
         'm' => {
+            let body = def.clone();
             let imp = BivalentOwned {
                 biv: BivalentOwned::from_monad(move |ctx, y| {
                     let mut ctx = ctx.nest();
                     ctx.eval_mut()
                         .locales
                         .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx)
+                    eval_lines(&body, &mut ctx)
                         .context("anonymous")
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
                 ranks: Rank::inf_inf_inf(),
             };
-            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
+            Word::Verb(VerbImpl::Partial(PartialImpl {
+                imp,
+                def: Some(prepend_cor(3, def)),
+            }))
         }
         'd' => {
+            let body = def.clone();
             let imp = BivalentOwned {
                 biv: BivalentOwned::from_bivalent(move |ctx, x, y| {
                     let Some(x) = x else {
@@ -193,20 +198,32 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                     ctx.eval_mut()
                         .locales
                         .assign_local("y", Word::Noun(y.clone()))?;
-                    eval_lines(&def, &mut ctx)
+                    eval_lines(&body, &mut ctx)
                         .context("anonymous")
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
                 ranks: Rank::inf_inf_inf(),
             };
-            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
+            Word::Verb(VerbImpl::Partial(PartialImpl {
+                imp,
+                def: Some(prepend_cor(4, def)),
+            }))
         }
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))
         }
     })
+}
+
+fn prepend_cor(i: i64, mut def: Vec<Word>) -> Vec<Word> {
+    def.insert(
+        0,
+        Word::Conjunction(primitive_conjunctions(":").expect("static name")),
+    );
+    def.insert(0, Word::Noun(JArray::from(arr0d(i))));
+    def
 }
 
 // TODO: this is typically called from partial_exec which has a panic

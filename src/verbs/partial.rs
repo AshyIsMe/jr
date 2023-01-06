@@ -12,6 +12,7 @@ pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Resu
 #[derive(Clone)]
 pub struct PartialImpl {
     pub imp: BivalentOwned,
+    // This is probably an enum { adverb(a,w), conj(c,w,w) , udf(n,vec<w>) }?
     pub def: Option<Vec<Word>>,
 }
 

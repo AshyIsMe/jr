@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use anyhow::{anyhow, Context, Result};
+use log::warn;
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
@@ -211,7 +212,20 @@ impl VerbImpl {
                         def[1].boxed_ar()?,
                         JArray::from_list(vec![def[0].boxed_ar()?, def[2].boxed_ar()?]),
                     ]),
-                    _ => return Err(JError::NonceError).context("boxed_ar of an adverb?"),
+                    len if len > 3 => {
+                        warn!("lying about serialising a udf: {def:?}");
+                        JArray::from_list([
+                            def[1].boxed_ar()?,
+                            JArray::from_list([
+                                def[0].boxed_ar()?,
+                                Word::Noun(JArray::from_string("assert. 0")).boxed_ar()?,
+                            ]),
+                        ])
+                    }
+                    len => {
+                        return Err(JError::NonceError)
+                            .with_context(|| anyhow!("boxed_ar of {len}"))
+                    }
                 }
             }
             Fork { f, g, h } => JArray::from_list([

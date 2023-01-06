@@ -186,8 +186,8 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     Ok(Word::Noun(JArray::from_list(vec![
-        u.boxed_ar()?,
-        v.boxed_ar()?,
+        u.boxed_ar().context("tie's u")?,
+        v.boxed_ar().context("tie's v")?,
     ])))
 }
 

@@ -76,6 +76,7 @@ impl ModifierImpl {
         Ok(match self {
             Adverb(a) => JArray::from_string(a.name),
             Conjunction(c) => JArray::from_string(c.name),
+            Cor => JArray::from_string(":"),
             _ => {
                 return Err(JError::NonceError)
                     .with_context(|| anyhow!("can't ModifierImpl::boxed_ar {self:?}"))
