@@ -88,7 +88,7 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 }
 
-fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
+pub fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
     impl_homo!(
         x,
         y,

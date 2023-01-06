@@ -89,6 +89,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (8, _) => return unsupported("format"),
         (9, 12) => (iii, BivalentOwned::from_monad(|_, _| f_os_type())),
         (9, _) => return unsupported("global param"),
+        (13, 8) => return unimplemented("signal error"),
         (13, _) => return unsupported("debug"),
         (15, 0) => return unimplemented("call dll"),
         (15, 10) => return unimplemented("dll error code"),
@@ -98,6 +99,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
             BivalentOwned::from_monad(|ctx, y| f_locales_set(ctx, y)),
         ),
         (18, _) => return unsupported("locales"),
+        (128, 2) => return unimplemented("eval and apply"),
         (128, _) => return unsupported("misc"),
         _ => return unsupported("major"),
     };
