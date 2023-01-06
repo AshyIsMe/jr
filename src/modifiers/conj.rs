@@ -213,7 +213,6 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 }
 
 fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
-    use Word::*;
     Ok(match verb {
         JArray::BoxArray(b) => {
             let op = match &b[0] {
@@ -226,7 +225,11 @@ fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
 
             match op.as_ref() {
                 "0" => {
-                    return Err(JError::NonceError).context("noun");
+                    if b.shape() != [2] {
+                        return Err(JError::DomainError)
+                            .with_context(|| anyhow!("noun but non-noun shaped box: {b:?}"));
+                    }
+                    Word::Noun(b[1].clone())
                 }
                 _ => match str_to_primitive(&op)? {
                     Some(Word::Conjunction(c)) => {
