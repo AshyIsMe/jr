@@ -16,7 +16,6 @@ pub struct PartialImpl {
 
 #[derive(Clone)]
 pub struct BivalentOwned {
-    pub name: String,
     pub biv: BivalentOwnedF,
     pub ranks: (Rank, DyadRank),
 }

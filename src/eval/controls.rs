@@ -166,7 +166,6 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         // sorry not sorry
         'm' => {
             let imp = BivalentOwned {
-                name: "anon".to_string(),
                 biv: BivalentOwned::from_monad(move |ctx, y| {
                     let mut ctx = ctx.nest();
                     ctx.eval_mut()
@@ -182,7 +181,6 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         }
         'd' => {
             let imp = BivalentOwned {
-                name: "anon".to_string(),
                 biv: BivalentOwned::from_bivalent(move |ctx, x, y| {
                     let Some(x) = x else {
                         return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad");
