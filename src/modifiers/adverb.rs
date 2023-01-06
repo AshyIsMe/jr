@@ -214,3 +214,22 @@ fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
         ranks: Rank::inf_inf_inf(),
     })
 }
+
+pub fn a_bdot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
+    match u {
+        Word::Noun(m) => {
+            let m = m.approx_i64_one().context("b.'s mode")?;
+            if m < -16 || m > 34 {
+                return Err(JError::DomainError).context("impossible b. mode");
+            }
+            Ok(BivalentOwned {
+                biv: BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
+                    Err(JError::NonceError).with_context(|| anyhow!("b.'s mode {m}"))
+                }),
+                ranks: (Rank::zero(), Rank::zero_zero()),
+            })
+        }
+        Word::Verb(_) => Err(JError::NonceError).with_context(|| anyhow!("b. verb info for {u:?}")),
+        _ => Err(JError::DomainError).context("b. only takes nouns or verbs"),
+    }
+}
