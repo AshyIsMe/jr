@@ -1,5 +1,6 @@
 use std::fmt;
 use std::iter;
+use std::sync::Arc;
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -46,6 +47,23 @@ impl PartialEq for WordyConjunction {
 impl fmt::Debug for WordyConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "WordyConjunction({:?})", self.name)
+    }
+}
+
+#[derive(Clone)]
+pub struct OwnedConjunction {
+    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
+}
+
+impl PartialEq for OwnedConjunction {
+    fn eq(&self, _other: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl fmt::Debug for OwnedConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OwnedConjunction")
     }
 }
 
@@ -425,6 +443,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         Word::Noun(CharArray(jcode)) if jcode.shape().len() <= 1 => {
             let n = match n {
                 0 => return Ok((false, Word::Noun(CharArray(jcode.clone())))),
+                2 => 'c',
                 3 => 'm',
                 4 => 'd',
                 _ => return Err(JError::NonceError).context("unsupported cor mode"),
