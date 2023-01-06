@@ -17,6 +17,7 @@ pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
     WordyConjunction(WordyConjunction),
+    OwnedConjunction(OwnedConjunction),
     Cor,
     // this is a partially applied conjunction
     DerivedAdverb { c: Box<ModifierImpl>, u: Box<Word> },
@@ -27,6 +28,7 @@ impl ModifierImpl {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
             ModifierImpl::WordyConjunction(c) => (false, (c.f)(ctx, u, v)?),
+            ModifierImpl::OwnedConjunction(c) => (false, (c.f)(ctx, Some(u), v)?),
             ModifierImpl::Conjunction(c) => {
                 let partial = (c.f)(ctx, u, v)?;
                 (

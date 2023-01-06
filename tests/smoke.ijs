@@ -445,6 +445,7 @@ NB. atop / at
 NB. cor
 0 : 'hello'
 (3 (4 : 'x + y') 5)
++(2 : '42') ''
 
 NB. bondo
 1&+ 5
