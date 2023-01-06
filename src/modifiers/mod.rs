@@ -37,7 +37,7 @@ impl ModifierImpl {
 
     pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Word> {
         Ok(match self {
-            ModifierImpl::Adverb(c) => (c.f)(ctx, u)?,
+            ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial((c.f)(ctx, u)?)),
             ModifierImpl::DerivedAdverb { c, u: v } => {
                 let (farcical, word) = c.form_conjunction(ctx, u, v)?;
                 assert!(!farcical);
