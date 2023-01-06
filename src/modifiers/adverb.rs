@@ -7,10 +7,10 @@ use crate::arrays::JArrayCow;
 use crate::cells::fill_promote_list_cow;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
-use crate::verbs::{v_self_classify, PartialImpl, VerbImpl};
+use crate::verbs::{v_self_classify, PartialImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
 
-pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<Word>;
+pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<PartialImpl>;
 
 #[derive(Clone)]
 pub struct SimpleAdverb {
@@ -30,11 +30,11 @@ impl fmt::Debug for SimpleAdverb {
     }
 }
 
-pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<Word> {
+pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<PartialImpl> {
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
-pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Verb(u) = u else { return Err(JError::DomainError)
         .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
 
@@ -44,15 +44,15 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         Some(x) => u.exec(ctx, Some(y), x),
     });
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: format!("?~"),
         biv,
         // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
-pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
     let u = u.clone();
     let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
@@ -74,14 +74,14 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             })
             .ok_or(JError::DomainError)?
     });
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "/?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
-pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Verb(u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
 
     let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
@@ -97,15 +97,15 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
     });
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "/.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 /// (0 _)
-pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
     let u = u.clone();
     let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
@@ -143,15 +143,15 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
             JArray::from_fill_promote(piece)
         }
     });
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "\\?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 /// (_ 0 _)
-pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
 
     let u = u.clone();
@@ -167,15 +167,15 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\. {y:?}")),
     });
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "\\.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 /// (_ _ _)
-pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<PartialImpl> {
     let Word::Noun(u) = u else { return Err(JError::DomainError).context("}'s u must be a noun"); };
     if u.shape().len() > 1 {
         return Err(JError::NonceError).context("u must be a list");
@@ -197,9 +197,9 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
     });
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "?}".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
