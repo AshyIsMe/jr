@@ -26,7 +26,7 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
     };
 
     let unimplemented = |name: &'static str| -> Result<PartialImpl> {
-        let biv = PartialImpl::from_legacy_inf(move |_ctx, _x, _y| {
+        let biv = PartialImpl::from_bivalent(move |_ctx, _x, _y| {
             Err(JError::NonceError)
                 .with_context(|| anyhow!("unimplemented {name:?} foreign ({l}!:{r})"))
         });
@@ -55,17 +55,17 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
         (2, _) => return unsupported("host"),
         (3, 3) => (
             iii,
-            PartialImpl::from_legacy_inf(|_ctx, x, y| f_dump_hex(x, y)),
+            PartialImpl::from_bivalent(|_ctx, x, y| f_dump_hex(x, y)),
         ),
         (3, 4) => (
             iii,
-            PartialImpl::from_legacy_inf(|_ctx, x, y| f_int_bytes(x, y)),
+            PartialImpl::from_bivalent(|_ctx, x, y| f_int_bytes(x, y)),
         ),
         (3, _) => return unsupported("conversion"),
         (4, 0) => (zii, PartialImpl::from_monad(|ctx, y| f_name_status(ctx, y))),
         (4, 1) => (
             iii,
-            PartialImpl::from_legacy_inf(|ctx, x, y| f_name_namelist(ctx, x, y)),
+            PartialImpl::from_bivalent(|ctx, x, y| f_name_namelist(ctx, x, y)),
         ),
         (4, 55) => (zii, PartialImpl::from_monad(|ctx, y| f_name_erase(ctx, y))),
         (5, _) => return unsupported("representation"),

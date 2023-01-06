@@ -47,9 +47,9 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .ok_or(JError::DomainError)
                 .context("hatco's noun should be integers")?
                 .into_owned();
-            PartialImpl::from_legacy_inf(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
+            PartialImpl::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
         }
-        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
+        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_bivalent(move |ctx, x, y| {
             let n = v.exec(ctx, x, y)?;
             // TODO: this should support _infinite
             let n = n
@@ -121,7 +121,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             );
 
             let u = u.clone();
-            PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+            PartialImpl::from_bivalent(move |ctx, x, y| match x {
                 None => exec_monad(
                     |y| {
                         u.exec(ctx, None, y)
@@ -152,7 +152,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 return Err(JError::NonceError).context("only infinite ranks");
             }
             let u = u.clone();
-            PartialImpl::from_legacy_inf(move |_ctx, _x, _y| Ok(u.clone()))
+            PartialImpl::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
         }
         _ => {
             return Err(JError::NonceError)
@@ -207,7 +207,7 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
-            let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
+            let biv = PartialImpl::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
                 name: "atop".to_string(),
                 biv,
@@ -243,7 +243,7 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
-            let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+            let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
                 let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
                 u.exec(ctx, None, &r).context("left half of c_at")
@@ -291,7 +291,7 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         (Word::Verb(n), Word::Verb(m)) => {
             let n = n.clone();
             let m = m.clone();
-            let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+            let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
                 n.exec(ctx, x, y).or_else(|_| m.exec(ctx, x, y))
             });
             Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
@@ -322,7 +322,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         _ => return Err(JError::DomainError).context("invalid mode for dyadic cut"),
     };
 
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
         let parts = y.outer_iter().collect_vec();
         ensure!(!parts.is_empty());
 
@@ -453,13 +453,13 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
 pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     // TODO: some of these are presumably obviously monads or dyads
     let biv = match (n.clone(), m.clone()) {
-        (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+        (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_bivalent(move |ctx, _x, y| {
             n.exec(ctx, Some(&m), &y.clone()).context("monad bondo VN")
         }),
-        (Word::Noun(n), Word::Verb(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
+        (Word::Noun(n), Word::Verb(m)) => PartialImpl::from_bivalent(move |ctx, _x, y| {
             m.exec(ctx, Some(&n), y).context("monad bondo NV")
         }),
-        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        (Word::Verb(u), Word::Verb(v)) => PartialImpl::from_bivalent(move |ctx, x, y| match x {
             None => do_atop(ctx, None, &u, &v, &y),
             Some(x) => {
                 let l = v.exec(ctx, None, &x).context("left bondo NVV")?;
@@ -488,7 +488,7 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     let u = u.clone();
     let v = v.clone();
     let vi = vi.clone();
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
         None => {
             let (cells, frame) = monad_cells(y, Rank::zero())?;
             let mut parts = Vec::new();
