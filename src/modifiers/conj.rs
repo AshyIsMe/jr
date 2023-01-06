@@ -15,7 +15,7 @@ use crate::{HasEmpty, JArray, JError, Word};
 #[derive(Clone)]
 pub struct SimpleConjunction {
     pub name: &'static str,
-    pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
+    pub f: fn(&mut Ctx, &Word, &Word) -> Result<PartialImpl>,
 }
 
 impl PartialEq for SimpleConjunction {
@@ -26,15 +26,33 @@ impl PartialEq for SimpleConjunction {
 
 impl fmt::Debug for SimpleConjunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "FormingConjunction({:?})", self.name)
+        write!(f, "SimpleConjunction({:?})", self.name)
     }
 }
 
-pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
+#[derive(Clone)]
+pub struct WordyConjunction {
+    pub name: &'static str,
+    pub f: fn(&mut Ctx, &Word, &Word) -> Result<Word>,
+}
+
+impl PartialEq for WordyConjunction {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(other.name)
+    }
+}
+
+impl fmt::Debug for WordyConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WordyConjunction({:?})", self.name)
+    }
+}
+
+pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<PartialImpl> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
-pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     let u = u.clone();
@@ -63,11 +81,11 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "hatco".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 fn do_hatco(
@@ -91,7 +109,7 @@ fn do_hatco(
     ))
 }
 
-pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
     let biv = match (u, v) {
         (Word::Verb(u), Word::Noun(n)) => {
             let n = n
@@ -160,11 +178,11 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         }
     };
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "\"".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 pub fn c_tie(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
@@ -202,17 +220,17 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
     match (u, v) {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
             let biv = PartialImpl::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
-            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+            Ok(PartialImpl {
                 name: "atop".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
-            })))
+            })
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @ verb, not {u:?} @ {v:?}")),
@@ -238,7 +256,7 @@ pub fn do_atop(
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<PartialImpl> {
     match (u, v) {
         (Word::Verb(u), Word::Verb(v)) => {
             let u = u.clone();
@@ -248,11 +266,11 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
                 u.exec(ctx, None, &r).context("left half of c_at")
             });
-            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+            Ok(PartialImpl {
                 name: "at".to_string(),
                 biv,
                 ranks: Rank::inf_inf_inf(),
-            })))
+            })
         }
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("expected to verb @: verb, not {u:?} @: {v:?}")),
@@ -286,7 +304,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
     }
 }
 
-pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
     match (n, m) {
         (Word::Verb(n), Word::Verb(m)) => {
             let n = n.clone();
@@ -294,17 +312,17 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
                 n.exec(ctx, x, y).or_else(|_| m.exec(ctx, x, y))
             });
-            Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+            Ok(PartialImpl {
                 name: format!("?::?"),
                 biv,
                 ranks: Rank::inf_inf_inf(),
-            })))
+            })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("\nn: {n:?}\nm: {m:?}")),
     }
 }
 
-pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
     use Word::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
     let Verb(v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
@@ -363,11 +381,11 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         JArray::from_fill_promote(out)
     });
 
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "?;.?".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
 fn cut_frets(
@@ -439,18 +457,18 @@ mod test_cut {
     }
 }
 
-pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<Word> {
+pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<PartialImpl> {
     match (l, r) {
         (Word::Noun(l), Word::Noun(r)) => {
             let l = l.approx_i64_one().context("foreign's left")?;
             let r = r.approx_i64_one().context("foreign's right")?;
-            Ok(Word::Verb(VerbImpl::Partial(foreign(l, r)?)))
+            Ok(foreign(l, r)?)
         }
         _ => Err(JError::NonceError).context("unsupported foreign syntax"),
     }
 }
 
-pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
     // TODO: some of these are presumably obviously monads or dyads
     let biv = match (n.clone(), m.clone()) {
         (Word::Verb(n), Word::Noun(m)) => PartialImpl::from_bivalent(move |ctx, _x, y| {
@@ -469,14 +487,14 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         }),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
     };
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "bondo".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }
 
-pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
+pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<PartialImpl> {
     let (u, v) = match (n, m) {
         (Word::Verb(n), Word::Verb(m)) => (n, m),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
@@ -523,9 +541,9 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
                 .map(|cow| cow.to_owned())
         }
     });
-    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+    Ok(PartialImpl {
         name: "under".to_string(),
         biv,
         ranks: Rank::inf_inf_inf(),
-    })))
+    })
 }

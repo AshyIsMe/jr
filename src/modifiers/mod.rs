@@ -8,6 +8,7 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::{Ctx, JError, Word};
 
+use crate::verbs::VerbImpl;
 pub use adverb::*;
 pub use conj::*;
 
@@ -15,6 +16,7 @@ pub use conj::*;
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
     Conjunction(SimpleConjunction),
+    WordyConjunction(WordyConjunction),
     Cor,
     // this is a partially applied conjunction
     DerivedAdverb { c: Box<ModifierImpl>, u: Box<Word> },
@@ -24,7 +26,11 @@ impl ModifierImpl {
     pub fn form_conjunction(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)?,
-            ModifierImpl::Conjunction(c) => (false, (c.f)(ctx, u, v)?),
+            ModifierImpl::WordyConjunction(c) => (false, (c.f)(ctx, u, v)?),
+            ModifierImpl::Conjunction(c) => {
+                let partial = (c.f)(ctx, u, v)?;
+                (false, Word::Verb(VerbImpl::Partial(partial)))
+            }
             _ => return Err(JError::SyntaxError).context("non-conjunction in conjunction context"),
         })
     }
