@@ -46,6 +46,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         ),
         (1, 1) => (zii, BivalentOwned::from_monad(|_, y| f_read_file(y))),
         (1, 4) => (zii, BivalentOwned::from_monad(|_, y| f_file_size(y))),
+        (1, 43) => (iii, BivalentOwned::from_monad(|_, _| f_file_cwd())),
         (1, _) => return unsupported("file"),
         (2, 0) => (iii, BivalentOwned::from_monad(|_, y| f_shell_out(y))),
         (2, 5) => (zii, BivalentOwned::from_monad(|_, y| f_getenv(y))),

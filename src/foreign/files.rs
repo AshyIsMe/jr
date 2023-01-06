@@ -38,6 +38,17 @@ pub fn f_file_size(y: &JArray) -> Result<JArray> {
     )))
 }
 
+// 1!:43 (_)
+pub fn f_file_cwd() -> Result<JArray> {
+    Ok(JArray::from_string(
+        std::env::current_dir()?
+            .as_os_str()
+            .to_str()
+            .ok_or(JError::ValueError)
+            .context("unrepresentable path")?,
+    ))
+}
+
 pub fn arg_to_string_list(y: &BoxArray) -> Result<Vec<String>> {
     if y.shape().len() > 1 {
         return Err(JError::NonceError).context("only list-y args'");
