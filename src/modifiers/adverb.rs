@@ -39,7 +39,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
 
     let u = u.clone();
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
         None => u.exec(ctx, Some(y), y),
         Some(x) => u.exec(ctx, Some(y), x),
     });
@@ -55,7 +55,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
     let u = u.clone();
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| {
         if x.is_some() {
             return Err(JError::NonceError).context("dyadic / not implemented yet");
         }
@@ -84,7 +84,7 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
 
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
         Some(x) if x.shape().len() <= 1 && y.shape().len() <= 1 => {
             let classification = v_self_classify(x).context("classify")?;
             do_atop(
@@ -108,7 +108,7 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
 pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
     let u = u.clone();
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
         None => {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
@@ -155,7 +155,7 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
 
     let u = u.clone();
-    let biv = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |ctx, x, y| match x {
         None => {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
@@ -181,7 +181,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         return Err(JError::NonceError).context("u must be a list");
     }
     let u = u.approx_usize_list()?;
-    let biv = PartialImpl::from_legacy_inf(move |_ctx, x, y| match x {
+    let biv = PartialImpl::from_bivalent(move |_ctx, x, y| match x {
         Some(x) if x.shape().len() <= 1 && y.shape().len() == 1 => {
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();

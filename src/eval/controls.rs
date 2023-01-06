@@ -178,7 +178,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
         })),
         'd' => Word::Verb(VerbImpl::Partial(PartialImpl {
             name: "anon".to_string(),
-            biv: PartialImpl::from_legacy_inf(move |ctx, x, y| {
+            biv: PartialImpl::from_bivalent(move |ctx, x, y| {
                 let Some(x) = x else {
                     return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad")
                 };

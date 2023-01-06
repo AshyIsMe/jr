@@ -29,7 +29,7 @@ impl PartialEq for PartialImpl {
 }
 
 impl PartialImpl {
-    pub fn from_legacy_inf(
+    pub fn from_bivalent(
         f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone,
     ) -> BivalentOwnedF {
         Arc::new(move |ctx, x, y| f(ctx, x, y))
