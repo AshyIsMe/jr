@@ -429,12 +429,12 @@ NB. format
 NB. tie
 *`+
 *`0:
-NB. +&>`0:
-NB. +&.>`0:
++&>`0:
++&.>`0:
 
 NB. agenda
-NB. tie is gone: 5 (+`-@.1) 2
-NB. tie is gone: 5 (+`-@.0) 2
+5 (+`-@.1) 2
+5 (+`-@.0) 2
 
 NB. atop / at
 #@> 'Newton';'Einstein'
