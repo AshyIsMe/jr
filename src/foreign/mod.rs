@@ -38,6 +38,14 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
 
     let iii = Rank::inf_inf_inf();
     let zii = (Rank::zero(), Rank::infinite_infinite());
+    let security_violation = |name: &'static str| {
+        (
+            iii,
+            BivalentOwned::from_bivalent(move |_, _, _| {
+                Err(JError::SecurityViolation).with_context(|| anyhow!("disallowed: {name}"))
+            }),
+        )
+    };
 
     let (ranks, biv) = match (l, r) {
         (0, k) => (
@@ -46,9 +54,11 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         ),
         (1, 1) => (zii, BivalentOwned::from_monad(|_, y| f_read_file(y))),
         (1, 4) => (zii, BivalentOwned::from_monad(|_, y| f_file_size(y))),
+        (1, 5) => security_violation("mkdir"),
         (1, 43) => (iii, BivalentOwned::from_monad(|_, _| f_file_cwd())),
         (1, _) => return unsupported("file"),
         (2, 0) => (iii, BivalentOwned::from_monad(|_, y| f_shell_out(y))),
+        (2, 1) => security_violation("shell out (forked)"),
         (2, 5) => (zii, BivalentOwned::from_monad(|_, y| f_getenv(y))),
         (2, 6) => (iii, BivalentOwned::from_monad(|_, _| f_getpid())),
         (2, _) => return unsupported("host"),
