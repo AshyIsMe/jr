@@ -9,7 +9,7 @@ use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
 use crate::scan::str_to_primitive;
-use crate::verbs::{exec_dyad, exec_monad, BivalentOwned, Rank, VerbImpl};
+use crate::verbs::{exec_dyad, exec_monad, BivalentOwned, PartialImpl, Rank, VerbImpl};
 use crate::{arr0d, generate_cells, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
@@ -331,7 +331,11 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
 
 pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
     use crate::arrays::JArray::*;
-    let Word::Noun(n) = n else { return Err(JError::DomainError).context("cor's n") };
+    let n = match n {
+        Word::Noun(n) => n,
+        Word::Verb(u) => return Ok((false, c_cor_u(u, m)?)),
+        _ => return Err(JError::DomainError).context("cor's n must be verb or noun"),
+    };
     let n = n.approx_i64_one()?;
     match m {
         Word::Noun(arr) if arr.approx_i64_one().ok() == Some(0) => {
@@ -354,6 +358,27 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
     }
+}
+
+pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
+    let Word::Verb(v) = v else {
+        return Err(JError::DomainError).context("u:v's v must be a verb");
+    };
+
+    let u = u.clone();
+    let v = v.clone();
+
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        imp: BivalentOwned {
+            biv: BivalentOwned::from_bivalent(move |ctx, x, y| match x {
+                None => u.exec(ctx, None, y),
+                Some(x) => v.exec(ctx, Some(x), y),
+            }),
+            // TODO: ranks should be from u and v, allegedly
+            ranks: Rank::inf_inf_inf(),
+        },
+        def: None,
+    })))
 }
 
 pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
