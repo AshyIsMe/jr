@@ -325,6 +325,9 @@ NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'
 
+NB. amend (legacy definition: curlyrtu)
+2 (>./)} 0 1 2
+
 NB. cap
 2 (>. % [: <. + * -) 2
 

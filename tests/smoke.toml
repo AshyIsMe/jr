@@ -477,6 +477,11 @@ output = '8'
 encoded = 'e3,04,01,,08'
 
 [[runs]]
+expr = '(>./)} 0 1 2'
+output = '2'
+encoded = 'e3,04,01,,02'
+
+[[runs]]
 expr = "(>:i. #'ABCD') |.\"0 1 (,. ,\"1 (<:@# # '-'&[)) 'ABCD'"
 output = '''
 ---A
@@ -717,6 +722,11 @@ encoded = 'e3,04,02,01,02,,0f'
 expr = '0 $ 0'
 output = ''
 encoded = 'e3,01,,01,,'
+
+[[runs]]
+expr = '0 (>./)} 0 1 2'
+output = '0 0 0'
+encoded = 'e3,04,03,01,03,,,'
 
 [[runs]]
 expr = '0 *. 0'
@@ -1155,6 +1165,11 @@ encoded = 'e3,02,04,01,04,61'
 expr = '2 (>. % [: <. + * -) 2'
 output = '_'
 encoded = 'e3,08,01,,000000000000f07f'
+
+[[runs]]
+expr = '2 (>./)} 0 1 2'
+output = '0 1 2'
+encoded = 'e3,04,03,01,03,,01,02'
 
 [[runs]]
 expr = "2 ({. ,&< }.) 'abcde'"

@@ -171,7 +171,24 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
 
 /// (_ _ _)
 pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Noun(u) = u else { return Err(JError::DomainError).context("}'s u must be a noun"); };
+    match u {
+        Word::Noun(noun) => build_curlrt(noun),
+        Word::Verb(u) => {
+            let u = u.clone();
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let u = u.exec(ctx, None, y)?;
+                (build_curlrt(&u)?.biv)(ctx, x, y)
+            });
+            Ok(BivalentOwned {
+                biv,
+                ranks: Rank::inf_inf_inf(),
+            })
+        }
+        _ => Err(JError::DomainError).context("}'s u must be a noun or verb"),
+    }
+}
+
+fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
     if u.shape().len() > 1 {
         return Err(JError::NonceError).context("u must be a list");
     }
