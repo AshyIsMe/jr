@@ -66,6 +66,8 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: format!("?~"),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -95,6 +97,8 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: "/?".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -118,6 +122,8 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: "/.?".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -164,6 +170,8 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: "\\?".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -188,6 +196,8 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: "\\.?".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -218,5 +228,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
         name: "?}".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }

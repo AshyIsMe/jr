@@ -68,6 +68,8 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         name: "hatco".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -165,6 +167,8 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         name: "\"".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -217,6 +221,8 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 name: "atop".to_string(),
                 monad,
                 dyad,
+                biv: None,
+                ranks: Rank::inf_inf_inf(),
             })))
         }
         _ => Err(JError::DomainError)
@@ -257,6 +263,8 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 name: "at".to_string(),
                 monad,
                 dyad,
+                biv: None,
+                ranks: Rank::inf_inf_inf(),
             })))
         }
         _ => Err(JError::DomainError)
@@ -303,6 +311,8 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
                 name: format!("?::?"),
                 monad,
                 dyad,
+                biv: None,
+                ranks: Rank::inf_inf_inf(),
             })))
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("\nn: {n:?}\nm: {m:?}")),
@@ -372,6 +382,8 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         name: "?;.?".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -483,6 +495,8 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         name: "bondo".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }
 
@@ -538,5 +552,7 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         name: "under".to_string(),
         monad,
         dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
     })))
 }

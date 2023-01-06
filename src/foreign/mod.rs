@@ -9,7 +9,7 @@ mod scripts;
 use anyhow::{anyhow, Context, Result};
 use std::sync::Arc;
 
-use crate::JError;
+use crate::{JError, Rank};
 
 use crate::verbs::PartialImpl;
 use conversion::*;
@@ -35,6 +35,8 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
             name: name.to_string(),
             monad,
             dyad,
+            biv: None,
+            ranks: Rank::inf_inf_inf(),
         })
     };
 
@@ -72,5 +74,11 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
         _ => return unsupported("major"),
     };
 
-    Ok(PartialImpl { name, monad, dyad })
+    Ok(PartialImpl {
+        name,
+        monad,
+        dyad,
+        biv: None,
+        ranks: Rank::inf_inf_inf(),
+    })
 }
