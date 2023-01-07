@@ -25,19 +25,18 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         Err(JError::NonceError).with_context(|| anyhow!("unsupported {name:?} foreign: {l}!:{r}"))
     };
 
-    let unimplemented = |name: &'static str| -> Result<BivalentOwned> {
-        let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
-            Err(JError::NonceError)
-                .with_context(|| anyhow!("unimplemented {name:?} foreign ({l}!:{r})"))
-        });
-        Ok(BivalentOwned {
-            biv,
-            ranks: Rank::inf_inf_inf(),
-        })
-    };
-
     let iii = Rank::inf_inf_inf();
     let zii = (Rank::zero(), Rank::infinite_infinite());
+
+    let unimplemented = |name: &'static str| {
+        (
+            iii,
+            BivalentOwned::from_bivalent(move |_, _, _| {
+                Err(JError::NonceError)
+                    .with_context(|| anyhow!("unimplemented {name:?} foreign ({l}!:{r})"))
+            }),
+        )
+    };
     let security_violation = |name: &'static str| {
         (
             iii,
@@ -61,9 +60,9 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (2, 1) => security_violation("shell out (forked)"),
         (2, 5) => (zii, BivalentOwned::from_monad(|_, y| f_getenv(y))),
         (2, 6) => (iii, BivalentOwned::from_monad(|_, _| f_getpid())),
-        (2, 55) => return unimplemented("terminate session"),
+        (2, 55) => unimplemented("terminate session"),
         (2, _) => return unsupported("host"),
-        (3, 0) => return unimplemented("type"),
+        (3, 0) => unimplemented("type"),
         (3, 3) => (
             iii,
             BivalentOwned::from_bivalent(|_ctx, x, y| f_dump_hex(x, y)),
@@ -91,17 +90,17 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (8, _) => return unsupported("format"),
         (9, 12) => (iii, BivalentOwned::from_monad(|_, _| f_os_type())),
         (9, _) => return unsupported("global param"),
-        (13, 8) => return unimplemented("signal error"),
+        (13, 8) => unimplemented("signal error"),
         (13, _) => return unsupported("debug"),
-        (15, 0) => return unimplemented("call dll"),
-        (15, 10) => return unimplemented("dll error code"),
+        (15, 0) => unimplemented("call dll"),
+        (15, 10) => unimplemented("dll error code"),
         (15, _) => return unsupported("dll"),
         (18, 4) => (
             iii,
             BivalentOwned::from_monad(|ctx, y| f_locales_set(ctx, y)),
         ),
         (18, _) => return unsupported("locales"),
-        (128, 2) => return unimplemented("eval and apply"),
+        (128, 2) => unimplemented("eval and apply"),
         (128, _) => return unsupported("misc"),
         _ => return unsupported("major"),
     };
