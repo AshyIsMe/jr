@@ -1,11 +1,12 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 
 use crate::eval::eval_lines;
 use crate::modifiers::{ModifierImpl, OwnedConjunction};
-use crate::verbs::{BivalentCOwned, BivalentOwned, PartialImpl, VerbImpl};
+use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
 use crate::{arr0d, primitive_conjunctions, HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
@@ -166,7 +167,7 @@ fn infer_type(def: &[Word]) -> Result<char> {
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         'c' => Word::Conjunction(ModifierImpl::OwnedConjunction(OwnedConjunction {
-            f: BivalentCOwned::from_bivalent(move |ctx, u, v| {
+            f: Arc::new(move |ctx, u, v| {
                 let mut ctx = ctx.nest();
                 if let Some(u) = u {
                     ctx.eval_mut().locales.assign_local("u", u.clone())?;
