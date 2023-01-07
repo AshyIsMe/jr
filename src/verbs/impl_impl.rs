@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
@@ -15,14 +15,6 @@ pub enum VerbImpl {
 
     Partial(PartialImpl),
 
-    //Adverb or Conjunction modified Verb eg. +/ or u^:n etc.
-    //Modifiers take a left and right argument refered to as either
-    //u and v if verbs or m and n if nouns (or combinations of either).
-    DerivedVerb {
-        l: Box<Word>,
-        r: Box<Word>,
-        m: Box<Word>,
-    },
     Fork {
         f: Box<Word>,
         g: Box<Word>,
@@ -92,18 +84,23 @@ pub fn exec_dyad(
 }
 
 impl VerbImpl {
-    pub fn exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<JArray> {
+    pub fn exec(&self, ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
         fill_promote_reshape(&self.partial_exec(ctx, x, y)?)
     }
 
-    pub fn partial_exec(&self, ctx: &mut Ctx, x: Option<&Word>, y: &Word) -> Result<VerbResult> {
+    pub fn partial_exec(
+        &self,
+        ctx: &mut Ctx,
+        x: Option<&JArray>,
+        y: &JArray,
+    ) -> Result<VerbResult> {
         use Word::*;
         match self {
-            VerbImpl::Primitive(imp) => match (x, y) {
-                (None, Noun(y)) => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
+            VerbImpl::Primitive(imp) => match x {
+                None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
                     .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("monadic {:?}", imp.name)),
-                (Some(Noun(x)), Noun(y)) => {
+                Some(x) => {
                     let dyad = imp
                         .dyad
                         .ok_or(JError::DomainError)
@@ -113,11 +110,9 @@ impl VerbImpl {
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("dyadic {:?}", imp.name))
                 }
-                other => Err(JError::DomainError)
-                    .with_context(|| anyhow!("primitive on non-nouns: {other:#?}")),
             },
-            VerbImpl::Partial(imp) => match (x, y) {
-                (None, Noun(y)) => {
+            VerbImpl::Partial(imp) => match x {
+                None => {
                     let monad = imp
                         .monad
                         .as_ref()
@@ -127,7 +122,7 @@ impl VerbImpl {
                         .with_context(|| anyhow!("y: {y:?}"))
                         .with_context(|| anyhow!("monadic partial {:?}", imp.name))
                 }
-                (Some(Noun(x)), Noun(y)) => {
+                Some(x) => {
                     let dyad = imp
                         .dyad
                         .as_ref()
@@ -143,22 +138,6 @@ impl VerbImpl {
                     .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("dyadic partial {:?}", imp.name))
                 }
-                other => Err(JError::DomainError)
-                    .with_context(|| anyhow!("partial on non-nouns: {other:#?}")),
-            },
-            VerbImpl::DerivedVerb { l, r, m } => match (l.deref(), r.deref(), m.deref()) {
-                (u @ Verb(_, _), Nothing, Adverb(_, a)) => {
-                    a.exec(ctx, x, u, &Nothing, y).and_then(must_be_box)
-                }
-                (m @ Noun(_), Nothing, Adverb(_, a)) => {
-                    a.exec(ctx, x, m, &Nothing, y).and_then(must_be_box)
-                }
-                (l, r, Conjunction(_, c))
-                    if matches!(l, Noun(_) | Verb(_, _)) && matches!(r, Noun(_) | Verb(_, _)) =>
-                {
-                    c.exec(ctx, x, l, r, y).and_then(must_be_box)
-                }
-                _ => bail!("invalid {:?}", self),
             },
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
                 (Verb(_, f), Verb(_, g), Verb(_, h)) => {
@@ -167,25 +146,25 @@ impl VerbImpl {
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
                     let f = match f {
                         VerbImpl::Cap => None,
-                        _ => Some(f.exec(ctx, x, y).map(Word::Noun).context("fork impl (f)")?),
+                        _ => Some(f.exec(ctx, x, y).context("fork impl (f)")?),
                     };
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
-                    let ny = h.exec(ctx, x, y).map(Word::Noun).context("fork impl (h)")?;
+                    let ny = h.exec(ctx, x, y).context("fork impl (h)")?;
                     g.partial_exec(ctx, f.as_ref(), &ny)
                         .context("fork impl (g)")
                 }
                 (Noun(m), Verb(_, g), Verb(_, h)) => {
                     // TODO: it's very unclear to me that this should be a recursive call,
                     // TODO: and not exec() with some mapping like elsewhere
-                    let ny = h.exec(ctx, x, y).map(Word::Noun)?;
-                    g.partial_exec(ctx, Some(&Noun(m.clone())), &ny)
+                    let ny = h.exec(ctx, x, y)?;
+                    g.partial_exec(ctx, Some(m), &ny)
                 }
                 _ => panic!("invalid Fork {:?}", self),
             },
             VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
                 (Verb(_, u), Verb(_, v)) => {
-                    let ny = v.exec(ctx, None, y).map(Word::Noun)?;
+                    let ny = v.exec(ctx, None, y)?;
                     match x {
                         // TODO: it's very unclear to me that this should be a recursive call,
                         // TODO: and not exec() with some mapping like elsewhere
@@ -205,6 +184,7 @@ impl VerbImpl {
     pub fn monad_rank(&self) -> Option<Rank> {
         match self {
             Self::Primitive(p) => Some(p.monad.rank),
+            Self::Partial(p) => p.monad.as_ref().map(|p| p.rank),
             _ => None,
         }
     }
@@ -213,6 +193,7 @@ impl VerbImpl {
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
             Self::Primitive(p) => p.dyad.map(|d| d.rank),
+            Self::Partial(p) => p.dyad.as_ref().map(|d| d.rank),
             _ => None,
         }
     }
@@ -231,8 +212,4 @@ fn must_be_noun(v: Word) -> Result<JArray> {
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
     }
-}
-
-fn must_be_box(v: Word) -> Result<VerbResult> {
-    Ok((Vec::new(), vec![must_be_noun(v)?]))
 }

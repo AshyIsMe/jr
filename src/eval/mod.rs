@@ -150,7 +150,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("0 monad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &y).map(Word::Noun)?,
                     any,
                 ])
             }
@@ -164,7 +164,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![
                     fragment.0,
                     Verb(us, u.clone()),
-                    v.exec(ctx, None, &Noun(y)).map(Word::Noun)?,
+                    v.exec(ctx, None, &y).map(Word::Noun)?,
                 ])
             }
             (ref w, Noun(x), Verb(_, ref v), Noun(y))
@@ -176,41 +176,28 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("2 dyad");
                 Ok(vec![
                     fragment.0,
-                    v.exec(ctx, Some(&Noun(x)), &Noun(y))
+                    v.exec(ctx, Some(&x), &y)
                         .context("evaluating 2 dyad")
                         .map(Word::Noun)?,
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, Verb(sv, ref v), Adverb(sa, a), any)
+            (ref w, u @ Verb(_, _), Adverb(_, a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
                 debug!("3 adverb V A _");
-                let verb_str = format!("{}{}", sv, sa);
-                let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Verb(sv, v.clone())),
-                    r: Box::new(Nothing),
-                    m: Box::new(Adverb(sa, a)),
-                };
-                Ok(vec![fragment.0, Verb(verb_str, dv), any])
+                Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
             }
-            (ref w, Noun(n), Adverb(sa, a), any)
+            (ref w, n @ Noun(_), Adverb(_, a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_, _) | Verb(_, _) | Noun(_)
                 ) =>
             {
-                debug!("3 adverb N A _");
-                let verb_str = format!("m{}", sa);
-                let dv = VerbImpl::DerivedVerb {
-                    l: Box::new(Noun(n)),
-                    r: Box::new(Nothing),
-                    m: Box::new(Adverb(sa, a)),
-                };
-                Ok(vec![fragment.0, Verb(verb_str, dv), any])
+                Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
             }
             //// (V|N) C (V|N) - 4 Conjunction
             (ref w, l, Conjunction(_sc, c), r)
@@ -223,7 +210,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
             {
                 debug!("4 Conj");
-                let (farcical, formed) = c.form(ctx, &l, &r)?;
+                let (farcical, formed) = c.form_conjunction(ctx, &l, &r)?;
                 assert!(!farcical);
                 Ok(vec![fragment.0, formed])
             }
@@ -235,7 +222,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             {
                 debug!("4 Conj N C N");
                 let (farcical, formed) =
-                    c.form(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))?;
+                    c.form_conjunction(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))?;
                 if !farcical {
                     Ok(vec![fragment.0, formed])
                 } else {
@@ -290,16 +277,17 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
             // the rest result in syntax errors.
-            (ref w, Adverb(sa0, a0), Adverb(sa1, a1), any)
+            (ref w, Adverb(sa0, _), Adverb(sa1, _), _any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
-                let adverb_str = format!("{} {}", sa0, sa1);
-                let da = ModifierImpl::DerivedAdverb {
-                    l: Box::new(Adverb(sa0, a0.clone())),
-                    r: Box::new(Adverb(sa1, a1.clone())),
-                };
-                Ok(vec![fragment.0, Adverb(adverb_str, da), any])
+                bail!("unable to bond adverbs: {sa0:?} {sa1:?}")
+                // let adverb_str = format!("{} {}", sa0, sa1);
+                // let da = ModifierImpl::DerivedAdverb {
+                //     l: Box::new(Adverb(sa0, a0.clone())),
+                //     r: Box::new(Adverb(sa1, a1.clone())),
+                // };
+                // Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
             (ref w, Conjunction(sc, c), Noun(n), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
@@ -307,8 +295,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("6 Hook/Adverb C N _");
                 let adverb_str = format!("{} n", sc);
                 let da = ModifierImpl::DerivedAdverb {
-                    l: Box::new(Conjunction(sc, c.clone())),
-                    r: Box::new(Noun(n)),
+                    c: Box::new(c),
+                    u: Box::new(Noun(n)),
                 };
                 Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }
@@ -318,8 +306,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("6 Hook/Adverb C V _");
                 let adverb_str = format!("{} {}", sc, sv);
                 let da = ModifierImpl::DerivedAdverb {
-                    l: Box::new(Conjunction(sc, c.clone())),
-                    r: Box::new(Verb(sv, v.clone())),
+                    c: Box::new(c),
+                    u: Box::new(Verb(sv, v.clone())),
                 };
                 Ok(vec![fragment.0, Adverb(adverb_str, da), any])
             }

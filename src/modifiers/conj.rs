@@ -49,15 +49,11 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .context("hatco's noun should be integers")?
                 .into_owned();
             PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                let x = x.cloned().map(Word::Noun);
-                let y = Word::Noun(y.clone());
-                do_hatco(ctx, x.as_ref(), &u, &n, &y)
+                do_hatco(ctx, x, &u, &n, y).map(Word::Noun)
             })
         }
         (Word::Verb(_, u), Word::Verb(_, v)) => PartialImpl::from_legacy_inf(move |ctx, x, y| {
-            let x = x.cloned().map(Word::Noun);
-            let y = Word::Noun(y.clone());
-            let n = v.exec(ctx, x.as_ref(), &y.clone())?;
+            let n = v.exec(ctx, x, y)?;
             // TODO: this should support _infinite
             let n = n
                 .to_i64()
@@ -65,7 +61,7 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .context("hatco's (derived) noun should be integers")?
                 .into_owned();
 
-            do_hatco(ctx, x.as_ref(), &u, &n, &y)
+            do_hatco(ctx, x, &u, &n, y).map(Word::Noun)
         }),
         (u, v) => return Err(JError::DomainError).with_context(|| anyhow!("{u:?} {v:?}")),
     };
@@ -82,25 +78,23 @@ pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 
 fn do_hatco(
     ctx: &mut Ctx,
-    x: Option<&Word>,
+    x: Option<&JArray>,
     u: &VerbImpl,
     n: &ArrayD<i64>,
-    y: &Word,
-) -> Result<Word> {
+    y: &JArray,
+) -> Result<JArray> {
     fill_promote_reshape(&(
         n.shape().to_vec(),
         n.iter()
             .map(|i| -> Result<_> {
                 let mut t = y.clone();
                 for _ in 0..*i {
-                    t = u.exec(ctx, x, &t).map(Word::Noun)?;
+                    t = u.exec(ctx, x, &t)?;
                 }
-                let Word::Noun(t) = t else { unreachable!("we just wrapped it") };
                 Ok(t)
             })
             .collect::<Result<Vec<JArray>>>()?,
     ))
-    .map(Word::Noun)
 }
 
 pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
@@ -136,7 +130,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
                 None => exec_monad(
                     |y| {
-                        u.exec(ctx, None, &Word::Noun(y.clone()))
+                        u.exec(ctx, None, y)
                             .context("running monadic u inside re-rank")
                     },
                     ranks.0,
@@ -146,7 +140,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 .context("monadic rank drifting"),
                 Some(x) => exec_dyad(
                     |x, y| {
-                        u.exec(ctx, Some(&Word::Noun(x.clone())), &Word::Noun(y.clone()))
+                        u.exec(ctx, Some(x), y)
                             .context("running dyadic u inside re-rank")
                     },
                     (ranks.1, ranks.2),
@@ -233,10 +227,7 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             let u = u.clone();
             let v = v.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                let x = x.cloned().map(Word::Noun);
-                let y = Word::Noun(y.clone());
-
-                do_atop(ctx, x.as_ref(), &u, &v, &y).map(Word::Noun)
+                do_atop(ctx, x, &u, &v, y).map(Word::Noun)
             });
             Ok(Word::Verb(
                 "atop".to_string(),
@@ -254,16 +245,16 @@ pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 
 pub fn do_atop(
     ctx: &mut Ctx,
-    x: Option<&Word>,
+    x: Option<&JArray>,
     u: &VerbImpl,
     v: &VerbImpl,
-    y: &Word,
+    y: &JArray,
 ) -> Result<JArray> {
     let mut r = v.partial_exec(ctx, x, y).context("right half of c_atop")?;
     // surely this private field access indicates a design problem of some kind
     r.1 =
         r.1.into_iter()
-            .map(|a| u.exec(ctx, None, &Word::Noun(a.clone())))
+            .map(|a| u.exec(ctx, None, &a))
             .collect::<Result<Vec<_>>>()
             .context("left half of c_at")?;
 
@@ -277,13 +268,9 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
             let u = u.clone();
             let v = v.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                let x = x.cloned().map(Word::Noun);
-                let y = Word::Noun(y.clone());
-                let r = v
-                    .partial_exec(ctx, x.as_ref(), &y)
-                    .context("right half of c_at")?;
+                let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
                 let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
-                u.exec(ctx, None, &Word::Noun(r))
+                u.exec(ctx, None, &r)
                     .context("left half of c_at")
                     .map(Word::Noun)
             });
@@ -334,10 +321,8 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             let n = n.clone();
             let m = m.clone();
             let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
-                let x = x.map(|v| Word::Noun(v.clone()));
-                let y = Word::Noun(y.clone());
-                n.exec(ctx, x.as_ref(), &y)
-                    .or_else(|_| m.exec(ctx, x.as_ref(), &y))
+                n.exec(ctx, x, y)
+                    .or_else(|_| m.exec(ctx, x, y))
                     .map(Word::Noun)
             });
             Ok(Word::Verb(
@@ -405,8 +390,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
                     JArray::from_fill_promote(sub.iter().map(|v| v.to_owned()))
                         .context("flattening intermediate")?
                 };
-                v.exec(ctx, None, &Noun(sub))
-                    .context("evaluating intermediate")
+                v.exec(ctx, None, &sub).context("evaluating intermediate")
             })
             .collect::<Result<Vec<_>>>()?;
 
@@ -510,12 +494,12 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
     // TODO: some of these are presumably obviously monads or dyads
     let (monad, dyad) = match (n.clone(), m.clone()) {
         (Word::Verb(_, n), Word::Noun(m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
-            n.exec(ctx, Some(&Word::Noun(m.clone())), &Word::Noun(y.clone()))
+            n.exec(ctx, Some(&m), &y.clone())
                 .context("monad bondo VN")
                 .map(Word::Noun)
         }),
         (Word::Noun(n), Word::Verb(_, m)) => PartialImpl::from_legacy_inf(move |ctx, _x, y| {
-            m.exec(ctx, Some(&Word::Noun(n.clone())), &Word::Noun(y.clone()))
+            m.exec(ctx, Some(&n), y)
                 .context("monad bondo NV")
                 .map(Word::Noun)
         }),
@@ -525,16 +509,12 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
             let v2 = v.clone();
             (
                 PartialImpl::mi(Arc::new(move |ctx, y| {
-                    let y = Word::Noun(y.clone());
                     do_atop(ctx, None, &u, &v, &y).map(Word::Noun)
                 })),
                 PartialImpl::di(Arc::new(move |ctx, x, y| {
-                    let x = Word::Noun(x.clone());
-                    let y = Word::Noun(y.clone());
-
                     let l = v2.exec(ctx, None, &x).context("left bondo NVV")?;
                     let r = v2.exec(ctx, None, &y).context("right bondo NVV")?;
-                    u2.exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
+                    u2.exec(ctx, Some(&l), &r)
                         .map(Word::Noun)
                         .context("central bondo NVV")
                 })),
@@ -568,11 +548,9 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         let (cells, frame) = monad_cells(y, Rank::zero())?;
         let mut parts = Vec::new();
         for y in cells {
-            let v = mv.exec(ctx, None, &Word::Noun(y)).context("under dual v")?;
-            let u = mu.exec(ctx, None, &Word::Noun(v)).context("under dual u")?;
-            let vi = mvi
-                .exec(ctx, None, &Word::Noun(u))
-                .context("under dual vi")?;
+            let v = mv.exec(ctx, None, &y).context("under dual v")?;
+            let u = mu.exec(ctx, None, &v).context("under dual u")?;
+            let vi = mvi.exec(ctx, None, &u).context("under dual vi")?;
             parts.push(vi);
         }
         JArray::from_fill_promote(parts)?
@@ -592,16 +570,10 @@ pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<Word> {
         let parts = apply_cells(
             &cells,
             |x, y| {
-                let l = dv
-                    .exec(ctx, None, &Word::Noun(x.clone()))
-                    .context("under dual l")?;
-                let r = dv
-                    .exec(ctx, None, &Word::Noun(y.clone()))
-                    .context("under dual r")?;
-                let u = du
-                    .exec(ctx, Some(&Word::Noun(l)), &Word::Noun(r))
-                    .context("under dual u")?;
-                dvi.exec(ctx, None, &Word::Noun(u)).context("under dual vi")
+                let l = dv.exec(ctx, None, x).context("under dual l")?;
+                let r = dv.exec(ctx, None, y).context("under dual r")?;
+                let u = du.exec(ctx, Some(&l), &r).context("under dual u")?;
+                dvi.exec(ctx, None, &u).context("under dual vi")
             },
             vr,
         )?;

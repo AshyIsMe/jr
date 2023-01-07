@@ -23,7 +23,19 @@ use scripts::*;
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
 pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
     let unsupported = |name: &'static str| -> Result<PartialImpl> {
-        Err(JError::NonceError).with_context(|| anyhow!("unsupported {name} foreign: {l}!:{r}"))
+        Err(JError::NonceError).with_context(|| anyhow!("unsupported {name:?} foreign: {l}!:{r}"))
+    };
+
+    let unimplemented = |name: &'static str| -> Result<PartialImpl> {
+        let (monad, dyad) = PartialImpl::from_legacy_inf(move |_ctx, _x, _y| {
+            Err(JError::NonceError)
+                .with_context(|| anyhow!("unimplemented {name:?} foreign ({l}!:{r})"))
+        });
+        Ok(PartialImpl {
+            name: name.to_string(),
+            monad,
+            dyad,
+        })
     };
 
     let name = format!("{l}!:{r}");
@@ -51,6 +63,8 @@ pub fn foreign(l: i64, r: i64) -> Result<PartialImpl> {
         (9, 12) => (mi(Arc::new(|_, _| f_os_type())), None),
         (9, _) => return unsupported("global param"),
         (13, _) => return unsupported("debug"),
+        (15, 0) => return unimplemented("call dll"),
+        (15, 10) => return unimplemented("dll error code"),
         (15, _) => return unsupported("dll"),
         (18, 4) => (mi(Arc::new(|ctx, y| f_locales_set(ctx, y))), None),
         (18, _) => return unsupported("locales"),

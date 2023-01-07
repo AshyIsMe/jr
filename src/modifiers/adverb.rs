@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
@@ -7,10 +8,10 @@ use crate::arrays::JArrayCow;
 use crate::cells::fill_promote_list_cow;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
-use crate::verbs::v_self_classify;
-use crate::{primitive_verbs, Ctx, JArray, JError, Word};
+use crate::verbs::{v_self_classify, DyadOwned, MonadOwned, PartialImpl, VerbImpl};
+use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
 
-pub type AdverbFn = fn(&mut Ctx, Option<&Word>, &Word, &Word) -> Result<Word>;
+pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<Word>;
 
 #[derive(Clone)]
 pub struct SimpleAdverb {
@@ -26,89 +27,133 @@ impl PartialEq for SimpleAdverb {
 
 impl fmt::Debug for SimpleAdverb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SimpleAdverb({:?})", self.name)
+        write!(f, "SimpleAdverb2({:?})", self.name)
     }
 }
 
-pub fn a_not_implemented(_ctx: &mut Ctx, _x: Option<&Word>, _u: &Word, _y: &Word) -> Result<Word> {
+pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<Word> {
     Err(JError::NonceError).context("blanket adverb implementation")
 }
 
-pub fn a_tilde(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match u {
-            Word::Verb(_, u) => u.exec(ctx, Some(y), y).map(Word::Noun),
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
-        },
-        Some(x) => match u {
-            Word::Verb(_, u) => u.exec(ctx, Some(y), x).map(Word::Noun),
-            _ => Err(JError::DomainError)
-                .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)),
-        },
-    }
+pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(su, u) = u else { return Err(JError::DomainError)
+        .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
+
+    let mu = u.clone();
+
+    // are we supposed to be, like, not generating these functions if they don't exist?
+    let monad = Some(MonadOwned {
+        // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
+        rank: Rank::infinite(),
+        // rank: mu
+        //     .monad_rank()
+        //     .ok_or(JError::NonceError)
+        //     .context("can only ~ ranked verbs")?,
+        f: Arc::new(move |ctx, y| mu.exec(ctx, Some(y), y).map(Word::Noun)),
+    });
+
+    let du = u.clone();
+    let dyad = Some(DyadOwned {
+        rank: Rank::infinite_infinite(),
+        // rank: du
+        //     .dyad_rank()
+        //     .ok_or(JError::NonceError)
+        //     .context("can only ~ ranked verbs")?,
+        f: Arc::new(move |ctx, x, y| du.exec(ctx, Some(y), x).map(Word::Noun)),
+    });
+
+    Ok(Word::Verb(
+        format!("{su}~"),
+        VerbImpl::Partial(PartialImpl {
+            name: format!("{su}~"),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
-pub fn a_slash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match x {
-        None => match u {
-            Word::Verb(_, u) => match y {
-                Word::Noun(_) => y
-                    .to_cells()?
-                    .into_iter()
-                    .map(Ok)
-                    .rev()
-                    // Reverse to force right to left execution.
-                    // Required for (;/i.5) to work correctly.
-                    // Yes we flipped y and x args in the lambda below:
-                    .reduce(|y, x| u.exec(ctx, Some(&x?), &y?).map(Word::Noun))
-                    .ok_or(JError::DomainError)?,
-                _ => Err(JError::custom("noun expected")),
-            },
-            _ => Err(JError::DomainError).with_context(|| anyhow!("{:?}", u)),
-        },
-        Some(_x) => Err(JError::custom("dyadic / not implemented yet")),
-    }
+pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
+    let u = u.clone();
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| {
+        if x.is_some() {
+            return Err(JError::NonceError).context("dyadic / not implemented yet");
+        }
+        y.outer_iter()
+            .collect_vec()
+            .into_iter()
+            .map(|x| Ok(x.to_owned()))
+            .rev()
+            // Reverse to force right to left execution.
+            // Required for (;/i.5) to work correctly.
+            // Yes we flipped y and x args in the lambda below:
+            .reduce(|y, x| {
+                let x = x?;
+                let y = y?;
+                u.exec(ctx, Some(&x), &y)
+            })
+            .ok_or(JError::DomainError)?
+            .map(Word::Noun)
+    });
+    Ok(Word::Verb(
+        "/?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "/?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
-pub fn a_slash_dot(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
+pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
     let Word::Verb(_, u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
-    match (x, y) {
-        (Some(Word::Noun(x)), Word::Noun(y)) if x.shape().len() == 1 && y.shape().len() == 1 => {
+
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        Some(x) if x.shape().len() <= 1 && y.shape().len() <= 1 => {
             let classification = v_self_classify(x).context("classify")?;
             do_atop(
                 ctx,
-                Some(&Word::Noun(classification)),
+                Some(&classification),
                 &u,
                 &primitive_verbs("#").expect("tally always exists"),
-                &Word::Noun(y.clone()),
+                y,
             )
             .map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} /. {y:?}")),
-    }
+    });
+    Ok(Word::Verb(
+        "/.?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "/.?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 /// (0 _)
-pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match (x, u, y) {
-        (None, Word::Verb(_, u), Word::Noun(y)) => {
+pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
+    let u = u.clone();
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        None => {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))
+                    u.exec(ctx, None, &fill_promote_list_cow(chunk)?)
                         .context("backslash (u)")?,
                 );
             }
             JArray::from_fill_promote(piece).map(Word::Noun)
         }
-        (Some(Word::Noun(x)), Word::Verb(_, u), Word::Noun(y)) => {
+        Some(x) => {
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(chunk)?))?);
+                piece.push(u.exec(ctx, None, &fill_promote_list_cow(chunk)?)?);
                 Ok(())
             };
 
@@ -125,44 +170,73 @@ pub fn a_backslash(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Resul
 
             JArray::from_fill_promote(piece).map(Word::Noun)
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
-    }
+    });
+    Ok(Word::Verb(
+        "\\?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "\\?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 /// (_ 0 _)
-pub fn a_suffix_outfix(ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    match (x, u, y) {
-        (None, Word::Verb(_, u), Word::Noun(y)) => {
+pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Verb(_, u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
+
+    let u = u.clone();
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |ctx, x, y| match x {
+        None => {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &Word::Noun(fill_promote_list_cow(&y[i..])?))?);
+                piece.push(u.exec(ctx, None, &fill_promote_list_cow(&y[i..])?)?);
             }
             JArray::from_fill_promote(piece).map(Word::Noun)
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\ {y:?}")),
-    }
+        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} \\. {y:?}")),
+    });
+
+    Ok(Word::Verb(
+        "\\.?".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "\\.?".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
 
 /// (_ _ _)
-pub fn a_curlyrt(_ctx: &mut Ctx, x: Option<&Word>, u: &Word, y: &Word) -> Result<Word> {
-    use Word::Noun;
-    match (x, u, y) {
-        (Some(Noun(x)), Noun(u), Noun(y))
-            if x.shape().len() <= 1 && u.shape().len() <= 1 && y.shape().len() == 1 =>
-        {
-            let u = u.approx_usize_list()?;
+pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<Word> {
+    let Word::Noun(u) = u else { return Err(JError::DomainError).context("}'s u must be a noun"); };
+    if u.shape().len() > 1 {
+        return Err(JError::NonceError).context("u must be a list");
+    }
+    let u = u.approx_usize_list()?;
+    let (monad, dyad) = PartialImpl::from_legacy_inf(move |_ctx, x, y| match x {
+        Some(x) if x.shape().len() <= 1 && y.shape().len() == 1 => {
             let x = x.clone().into_elems();
             let mut y = y.clone().into_elems();
 
-            for u in u {
-                *y.get_mut(u)
+            for u in &u {
+                *y.get_mut(*u)
                     .ok_or(JError::IndexError)
                     .context("index out of bounds")? = x[u % x.len()].clone();
             }
 
-            promote_to_array(y).map(Noun)
+            promote_to_array(y).map(Word::Noun)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
-    }
+    });
+
+    Ok(Word::Verb(
+        "?}".to_string(),
+        VerbImpl::Partial(PartialImpl {
+            name: "?}".to_string(),
+            monad,
+            dyad,
+        }),
+    ))
 }
