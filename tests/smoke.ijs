@@ -249,6 +249,10 @@ NB. reflexive / passive
 3.2 %~ 16
 16 %~ 3.2
 
+NB. residue
+7 | 50
+7 | 49
+
 NB. grade
 /: 3 1 4 2 1 3 3
 
@@ -445,6 +449,7 @@ NB. agenda
 5 (+`-@.0) 2
 *`0:@.1 ''
 -&>`0:@.0 [ _5
+(+&3)`(2&*)@.(2&|)"0 (1 2 3 4)
 
 NB. atop / at
 #@> 'Newton';'Einstein'

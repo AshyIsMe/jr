@@ -6,6 +6,7 @@ use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
+use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
@@ -263,15 +264,38 @@ pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
 pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     use Word::*;
 
-    let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
-    let v = v.approx_usize_one().context("agenda's v")?;
-
     let Noun(JArray::BoxArray(u)) = u else { return Err(JError::DomainError).context("agenda's box array"); };
 
     if u.shape().len() > 1 {
         return Err(JError::NonceError).context("@. only implemented for lists");
     }
 
+    match v {
+        Noun(v) => do_agenda(ctx, u, v.approx_usize_one().context("agenda's v")?),
+        Verb(v) => {
+            let u = u.clone();
+            let v = v.clone();
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let v = v.exec(ctx, x, y)?;
+                match do_agenda(ctx, &u, v.approx_usize_one()?)? {
+                    Verb(a) => a.exec(ctx, x, y),
+                    _ => Err(JError::DomainError).context("untied a non-verb, which is banned"),
+                }
+            });
+            Ok(Verb(VerbImpl::Partial(PartialImpl {
+                imp: BivalentOwned {
+                    biv,
+                    // supposedly depends on the rank of v
+                    ranks: Rank::inf_inf_inf(),
+                },
+                def: None,
+            })))
+        }
+        _ => Err(JError::DomainError).context("agenda's index type"),
+    }
+}
+
+fn do_agenda(ctx: &mut Ctx, u: &BoxArray, v: usize) -> Result<Word> {
     let verb = u
         .iter()
         .nth(v)
