@@ -27,17 +27,20 @@ impl ModifierImpl {
     pub fn form_conjunction(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
             ModifierImpl::Cor => c_cor(ctx, u, v)
+                .context("cor (:)")
                 .with_context(|| anyhow!("u: {u:?}"))
                 .with_context(|| anyhow!("v: {v:?}"))?,
             ModifierImpl::WordyConjunction(c) => (
                 false,
                 (c.f)(ctx, u, v)
+                    .context(c.name)
                     .with_context(|| anyhow!("u: {u:?}"))
                     .with_context(|| anyhow!("v: {v:?}"))?,
             ),
             ModifierImpl::OwnedConjunction(c) => (false, (c.f)(ctx, Some(u), v)?),
             ModifierImpl::Conjunction(c) => {
                 let partial = (c.f)(ctx, u, v)
+                    .context(c.name)
                     .with_context(|| anyhow!("u: {u:?}"))
                     .with_context(|| anyhow!("v: {v:?}"))?;
                 (

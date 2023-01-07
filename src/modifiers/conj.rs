@@ -68,8 +68,19 @@ impl fmt::Debug for OwnedConjunction {
     }
 }
 
-pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<BivalentOwned> {
-    Err(JError::NonceError).context("blanket conjunction implementation")
+pub fn c_not_implemented(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+    let u = u.clone();
+    let v = v.clone();
+    let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
+        Err(JError::NonceError)
+            .context("blanket conjunction implementation")
+            .with_context(|| anyhow!("m/u: {u:?}"))
+            .with_context(|| anyhow!("n/v: {v:?}"))
+    });
+    Ok(BivalentOwned {
+        biv,
+        ranks: Rank::inf_inf_inf(),
+    })
 }
 
 pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {

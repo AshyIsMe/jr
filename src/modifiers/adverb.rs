@@ -30,8 +30,17 @@ impl fmt::Debug for SimpleAdverb {
     }
 }
 
-pub fn a_not_implemented(_ctx: &mut Ctx, _u: &Word) -> Result<BivalentOwned> {
-    Err(JError::NonceError).context("blanket adverb implementation")
+pub fn a_not_implemented(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
+    let u = u.clone();
+    let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
+        Err(JError::NonceError)
+            .context("blanket adverb implementation")
+            .with_context(|| anyhow!("m/u: {u:?}"))
+    });
+    Ok(BivalentOwned {
+        biv,
+        ranks: Rank::inf_inf_inf(),
+    })
 }
 
 pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
