@@ -1,5 +1,7 @@
 use itertools::Itertools;
 use log::debug;
+use ndarray::ArrayD;
+use ndarray::IxDyn;
 use std::cmp::max;
 use std::fmt;
 
@@ -21,7 +23,7 @@ pub fn nd(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
 pub fn jsoft(mut f: impl fmt::Write, arr: &JArray) -> fmt::Result {
     match arr {
         //JArray::BoxArray(arr) => br_box(f, arr.view()),
-        JArray::BoxArray(arr) => br_box_aa_wrong(f, arr.view()),
+        JArray::BoxArray(arr) => br_box_use_j(f, arr.view()),
         JArray::CharArray(arr) => br_char(f, arr.view()),
         _ => impl_array!(arr, |arr: &ArrayBase<_, _>| br(&mut f, arr.view())),
     }
@@ -54,9 +56,9 @@ fn short_array_cases<T: JFormat>(arr: &ArrayViewD<T>) -> Option<String> {
 }
 
 fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
-    if let Some(s) = short_array_cases(&arr) {
-        return write!(f, "{s}");
-    }
+    // if let Some(s) = short_array_cases(&arr) {
+    //     return write!(f, "{s}");
+    // }
 
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
@@ -101,9 +103,10 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
             }
             write!(f, "{item}")?;
         }
-        write!(f, "\n")?;
         if rn == last {
             break;
+        } else {
+            write!(f, "\n")?;
         }
         print_dimension_markings(&mut f, rn, &multiples)?;
     }
@@ -217,8 +220,8 @@ fn br_box_aa_wrong(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Resu
     if let Some(s) = short_array_cases(&arr) {
         return write!(f, "{s}");
     }
-    let corners = ['┌', '┐', '└', '┘'];
-    let walls = ['─', '│', '┼'];
+    let _corners = ['┌', '┐', '└', '┘'];
+    let _walls = ['─', '│', '┼'];
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
     let iter = arr.rows().into_iter().enumerate().take(limit);
@@ -298,7 +301,7 @@ fn br_box_aa_wrong(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Resu
     debug!("boxes: {:?}", boxes);
     // AA TODO Now join each box together into rows/cols with box chars surrounding them
 
-    for (i, row) in table.iter() {
+    for (_i, row) in table.iter() {
         for item in row.iter() {
             write!(f, "{item}");
         }
@@ -307,10 +310,41 @@ fn br_box_aa_wrong(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Resu
     Ok(())
 }
 
+fn br_box_use_j(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
+    // TODO render each boxed item to a JArray::CharArray
+    // fix row heights and column widths
+    // then combine into one big box display with border chars
+
+    let _corners = ['┌', '┐', '└', '┘'];
+    let _walls = ['─', '│', '┼'];
+
+    let formatted_arr = arr
+        .into_iter()
+        .cloned()
+        .map(|i| {
+            let s = i.j_format();
+            let lines = s.split("\n").collect_vec();
+            // Check that each row is identical length
+            let row_max = lines.iter().map(|s| s.len()).max().unwrap_or_default();
+            let row_min = lines.iter().map(|s| s.len()).min().unwrap_or_default();
+            assert!(row_max == row_min);
+            JArray::CharArray(
+                ArrayD::from_shape_vec(IxDyn(&[lines.len(), row_max]), s.chars().collect())
+                    .unwrap(),
+            )
+        })
+        .collect_vec();
+
+    debug!("formatted_arr: {:?}", formatted_arr);
+    todo!("phew, formatted_arr is now CharArrays...");
+
+    Ok(())
+}
+
 fn br_char(mut f: impl fmt::Write, arr: ArrayViewD<char>) -> fmt::Result {
-    if let Some(s) = short_array_cases(&arr) {
-        return write!(f, "{s}");
-    }
+    // if let Some(s) = short_array_cases(&arr) {
+    //     return write!(f, "{s}");
+    // }
 
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
@@ -333,9 +367,11 @@ fn br_char(mut f: impl fmt::Write, arr: ArrayViewD<char>) -> fmt::Result {
     let last = table.last().expect("non-empty").0;
 
     for (rn, row) in table {
-        write!(f, "{row}\n")?;
         if rn == last {
+            write!(f, "{row}")?;
             break;
+        } else {
+            write!(f, "{row}\n")?;
         }
         print_dimension_markings(&mut f, rn, &multiples)?;
     }
