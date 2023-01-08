@@ -274,19 +274,17 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
 }
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
-    let u = match u {
+    append_nd(&tie_top(u)?, &tie_top(v)?).map(Word::Noun)
+}
+
+// TODO: not quite a copy-paste of Word::boxed_ar
+fn tie_top(u: &Word) -> Result<JArray> {
+    Ok(match u {
         Word::Noun(u) => u.clone(),
         u @ Word::Verb(_) => JArray::from_list([u.boxed_ar()?]),
+        Word::Name(s) => JArray::from_list([JArray::from_string(s)]),
         _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
-    };
-
-    let v = match v {
-        Word::Noun(v) => v.clone(),
-        v @ Word::Verb(_) => JArray::from_list([v.boxed_ar()?]),
-        _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
-    };
-
-    append_nd(&u, &v).map(Word::Noun)
+    })
 }
 
 pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {

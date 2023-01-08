@@ -211,8 +211,8 @@ impl VerbImpl {
                     // see the comment on PartialImpl's def field
                     // adverb
                     2 => JArray::from_list(vec![
-                        def[1].boxed_ar()?,
-                        JArray::from_list(vec![def[0].boxed_ar()?]),
+                        def[0].boxed_ar()?,
+                        JArray::from_list(vec![def[1].boxed_ar()?]),
                     ]),
                     // conj
                     3 => JArray::from_list(vec![
@@ -237,6 +237,10 @@ impl VerbImpl {
                     }
                 }
             }
+            Hook { l, r } => JArray::from_list([
+                JArray::from_string("2"),
+                JArray::from_list([l.boxed_ar()?, r.boxed_ar()?]),
+            ]),
             Fork { f, g, h } => JArray::from_list([
                 JArray::from_string("3"),
                 JArray::from_list([f.boxed_ar()?, g.boxed_ar()?, h.boxed_ar()?]),

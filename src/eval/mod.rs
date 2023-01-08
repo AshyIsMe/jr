@@ -17,6 +17,8 @@ pub use crate::eval::controls::create_def;
 // TODO: oh come on, this is clearly an eval concept
 pub use crate::eval::controls::resolve_controls;
 
+pub use semi::MaybeVerb;
+
 use crate::eval::ctl_if::control_if;
 use crate::eval::ctl_try::control_try;
 use crate::modifiers::ModifierImpl;
@@ -231,11 +233,11 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, u @ Verb(_), Adverb(a), any)
+            (ref w, u, Adverb(a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
+                ) && maybe_verb(&u) =>
             {
                 debug!("3 adverb V A _");
                 Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
@@ -289,31 +291,19 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 }
             }
             //// (V|N) V V - 5 Fork
-            (ref w, Verb(f), Verb(g), Verb(h))
+            (ref w, f, g, h)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
+                ) && (maybe_verb(&f) || matches!(f, Noun(_)))
+                    && maybe_verb(&g)
+                    && maybe_verb(&h) =>
             {
-                debug!("5 Fork V V V");
+                debug!("5 Fork V/N V V");
                 let fork = VerbImpl::Fork {
-                    f: Box::new(Verb(f.clone())),
-                    g: Box::new(Verb(g.clone())),
-                    h: Box::new(Verb(h.clone())),
-                };
-                Ok(vec![fragment.0, Verb(fork)])
-            }
-            (ref w, Noun(m), Verb(g), Verb(h))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                debug!("5 Fork N V V");
-                let fork = VerbImpl::Fork {
-                    f: Box::new(Noun(m)),
-                    g: Box::new(Verb(g.clone())),
-                    h: Box::new(Verb(h.clone())),
+                    f: Box::new(f),
+                    g: Box::new(g),
+                    h: Box::new(h),
                 };
                 Ok(vec![fragment.0, Verb(fork)])
             }
@@ -357,13 +347,15 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (ref w, Verb(u), Verb(v), any)
-                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            (ref w, u, v, any)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP)
+                    && maybe_verb(&u)
+                    && maybe_verb(&v) =>
             {
                 debug!("6 Hook/Adverb V V _");
                 let hook = VerbImpl::Hook {
-                    l: Box::new(Verb(u.clone())),
-                    r: Box::new(Verb(v.clone())),
+                    l: Box::new(u),
+                    r: Box::new(v),
                 };
                 Ok(vec![fragment.0, Verb(hook), any])
             }
@@ -516,4 +508,11 @@ pub fn resolve_names(
     let l = words.len() - resolved_words.len();
     let new_words = [&words[..l], &resolved_words[..]].concat();
     Ok(new_words.iter().cloned().collect_tuple().unwrap())
+}
+
+fn maybe_verb(w: &Word) -> bool {
+    match w {
+        Word::Verb(_) | Word::Name(_) => true,
+        _ => false,
+    }
 }

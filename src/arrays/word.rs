@@ -143,9 +143,11 @@ impl_from_atom!(Complex64, JArray::ComplexArray);
 impl Word {
     pub fn boxed_ar(&self) -> Result<JArray> {
         use Word::*;
+        // TODO: not quite a copy-paste of tie_top
         match self {
             Noun(a) => Ok(JArray::from_list([JArray::from_string("0"), a.clone()])),
             Verb(v) => v.boxed_ar(),
+            Name(s) => Ok(JArray::from_string(s)),
             Adverb(m) | Conjunction(m) => m.boxed_ar(),
             _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::boxed_ar {self:?}")),
         }

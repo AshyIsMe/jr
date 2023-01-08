@@ -44,13 +44,17 @@ pub fn a_not_implemented(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
 }
 
 pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Verb(u) = u else { return Err(JError::DomainError)
-        .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u)) };
+    let u = u
+        .when_verb()
+        .ok_or(JError::DomainError)
+        .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u))?;
 
-    let u = u.clone();
-    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
-        None => u.exec(ctx, Some(y), y),
-        Some(x) => u.exec(ctx, Some(y), x),
+    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+        let u = u.to_verb(ctx.eval())?;
+        match x {
+            None => u.exec(ctx, Some(y), y),
+            Some(x) => u.exec(ctx, Some(y), x),
+        }
     });
 
     Ok(BivalentOwned {

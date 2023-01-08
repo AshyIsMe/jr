@@ -444,6 +444,7 @@ NB. tie
 *`+`]
 NB. not serialising bodies: {{ x + y }}`0:
 ((<@[)`(1 = #@])`])
+foo`0:
 
 NB. agenda
 5 (+`-@.1) 2
@@ -536,6 +537,12 @@ $ 9!:12 ''
 NB. agreement / empty
 {{ 3 4 5 }}"1 (0 5 $ 0)
 {."1 (0 1 $ 0)
+
+NB. lazy verbs
+(7 two three)`0:
+(one two three)`0:
+(one two)`0:
+(one~)`0:
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
