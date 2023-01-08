@@ -1,7 +1,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 
 use crate::{Ctx, JArray, JError, Word};
 
@@ -12,6 +12,7 @@ pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Resu
 #[derive(Clone)]
 pub struct PartialImpl {
     pub imp: BivalentOwned,
+    // This is probably an enum { adverb(a,w), conj(c,w,w) , udf(n,vec<w>) }?
     pub def: Option<Vec<Word>>,
 }
 
@@ -22,14 +23,18 @@ pub struct BivalentOwned {
 }
 
 impl PartialImpl {
-    pub fn name(&self) -> Result<String> {
-        Err(JError::NonceError).with_context(|| anyhow!("no name for partial {self:?}"))
+    pub fn name(&self) -> String {
+        match self.def.as_ref() {
+            Some(words) if words.len() == 2 => format!("PartialImpl({:?})", words[0]),
+            Some(words) if words.len() == 3 => format!("PartialImpl({:?})", words[1]),
+            _ => format!("[TODO: no name for partial {:?}]", self.def),
+        }
     }
 }
 
 impl fmt::Debug for PartialImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PartialImpl")
+        write!(f, "PartialImpl({:?})", self.def)
     }
 }
 

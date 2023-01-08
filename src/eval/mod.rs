@@ -1,5 +1,6 @@
 mod controls;
 mod ctl_if;
+mod ctl_try;
 
 use std::collections::VecDeque;
 use std::iter::repeat;
@@ -16,6 +17,7 @@ pub use crate::eval::controls::create_def;
 pub use crate::eval::controls::resolve_controls;
 
 use crate::eval::ctl_if::control_if;
+use crate::eval::ctl_try::control_try;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
 use crate::Word::{self, *};
@@ -139,11 +141,17 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 control_if(ctx, &def)?;
                 Ok(vec![b, c, d])
             }
+            (TryBlock(def), b, c, d) => {
+                control_try(ctx, &def)?;
+                Ok(vec![b, c, d])
+            }
             (AssertLine(def), b, c, d) => {
                 let _word = eval_lines(&def, ctx).context("assert body")?;
                 // TODO: actually assert
                 Ok(vec![b, c, d])
             }
+            (WhileBlock(_), _, _, _) => Err(JError::NonceError).context("throw"),
+            (Throw, _, _, _) => Err(JError::NonceError).context("throw"),
             (ref w, Verb(v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {

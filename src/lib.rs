@@ -179,7 +179,7 @@ fn primitive_adverbs(sentence: &str) -> Option<ModifierImpl> {
         "\\." => adverb("\\.", a_suffix_outfix),
         "]:" => adverb("]:", a_not_implemented),
         "}" => adverb("}", a_curlyrt),
-        "b." => adverb("b.", a_not_implemented),
+        "b." => adverb("b.", a_bdot),
         "f." => adverb("f.", a_not_implemented),
         "M." => adverb("M.", a_not_implemented),
         _ => return None,

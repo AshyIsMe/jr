@@ -325,6 +325,9 @@ NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'
 
+NB. amend (legacy definition: curlyrtu)
+2 (>./)} 0 1 2
+
 NB. cap
 2 (>. % [: <. + * -) 2
 
@@ -427,14 +430,21 @@ NB. format
 ": 17.7
 
 NB. tie
-NB. tie is gone: *`+
-NB. tie is gone: *`0:
-NB. +&>`0:
-NB. +&.>`0:
+*`+
+*`0:
++&>`0:
++&.>`0:
+(}. , {.)`0:
+(0 ~: 5&(+&>))`0:
+*`+`]
+NB. not serialising bodies: {{ x + y }}`0:
+((<@[)`(1 = #@])`])
 
 NB. agenda
-NB. tie is gone: 5 (+`-@.1) 2
-NB. tie is gone: 5 (+`-@.0) 2
+5 (+`-@.1) 2
+5 (+`-@.0) 2
+*`0:@.1 ''
+-&>`0:@.0 [ _5
 
 NB. atop / at
 #@> 'Newton';'Einstein'
@@ -445,6 +455,9 @@ NB. atop / at
 NB. cor
 0 : 'hello'
 (3 (4 : 'x + y') 5)
++(2 : '42') ''
+(/:~ : /:) 3 5 4
+1 2 0 (/:~ : /:) 3 5 4
 
 NB. bondo
 1&+ 5
@@ -552,4 +565,6 @@ NB. power conjunction
 >:^:1 2 4 (5)
 2 *^:< 1 2 3
 2 *^:< i.2 2
+'Mr.' ,^:((<@[)`(1 = #@])`]) <'Jones'
+'Mr.' ,^:((<@[)`(1 = #@])`]) 'Harry';'Jones'
 

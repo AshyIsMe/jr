@@ -66,7 +66,7 @@ fn eval_cond_and_block(ctx: &mut Ctx, def: &[Word]) -> Result<bool> {
     Ok(cond)
 }
 
-fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
+pub fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
     words
         .iter()
         .position(f)

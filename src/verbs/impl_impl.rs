@@ -1,9 +1,11 @@
 use std::ops::Deref;
 
 use anyhow::{anyhow, Context, Result};
+use log::warn;
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
+use crate::number::float_is_int;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::{DyadRank, PartialImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Num, Word};
@@ -190,5 +192,50 @@ impl VerbImpl {
 
     pub fn token(&self) -> Option<&str> {
         None
+    }
+
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        // https://code.jsoftware.com/wiki/Vocabulary/Foreigns#m5
+        use VerbImpl::*;
+        Ok(match self {
+            Primitive(imp) => JArray::from_string(imp.name),
+            // TODO: invalid for inf, negatives
+            Number(i) => JArray::from_string(match float_is_int(*i) {
+                Some(i) if i >= 0 => format!("{i}:"),
+                Some(i) => format!("_{i}:"),
+                None => return Err(JError::NonceError).context("super lazy about infinity"),
+            }),
+            Partial(PartialImpl { def, .. }) if def.is_some() => {
+                let def = def.as_ref().expect("wtb if-let in match");
+                match def.len() {
+                    3 => JArray::from_list(vec![
+                        def[1].boxed_ar()?,
+                        JArray::from_list(vec![def[0].boxed_ar()?, def[2].boxed_ar()?]),
+                    ]),
+                    len if len > 3 => {
+                        warn!("lying about serialising a udf: {def:?}");
+                        JArray::from_list([
+                            def[1].boxed_ar()?,
+                            JArray::from_list([
+                                def[0].boxed_ar()?,
+                                Word::Noun(JArray::from_string("assert. 0")).boxed_ar()?,
+                            ]),
+                        ])
+                    }
+                    len => {
+                        return Err(JError::NonceError)
+                            .with_context(|| anyhow!("boxed_ar of {len}"))
+                    }
+                }
+            }
+            Fork { f, g, h } => JArray::from_list([
+                JArray::from_string("3"),
+                JArray::from_list([f.boxed_ar()?, g.boxed_ar()?, h.boxed_ar()?]),
+            ]),
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't VerbImpl::boxed_ar {self:?}"))
+            }
+        })
     }
 }

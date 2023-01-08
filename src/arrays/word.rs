@@ -3,7 +3,7 @@ use num::{BigInt, BigRational};
 use std::convert::From;
 use std::fmt;
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 
 use crate::modifiers::ModifierImpl;
@@ -28,6 +28,7 @@ pub enum Word {
     Adverb(ModifierImpl),
     Conjunction(ModifierImpl),
     IfBlock(Vec<Word>),
+    TryBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
     WhileBlock(Vec<Word>),
     AssertLine(Vec<Word>),
@@ -42,6 +43,12 @@ pub enum Word {
     Else,
     ElseIf,
     End,
+
+    Try,
+    Catch,
+    CatchD,
+    CatchT,
+    Throw,
 
     For(Option<String>),
     While,
@@ -61,10 +68,12 @@ impl Word {
             DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
             If | Do | Else | ElseIf | End => true,
             For(_) | While => true,
+            Try | Catch | CatchD | CatchT => true,
             Assert => true,
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
             Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
-            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) => false,
+            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) | TryBlock(_) => false,
+            Throw => false,
             NewLine => false,
             StartOfLine | Nothing => false,
             Comment => unreachable!("should have been removed from the stream by now"),
@@ -119,3 +128,15 @@ impl_from_atom!(BigInt, JArray::ExtIntArray);
 impl_from_atom!(BigRational, JArray::RationalArray);
 impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
+
+impl Word {
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        use Word::*;
+        match self {
+            Noun(a) => Ok(JArray::from_list([JArray::from_string("0"), a.clone()])),
+            Verb(v) => v.boxed_ar(),
+            Conjunction(m) => m.boxed_ar(),
+            _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::boxed_ar {self:?}")),
+        }
+    }
+}

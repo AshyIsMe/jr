@@ -1,5 +1,6 @@
 use std::fmt;
 use std::iter;
+use std::sync::Arc;
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -8,8 +9,9 @@ use ndarray::prelude::*;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
-use crate::verbs::{exec_dyad, exec_monad, BivalentOwned, Rank, VerbImpl};
-use crate::{arr0d, generate_cells, primitive_verbs, Ctx};
+use crate::scan::str_to_primitive;
+use crate::verbs::{append_nd, exec_dyad, exec_monad, BivalentOwned, PartialImpl, Rank, VerbImpl};
+use crate::{arr0d, generate_cells, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
@@ -48,24 +50,83 @@ impl fmt::Debug for WordyConjunction {
     }
 }
 
+#[derive(Clone)]
+pub struct OwnedConjunction {
+    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
+}
+
+impl PartialEq for OwnedConjunction {
+    fn eq(&self, _other: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl fmt::Debug for OwnedConjunction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OwnedConjunction")
+    }
+}
+
 pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<BivalentOwned> {
     Err(JError::NonceError).context("blanket conjunction implementation")
 }
 
-pub fn c_hatco(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     let u = u.clone();
     let v = v.clone();
+    let make_n = |ja: &JArray| -> Result<ArrayD<i64>> {
+        // TODO: this should support _infinite
+        Ok(ja
+            .to_i64()
+            .ok_or(JError::DomainError)
+            .context("hatco's noun should be integers")?
+            .into_owned())
+    };
+
     let biv = match (u, v) {
         (Word::Verb(u), Word::Noun(ja)) => {
-            // TODO: this should support _infinite
-            let n = ja
-                .to_i64()
-                .ok_or(JError::DomainError)
-                .context("hatco's noun should be integers")?
-                .into_owned();
-            BivalentOwned::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
+            match ja {
+                JArray::BoxArray(b) if b.is_empty() || b.shape().is_empty() => {
+                    return Err(JError::NonceError).context("hatco on boxed atoms");
+                }
+                JArray::BoxArray(b) => {
+                    // x u^:(v0`v1`v2)y <==> (x v0 y)u^:(x v1 y) (x v2 y)
+                    let b = b
+                        .iter()
+                        .map(|item| untie(ctx, item))
+                        .collect::<Result<Vec<_>>>()?;
+                    let (v0, v1, v2) = match &b[..] {
+                        [Word::Verb(v1), Word::Verb(v2)] => (None, v1, v2),
+                        [Word::Verb(v0), Word::Verb(v1), Word::Verb(v2)] => (Some(v0), v1, v2),
+                        _ => {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("hatco's gerund is the wrong shape: {:#?}", b)
+                            })
+                        }
+                    };
+
+                    let v0 = v0.cloned();
+                    let v1 = v1.clone();
+                    let v2 = v2.clone();
+
+                    BivalentOwned::from_bivalent(move |ctx, x, y| {
+                        let x = match (x, &v0) {
+                            (Some(x), Some(v0)) => Some(v0.exec(ctx, Some(x), y)?),
+                            _ => None,
+                        };
+                        let n = v1.exec(ctx, x.as_ref(), y)?;
+                        let n = make_n(&n)?;
+                        let y = v2.exec(ctx, x.as_ref(), y)?;
+                        do_hatco(ctx, x.as_ref(), &u, &n, &y)
+                    })
+                }
+                _ => {
+                    let n = make_n(&ja)?;
+                    BivalentOwned::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
+                }
+            }
         }
         (Word::Verb(u), Word::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| {
             let n = v.exec(ctx, x, y)?;
@@ -183,11 +244,23 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     })
 }
 
-pub fn c_tie(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<Word> {
-    Err(JError::NonceError).context("can't tie at all")
+pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+    let u = match u {
+        Word::Noun(u) => u.clone(),
+        u @ Word::Verb(_) => JArray::from_list([u.boxed_ar()?]),
+        _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
+    };
+
+    let v = match v {
+        Word::Noun(v) => v.clone(),
+        v @ Word::Verb(_) => JArray::from_list([v.boxed_ar()?]),
+        _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
+    };
+
+    append_nd(&u, &v).map(Word::Noun)
 }
 
-pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
+pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     use Word::*;
 
     let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
@@ -204,17 +277,99 @@ pub fn c_agenda(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         .nth(v)
         .ok_or(JError::IndexError)
         .context("gerund out of bounds")?;
-    let JArray::CharArray(verb) = verb else { return Err(JError::DomainError).context("gerunds are strings"); };
-    if verb.len() > 1 {
-        return Err(JError::DomainError).context("gerunds are single strings");
-    }
 
-    let name = verb.iter().collect::<String>();
-    let verb = primitive_verbs(&name)
-        .ok_or(JError::NonceError)
-        .context("unable to match *primitive* verb")?;
+    untie(ctx, verb)
+}
 
-    Ok(Verb(verb))
+fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
+    Ok(match verb {
+        JArray::BoxArray(b) => {
+            let op = match &b[0] {
+                JArray::CharArray(arr) if arr.shape().len() <= 1 => arr.iter().collect::<String>(),
+                _ => {
+                    return Err(JError::NonceError)
+                        .with_context(|| anyhow!("unrecognised 'op' type in box array: {b:?}"));
+                }
+            };
+
+            // https://code.jsoftware.com/wiki/Vocabulary/Foreigns#m5
+            match op.as_ref() {
+                "0" => {
+                    if b.shape() != [2] {
+                        return Err(JError::DomainError)
+                            .with_context(|| anyhow!("noun but non-noun shaped box: {b:?}"));
+                    }
+                    Word::Noun(b[1].clone())
+                }
+                "2" => {
+                    return Err(JError::NonceError)
+                        .with_context(|| anyhow!("unimplemented un-tie op: executed adverb"));
+                }
+                "3" => {
+                    if b.shape() != [2] {
+                        return Err(JError::DomainError)
+                            .with_context(|| anyhow!("fork but non-fork shaped box: {b:?}"));
+                    }
+                    let r = &b[1];
+                    let r = match r {
+                        JArray::BoxArray(b) if b.shape() == [3] => b,
+                        _ => {
+                            return Err(JError::DomainError)
+                                .with_context(|| anyhow!("fork but non-fork shaped r: {r:?}"));
+                        }
+                    };
+                    Word::Verb(VerbImpl::Fork {
+                        f: Box::new(untie(ctx, &r[0])?),
+                        g: Box::new(untie(ctx, &r[1])?),
+                        h: Box::new(untie(ctx, &r[2])?),
+                    })
+                }
+                "4" => {
+                    return Err(JError::NonceError)
+                        .with_context(|| anyhow!("unimplemented un-tie op: modifier train"));
+                }
+                _ => match str_to_primitive(&op)? {
+                    Some(Word::Conjunction(c)) => {
+                        if b.shape() != [2] {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction but non-conjunction shaped box: {b:?}")
+                            });
+                        }
+
+                        let JArray::BoxArray(r) = &b[1] else {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction argument should be a box, not {:?}", &b[1])
+                            });
+                        };
+
+                        if r.shape() != [2] {
+                            return Err(JError::DomainError).with_context(|| {
+                                anyhow!("conjunction but non-conjunction shaped argument: {b:?}")
+                            });
+                        }
+
+                        let u = untie(ctx, &r[0])?;
+                        let v = untie(ctx, &r[1])?;
+                        let (farcical, conj) = c.form_conjunction(ctx, &u, &v)?;
+                        ensure!(!farcical);
+                        conj
+                    }
+                    other => {
+                        return Err(JError::NonceError).with_context(|| {
+                            anyhow!("can't un-tie primitive {other:?} for {op:?}")
+                        });
+                    }
+                },
+            }
+        }
+        JArray::CharArray(verb) if verb.shape().len() <= 1 => {
+            let name = verb.iter().collect::<String>();
+            str_to_primitive(&name)?
+                .ok_or(JError::NonceError)
+                .with_context(|| anyhow!("unable to un-tie char list {name:?}"))?
+        }
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("unable to un-tie {verb:?}")),
+    })
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
@@ -275,7 +430,11 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
 
 pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
     use crate::arrays::JArray::*;
-    let Word::Noun(n) = n else { return Err(JError::DomainError).context("cor's n") };
+    let n = match n {
+        Word::Noun(n) => n,
+        Word::Verb(u) => return Ok((false, c_cor_u(u, m)?)),
+        _ => return Err(JError::DomainError).context("cor's n must be verb or noun"),
+    };
     let n = n.approx_i64_one()?;
     match m {
         Word::Noun(arr) if arr.approx_i64_one().ok() == Some(0) => {
@@ -284,6 +443,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         Word::Noun(CharArray(jcode)) if jcode.shape().len() <= 1 => {
             let n = match n {
                 0 => return Ok((false, Word::Noun(CharArray(jcode.clone())))),
+                2 => 'c',
                 3 => 'm',
                 4 => 'd',
                 _ => return Err(JError::NonceError).context("unsupported cor mode"),
@@ -298,6 +458,27 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         }
         _ => Err(JError::DomainError).with_context(|| anyhow!("{n:?} {m:?}")),
     }
+}
+
+pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
+    let Word::Verb(v) = v else {
+        return Err(JError::DomainError).context("u:v's v must be a verb");
+    };
+
+    let u = u.clone();
+    let v = v.clone();
+
+    Ok(Word::Verb(VerbImpl::Partial(PartialImpl {
+        imp: BivalentOwned {
+            biv: BivalentOwned::from_bivalent(move |ctx, x, y| match x {
+                None => u.exec(ctx, None, y),
+                Some(x) => v.exec(ctx, Some(x), y),
+            }),
+            // TODO: ranks should be from u and v, allegedly
+            ranks: Rank::inf_inf_inf(),
+        },
+        def: None,
+    })))
 }
 
 pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {

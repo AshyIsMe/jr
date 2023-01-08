@@ -3,6 +3,7 @@ mod impl_maths;
 mod impl_shape;
 mod maff;
 mod partial;
+mod partial_c;
 mod primitive;
 mod ranks;
 
@@ -31,6 +32,7 @@ pub use impl_maths::*;
 pub use impl_shape::*;
 
 pub use partial::*;
+pub use partial_c::*;
 pub use primitive::*;
 
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {

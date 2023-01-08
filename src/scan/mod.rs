@@ -237,7 +237,7 @@ fn identify_primitive(sentence: &str) -> usize {
     .count()
 }
 
-fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
+pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     Ok(Some(if let Some(n) = primitive_nouns(sentence) {
         n
     } else if let Some(v) = primitive_verbs(sentence) {
@@ -265,7 +265,13 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "for." => Word::For(None),
             "while." => Word::While,
             "assert." => Word::Assert,
+            "try." => Word::Try,
+            "catch." => Word::Catch,
+            "catchd." => Word::CatchD,
+            "catcht." => Word::CatchT,
+            "throw." => Word::Throw,
             "NB." => Word::Comment,
+            "0:" => Verb(VerbImpl::Number(0.)),
             _ => return Ok(None),
         }
     }))
