@@ -31,7 +31,8 @@ pub enum Word {
     SelectBlock(Vec<Word>),
     TryBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
-    WhileBlock(Vec<Word>),
+    // bool: false: while (check at start), true: whilst (check at end)
+    WhileBlock(bool, Vec<Word>),
     AssertLine(Vec<Word>),
 
     Comment,
@@ -54,6 +55,7 @@ pub enum Word {
 
     For(Option<String>),
     While,
+    Whilst,
 
     Select,
     Case,
@@ -72,7 +74,7 @@ impl Word {
         match self {
             DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
             If | Do | Else | ElseIf | End => true,
-            For(_) | While => true,
+            For(_) | While | Whilst => true,
             Try | Catch | CatchD | CatchT => true,
             Select | Case => true,
             Assert => true,
@@ -80,7 +82,7 @@ impl Word {
             Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
             IfBlock(_)
             | ForBlock(_, _)
-            | WhileBlock(_)
+            | WhileBlock(_, _)
             | AssertLine(_)
             | TryBlock(_)
             | SelectBlock(_) => false,

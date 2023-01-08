@@ -111,7 +111,7 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
     let last_start = match words.iter().rposition(|w| {
         matches!(
             w,
-            Word::If | Word::For(_) | Word::While | Word::Try | Word::Select
+            Word::If | Word::For(_) | Word::While | Word::Whilst | Word::Try | Word::Select
         )
     }) {
         Some(x) => x,
@@ -137,7 +137,8 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
         Word::If => Word::IfBlock(def),
         Word::Select => Word::SelectBlock(def),
         Word::For(ident) => Word::ForBlock(ident, def),
-        Word::While => Word::WhileBlock(def),
+        Word::While => Word::WhileBlock(false, def),
+        Word::Whilst => Word::WhileBlock(true, def),
         Word::Try => Word::TryBlock(def),
         other => unreachable!("matches! above excludes {other:?}"),
     };
