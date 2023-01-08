@@ -367,14 +367,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
             (Name(n), IsLocal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Local Name w");
                 ctx.eval_mut().locales.assign_local(n, w.clone())?;
                 Ok(vec![w.clone(), any])
             }
             (Noun(names), IsLocal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Local Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -387,14 +387,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![any])
             }
             (Name(n), IsGlobal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Global Name w");
                 ctx.eval_mut().locales.assign_global(n, w.clone())?;
                 Ok(vec![w, any])
             }
             (Noun(names), IsGlobal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Global Noun w");
                 let (arr, names) = string_assignment(names, w)?;
