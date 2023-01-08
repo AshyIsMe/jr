@@ -83,6 +83,7 @@ pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
 }
 
 #[derive(Clone, Debug)]
+#[must_use]
 pub enum BlockEvalResult {
     Regular(Word),
     Return(Word),
@@ -173,10 +174,13 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 control_if(ctx, &def)?;
                 Ok(vec![b, c, d])
             }
-            (TryBlock(def), b, c, d) => {
-                control_try(ctx, &def)?;
-                Ok(vec![b, c, d])
-            }
+            (TryBlock(def), b, c, d) => match control_try(ctx, &def)? {
+                BlockEvalResult::Regular(_) => Ok(vec![b, c, d]),
+                BlockEvalResult::Return(v) => {
+                    // TODO: not clear that it's valid to early exit the evaluation here
+                    return Ok(EvalOutput::Return(v));
+                }
+            },
             (AssertLine(def), b, c, d) => {
                 let _word = eval_lines(&def, ctx).context("assert body")?;
                 // TODO: actually assert
