@@ -539,6 +539,14 @@ pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
     )
 }
 
+/// L. (monad) (_)
+pub fn v_levels(y: &JArray) -> Result<JArray> {
+    return Ok(JArray::from(match y {
+        BoxArray(_) => return Err(JError::NonceError).context("levels > 0"),
+        _ => arr0d(0i64),
+    }));
+}
+
 /// i: (monad)
 pub fn v_steps(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())

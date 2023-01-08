@@ -153,7 +153,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "[:" => VerbImpl::Cap,
         "C.!.2" => not_impl("C.!.2"),
         "E." => primitive("E.", v_not_exist_monad, v_member_interval, (inf, inf, inf)),
-        "L." => not_impl("L."),
+        "L." => VerbImpl::Primitive(PrimitiveImpl::monad("L.", v_levels)), // inf
         "p:" => not_impl("p:"),
         "s:" => not_impl("s:"),
         "T." => not_impl("T."),
