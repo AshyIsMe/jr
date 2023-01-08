@@ -109,9 +109,28 @@ fn br<T: JFormat>(mut f: impl fmt::Write, arr: ArrayViewD<T>) -> fmt::Result {
     Ok(())
 }
 
+fn rep(c: char, count: usize) -> String {
+    (0..count).map(|_| c).collect::<String>()
+}
+
+fn hor(
+    mut f: impl fmt::Write,
+    (l, m, r): (char, char, char),
+    column_widths: &[usize],
+) -> fmt::Result {
+    for (idx, part) in column_widths.iter().enumerate() {
+        let is_start = match idx {
+            0 => l,
+            _ => m,
+        };
+        write!(f, "{}{}", is_start, rep('─', *part))?;
+    }
+    writeln!(f, "{}", r)
+}
+
 fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
-    if let Some(s) = short_array_cases(&arr) {
-        return write!(f, "{s}");
+    if arr.is_empty() {
+        return Ok(());
     }
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
@@ -132,7 +151,7 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
         .iter()
         .map(|(_, row)| {
             row.iter()
-                .map(|item| item.split('\n').count())
+                .map(|item| item.trim_end_matches('\n').split('\n').count())
                 .max()
                 .unwrap_or_default()
         })
@@ -157,42 +176,25 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
 
     let last = table.last().expect("non-empty").0;
 
-    let corners = ['┌', '┐', '└', '┘'];
-    let walls = ['─', '│', '┼', '┬', '┴'];
+    // let corners = ['┌', '┐', '└', '┘'];
+    // let walls = ['─', '│', '┼', '┬', '┴', '├', '┤'];
 
-    fn rep(c: char, count: usize) -> String {
-        (0..count).map(|_| c).collect::<String>()
-    }
-
-    let last_col = column_widths.len() - 1;
     for (rn, row) in table {
         if rn == 0 {
-            for (idx, part) in column_widths.iter().enumerate() {
-                write!(
-                    f,
-                    "{}",
-                    match idx {
-                        0 => corners[0],
-                        _ => walls[3],
-                    }
-                )?;
-                write!(f, "{}", rep(walls[0], *part))?;
-            }
-            writeln!(f, "{}", corners[1])?;
+            hor(&mut f, ('┌', '┬', '┐'), &column_widths)?;
+        } else {
+            hor(&mut f, ('├', '┼', '┤'), &column_widths)?;
         }
-        for (col, (target, item)) in column_widths.iter().zip(row.into_iter()).enumerate() {
-            for line in item.split('\n') {
+        for line in 0..row_heights[rn] {
+            for (target, item) in column_widths.iter().zip(row.iter()) {
+                let line = item.split('\n').nth(line).unwrap_or("");
                 let len = width(line);
-                write!(f, "{}{line} X", walls[1])?;
-                write!(
-                    f,
-                    "{}",
-                    (0..(target - len)).map(|_| ' ').collect::<String>()
-                )?;
+                write!(f, "{}{line}{}", '│', rep(' ', target - len))?;
             }
+            write!(f, "{}\n", '│')?;
         }
-        write!(f, "{}\n", walls[1])?;
         if rn == last {
+            hor(&mut f, ('└', '┴', '┘'), &column_widths)?;
             break;
         }
         print_dimension_markings(&mut f, rn, &multiples)?;

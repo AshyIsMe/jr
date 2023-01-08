@@ -90,8 +90,8 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
     display::jsoft(&mut s, &arr)?;
 
     if &arr == them {
-        // TODO: ignoring the atom case
-        if s == *rendered || them.tally() < 2 {
+        // TODO: trailing whitespace
+        if s.trim_end() == rendered.trim_end() {
             return Ok(());
         }
         return Err(anyhow!("incorrect rendering, data:\n{arr:#?}\n\nWe rendered:\n{s}\n\njsoft would render this like this:\n{rendered}"));
