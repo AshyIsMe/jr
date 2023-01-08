@@ -3,6 +3,7 @@ mod ctl_if;
 mod ctl_try;
 mod semi;
 
+use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
@@ -142,6 +143,15 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         );
 
         debug!("restoring onto {:?}", sus.qs.stack);
+        let cor = sus.qs.stack.get(1);
+        if cor != Some(&Conjunction(ModifierImpl::Cor)) {
+            return Err(JError::DomainError).with_context(|| {
+                anyhow!(
+                    "can only restore from suspension after cor, not {:?}",
+                    sus.qs
+                )
+            });
+        }
         sus.qs
             .stack
             // after `mode :`
@@ -238,14 +248,38 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, u, Adverb(a), any)
+            (ref w, ref u, Adverb(ref a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) && (maybe_verb(&u) || matches!(u, Noun(_))) =>
+                ) && (maybe_verb(u) || matches!(u, Noun(_))) =>
             {
                 debug!("3 adverb V/N A _");
-                Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
+                let (farcical, formed) = a.form_adverb(ctx, u)?;
+                if !farcical {
+                    Ok(vec![fragment.0, formed, any])
+                } else {
+                    // TODO: nearly copy-paste below
+                    queue.push_back(fragment.0);
+                    match a {
+                        ModifierImpl::DerivedAdverb { c, .. }
+                            if matches!(c.borrow(), ModifierImpl::Cor) =>
+                        {
+                            ()
+                        }
+                        _ => bail!("unreachable: {a:?} wasn't a secret cor adverb"),
+                    }
+                    stack.push_front(Conjunction(ModifierImpl::Cor));
+                    stack.push_front(fragment.1);
+                    debug!("suspending {queue:?} {stack:?}");
+                    // TODO: capture return. somehow?
+                    ctx.input_buffers
+                        .as_mut()
+                        .ok_or(JError::ControlError)
+                        .context("suspension without buffers")?
+                        .suspend(Qs { queue, stack })?;
+                    return Ok(EvalOutput::Suspension);
+                }
             }
             (ref w, ref m, Conjunction(ref c), ref n)
                 if matches!(
@@ -259,6 +293,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 if !farcical {
                     Ok(vec![fragment.0, formed])
                 } else {
+                    // TODO: nearly copy-paste above
                     queue.push_back(fragment.0);
                     stack.push_front(fragment.2);
                     stack.push_front(fragment.1);

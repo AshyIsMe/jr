@@ -65,33 +65,37 @@ impl ModifierImpl {
         })
     }
 
-    pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<Word> {
-        Ok(match self {
-            ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial(PartialImpl {
-                imp: (c.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
-                def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
-            })),
-            ModifierImpl::OwnedAdverb(a) => (a.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
-            ModifierImpl::DerivedAdverb { c, vn } => {
-                let (farcical, word) = c
-                    .form_conjunction(ctx, u, vn)
-                    .with_context(|| anyhow!("u: {u:?}"))
-                    .with_context(|| anyhow!("v/n: {vn:?}"))?;
-                if farcical {
-                    return Err(JError::NonceError)
-                        .context("farcical conjunction execution in adverb context");
+    pub fn form_adverb(&self, ctx: &mut Ctx, u: &Word) -> Result<(bool, Word)> {
+        Ok((
+            false,
+            match self {
+                ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial(PartialImpl {
+                    imp: (c.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
+                    def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
+                })),
+                ModifierImpl::OwnedAdverb(a) => {
+                    (a.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?
                 }
-                word
-            }
-            ModifierImpl::MmHook { l, r } => {
-                let lu = l.form_adverb(ctx, u)?;
-                r.form_adverb(ctx, &lu)?
-            }
-            _ => {
-                return Err(JError::SyntaxError)
-                    .with_context(|| anyhow!("non-adverb in adverb context: {self:?}"))
-            }
-        })
+                ModifierImpl::DerivedAdverb { c, vn } => {
+                    return c
+                        .form_conjunction(ctx, u, vn)
+                        .with_context(|| anyhow!("u: {u:?}"))
+                        .with_context(|| anyhow!("v/n: {vn:?}"))
+                }
+                ModifierImpl::MmHook { l, r } => {
+                    let (l_farcical, lu) = l.form_adverb(ctx, u)?;
+                    if l_farcical {
+                        return Err(JError::NonceError)
+                            .context("farcical conjunction execution in adverb hook");
+                    }
+                    return r.form_adverb(ctx, &lu);
+                }
+                _ => {
+                    return Err(JError::SyntaxError)
+                        .with_context(|| anyhow!("non-adverb in adverb context: {self:?}"))
+                }
+            },
+        ))
     }
 
     pub fn boxed_ar(&self) -> Result<JArray> {
