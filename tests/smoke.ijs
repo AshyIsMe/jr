@@ -271,6 +271,9 @@ NB. self classify
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
 
+NB. table
+(}. i.5) */ (}. i.4)
+
 NB. prefix
 ]\ 'banana'
 +/\ 1 2 3 4 5 6

@@ -2,12 +2,13 @@ use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
+use ndarray::IxDyn;
 
 use crate::arrays::JArrayCow;
 use crate::cells::fill_promote_list_cow;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
-use crate::verbs::{v_self_classify, BivalentOwned};
+use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
 
 pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<BivalentOwned>;
@@ -68,8 +69,8 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     let Word::Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
     let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
-        if x.is_some() {
-            return Err(JError::NonceError).context("dyadic / not implemented yet");
+        if let Some(x) = x {
+            return a_table(ctx, &u, x, y);
         }
         y.outer_iter()
             .collect_vec()
@@ -90,6 +91,17 @@ pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
         biv,
         ranks: Rank::inf_inf_inf(),
     })
+}
+
+fn a_table(ctx: &mut Ctx, u: &VerbImpl, x: &JArray, y: &JArray) -> Result<JArray> {
+    let mut items = Vec::new();
+    for x in x.outer_iter() {
+        for y in y.outer_iter() {
+            items.push(u.exec(ctx, Some(&x.to_owned()), &y.to_owned())?);
+        }
+    }
+
+    JArray::from_fill_promote(items)?.into_shape(IxDyn(&[x.len_of_0(), y.len_of_0()]))
 }
 
 pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
