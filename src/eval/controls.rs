@@ -183,10 +183,21 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
             f: Arc::new(move |ctx, u, v| {
                 let mut ctx = ctx.nest();
                 if let Some(u) = u {
-                    ctx.eval_mut().locales.assign_local("u", u.clone())?;
+                    let u_name = match u {
+                        Word::Verb(_) | Word::Name(_) => "u",
+                        Word::Noun(_) => "m",
+                        _ => bail!("unreachable? invalid u/m in conjunction: {u:?}"),
+                    };
+                    ctx.eval_mut().locales.assign_local(u_name, u.clone())?;
                 }
 
-                ctx.eval_mut().locales.assign_local("v", v.clone())?;
+                let v_name = match v {
+                    Word::Verb(_) | Word::Name(_) => "v",
+                    Word::Noun(_) => "n",
+                    _ => bail!("unreachable? invalid v/n in conjunction: {v:?}"),
+                };
+
+                ctx.eval_mut().locales.assign_local(v_name, v.clone())?;
                 eval_lines(&def, &mut ctx)
                     .context("anonymous")
                     .map(|r| r.into_word())

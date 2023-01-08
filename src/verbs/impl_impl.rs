@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
 
 use super::ranks::Rank;
@@ -147,8 +147,10 @@ impl VerbImpl {
                 }
                 _ => panic!("invalid Fork {:?}", self),
             },
-            VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
-                (Verb(u), Verb(v)) => {
+            VerbImpl::Hook { l, r } => match (l.when_verb(), r.when_verb()) {
+                (Some(u), Some(v)) => {
+                    let u = u.to_verb(ctx.eval())?;
+                    let v = v.to_verb(ctx.eval())?;
                     let ny = v.exec(ctx, None, y)?;
                     match x {
                         // TODO: it's very unclear to me that this should be a recursive call,
@@ -157,7 +159,7 @@ impl VerbImpl {
                         Some(x) => u.partial_exec(ctx, Some(x), &ny),
                     }
                 }
-                _ => panic!("invalid Hook {:?}", self),
+                _ => bail!("supposedly unreachable: invalid Hook {:?}", self),
             },
             VerbImpl::Cap => Err(JError::DomainError)
                 .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
