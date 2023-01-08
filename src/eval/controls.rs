@@ -170,7 +170,9 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
             f: Arc::new(move |ctx, u| {
                 let mut ctx = ctx.nest();
                 ctx.eval_mut().locales.assign_local("u", u.clone())?;
-                eval_lines(&def, &mut ctx).context("anonymous")
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .map(|r| r.into_word())
             }),
         })),
         'c' => Word::Conjunction(ModifierImpl::OwnedConjunction(OwnedConjunction {
@@ -181,7 +183,9 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 }
 
                 ctx.eval_mut().locales.assign_local("v", v.clone())?;
-                eval_lines(&def, &mut ctx).context("anonymous")
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .map(|r| r.into_word())
             }),
         })),
         'm' => {
@@ -194,6 +198,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&body, &mut ctx)
                         .context("anonymous")
+                        .map(|r| r.into_word())
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
@@ -220,6 +225,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&body, &mut ctx)
                         .context("anonymous")
+                        .map(|r| r.into_word())
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),

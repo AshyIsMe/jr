@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cfg_if::cfg_if;
-use jr::{feed, Ctx, EvalOutput};
+use jr::{feed, Ctx, EvalOutput, JError};
 use log::warn;
 
 #[cfg(feature = "tui")]
@@ -63,6 +63,9 @@ fn eval(buffer: &str, ctx: &mut Ctx) -> Result<EvalState> {
     match feed(buffer, ctx) {
         //Ok(output) => println!("{:?}", output),
         Ok(EvalOutput::Regular(output)) => println!("{}", output),
+        Ok(EvalOutput::Return(_)) => {
+            return Err(JError::SyntaxError).context("return in interactive context")
+        }
         Ok(EvalOutput::Suspension) | Ok(EvalOutput::InDefinition) => {
             return Ok(EvalState::MoreInput)
         }

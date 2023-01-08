@@ -32,6 +32,7 @@ pub struct Qs {
 #[derive(Debug)]
 pub enum EvalOutput {
     Regular(Word),
+    Return(Word),
     Suspension,
     InDefinition,
 }
@@ -73,12 +74,30 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
 pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
     match eval_suspendable(sentence, ctx)? {
         EvalOutput::Regular(word) => Ok(word),
+        EvalOutput::Return(_) => {
+            Err(JError::SyntaxError).context("return in a context which doesn't support return")
+        }
         EvalOutput::InDefinition | EvalOutput::Suspension => Err(JError::StackSuspension)
             .context("suspended in a context which doesn't support suspension"),
     }
 }
 
-pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
+#[derive(Clone, Debug)]
+pub enum BlockEvalResult {
+    Regular(Word),
+    Return(Word),
+}
+
+impl BlockEvalResult {
+    fn into_word(self) -> Word {
+        match self {
+            BlockEvalResult::Regular(word) => word,
+            BlockEvalResult::Return(word) => word,
+        }
+    }
+}
+
+pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<BlockEvalResult> {
     // should not be returned?
     let mut word = Word::Nothing;
     for (rel_pos, sentence) in sentence
@@ -86,10 +105,20 @@ pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
         .enumerate()
         .filter(|(_, sub)| !sub.is_empty())
     {
-        word = eval(sentence.to_vec(), ctx)
-            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?;
+        word = match eval_suspendable(sentence.to_vec(), ctx)
+            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?
+        {
+            EvalOutput::Regular(word) => word,
+            EvalOutput::Return(word) => {
+                return Ok(BlockEvalResult::Return(word));
+            }
+            EvalOutput::InDefinition | EvalOutput::Suspension => {
+                return Err(JError::StackSuspension)
+                    .context("suspended in a context which doesn't support suspension")
+            }
+        }
     }
-    Ok(word)
+    Ok(BlockEvalResult::Regular(word))
 }
 
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
@@ -128,6 +157,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
     let mut queue = qs.queue;
     debug!("starting eval: {stack:?} {queue:?}");
 
+    let mut wants_to_return = false;
+
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
     while !converged {
@@ -153,7 +184,10 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             }
             (WhileBlock(_), _, _, _) => Err(JError::NonceError).context("while block"),
             (Throw, _, _, _) => Err(JError::NonceError).context("throw"),
-            (Return, _, _, _) => Err(JError::NonceError).context("return"),
+            (Return, a, b, c) => {
+                wants_to_return = true;
+                Ok(vec![a, b, c])
+            }
             (ref w, Verb(v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
@@ -240,6 +274,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     stack.push_front(fragment.2);
                     stack.push_front(fragment.1);
                     debug!("suspending {queue:?} {stack:?}");
+                    // TODO: capture return. somehow?
                     ctx.input_buffers
                         .as_mut()
                         .ok_or(JError::ControlError)
@@ -407,7 +442,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         return Ok(EvalOutput::Regular(Word::Nothing));
     }
     match new_stack.pop_front() {
-        Some(val) if new_stack.is_empty() => Ok(EvalOutput::Regular(val)),
+        Some(val) if new_stack.is_empty() && !wants_to_return => Ok(EvalOutput::Regular(val)),
+        Some(val) if new_stack.is_empty() => Ok(EvalOutput::Return(val)),
         Some(val) => Err(JError::SyntaxError).with_context(|| {
             anyhow!("expected a single output value but found {val:#?} followed by {new_stack:#?}")
         }),
