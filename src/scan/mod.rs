@@ -61,16 +61,13 @@ fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
             c if c.is_ascii_digit() && sentence[i + 1..].starts_with(':') => {
                 words.push((
                     (i, i + 1),
-                    Word::Verb(format!("{c}:"), VerbImpl::Number((c as u8 - b'0') as f64)),
+                    Word::Verb(VerbImpl::Number((c as u8 - b'0') as f64)),
                 ));
                 skip = 1;
             }
             // _:
             '_' if sentence[i + 1..].starts_with(":") => {
-                words.push((
-                    (i, i + 1),
-                    Word::Verb(format!("_:"), VerbImpl::Number(f64::INFINITY)),
-                ));
+                words.push(((i, i + 1), Word::Verb(VerbImpl::Number(f64::INFINITY))));
                 skip = 1;
             }
             // _0:, _1:, ..
@@ -80,10 +77,7 @@ fn scan_one_line(sentence: &str) -> Result<Vec<(Pos, Word)>> {
                 let c = sentence[i + 1..].chars().next().expect("checked");
                 words.push((
                     (i, i + 2),
-                    Word::Verb(
-                        format!("_{c}:"),
-                        VerbImpl::Number(-((c as u8 - b'0') as f64)),
-                    ),
+                    Word::Verb(VerbImpl::Number(-((c as u8 - b'0') as f64))),
                 ));
                 skip = 2;
             }
@@ -247,11 +241,11 @@ fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
     Ok(Some(if let Some(n) = primitive_nouns(sentence) {
         n
     } else if let Some(v) = primitive_verbs(sentence) {
-        Word::Verb(sentence.to_string(), v)
+        Word::Verb(v)
     } else if let Some(a) = primitive_adverbs(sentence) {
-        Word::Adverb(sentence.to_string(), a)
+        Word::Adverb(a)
     } else if let Some(c) = primitive_conjunctions(sentence) {
-        Word::Conjunction(sentence.to_string(), c)
+        Word::Conjunction(c)
     } else {
         if let Some(x) = sentence.strip_prefix("for_") {
             if let Some(x) = x.strip_suffix(".") {
@@ -330,7 +324,7 @@ mod tests {
     fn names() {
         let result = dbg!(scan("i.2 3").unwrap());
         assert_eq!(2, result.len());
-        assert!(matches!(result[0], Word::Verb(_, _)));
+        assert!(matches!(result[0], Word::Verb(_)));
         assert_eq!(result[1], Word::Noun(JArray::from_list(vec![2i64, 3])));
     }
 }

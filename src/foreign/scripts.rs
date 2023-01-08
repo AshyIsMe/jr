@@ -9,7 +9,7 @@ use log::info;
 use crate::foreign::files::noun_to_fs_path;
 use crate::{feed, Ctx, EvalOutput, HasEmpty, JArray, JError, Word};
 
-pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<Word> {
+pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<JArray> {
     let [src, err, display]: [char; 3] = format!("{k:03}")
         .chars()
         .collect_vec()
@@ -55,7 +55,7 @@ pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<Word> {
         }
     }
     match last {
-        EvalOutput::Regular(_) => Ok(Word::Noun(JArray::empty())),
+        EvalOutput::Regular(_) => Ok(JArray::empty()),
         other => Err(anyhow!("file unexpectedly finished inside a {other:?}")),
     }
 }

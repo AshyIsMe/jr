@@ -1,11 +1,11 @@
-use crate::verbs::{DyadOwned, MonadOwned, PartialImpl, VerbImpl};
+use std::collections::HashSet;
+
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
-use std::collections::HashSet;
-use std::sync::Arc;
 
 use crate::eval::eval_lines;
-use crate::{JError, Rank, Word};
+use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
+use crate::{HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -164,46 +164,64 @@ fn infer_type(def: &[Word]) -> Result<char> {
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         // sorry not sorry
-        'm' => Word::Verb(
-            "anon".to_string(),
-            VerbImpl::Partial(PartialImpl {
-                name: "anon".to_string(),
-                dyad: None,
-                monad: Some(MonadOwned {
-                    f: Arc::new(move |ctx, y| {
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("y", Word::Noun(y.clone()))?;
-                        eval_lines(&def, &mut ctx).context("anonymous")
-                    }),
-                    rank: Rank::infinite(),
+        'm' => {
+            let imp = BivalentOwned {
+                biv: BivalentOwned::from_monad(move |ctx, y| {
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .map(nothing_to_empty)
+                        .and_then(must_be_noun)
                 }),
-            }),
-        ),
-        'd' => Word::Verb(
-            "anon".to_string(),
-            VerbImpl::Partial(PartialImpl {
-                name: "anon".to_string(),
-                monad: None,
-                dyad: Some(DyadOwned {
-                    f: Arc::new(move |ctx, x, y| {
-                        let mut ctx = ctx.nest();
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("x", Word::Noun(x.clone()))?;
-                        ctx.eval_mut()
-                            .locales
-                            .assign_local("y", Word::Noun(y.clone()))?;
-                        eval_lines(&def, &mut ctx).context("anonymous")
-                    }),
-                    rank: Rank::infinite_infinite(),
+                ranks: Rank::inf_inf_inf(),
+            };
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
+        }
+        'd' => {
+            let imp = BivalentOwned {
+                biv: BivalentOwned::from_bivalent(move |ctx, x, y| {
+                    let Some(x) = x else {
+                        return Err(JError::DomainError).context("explicitly dyadic udf invoked as monad");
+                    };
+                    let mut ctx = ctx.nest();
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("x", Word::Noun(x.clone()))?;
+                    ctx.eval_mut()
+                        .locales
+                        .assign_local("y", Word::Noun(y.clone()))?;
+                    eval_lines(&def, &mut ctx)
+                        .context("anonymous")
+                        .map(nothing_to_empty)
+                        .and_then(must_be_noun)
                 }),
-            }),
-        ),
+                ranks: Rank::inf_inf_inf(),
+            };
+            Word::Verb(VerbImpl::Partial(PartialImpl { imp, def: None }))
+        }
         other => {
             return Err(JError::NonceError)
                 .with_context(|| anyhow!("unsupported direct def: {other}"))
         }
     })
+}
+
+// TODO: this is typically called from partial_exec which has a panic
+// TODO: attack about Nothing; this is a big lie
+fn nothing_to_empty(w: Word) -> Word {
+    match w {
+        Word::Nothing => Word::Noun(JArray::empty()),
+        other => other,
+    }
+}
+
+fn must_be_noun(v: Word) -> Result<JArray> {
+    match v {
+        Word::Noun(arr) => Ok(arr),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+    }
 }

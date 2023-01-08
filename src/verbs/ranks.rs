@@ -55,6 +55,9 @@ impl Rank {
     pub const fn infinite_infinite() -> (Self, Self) {
         (Self::infinite(), Self::infinite())
     }
+    pub const fn inf_inf_inf() -> (Self, (Self, Self)) {
+        (Self::infinite(), Self::infinite_infinite())
+    }
 
     pub const fn is_infinite(&self) -> bool {
         self.0 == u8::MAX

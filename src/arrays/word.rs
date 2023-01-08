@@ -24,9 +24,9 @@ pub enum Word {
     IsLocal,
     IsGlobal,
     Noun(JArray),
-    Verb(String, VerbImpl),
-    Adverb(String, ModifierImpl),
-    Conjunction(String, ModifierImpl),
+    Verb(VerbImpl),
+    Adverb(ModifierImpl),
+    Conjunction(ModifierImpl),
     IfBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
     WhileBlock(Vec<Word>),
@@ -52,10 +52,7 @@ pub enum Word {
 impl Word {
     /// primarily intended for asserts, hence the "static", and the PANIC on invalid input
     pub fn static_verb(v: &'static str) -> Word {
-        Word::Verb(
-            v.to_string(),
-            primitive_verbs(v).expect("static verbs should be valid"),
-        )
+        Word::Verb(primitive_verbs(v).expect("static verbs should be valid"))
     }
 
     pub fn is_control_symbol(&self) -> bool {
@@ -66,7 +63,7 @@ impl Word {
             For(_) | While => true,
             Assert => true,
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
-            Verb(_, _) | Noun(_) | Adverb(_, _) | Conjunction(_, _) => false,
+            Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
             IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) => false,
             NewLine => false,
             StartOfLine | Nothing => false,
@@ -95,9 +92,9 @@ impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Word::Noun(a) => write!(f, "{}", a),
-            Word::Verb(sv, _) => write!(f, "{}", sv),
-            Word::Adverb(sa, _) => write!(f, "{}", sa),
-            Word::Conjunction(sc, _) => write!(f, "{}", sc),
+            Word::Verb(_) => write!(f, "unknown verb"),
+            Word::Adverb(_) => write!(f, "unknown adverb"),
+            Word::Conjunction(_) => write!(f, "unknown conjunction"),
             Word::Nothing => Ok(()),
             //_ => write!(f, "{:+}", self),
             _ => write!(f, "XXX TODO: unable to Display Word::{:?}", self),

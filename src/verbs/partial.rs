@@ -1,76 +1,64 @@
 use std::fmt;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 
-use crate::{Ctx, JArray, Word};
+use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
 
-pub type MonadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray) -> Result<Word>>;
-
-#[derive(Clone)]
-pub struct MonadOwned {
-    pub f: MonadOwnedF,
-    pub rank: Rank,
-}
-
-pub type DyadOwnedF = Arc<dyn Fn(&mut Ctx, &JArray, &JArray) -> Result<Word>>;
-
-#[derive(Clone)]
-pub struct DyadOwned {
-    pub f: DyadOwnedF,
-    pub rank: DyadRank,
-}
+pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray>>;
 
 #[derive(Clone)]
 pub struct PartialImpl {
-    pub name: String,
-    pub monad: Option<MonadOwned>,
-    pub dyad: Option<DyadOwned>,
+    pub imp: BivalentOwned,
+    pub def: Option<Vec<Word>>,
+}
+
+#[derive(Clone)]
+pub struct BivalentOwned {
+    pub biv: BivalentOwnedF,
+    pub ranks: (Rank, DyadRank),
+}
+
+impl PartialImpl {
+    pub fn name(&self) -> Result<String> {
+        Err(JError::NonceError).with_context(|| anyhow!("no name for partial {self:?}"))
+    }
 }
 
 impl fmt::Debug for PartialImpl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PartialImpl({})", self.name)
+        write!(f, "PartialImpl")
     }
 }
 
 impl PartialEq for PartialImpl {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+    fn eq(&self, _other: &Self) -> bool {
+        todo!()
     }
 }
 
-impl PartialImpl {
-    pub fn from_legacy_inf(
-        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<Word> + 'static + Clone,
-    ) -> (Option<MonadOwned>, Option<DyadOwned>) {
-        let j = f.clone();
-        (
-            Self::mi(Arc::new(move |ctx, y| f(ctx, None, y))),
-            Self::di(Arc::new(move |ctx, x, y| j(ctx, Some(x), y))),
-        )
+impl BivalentOwned {
+    pub fn from_bivalent(
+        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone,
+    ) -> BivalentOwnedF {
+        Arc::new(move |ctx, x, y| f(ctx, x, y))
     }
 
-    pub fn mi(f: MonadOwnedF) -> Option<MonadOwned> {
-        Some(MonadOwned {
-            f,
-            rank: Rank::infinite(),
+    pub fn from_monad(
+        f: impl Fn(&mut Ctx, &JArray) -> Result<JArray> + 'static + Clone,
+    ) -> BivalentOwnedF {
+        Arc::new(move |ctx, x, y| {
+            ensure_monad(x)?;
+            f(ctx, y)
         })
     }
+}
 
-    pub fn m0(f: MonadOwnedF) -> Option<MonadOwned> {
-        Some(MonadOwned {
-            f,
-            rank: Rank::zero(),
-        })
-    }
-
-    pub fn di(f: DyadOwnedF) -> Option<DyadOwned> {
-        Some(DyadOwned {
-            f,
-            rank: Rank::infinite_infinite(),
-        })
+fn ensure_monad(x: Option<&JArray>) -> Result<()> {
+    match x {
+        Some(_) => Err(JError::DomainError).context("dyadic invocation of monad-only verb"),
+        None => Ok(()),
     }
 }

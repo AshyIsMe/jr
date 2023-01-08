@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 
-use crate::{JArray, JError, Num, Word};
+use crate::{JArray, JError, Num};
 
-pub fn f_dump_hex(x: Option<&JArray>, y: &JArray) -> Result<Word> {
+pub fn f_dump_hex(x: Option<&JArray>, y: &JArray) -> Result<JArray> {
     if cfg!(not(target_pointer_width = "64")) {
         return Err(JError::NonceError).context("only support 64-bit (laziness)");
     }
@@ -42,10 +42,9 @@ pub fn f_dump_hex(x: Option<&JArray>, y: &JArray) -> Result<Word> {
             .into_iter()
             .map(|x| JArray::from_string(format!("{:016x}", x.to_be()))),
     )
-    .map(Word::Noun)
 }
 
-pub fn f_int_bytes(x: Option<&JArray>, y: &JArray) -> Result<Word> {
+pub fn f_int_bytes(x: Option<&JArray>, y: &JArray) -> Result<JArray> {
     let Some(x) = x else { return Err(JError::DomainError).context("invalid mode type"); };
     match x.single_math_num() {
         Some(x) if x == Num::Int(2) => (),
@@ -57,8 +56,8 @@ pub fn f_int_bytes(x: Option<&JArray>, y: &JArray) -> Result<Word> {
         return Err(JError::NonceError).context("ascii only");
     }
 
-    Ok(Word::Noun(JArray::from_list(
+    Ok(JArray::from_list(
         // thanks, I hate it
         vec![y as u8 as char, '\0', '\0', '\0'],
-    )))
+    ))
 }
