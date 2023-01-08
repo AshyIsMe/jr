@@ -173,8 +173,13 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
         let result: Result<Vec<Word>> = match fragment {
             (IfBlock(def), b, c, d) => {
-                control_if(ctx, &def)?;
-                Ok(vec![b, c, d])
+                match control_if(ctx, &def)? {
+                    BlockEvalResult::Regular(w) => Ok(vec![w, b, c, d]),
+                    BlockEvalResult::Return(w) => {
+                        // TODO: not clear that it's valid to early exit the evaluation here
+                        return Ok(EvalOutput::Return(w));
+                    }
+                }
             }
             (SelectBlock(_), _, _, _) => Err(JError::NonceError).context("select block"),
             (TryBlock(def), b, c, d) => match control_try(ctx, &def)? {

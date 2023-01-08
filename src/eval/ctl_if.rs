@@ -3,10 +3,10 @@ use itertools::Itertools;
 use log::debug;
 use num_traits::Zero;
 
-use crate::eval::eval_lines;
-use crate::{eval, Ctx, Elem, JError, Num, Word};
+use crate::eval::{eval_lines, BlockEvalResult};
+use crate::{eval, Ctx, Elem, HasEmpty, JArray, JError, Num, Word};
 
-pub fn control_if(ctx: &mut Ctx, def: &[Word]) -> Result<()> {
+pub fn control_if(ctx: &mut Ctx, def: &[Word]) -> Result<BlockEvalResult> {
     debug!("control if.");
     let mut blocks = Vec::new();
     let mut start = 0;
@@ -20,31 +20,31 @@ pub fn control_if(ctx: &mut Ctx, def: &[Word]) -> Result<()> {
     blocks.push(&def[start..]);
     let first = blocks.remove(0);
 
-    if eval_cond_and_block(ctx, first)? {
-        return Ok(());
+    if let Some(result) = eval_cond_and_block(ctx, first)? {
+        return Ok(result);
     };
 
     // doesn't really care if you write elseif. {} else. {} elseif. {}, it'll just never run the last one
     for block in blocks {
         match &block[0] {
             Word::ElseIf => {
-                if eval_cond_and_block(ctx, &block[1..])? {
-                    return Ok(());
+                if let Some(result) = eval_cond_and_block(ctx, &block[1..])? {
+                    return Ok(result);
                 }
             }
             Word::Else => {
-                let _ = eval_lines(&block[1..], ctx);
-                return Ok(());
+                return eval_lines(&block[1..], ctx);
             }
             other => unreachable!("covered by above matches: {other:?}"),
         }
     }
 
-    Ok(())
+    // it's dem damn Nothings again
+    Ok(BlockEvalResult::Regular(Word::Noun(JArray::empty())))
 }
 
 /// runs the condition *and the block*, returning if it did so
-fn eval_cond_and_block(ctx: &mut Ctx, def: &[Word]) -> Result<bool> {
+fn eval_cond_and_block(ctx: &mut Ctx, def: &[Word]) -> Result<Option<BlockEvalResult>> {
     let (cond, follow) = split_once(def, |w| matches!(w, Word::Do))
         .ok_or(JError::SyntaxError)
         .context("no do. in if.")?;
@@ -60,10 +60,12 @@ fn eval_cond_and_block(ctx: &mut Ctx, def: &[Word]) -> Result<bool> {
     };
 
     if cond {
-        let _ = eval_lines(follow, ctx).context("conditional if-statement block")?;
+        Ok(Some(
+            eval_lines(follow, ctx).context("conditional if-statement block")?,
+        ))
+    } else {
+        Ok(None)
     }
-
-    Ok(cond)
 }
 
 pub fn split_once(words: &[Word], f: impl Fn(&Word) -> bool) -> Option<(&[Word], &[Word])> {
