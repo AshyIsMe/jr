@@ -318,6 +318,9 @@ fn br_box_use_j(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result 
     let _corners = ['┌', '┐', '└', '┘'];
     let _walls = ['─', '│', '┼'];
 
+    debug!("arr.shape(): {:?}", arr.shape());
+    let shape = arr.shape();
+
     let formatted_arr = arr
         .into_iter()
         .cloned()
@@ -336,7 +339,11 @@ fn br_box_use_j(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result 
         .collect_vec();
 
     debug!("formatted_arr: {:?}", formatted_arr);
-    todo!("phew, formatted_arr is now CharArrays...");
+
+    formatted_arr
+        .iter()
+        .map(|item| write!(f, "{}\n", item.j_format()))
+        .collect_vec();
 
     Ok(())
 }
