@@ -242,43 +242,20 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) && maybe_verb(&u) =>
+                ) && (maybe_verb(&u) || matches!(u, Noun(_))) =>
             {
-                debug!("3 adverb V A _");
+                debug!("3 adverb V/N A _");
                 Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
             }
-            (ref w, n @ Noun(_), Adverb(a), any)
+            (ref w, ref m, Conjunction(ref c), ref n)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
-            }
-            //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, l, Conjunction(c), r)
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) && matches!(l, Verb(_) | Noun(_) | Name(_))
-                    && matches!(r, Verb(_) | Noun(_) | Name(_))
-                    // hack: noun noun conj handled by the parser
-                    && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
+                ) && matches!(m, Verb(_) | Noun(_) | Name(_))
+                    && matches!(n, Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("4 Conj");
-                let (farcical, formed) = c.form_conjunction(ctx, &l, &r)?;
-                assert!(!farcical);
-                Ok(vec![fragment.0, formed])
-            }
-            (ref w, Noun(ref m), Conjunction(ref c), Noun(n))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                debug!("4 Conj N C N");
-                let (farcical, formed) =
-                    c.form_conjunction(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))?;
+                let (farcical, formed) = c.form_conjunction(ctx, m, n)?;
                 if !farcical {
                     Ok(vec![fragment.0, formed])
                 } else {
