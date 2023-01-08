@@ -113,8 +113,6 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
     if let Some(s) = short_array_cases(&arr) {
         return write!(f, "{s}");
     }
-    let corners = ['┌', '┐', '└', '┘'];
-    let walls = ['─', '│', '┼'];
     let limit = 128usize;
     // TODO: jsoft takes from the end, not the start, for some reason
     let iter = arr.rows().into_iter().enumerate().take(limit);
@@ -130,7 +128,17 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
         })
         .collect_vec();
 
-    let widths: Vec<usize> = table
+    let row_heights: Vec<usize> = table
+        .iter()
+        .map(|(_, row)| {
+            row.iter()
+                .map(|item| item.split('\n').count())
+                .max()
+                .unwrap_or_default()
+        })
+        .collect();
+
+    let column_widths: Vec<usize> = table
         .iter()
         .map(|(_, row)| {
             row.iter()
@@ -144,64 +152,46 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
                 .collect_vec()
         })
         .expect("non-empty rows");
-
-    let widths: Vec<usize> = table
-        .iter()
-        .map(|(_, row)| {
-            row.iter()
-                .map(|item| item.split('\n').map(width).max().unwrap_or_default())
-                .collect_vec()
-        })
-        .reduce(|l, r| {
-            l.into_iter()
-                .zip(r.into_iter())
-                .map(|(l, r)| max(l, r))
-                .collect_vec()
-        })
-        .expect("non-empty rows");
-
-    // let row_sizes = table
-    //     .iter()
-    //     .map(|(_, row)| {
-    //         row.iter()
-    //             .map(|item| {
-    //                 let lines = item.split('\n').count();
-    //                 let max_width = item
-    //                     .split('\n')
-    //                     .map(|line| width(line))
-    //                     .max()
-    //                     .unwrap_or_default();
-    //                 (lines, max_width)
-    //             })
-    //             .collect_vec()
-    //     }).collect_vec();
-    // let widths = row_sizes.iter().map(|(_lines, width)| width)
-    //     .reduce(|l, r| {
-    //         l.into_iter()
-    //             .zip(r.into_iter())
-    //             .map(|(l, r)| *l.max(r))
-    //             .collect_vec()
-    //     })
-    //     .expect("non-empty rows");
 
     let multiples = compute_dimension_spacing(&arr);
 
     let last = table.last().expect("non-empty").0;
 
+    let corners = ['┌', '┐', '└', '┘'];
+    let walls = ['─', '│', '┼', '┬', '┴'];
+
+    fn rep(c: char, count: usize) -> String {
+        (0..count).map(|_| c).collect::<String>()
+    }
+
+    let last_col = column_widths.len() - 1;
     for (rn, row) in table {
-        for (col, (target, item)) in row_sizes.iter().zip(row.into_iter()).enumerate() {
-            let len = width(&item);
-            write!(
-                f,
-                "{}",
-                (0..(target - len)).map(|_| ' ').collect::<String>()
-            )?;
-            if col != 0 {
-                write!(f, " ")?;
+        if rn == 0 {
+            for (idx, part) in column_widths.iter().enumerate() {
+                write!(
+                    f,
+                    "{}",
+                    match idx {
+                        0 => corners[0],
+                        _ => walls[3],
+                    }
+                )?;
+                write!(f, "{}", rep(walls[0], *part))?;
             }
-            write!(f, "{item}")?;
+            writeln!(f, "{}", corners[1])?;
         }
-        write!(f, "\n")?;
+        for (col, (target, item)) in column_widths.iter().zip(row.into_iter()).enumerate() {
+            for line in item.split('\n') {
+                let len = width(line);
+                write!(f, "{}{line} X", walls[1])?;
+                write!(
+                    f,
+                    "{}",
+                    (0..(target - len)).map(|_| ' ').collect::<String>()
+                )?;
+            }
+        }
+        write!(f, "{}\n", walls[1])?;
         if rn == last {
             break;
         }
