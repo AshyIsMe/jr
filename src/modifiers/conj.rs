@@ -52,6 +52,23 @@ impl fmt::Debug for WordyConjunction {
 }
 
 #[derive(Clone)]
+pub struct OwnedAdverb {
+    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
+}
+
+impl PartialEq for OwnedAdverb {
+    fn eq(&self, _other: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl fmt::Debug for OwnedAdverb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OwnedAdverb")
+    }
+}
+
+#[derive(Clone)]
 pub struct OwnedConjunction {
     pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
 }
@@ -478,6 +495,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         Word::Noun(CharArray(jcode)) if jcode.shape().len() <= 1 => {
             let n = match n {
                 0 => return Ok((false, Word::Noun(CharArray(jcode.clone())))),
+                1 => 'a',
                 2 => 'c',
                 3 => 'm',
                 4 => 'd',

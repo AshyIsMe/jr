@@ -15,6 +15,8 @@ pub use conj::*;
 #[derive(Clone, Debug, PartialEq)]
 pub enum ModifierImpl {
     Adverb(SimpleAdverb),
+    OwnedAdverb(OwnedAdverb),
+
     Conjunction(SimpleConjunction),
     WordyConjunction(WordyConjunction),
     OwnedConjunction(OwnedConjunction),

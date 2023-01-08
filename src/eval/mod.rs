@@ -283,11 +283,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
             // the rest result in syntax errors.
-            (ref w, Adverb(_), Adverb(_), _any)
+            (ref w, Adverb(l), Adverb(r), _any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
-                bail!("unable to bond adverbs")
+                Err(JError::NonceError)
+                    .context("hook/adverb A A")
+                    .with_context(|| anyhow!("l: {l:?}"))
+                    .with_context(|| anyhow!("r: {r:?}"))
                 // let adverb_str = format!("{} {}", sa0, sa1);
                 // let da = ModifierImpl::DerivedAdverb {
                 //     l: Box::new(Adverb(sa0, a0.clone())),
