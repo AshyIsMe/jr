@@ -2,7 +2,7 @@ use std::fmt;
 use std::iter;
 use std::sync::Arc;
 
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, ensure, Context, Error, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
@@ -741,54 +741,72 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
 }
 
 pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
-    let (u, v) = match (n, m) {
-        (Word::Verb(n), Word::Verb(m)) => (n, m),
+    let (u, v) = match (n.when_verb(), m.when_verb()) {
+        (Some(n), Some(m)) => (n, m),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
     };
-    let vi = v
-        .obverse()
-        .ok_or(JError::NonceError)
-        .context("lacking obverse")?;
-    let u = u.clone();
-    let v = v.clone();
-    let vi = vi.clone();
-    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
-        None => {
-            let (cells, frame) = monad_cells(y, Rank::zero())?;
-            let mut parts = Vec::new();
-            for y in cells {
-                let v = v.exec(ctx, None, &y).context("under dual v")?;
-                let u = u.exec(ctx, None, &v).context("under dual u")?;
-                let vi = vi.exec(ctx, None, &u).context("under dual vi")?;
-                parts.push(vi);
-            }
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
-        }
-        Some(x) => {
-            let vr = v
-                .dyad_rank()
-                .ok_or(JError::NonceError)
-                .context("missing rank for dyad")?;
-            let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
-            let parts = apply_cells(
-                &cells,
-                |x, y| {
-                    let l = v.exec(ctx, None, x).context("under dual l")?;
-                    let r = v.exec(ctx, None, y).context("under dual r")?;
-                    let u = u.exec(ctx, Some(&l), &r).context("under dual u")?;
-                    vi.exec(ctx, None, &u).context("under dual vi")
-                },
-                vr,
-            )?;
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
+    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+        let u = u.to_verb(ctx.eval())?;
+        let v = v.to_verb(ctx.eval())?;
+        let vi = v
+            .obverse()
+            .ok_or(JError::NonceError)
+            .context("lacking obverse")?;
+        match x {
+            None => do_under_monad(ctx, &u, &v, &vi, y),
+            Some(x) => do_under_dyad(ctx, x, u, v, vi, y),
         }
     });
     Ok(BivalentOwned {
         biv,
         ranks: Rank::inf_inf_inf(),
     })
+}
+
+fn do_under_monad(
+    ctx: &mut Ctx,
+    u: &VerbImpl,
+    v: &VerbImpl,
+    vi: &VerbImpl,
+    y: &JArray,
+) -> Result<JArray, Error> {
+    let (cells, frame) = monad_cells(y, Rank::zero())?;
+    let mut parts = Vec::new();
+    for y in cells {
+        let v = v.exec(ctx, None, &y).context("under dual v")?;
+        let u = u.exec(ctx, None, &v).context("under dual u")?;
+        let vi = vi.exec(ctx, None, &u).context("under dual vi")?;
+        parts.push(vi);
+    }
+    JArray::from_fill_promote(parts)?
+        .to_shape(frame)
+        .map(|cow| cow.to_owned())
+}
+
+fn do_under_dyad(
+    ctx: &mut Ctx,
+    x: &JArray,
+    u: VerbImpl,
+    v: VerbImpl,
+    vi: VerbImpl,
+    y: &JArray,
+) -> Result<JArray, Error> {
+    let vr = v
+        .dyad_rank()
+        .ok_or(JError::NonceError)
+        .context("missing rank for dyad")?;
+    let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+    let parts = apply_cells(
+        &cells,
+        |x, y| {
+            let l = v.exec(ctx, None, x).context("under dual l")?;
+            let r = v.exec(ctx, None, y).context("under dual r")?;
+            let u = u.exec(ctx, Some(&l), &r).context("under dual u")?;
+            vi.exec(ctx, None, &u).context("under dual vi")
+        },
+        vr,
+    )?;
+    JArray::from_fill_promote(parts)?
+        .to_shape(frame)
+        .map(|cow| cow.to_owned())
 }

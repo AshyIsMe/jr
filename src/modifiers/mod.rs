@@ -77,7 +77,10 @@ impl ModifierImpl {
                     .form_conjunction(ctx, u, vn)
                     .with_context(|| anyhow!("u: {u:?}"))
                     .with_context(|| anyhow!("v/n: {vn:?}"))?;
-                assert!(!farcical);
+                if farcical {
+                    return Err(JError::NonceError)
+                        .context("farcical conjunction execution in adverb context");
+                }
                 word
             }
             ModifierImpl::MmHook { l, r } => {
