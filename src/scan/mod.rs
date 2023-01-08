@@ -270,6 +270,7 @@ pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "catchd." => Word::CatchD,
             "catcht." => Word::CatchT,
             "throw." => Word::Throw,
+            "return." => Word::Return,
             "NB." => Word::Comment,
             "0:" => Verb(VerbImpl::Number(0.)),
             _ => return Ok(None),

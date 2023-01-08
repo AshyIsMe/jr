@@ -71,6 +71,7 @@ impl ModifierImpl {
                 imp: (c.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
                 def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
             })),
+            ModifierImpl::OwnedAdverb(a) => (a.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
             ModifierImpl::DerivedAdverb { c, vn } => {
                 let (farcical, word) = c
                     .form_conjunction(ctx, u, vn)

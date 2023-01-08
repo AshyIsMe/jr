@@ -53,7 +53,7 @@ impl fmt::Debug for WordyConjunction {
 
 #[derive(Clone)]
 pub struct OwnedAdverb {
-    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
+    pub f: Arc<dyn Fn(&mut Ctx, &Word) -> Result<Word>>,
 }
 
 impl PartialEq for OwnedAdverb {

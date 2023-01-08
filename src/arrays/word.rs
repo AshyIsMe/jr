@@ -49,6 +49,7 @@ pub enum Word {
     CatchD,
     CatchT,
     Throw,
+    Return,
 
     For(Option<String>),
     While,
@@ -73,7 +74,7 @@ impl Word {
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
             Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
             IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) | TryBlock(_) => false,
-            Throw => false,
+            Throw | Return => false,
             NewLine => false,
             StartOfLine | Nothing => false,
             Comment => unreachable!("should have been removed from the stream by now"),

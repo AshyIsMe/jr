@@ -151,8 +151,9 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 // TODO: actually assert
                 Ok(vec![b, c, d])
             }
-            (WhileBlock(_), _, _, _) => Err(JError::NonceError).context("throw"),
+            (WhileBlock(_), _, _, _) => Err(JError::NonceError).context("while block"),
             (Throw, _, _, _) => Err(JError::NonceError).context("throw"),
+            (Return, _, _, _) => Err(JError::NonceError).context("return"),
             (ref w, Verb(v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {

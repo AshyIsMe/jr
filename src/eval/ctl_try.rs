@@ -4,7 +4,7 @@ use crate::{Ctx, JError, Word};
 use anyhow::{Context, Result};
 
 pub fn control_try(ctx: &mut Ctx, def: &[Word]) -> Result<()> {
-    let (block, _handle) = split_once(def, |w| {
+    let (block, handle) = split_once(def, |w| {
         matches!(w, Word::Catch | Word::CatchT | Word::CatchD)
     })
     .ok_or(JError::SyntaxError)
@@ -12,6 +12,6 @@ pub fn control_try(ctx: &mut Ctx, def: &[Word]) -> Result<()> {
 
     match eval_lines(block, ctx) {
         Ok(_) => Ok(()),
-        Err(err) => Err(JError::NonceError).context(err).context("catch"),
+        Err(_) => eval_lines(handle, ctx).map(|_| ()),
     }
 }

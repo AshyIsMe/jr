@@ -167,13 +167,9 @@ fn infer_type(def: &[Word]) -> Result<char> {
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
         'a' => Word::Adverb(ModifierImpl::OwnedAdverb(OwnedAdverb {
-            f: Arc::new(move |ctx, u, v| {
+            f: Arc::new(move |ctx, u| {
                 let mut ctx = ctx.nest();
-                if let Some(u) = u {
-                    ctx.eval_mut().locales.assign_local("u", u.clone())?;
-                }
-
-                ctx.eval_mut().locales.assign_local("v", v.clone())?;
+                ctx.eval_mut().locales.assign_local("u", u.clone())?;
                 eval_lines(&def, &mut ctx).context("anonymous")
             }),
         })),
