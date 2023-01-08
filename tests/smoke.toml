@@ -2364,6 +2364,21 @@ output = '2 4'
 encoded = 'e3,04,02,01,02,02,04'
 
 [[runs]]
+expr = 'L. (5; <7; 2)'
+output = '2'
+encoded = 'e3,04,01,,02'
+
+[[runs]]
+expr = 'L. 5'
+output = '0'
+encoded = 'e3,04,01,,'
+
+[[runs]]
+expr = 'L. <5'
+output = '1'
+encoded = 'e3,04,01,,01'
+
+[[runs]]
 expr = "[ 'abcde'"
 output = 'abcde'
 encoded = 'e3,02,05,01,05,6162636465'

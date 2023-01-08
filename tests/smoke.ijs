@@ -503,6 +503,11 @@ NB. index of
 NB. indexes (bool)
 I. 0 0 1 0 1 0
 
+NB. level of
+L. 5
+L. <5
+NB. not implemented: L. (5; <7; 2)
+
 NB. member interval
 'c' E. 'cocoa'
 'co' E. 'cocoa'

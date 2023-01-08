@@ -542,6 +542,8 @@ pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
 /// L. (monad) (_)
 pub fn v_levels(y: &JArray) -> Result<JArray> {
     return Ok(JArray::from(match y {
+        // yes it would probably be easier to implement the whole thing
+        BoxArray(b) if b.iter().all(|c| !matches!(c, BoxArray(_))) => arr0d(1i64),
         BoxArray(_) => return Err(JError::NonceError).context("levels > 0"),
         _ => arr0d(0i64),
     }));
