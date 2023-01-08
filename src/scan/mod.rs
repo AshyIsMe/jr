@@ -262,6 +262,8 @@ pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "else." => Word::Else,
             "elseif." => Word::ElseIf,
             "end." => Word::End,
+            "select." => Word::Select,
+            "case." => Word::Case,
             "for." => Word::For(None),
             "while." => Word::While,
             "assert." => Word::Assert,

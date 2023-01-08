@@ -152,7 +152,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (8, _) => return unsupported("format"),
         (9, 12) => (iii, BivalentOwned::from_monad(|_, _| f_os_type())),
         (9, _) => return unsupported("global param"),
-        (13, 8) => unimplemented("signal error"),
+        (13, 0..=23) => unimplemented("debug system"),
         (13, _) => return unsupported("debug"),
         (15, 0) => unimplemented("call dll"),
         (15, 1) => unimplemented("dll read memory"),

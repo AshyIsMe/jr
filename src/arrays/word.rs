@@ -28,6 +28,7 @@ pub enum Word {
     Adverb(ModifierImpl),
     Conjunction(ModifierImpl),
     IfBlock(Vec<Word>),
+    SelectBlock(Vec<Word>),
     TryBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
     WhileBlock(Vec<Word>),
@@ -54,6 +55,9 @@ pub enum Word {
     For(Option<String>),
     While,
 
+    Select,
+    Case,
+
     Assert,
 }
 
@@ -70,10 +74,16 @@ impl Word {
             If | Do | Else | ElseIf | End => true,
             For(_) | While => true,
             Try | Catch | CatchD | CatchT => true,
+            Select | Case => true,
             Assert => true,
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
             Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
-            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) | TryBlock(_) => false,
+            IfBlock(_)
+            | ForBlock(_, _)
+            | WhileBlock(_)
+            | AssertLine(_)
+            | TryBlock(_)
+            | SelectBlock(_) => false,
             Throw | Return => false,
             NewLine => false,
             StartOfLine | Nothing => false,

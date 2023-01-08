@@ -174,6 +174,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 control_if(ctx, &def)?;
                 Ok(vec![b, c, d])
             }
+            (SelectBlock(_), _, _, _) => Err(JError::NonceError).context("select block"),
             (TryBlock(def), b, c, d) => match control_try(ctx, &def)? {
                 BlockEvalResult::Regular(_) => Ok(vec![b, c, d]),
                 BlockEvalResult::Return(v) => {
