@@ -177,30 +177,23 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                 eval_lines(&def, &mut ctx)
                     .context("anonymous")
                     .map(|r| r.into_word())
+                    .and_then(must_be_modifier_result)
             }),
         })),
         'c' => Word::Conjunction(ModifierImpl::OwnedConjunction(OwnedConjunction {
             f: Arc::new(move |ctx, u, v| {
                 let mut ctx = ctx.nest();
                 if let Some(u) = u {
-                    let u_name = match u {
-                        Word::Verb(_) | Word::Name(_) => "u",
-                        Word::Noun(_) => "m",
-                        _ => bail!("unreachable? invalid u/m in conjunction: {u:?}"),
-                    };
-                    ctx.eval_mut().locales.assign_local(u_name, u.clone())?;
+                    ctx.eval_mut().locales.assign_local("u", u.clone())?;
+                    ctx.eval_mut().locales.assign_local("m", u.clone())?;
                 }
 
-                let v_name = match v {
-                    Word::Verb(_) | Word::Name(_) => "v",
-                    Word::Noun(_) => "n",
-                    _ => bail!("unreachable? invalid v/n in conjunction: {v:?}"),
-                };
-
-                ctx.eval_mut().locales.assign_local(v_name, v.clone())?;
+                ctx.eval_mut().locales.assign_local("v", v.clone())?;
+                ctx.eval_mut().locales.assign_local("n", v.clone())?;
                 eval_lines(&def, &mut ctx)
                     .context("anonymous")
                     .map(|r| r.into_word())
+                    .and_then(must_be_modifier_result)
             }),
         })),
         'm' => {
@@ -281,5 +274,13 @@ fn must_be_noun(v: Word) -> Result<JArray> {
         Word::Noun(arr) => Ok(arr),
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+    }
+}
+
+fn must_be_modifier_result(v: Word) -> Result<Word> {
+    match v {
+        Word::Noun(_) | Word::Verb(_) => Ok(v),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("unexpected word in modifier result: {v:?}")),
     }
 }
