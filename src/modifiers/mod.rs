@@ -21,8 +21,16 @@ pub enum ModifierImpl {
     WordyConjunction(WordyConjunction),
     OwnedConjunction(OwnedConjunction),
     Cor,
-    // this is a partially applied conjunction
-    DerivedAdverb { c: Box<ModifierImpl>, u: Box<Word> },
+    // this is a partially applied conjunction; (c v) or (c n), which needs a u/m to become a verb
+    DerivedAdverb {
+        c: Box<ModifierImpl>,
+        vn: Box<Word>,
+    },
+    // (a a), which needs a u/m to become a verb
+    MmHook {
+        l: Box<ModifierImpl>,
+        r: Box<ModifierImpl>,
+    },
 }
 
 impl ModifierImpl {
@@ -63,13 +71,17 @@ impl ModifierImpl {
                 imp: (c.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
                 def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
             })),
-            ModifierImpl::DerivedAdverb { c, u: v } => {
+            ModifierImpl::DerivedAdverb { c, vn } => {
                 let (farcical, word) = c
-                    .form_conjunction(ctx, u, v)
+                    .form_conjunction(ctx, u, vn)
                     .with_context(|| anyhow!("u: {u:?}"))
-                    .with_context(|| anyhow!("v: {v:?}"))?;
+                    .with_context(|| anyhow!("v/n: {vn:?}"))?;
                 assert!(!farcical);
                 word
+            }
+            ModifierImpl::MmHook { l, r } => {
+                let lu = l.form_adverb(ctx, u)?;
+                r.form_adverb(ctx, &lu)?
             }
             _ => {
                 return Err(JError::SyntaxError)

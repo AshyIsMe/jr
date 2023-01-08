@@ -416,6 +416,7 @@ NB. transpose
 NB. oblique / key
 1 2 3 1 3 2 1 </. 'abcdefg'
 1 2 3 1 3 2 1 #/. 'abcdefg'
++ (/.~) i. 5
 
 NB. numbers
 0". 4 1 $ '1001'
