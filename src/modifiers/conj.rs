@@ -117,6 +117,25 @@ pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     let biv = match (u, v) {
         (Word::Verb(u), Word::Noun(ja)) => {
             match ja {
+                JArray::BoxArray(b)
+                    if b.shape().is_empty() && b.iter().next().expect("atom").is_empty() =>
+                {
+                    let u = u.clone();
+                    BivalentOwned::from_bivalent(move |ctx, x, y| {
+                        let mut values = Vec::with_capacity(16);
+                        values.push(y.clone());
+                        let mut prev = u.exec(ctx, x, y)?;
+                        loop {
+                            values.push(prev.clone());
+                            let cand = u.exec(ctx, x, &prev)?;
+                            if cand == prev {
+                                break;
+                            }
+                            prev = cand;
+                        }
+                        Ok(JArray::from_fill_promote(values)?)
+                    })
+                }
                 JArray::BoxArray(b) if b.is_empty() || b.shape().is_empty() => {
                     return Err(JError::NonceError).context("hatco on boxed atoms");
                 }
