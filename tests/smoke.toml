@@ -220,6 +220,14 @@ output = 'dbca'
 encoded = 'e3,02,04,01,04,64626361'
 
 [[runs]]
+expr = "'alpha' , 'bravo' ,: 'charlie'"
+output = '''
+alpha  
+bravo  
+charlie'''
+encoded = 'e3,02,15,02,03,07,616c706861202062,7261766f20206368,61726c6965'
+
+[[runs]]
 expr = "'alpha' ; 'bravo' ; 'charlie'"
 output = '''
 ┌─────┬─────┬───────┐
@@ -230,6 +238,13 @@ e3,2,03,01,03,4,7,a,
 e3,02,05,01,05,616c706861,
 e3,02,05,01,05,627261766f,
 e3,02,07,01,07,636861726c6965'''
+
+[[runs]]
+expr = "'bravo' ,: 'charlie'"
+output = '''
+bravo  
+charlie'''
+encoded = 'e3,02,0e,02,02,07,627261766f202063,6861726c6965'
 
 [[runs]]
 expr = "'c' E. 'cocoa'"

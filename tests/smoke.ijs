@@ -364,6 +364,9 @@ NB. ravel items
 ,. 'a'
 ,. i.3
 
+NB. laminate
+'bravo' ,: 'charlie'
+
 NB. link
 5;3
 6;7;8

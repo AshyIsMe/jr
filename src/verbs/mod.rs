@@ -172,8 +172,8 @@ pub fn v_itemize(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ,: (dyad)
-pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_laminate(x: &JArray, y: &JArray) -> Result<JArray> {
+    JArray::from_fill_promote([x.to_owned(), y.to_owned()])
 }
 
 /// ; (monad)
