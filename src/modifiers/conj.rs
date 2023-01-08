@@ -426,11 +426,13 @@ fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
 pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
-    match (u, v) {
-        (Word::Verb(u), Word::Verb(v)) => {
-            let u = u.clone();
-            let v = v.clone();
-            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
+    match (u.when_verb(), v.when_verb()) {
+        (Some(u), Some(v)) => {
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let u = u.to_verb(ctx.eval())?;
+                let v = v.to_verb(ctx.eval())?;
+                do_atop(ctx, x, &u, &v, y)
+            });
             Ok(BivalentOwned {
                 biv,
                 ranks: Rank::inf_inf_inf(),

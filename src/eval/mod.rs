@@ -1,6 +1,7 @@
 mod controls;
 mod ctl_if;
 mod ctl_try;
+mod semi;
 
 use std::collections::VecDeque;
 use std::iter::repeat;

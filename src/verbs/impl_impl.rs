@@ -211,8 +211,8 @@ impl VerbImpl {
                     // see the comment on PartialImpl's def field
                     // adverb
                     2 => JArray::from_list(vec![
-                       def[1].boxed_ar()?,
-                       JArray::from_list(vec![def[0].boxed_ar()?]),
+                        def[1].boxed_ar()?,
+                        JArray::from_list(vec![def[0].boxed_ar()?]),
                     ]),
                     // conj
                     3 => JArray::from_list(vec![
