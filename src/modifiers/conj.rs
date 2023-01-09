@@ -2,10 +2,11 @@ use std::fmt;
 use std::iter;
 use std::sync::Arc;
 
-use anyhow::{anyhow, ensure, Context, Result};
+use anyhow::{anyhow, ensure, Context, Error, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 
+use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
 use crate::eval::{create_def, resolve_controls};
 use crate::foreign::foreign;
@@ -51,6 +52,23 @@ impl fmt::Debug for WordyConjunction {
 }
 
 #[derive(Clone)]
+pub struct OwnedAdverb {
+    pub f: Arc<dyn Fn(&mut Ctx, &Word) -> Result<Word>>,
+}
+
+impl PartialEq for OwnedAdverb {
+    fn eq(&self, _other: &Self) -> bool {
+        todo!()
+    }
+}
+
+impl fmt::Debug for OwnedAdverb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "OwnedAdverb")
+    }
+}
+
+#[derive(Clone)]
 pub struct OwnedConjunction {
     pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
 }
@@ -67,8 +85,19 @@ impl fmt::Debug for OwnedConjunction {
     }
 }
 
-pub fn c_not_implemented(_ctx: &mut Ctx, _u: &Word, _v: &Word) -> Result<BivalentOwned> {
-    Err(JError::NonceError).context("blanket conjunction implementation")
+pub fn c_not_implemented(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+    let u = u.clone();
+    let v = v.clone();
+    let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
+        Err(JError::NonceError)
+            .context("blanket conjunction implementation")
+            .with_context(|| anyhow!("m/u: {u:?}"))
+            .with_context(|| anyhow!("n/v: {v:?}"))
+    });
+    Ok(BivalentOwned {
+        biv,
+        ranks: Rank::inf_inf_inf(),
+    })
 }
 
 pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
@@ -88,6 +117,25 @@ pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     let biv = match (u, v) {
         (Word::Verb(u), Word::Noun(ja)) => {
             match ja {
+                JArray::BoxArray(b)
+                    if b.shape().is_empty() && b.iter().next().expect("atom").is_empty() =>
+                {
+                    let u = u.clone();
+                    BivalentOwned::from_bivalent(move |ctx, x, y| {
+                        let mut values = Vec::with_capacity(16);
+                        values.push(y.clone());
+                        let mut prev = u.exec(ctx, x, y)?;
+                        loop {
+                            values.push(prev.clone());
+                            let cand = u.exec(ctx, x, &prev)?;
+                            if cand == prev {
+                                break;
+                            }
+                            prev = cand;
+                        }
+                        Ok(JArray::from_fill_promote(values)?)
+                    })
+                }
                 JArray::BoxArray(b) if b.is_empty() || b.shape().is_empty() => {
                     return Err(JError::NonceError).context("hatco on boxed atoms");
                 }
@@ -245,26 +293,21 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
 }
 
 pub fn c_tie(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
-    let u = match u {
+    append_nd(&tie_top(u)?, &tie_top(v)?).map(Word::Noun)
+}
+
+// TODO: not quite a copy-paste of Word::boxed_ar
+fn tie_top(u: &Word) -> Result<JArray> {
+    Ok(match u {
         Word::Noun(u) => u.clone(),
         u @ Word::Verb(_) => JArray::from_list([u.boxed_ar()?]),
+        Word::Name(s) => JArray::from_list([JArray::from_string(s)]),
         _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
-    };
-
-    let v = match v {
-        Word::Noun(v) => v.clone(),
-        v @ Word::Verb(_) => JArray::from_list([v.boxed_ar()?]),
-        _ => return Err(JError::DomainError).context("can only gerund nouns and verbs"),
-    };
-
-    append_nd(&u, &v).map(Word::Noun)
+    })
 }
 
 pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
     use Word::*;
-
-    let Noun(v) = v else { return Err(JError::NounResultWasRequired).context("agenda's index type"); };
-    let v = v.approx_usize_one().context("agenda's v")?;
 
     let Noun(JArray::BoxArray(u)) = u else { return Err(JError::DomainError).context("agenda's box array"); };
 
@@ -272,6 +315,32 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         return Err(JError::NonceError).context("@. only implemented for lists");
     }
 
+    match v {
+        Noun(v) => do_agenda(ctx, u, v.approx_usize_one().context("agenda's v")?),
+        Verb(v) => {
+            let u = u.clone();
+            let v = v.clone();
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let v = v.exec(ctx, x, y)?;
+                match do_agenda(ctx, &u, v.approx_usize_one()?)? {
+                    Verb(a) => a.exec(ctx, x, y),
+                    _ => Err(JError::DomainError).context("untied a non-verb, which is banned"),
+                }
+            });
+            Ok(Verb(VerbImpl::Partial(PartialImpl {
+                imp: BivalentOwned {
+                    biv,
+                    // supposedly depends on the rank of v
+                    ranks: Rank::inf_inf_inf(),
+                },
+                def: None,
+            })))
+        }
+        _ => Err(JError::DomainError).context("agenda's index type"),
+    }
+}
+
+fn do_agenda(ctx: &mut Ctx, u: &BoxArray, v: usize) -> Result<Word> {
     let verb = u
         .iter()
         .nth(v)
@@ -374,11 +443,13 @@ fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
 pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
-    match (u, v) {
-        (Word::Verb(u), Word::Verb(v)) => {
-            let u = u.clone();
-            let v = v.clone();
-            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| do_atop(ctx, x, &u, &v, y));
+    match (u.when_verb(), v.when_verb()) {
+        (Some(u), Some(v)) => {
+            let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let u = u.to_verb(ctx.eval())?;
+                let v = v.to_verb(ctx.eval())?;
+                do_atop(ctx, x, &u, &v, y)
+            });
             Ok(BivalentOwned {
                 biv,
                 ranks: Rank::inf_inf_inf(),
@@ -443,6 +514,7 @@ pub fn c_cor(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<(bool, Word)> {
         Word::Noun(CharArray(jcode)) if jcode.shape().len() <= 1 => {
             let n = match n {
                 0 => return Ok((false, Word::Noun(CharArray(jcode.clone())))),
+                1 => 'a',
                 2 => 'c',
                 3 => 'm',
                 4 => 'd',
@@ -669,54 +741,72 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
 }
 
 pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
-    let (u, v) = match (n, m) {
-        (Word::Verb(n), Word::Verb(m)) => (n, m),
+    let (u, v) = match (n.when_verb(), m.when_verb()) {
+        (Some(n), Some(m)) => (n, m),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
     };
-    let vi = v
-        .obverse()
-        .ok_or(JError::NonceError)
-        .context("lacking obverse")?;
-    let u = u.clone();
-    let v = v.clone();
-    let vi = vi.clone();
-    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
-        None => {
-            let (cells, frame) = monad_cells(y, Rank::zero())?;
-            let mut parts = Vec::new();
-            for y in cells {
-                let v = v.exec(ctx, None, &y).context("under dual v")?;
-                let u = u.exec(ctx, None, &v).context("under dual u")?;
-                let vi = vi.exec(ctx, None, &u).context("under dual vi")?;
-                parts.push(vi);
-            }
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
-        }
-        Some(x) => {
-            let vr = v
-                .dyad_rank()
-                .ok_or(JError::NonceError)
-                .context("missing rank for dyad")?;
-            let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
-            let parts = apply_cells(
-                &cells,
-                |x, y| {
-                    let l = v.exec(ctx, None, x).context("under dual l")?;
-                    let r = v.exec(ctx, None, y).context("under dual r")?;
-                    let u = u.exec(ctx, Some(&l), &r).context("under dual u")?;
-                    vi.exec(ctx, None, &u).context("under dual vi")
-                },
-                vr,
-            )?;
-            JArray::from_fill_promote(parts)?
-                .to_shape(frame)
-                .map(|cow| cow.to_owned())
+    let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+        let u = u.to_verb(ctx.eval())?;
+        let v = v.to_verb(ctx.eval())?;
+        let vi = v
+            .obverse()
+            .ok_or(JError::NonceError)
+            .context("lacking obverse")?;
+        match x {
+            None => do_under_monad(ctx, &u, &v, &vi, y),
+            Some(x) => do_under_dyad(ctx, x, u, v, vi, y),
         }
     });
     Ok(BivalentOwned {
         biv,
         ranks: Rank::inf_inf_inf(),
     })
+}
+
+fn do_under_monad(
+    ctx: &mut Ctx,
+    u: &VerbImpl,
+    v: &VerbImpl,
+    vi: &VerbImpl,
+    y: &JArray,
+) -> Result<JArray, Error> {
+    let (cells, frame) = monad_cells(y, Rank::zero())?;
+    let mut parts = Vec::new();
+    for y in cells {
+        let v = v.exec(ctx, None, &y).context("under dual v")?;
+        let u = u.exec(ctx, None, &v).context("under dual u")?;
+        let vi = vi.exec(ctx, None, &u).context("under dual vi")?;
+        parts.push(vi);
+    }
+    JArray::from_fill_promote(parts)?
+        .to_shape(frame)
+        .map(|cow| cow.to_owned())
+}
+
+fn do_under_dyad(
+    ctx: &mut Ctx,
+    x: &JArray,
+    u: VerbImpl,
+    v: VerbImpl,
+    vi: VerbImpl,
+    y: &JArray,
+) -> Result<JArray, Error> {
+    let vr = v
+        .dyad_rank()
+        .ok_or(JError::NonceError)
+        .context("missing rank for dyad")?;
+    let (frame, cells) = generate_cells(x.clone(), y.clone(), vr)?;
+    let parts = apply_cells(
+        &cells,
+        |x, y| {
+            let l = v.exec(ctx, None, x).context("under dual l")?;
+            let r = v.exec(ctx, None, y).context("under dual r")?;
+            let u = u.exec(ctx, Some(&l), &r).context("under dual u")?;
+            vi.exec(ctx, None, &u).context("under dual vi")
+        },
+        vr,
+    )?;
+    JArray::from_fill_promote(parts)?
+        .to_shape(frame)
+        .map(|cow| cow.to_owned())
 }

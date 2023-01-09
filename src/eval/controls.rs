@@ -1,11 +1,12 @@
 use std::collections::HashSet;
+use std::sync::Arc;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 
 use crate::eval::eval_lines;
-use crate::modifiers::{ModifierImpl, OwnedConjunction};
-use crate::verbs::{BivalentCOwned, BivalentOwned, PartialImpl, VerbImpl};
+use crate::modifiers::{ModifierImpl, OwnedAdverb, OwnedConjunction};
+use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
 use crate::{arr0d, primitive_conjunctions, HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
@@ -107,10 +108,12 @@ fn resolve_one_direct_def(words: &mut Vec<Word>) -> Result<Resolution> {
 
 // yes, I am fully aware that this is what parser frameworks were invented to avoid
 fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
-    let last_start = match words
-        .iter()
-        .rposition(|w| matches!(w, Word::If | Word::For(_) | Word::While | Word::Try))
-    {
+    let last_start = match words.iter().rposition(|w| {
+        matches!(
+            w,
+            Word::If | Word::For(_) | Word::While | Word::Whilst | Word::Try | Word::Select
+        )
+    }) {
         Some(x) => x,
         None => return Ok(Resolution::Complete),
     };
@@ -132,8 +135,10 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
 
     let def = match kind {
         Word::If => Word::IfBlock(def),
+        Word::Select => Word::SelectBlock(def),
         Word::For(ident) => Word::ForBlock(ident, def),
-        Word::While => Word::WhileBlock(def),
+        Word::While => Word::WhileBlock(false, def),
+        Word::Whilst => Word::WhileBlock(true, def),
         Word::Try => Word::TryBlock(def),
         other => unreachable!("matches! above excludes {other:?}"),
     };
@@ -165,15 +170,30 @@ fn infer_type(def: &[Word]) -> Result<char> {
 
 pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     Ok(match mode {
+        'a' => Word::Adverb(ModifierImpl::OwnedAdverb(OwnedAdverb {
+            f: Arc::new(move |ctx, u| {
+                let mut ctx = ctx.nest();
+                ctx.eval_mut().locales.assign_local("u", u.clone())?;
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .map(|r| r.into_word())
+                    .and_then(must_be_modifier_result)
+            }),
+        })),
         'c' => Word::Conjunction(ModifierImpl::OwnedConjunction(OwnedConjunction {
-            f: BivalentCOwned::from_bivalent(move |ctx, u, v| {
+            f: Arc::new(move |ctx, u, v| {
                 let mut ctx = ctx.nest();
                 if let Some(u) = u {
                     ctx.eval_mut().locales.assign_local("u", u.clone())?;
+                    ctx.eval_mut().locales.assign_local("m", u.clone())?;
                 }
 
                 ctx.eval_mut().locales.assign_local("v", v.clone())?;
-                eval_lines(&def, &mut ctx).context("anonymous")
+                ctx.eval_mut().locales.assign_local("n", v.clone())?;
+                eval_lines(&def, &mut ctx)
+                    .context("anonymous")
+                    .map(|r| r.into_word())
+                    .and_then(must_be_modifier_result)
             }),
         })),
         'm' => {
@@ -186,6 +206,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&body, &mut ctx)
                         .context("anonymous")
+                        .map(|r| r.into_word())
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
@@ -212,6 +233,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .assign_local("y", Word::Noun(y.clone()))?;
                     eval_lines(&body, &mut ctx)
                         .context("anonymous")
+                        .map(|r| r.into_word())
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
@@ -252,5 +274,13 @@ fn must_be_noun(v: Word) -> Result<JArray> {
         Word::Noun(arr) => Ok(arr),
         _ => Err(JError::DomainError)
             .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+    }
+}
+
+fn must_be_modifier_result(v: Word) -> Result<Word> {
+    match v {
+        Word::Noun(_) | Word::Verb(_) => Ok(v),
+        _ => Err(JError::DomainError)
+            .with_context(|| anyhow!("unexpected word in modifier result: {v:?}")),
     }
 }

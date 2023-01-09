@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::warn;
 
 use super::ranks::Rank;
@@ -147,8 +147,10 @@ impl VerbImpl {
                 }
                 _ => panic!("invalid Fork {:?}", self),
             },
-            VerbImpl::Hook { l, r } => match (l.deref(), r.deref()) {
-                (Verb(u), Verb(v)) => {
+            VerbImpl::Hook { l, r } => match (l.when_verb(), r.when_verb()) {
+                (Some(u), Some(v)) => {
+                    let u = u.to_verb(ctx.eval())?;
+                    let v = v.to_verb(ctx.eval())?;
                     let ny = v.exec(ctx, None, y)?;
                     match x {
                         // TODO: it's very unclear to me that this should be a recursive call,
@@ -157,7 +159,7 @@ impl VerbImpl {
                         Some(x) => u.partial_exec(ctx, Some(x), &ny),
                     }
                 }
-                _ => panic!("invalid Hook {:?}", self),
+                _ => bail!("supposedly unreachable: invalid Hook {:?}", self),
             },
             VerbImpl::Cap => Err(JError::DomainError)
                 .with_context(|| anyhow!("cap cannot be executed: {x:?} {y:?}")),
@@ -208,12 +210,21 @@ impl VerbImpl {
             Partial(PartialImpl { def, .. }) if def.is_some() => {
                 let def = def.as_ref().expect("wtb if-let in match");
                 match def.len() {
+                    // see the comment on PartialImpl's def field
+                    // adverb
+                    2 => JArray::from_list(vec![
+                        def[0].boxed_ar()?,
+                        JArray::from_list(vec![def[1].boxed_ar()?]),
+                    ]),
+                    // conj
                     3 => JArray::from_list(vec![
                         def[1].boxed_ar()?,
                         JArray::from_list(vec![def[0].boxed_ar()?, def[2].boxed_ar()?]),
                     ]),
                     len if len > 3 => {
                         warn!("lying about serialising a udf: {def:?}");
+                        // TODO: NOT IMPLEMENTED!!!
+                        // TODO: NOT IMPLEMENTED!!!
                         JArray::from_list([
                             def[1].boxed_ar()?,
                             JArray::from_list([
@@ -228,6 +239,10 @@ impl VerbImpl {
                     }
                 }
             }
+            Hook { l, r } => JArray::from_list([
+                JArray::from_string("2"),
+                JArray::from_list([l.boxed_ar()?, r.boxed_ar()?]),
+            ]),
             Fork { f, g, h } => JArray::from_list([
                 JArray::from_string("3"),
                 JArray::from_list([f.boxed_ar()?, g.boxed_ar()?, h.boxed_ar()?]),

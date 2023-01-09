@@ -3,7 +3,6 @@ mod impl_maths;
 mod impl_shape;
 mod maff;
 mod partial;
-mod partial_c;
 mod primitive;
 mod ranks;
 
@@ -32,7 +31,6 @@ pub use impl_maths::*;
 pub use impl_shape::*;
 
 pub use partial::*;
-pub use partial_c::*;
 pub use primitive::*;
 
 pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
@@ -174,8 +172,8 @@ pub fn v_itemize(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 /// ,: (dyad)
-pub fn v_laminate(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_laminate(x: &JArray, y: &JArray) -> Result<JArray> {
+    JArray::from_fill_promote([x.to_owned(), y.to_owned()])
 }
 
 /// ; (monad)
@@ -539,6 +537,16 @@ pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
             .chain(repeat(Elem::Num(Num::bool(false))).take(x.len() - 1))
             .collect(),
     )
+}
+
+/// L. (monad) (_)
+pub fn v_levels(y: &JArray) -> Result<JArray> {
+    return Ok(JArray::from(match y {
+        // yes it would probably be easier to implement the whole thing
+        BoxArray(b) if b.iter().all(|c| !matches!(c, BoxArray(_))) => arr0d(1i64),
+        BoxArray(_) => return Err(JError::NonceError).context("levels > 0"),
+        _ => arr0d(0i64),
+    }));
 }
 
 /// i: (monad)

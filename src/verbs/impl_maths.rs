@@ -347,9 +347,12 @@ pub fn v_magnitude(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
-/// | (dyad)
-pub fn v_residue(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+/// | (dyad) (0 0)
+pub fn v_residue(x: &JArray, y: &JArray) -> Result<JArray> {
+    d00nrn(x, y, |x, y| match (x.value_i64(), y.value_i64()) {
+        (Some(x), Some(y)) => Ok(Num::Int(y % x)),
+        _ => Err(JError::NonceError).context("residue on non-integers"),
+    })
 }
 
 /// ! (monad) (0)

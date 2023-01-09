@@ -249,6 +249,10 @@ NB. reflexive / passive
 3.2 %~ 16
 16 %~ 3.2
 
+NB. residue
+7 | 50
+7 | 49
+
 NB. grade
 /: 3 1 4 2 1 3 3
 
@@ -266,6 +270,9 @@ NB. self classify
 = 3 3 $ i. 6
 = 1
 = 'do what you want because a pirate is free, yar har diddledee dee'
+
+NB. table
+(}. i.5) */ (}. i.4)
 
 NB. prefix
 ]\ 'banana'
@@ -357,6 +364,9 @@ NB. ravel items
 ,. 'a'
 ,. i.3
 
+NB. laminate
+'bravo' ,: 'charlie'
+
 NB. link
 5;3
 6;7;8
@@ -412,6 +422,7 @@ NB. transpose
 NB. oblique / key
 1 2 3 1 3 2 1 </. 'abcdefg'
 1 2 3 1 3 2 1 #/. 'abcdefg'
++ (/.~) i. 5
 
 NB. numbers
 0". 4 1 $ '1001'
@@ -439,12 +450,14 @@ NB. tie
 *`+`]
 NB. not serialising bodies: {{ x + y }}`0:
 ((<@[)`(1 = #@])`])
+foo`0:
 
 NB. agenda
 5 (+`-@.1) 2
 5 (+`-@.0) 2
 *`0:@.1 ''
 -&>`0:@.0 [ _5
+(+&3)`(2&*)@.(2&|)"0 (1 2 3 4)
 
 NB. atop / at
 #@> 'Newton';'Einstein'
@@ -496,6 +509,11 @@ NB. index of
 NB. indexes (bool)
 I. 0 0 1 0 1 0
 
+NB. level of
+L. 5
+L. <5
+NB. not implemented: L. (5; <7; 2)
+
 NB. member interval
 'c' E. 'cocoa'
 'co' E. 'cocoa'
@@ -530,6 +548,12 @@ $ 9!:12 ''
 NB. agreement / empty
 {{ 3 4 5 }}"1 (0 5 $ 0)
 {."1 (0 1 $ 0)
+
+NB. lazy verbs
+(7 two three)`0:
+(one two three)`0:
+(one two)`0:
+(one~)`0:
 
 NB. torture
 #/.~@/:~'AGCTTTTCATTCTGACTGCAACGGGCAATATGTCTCTGTGTGGATTAAAAAAAGAGTGTCTGATAGCAGC'
@@ -567,4 +591,5 @@ NB. power conjunction
 2 *^:< i.2 2
 'Mr.' ,^:((<@[)`(1 = #@])`]) <'Jones'
 'Mr.' ,^:((<@[)`(1 = #@])`]) 'Harry';'Jones'
-
+a:
+(0 >. <:)^:a: 5

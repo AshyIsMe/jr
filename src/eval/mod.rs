@@ -1,7 +1,9 @@
 mod controls;
 mod ctl_if;
 mod ctl_try;
+mod semi;
 
+use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
@@ -15,6 +17,8 @@ use crate::error::JError;
 pub use crate::eval::controls::create_def;
 // TODO: oh come on, this is clearly an eval concept
 pub use crate::eval::controls::resolve_controls;
+
+pub use semi::MaybeVerb;
 
 use crate::eval::ctl_if::control_if;
 use crate::eval::ctl_try::control_try;
@@ -31,6 +35,7 @@ pub struct Qs {
 #[derive(Debug)]
 pub enum EvalOutput {
     Regular(Word),
+    Return(Word),
     Suspension,
     InDefinition,
 }
@@ -72,12 +77,31 @@ pub fn feed(line: &str, ctx: &mut Ctx) -> Result<EvalOutput> {
 pub fn eval(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<Word> {
     match eval_suspendable(sentence, ctx)? {
         EvalOutput::Regular(word) => Ok(word),
+        EvalOutput::Return(_) => {
+            Err(JError::SyntaxError).context("return in a context which doesn't support return")
+        }
         EvalOutput::InDefinition | EvalOutput::Suspension => Err(JError::StackSuspension)
             .context("suspended in a context which doesn't support suspension"),
     }
 }
 
-pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
+#[derive(Clone, Debug)]
+#[must_use]
+pub enum BlockEvalResult {
+    Regular(Word),
+    Return(Word),
+}
+
+impl BlockEvalResult {
+    fn into_word(self) -> Word {
+        match self {
+            BlockEvalResult::Regular(word) => word,
+            BlockEvalResult::Return(word) => word,
+        }
+    }
+}
+
+pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<BlockEvalResult> {
     // should not be returned?
     let mut word = Word::Nothing;
     for (rel_pos, sentence) in sentence
@@ -85,10 +109,20 @@ pub fn eval_lines(sentence: &[Word], ctx: &mut Ctx) -> Result<Word> {
         .enumerate()
         .filter(|(_, sub)| !sub.is_empty())
     {
-        word = eval(sentence.to_vec(), ctx)
-            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?;
+        word = match eval_suspendable(sentence.to_vec(), ctx)
+            .with_context(|| anyhow!("evaluating line {} *of block*: {sentence:?}", rel_pos + 1))?
+        {
+            EvalOutput::Regular(word) => word,
+            EvalOutput::Return(word) => {
+                return Ok(BlockEvalResult::Return(word));
+            }
+            EvalOutput::InDefinition | EvalOutput::Suspension => {
+                return Err(JError::StackSuspension)
+                    .context("suspended in a context which doesn't support suspension")
+            }
+        }
     }
-    Ok(word)
+    Ok(BlockEvalResult::Regular(word))
 }
 
 pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput> {
@@ -109,6 +143,15 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         );
 
         debug!("restoring onto {:?}", sus.qs.stack);
+        let cor = sus.qs.stack.get(1);
+        if cor != Some(&Conjunction(ModifierImpl::Cor)) {
+            return Err(JError::DomainError).with_context(|| {
+                anyhow!(
+                    "can only restore from suspension after cor, not {:?}",
+                    sus.qs
+                )
+            });
+        }
         sus.qs
             .stack
             // after `mode :`
@@ -127,6 +170,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
     let mut queue = qs.queue;
     debug!("starting eval: {stack:?} {queue:?}");
 
+    let mut wants_to_return = false;
+
     let mut converged = false;
     // loop until queue is empty and stack has stopped changing
     while !converged {
@@ -138,20 +183,33 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
         let result: Result<Vec<Word>> = match fragment {
             (IfBlock(def), b, c, d) => {
-                control_if(ctx, &def)?;
-                Ok(vec![b, c, d])
+                match control_if(ctx, &def)? {
+                    BlockEvalResult::Regular(w) => Ok(vec![w, b, c, d]),
+                    BlockEvalResult::Return(w) => {
+                        // TODO: not clear that it's valid to early exit the evaluation here
+                        return Ok(EvalOutput::Return(w));
+                    }
+                }
             }
-            (TryBlock(def), b, c, d) => {
-                control_try(ctx, &def)?;
-                Ok(vec![b, c, d])
-            }
+            (SelectBlock(_), _, _, _) => Err(JError::NonceError).context("select block"),
+            (TryBlock(def), b, c, d) => match control_try(ctx, &def)? {
+                BlockEvalResult::Regular(_) => Ok(vec![b, c, d]),
+                BlockEvalResult::Return(v) => {
+                    // TODO: not clear that it's valid to early exit the evaluation here
+                    return Ok(EvalOutput::Return(v));
+                }
+            },
             (AssertLine(def), b, c, d) => {
                 let _word = eval_lines(&def, ctx).context("assert body")?;
                 // TODO: actually assert
                 Ok(vec![b, c, d])
             }
-            (WhileBlock(_), _, _, _) => Err(JError::NonceError).context("throw"),
+            (WhileBlock(_, _), _, _, _) => Err(JError::NonceError).context("while block"),
             (Throw, _, _, _) => Err(JError::NonceError).context("throw"),
+            (Return, a, b, c) => {
+                wants_to_return = true;
+                Ok(vec![a, b, c])
+            }
             (ref w, Verb(v), Noun(y), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
@@ -190,54 +248,57 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 ])
             }
             // (V|N) A anything - 3 Adverb
-            (ref w, u @ Verb(_), Adverb(a), any)
+            (ref w, ref u, Adverb(ref a), any)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
+                ) && (maybe_verb(u) || matches!(u, Noun(_))) =>
             {
-                debug!("3 adverb V A _");
-                Ok(vec![fragment.0, a.form_adverb(ctx, &u)?, any])
+                debug!("3 adverb V/N A _");
+                let (farcical, formed) = a.form_adverb(ctx, u)?;
+                if !farcical {
+                    Ok(vec![fragment.0, formed, any])
+                } else {
+                    // TODO: nearly copy-paste below
+                    queue.push_back(fragment.0);
+                    match a {
+                        ModifierImpl::DerivedAdverb { c, .. }
+                            if matches!(c.borrow(), ModifierImpl::Cor) =>
+                        {
+                            ()
+                        }
+                        _ => bail!("unreachable: {a:?} wasn't a secret cor adverb"),
+                    }
+                    stack.push_front(Conjunction(ModifierImpl::Cor));
+                    stack.push_front(fragment.1);
+                    debug!("suspending {queue:?} {stack:?}");
+                    // TODO: capture return. somehow?
+                    ctx.input_buffers
+                        .as_mut()
+                        .ok_or(JError::ControlError)
+                        .context("suspension without buffers")?
+                        .suspend(Qs { queue, stack })?;
+                    return Ok(EvalOutput::Suspension);
+                }
             }
-            (ref w, n @ Noun(_), Adverb(a), any)
+            (ref w, ref m, Conjunction(ref c), ref n)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                Ok(vec![fragment.0, a.form_adverb(ctx, &n)?, any])
-            }
-            //// (V|N) C (V|N) - 4 Conjunction
-            (ref w, l, Conjunction(c), r)
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) && matches!(l, Verb(_) | Noun(_) | Name(_))
-                    && matches!(r, Verb(_) | Noun(_) | Name(_))
-                    // hack: noun noun conj handled by the parser
-                    && !(matches!(l, Noun(_)) && matches!(r, Noun(_))) =>
+                ) && matches!(m, Verb(_) | Noun(_) | Name(_))
+                    && matches!(n, Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("4 Conj");
-                let (farcical, formed) = c.form_conjunction(ctx, &l, &r)?;
-                assert!(!farcical);
-                Ok(vec![fragment.0, formed])
-            }
-            (ref w, Noun(ref m), Conjunction(ref c), Noun(n))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                debug!("4 Conj N C N");
-                let (farcical, formed) =
-                    c.form_conjunction(ctx, &Word::Noun(m.clone()), &Word::Noun(n.clone()))?;
+                let (farcical, formed) = c.form_conjunction(ctx, m, n)?;
                 if !farcical {
                     Ok(vec![fragment.0, formed])
                 } else {
+                    // TODO: nearly copy-paste above
                     queue.push_back(fragment.0);
                     stack.push_front(fragment.2);
                     stack.push_front(fragment.1);
                     debug!("suspending {queue:?} {stack:?}");
+                    // TODO: capture return. somehow?
                     ctx.input_buffers
                         .as_mut()
                         .ok_or(JError::ControlError)
@@ -247,31 +308,19 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 }
             }
             //// (V|N) V V - 5 Fork
-            (ref w, Verb(f), Verb(g), Verb(h))
+            (ref w, f, g, h)
                 if matches!(
                     w,
                     StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
+                ) && (maybe_verb(&f) || matches!(f, Noun(_)))
+                    && maybe_verb(&g)
+                    && maybe_verb(&h) =>
             {
-                debug!("5 Fork V V V");
+                debug!("5 Fork V/N V V");
                 let fork = VerbImpl::Fork {
-                    f: Box::new(Verb(f.clone())),
-                    g: Box::new(Verb(g.clone())),
-                    h: Box::new(Verb(h.clone())),
-                };
-                Ok(vec![fragment.0, Verb(fork)])
-            }
-            (ref w, Noun(m), Verb(g), Verb(h))
-                if matches!(
-                    w,
-                    StartOfLine | IsGlobal | IsLocal | LP | Adverb(_) | Verb(_) | Noun(_)
-                ) =>
-            {
-                debug!("5 Fork N V V");
-                let fork = VerbImpl::Fork {
-                    f: Box::new(Noun(m)),
-                    g: Box::new(Verb(g.clone())),
-                    h: Box::new(Verb(h.clone())),
+                    f: Box::new(f),
+                    g: Box::new(g),
+                    h: Box::new(h),
                 };
                 Ok(vec![fragment.0, Verb(fork)])
             }
@@ -283,17 +332,15 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
             // (C|A|V|N) (C|A|V|N) anything - 6 Hook/Adverb
             // Only the combinations A A, C N, C V, N C, V C, and V V are valid;
             // the rest result in syntax errors.
-            (ref w, Adverb(_), Adverb(_), _any)
+            (ref w, Adverb(l), Adverb(r), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
             {
                 debug!("6 Hook/Adverb A A _");
-                bail!("unable to bond adverbs")
-                // let adverb_str = format!("{} {}", sa0, sa1);
-                // let da = ModifierImpl::DerivedAdverb {
-                //     l: Box::new(Adverb(sa0, a0.clone())),
-                //     r: Box::new(Adverb(sa1, a1.clone())),
-                // };
-                // Ok(vec![fragment.0, Adverb(adverb_str, da), any])
+                let da = ModifierImpl::MmHook {
+                    l: Box::new(l.clone()),
+                    r: Box::new(r.clone()),
+                };
+                Ok(vec![fragment.0, Adverb(da), any])
             }
             (ref w, Conjunction(c), Noun(n), any)
                 if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
@@ -301,7 +348,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("6 Hook/Adverb C N _");
                 let da = ModifierImpl::DerivedAdverb {
                     c: Box::new(c),
-                    u: Box::new(Noun(n)),
+                    vn: Box::new(Noun(n)),
                 };
                 Ok(vec![fragment.0, Adverb(da), any])
             }
@@ -311,19 +358,21 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 debug!("6 Hook/Adverb C V _");
                 let da = ModifierImpl::DerivedAdverb {
                     c: Box::new(c),
-                    u: Box::new(Verb(v.clone())),
+                    vn: Box::new(Verb(v.clone())),
                 };
                 Ok(vec![fragment.0, Adverb(da), any])
             }
             //(w, Noun(n), Conjunction(d), _) => println!("6 Hook/Adverb N C _"),
             //(w, Verb(u), Conjunction(d), _) => println!("6 Hook/Adverb V C _"),
-            (ref w, Verb(u), Verb(v), any)
-                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP) =>
+            (ref w, u, v, any)
+                if matches!(w, StartOfLine | IsGlobal | IsLocal | LP)
+                    && maybe_verb(&u)
+                    && maybe_verb(&v) =>
             {
                 debug!("6 Hook/Adverb V V _");
                 let hook = VerbImpl::Hook {
-                    l: Box::new(Verb(u.clone())),
-                    r: Box::new(Verb(v.clone())),
+                    l: Box::new(u),
+                    r: Box::new(v),
                 };
                 Ok(vec![fragment.0, Verb(hook), any])
             }
@@ -335,14 +384,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
 
             //// (Name|Noun) (IsLocal|IsGlobal) (C|A|V|N) anything - 7 Is
             (Name(n), IsLocal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Local Name w");
                 ctx.eval_mut().locales.assign_local(n, w.clone())?;
                 Ok(vec![w.clone(), any])
             }
             (Noun(names), IsLocal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Local Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -355,14 +404,14 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 Ok(vec![any])
             }
             (Name(n), IsGlobal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Global Name w");
                 ctx.eval_mut().locales.assign_global(n, w.clone())?;
                 Ok(vec![w, any])
             }
             (Noun(names), IsGlobal, w, any)
-                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_)) =>
+                if matches!(w, Conjunction(_) | Adverb(_) | Verb(_) | Noun(_) | Name(_)) =>
             {
                 debug!("7 Is Global Noun w");
                 let (arr, names) = string_assignment(names, w)?;
@@ -407,7 +456,8 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
         return Ok(EvalOutput::Regular(Word::Nothing));
     }
     match new_stack.pop_front() {
-        Some(val) if new_stack.is_empty() => Ok(EvalOutput::Regular(val)),
+        Some(val) if new_stack.is_empty() && !wants_to_return => Ok(EvalOutput::Regular(val)),
+        Some(val) if new_stack.is_empty() => Ok(EvalOutput::Return(val)),
         Some(val) => Err(JError::SyntaxError).with_context(|| {
             anyhow!("expected a single output value but found {val:#?} followed by {new_stack:#?}")
         }),
@@ -475,4 +525,11 @@ pub fn resolve_names(
     let l = words.len() - resolved_words.len();
     let new_words = [&words[..l], &resolved_words[..]].concat();
     Ok(new_words.iter().cloned().collect_tuple().unwrap())
+}
+
+fn maybe_verb(w: &Word) -> bool {
+    match w {
+        Word::Verb(_) | Word::Name(_) => true,
+        _ => false,
+    }
 }

@@ -28,9 +28,11 @@ pub enum Word {
     Adverb(ModifierImpl),
     Conjunction(ModifierImpl),
     IfBlock(Vec<Word>),
+    SelectBlock(Vec<Word>),
     TryBlock(Vec<Word>),
     ForBlock(Option<String>, Vec<Word>),
-    WhileBlock(Vec<Word>),
+    // bool: false: while (check at start), true: whilst (check at end)
+    WhileBlock(bool, Vec<Word>),
     AssertLine(Vec<Word>),
 
     Comment,
@@ -49,9 +51,14 @@ pub enum Word {
     CatchD,
     CatchT,
     Throw,
+    Return,
 
     For(Option<String>),
     While,
+    Whilst,
+
+    Select,
+    Case,
 
     Assert,
 }
@@ -67,13 +74,19 @@ impl Word {
         match self {
             DirectDef(_) | DirectDefUnknown | DirectDefEnd => true,
             If | Do | Else | ElseIf | End => true,
-            For(_) | While => true,
+            For(_) | While | Whilst => true,
             Try | Catch | CatchD | CatchT => true,
+            Select | Case => true,
             Assert => true,
             LP | RP | Name(_) | IsLocal | IsGlobal => false,
             Verb(_) | Noun(_) | Adverb(_) | Conjunction(_) => false,
-            IfBlock(_) | ForBlock(_, _) | WhileBlock(_) | AssertLine(_) | TryBlock(_) => false,
-            Throw => false,
+            IfBlock(_)
+            | ForBlock(_, _)
+            | WhileBlock(_, _)
+            | AssertLine(_)
+            | TryBlock(_)
+            | SelectBlock(_) => false,
+            Throw | Return => false,
             NewLine => false,
             StartOfLine | Nothing => false,
             Comment => unreachable!("should have been removed from the stream by now"),
@@ -132,10 +145,12 @@ impl_from_atom!(Complex64, JArray::ComplexArray);
 impl Word {
     pub fn boxed_ar(&self) -> Result<JArray> {
         use Word::*;
+        // TODO: not quite a copy-paste of tie_top
         match self {
             Noun(a) => Ok(JArray::from_list([JArray::from_string("0"), a.clone()])),
             Verb(v) => v.boxed_ar(),
-            Conjunction(m) => m.boxed_ar(),
+            Name(s) => Ok(JArray::from_string(s)),
+            Adverb(m) | Conjunction(m) => m.boxed_ar(),
             _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::boxed_ar {self:?}")),
         }
     }

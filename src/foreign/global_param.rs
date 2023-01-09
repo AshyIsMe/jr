@@ -9,3 +9,8 @@ pub fn f_os_type() -> Result<JArray> {
         _ => -1,
     })))
 }
+
+pub fn f_is_secure() -> Result<JArray> {
+    // it's rust, of course it's secure
+    Ok(JArray::IntArray(arr0d(1)))
+}
