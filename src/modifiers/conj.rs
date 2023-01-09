@@ -485,8 +485,7 @@ pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
             let u = u.clone();
             let v = v.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
-                let r = v.partial_exec(ctx, x, y).context("right half of c_at")?;
-                let r = fill_promote_reshape(&r).context("expanding result of c_atop")?;
+                let r = v.exec(ctx, x, y).context("right half of c_at")?;
                 u.exec(ctx, None, &r).context("left half of c_at")
             });
             Ok(BivalentOwned {

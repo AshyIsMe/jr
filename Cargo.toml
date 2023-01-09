@@ -24,6 +24,7 @@ rand = "0.8"
 regex = "1"
 thiserror = "1"
 try-partialord = "0.1"
+unicode-width = "0.1"
 
 # examples / test utils
 serde = { version = "1", features = ["derive"] }

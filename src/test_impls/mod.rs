@@ -8,7 +8,7 @@ use std::process::{Command, Stdio};
 
 use anyhow::{anyhow, bail, Context, Result};
 
-use crate::{Ctx, EvalOutput, JArray, Word};
+use crate::{display, Ctx, EvalOutput, JArray, Word};
 
 pub use jsoft_runs::{Lookup, Run, RunList};
 
@@ -40,7 +40,7 @@ fn run_j_inner(expr: &str) -> Result<String> {
         .context("writing to j")?;
     let out = p.wait_with_output().context("waiting for j to run")?;
     let s = String::from_utf8(out.stdout).context("reading from j")?;
-    Ok(s.trim().to_string())
+    Ok(s.to_string())
 }
 
 pub fn scan_eval(sentence: &str) -> Result<Word> {
@@ -86,8 +86,15 @@ pub fn assert_produces(expr: &str, (them, rendered): &(JArray, String)) -> Resul
     let us = scan_eval(expr).context("running expression in smoke test")?;
     let Word::Noun(arr) = us else { bail!("unexpected non-array from eval: {us:?}") };
 
+    let mut s = String::with_capacity(rendered.len());
+    display::jsoft(&mut s, &arr)?;
+
     if &arr == them {
-        return Ok(());
+        // TODO: trailing whitespace
+        if s.trim_end() == rendered.trim_end() {
+            return Ok(());
+        }
+        return Err(anyhow!("incorrect rendering, data:\n{arr:#?}\n\nWe rendered:\n{s}\n\njsoft would render this like this:\n{rendered}"));
     }
 
     Err(anyhow!("incorrect data, we got:\n{arr:#?}\n\nThey expect:\n{them:#?}\n\njsoft would render this like this:\n{rendered}"))
