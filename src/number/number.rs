@@ -274,7 +274,7 @@ impl ops::Div for Num {
         match promo(self, rhs) {
             (Int(l), Int(r)) => match l.div_rem(&r) {
                 (o, 0) => Int(o),
-                (_, _) => rational(l) / rational(r),
+                (_, _) => Float(l as f64 / r as f64),
             },
             (ExtInt(l), ExtInt(r)) => match l.div_rem(&r) {
                 (o, r) if r.is_zero() => ExtInt(o),

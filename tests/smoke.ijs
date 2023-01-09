@@ -436,6 +436,12 @@ NB. do
 NB. no direct: ". '{{ x }}'
 NB. we still don't understand gerunds: ". '+`*'
 
+NB. idot
+i. 0
+;/"1 i. 1
+;/"1 i. 2 3
+;/"1 i. 2 3 4
+
 NB. format
 ": 5
 ": 17.7

@@ -182,7 +182,7 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
     for (rn, row) in table {
         if rn == 0 {
             hor(&mut f, ('┌', '┬', '┐'), &column_widths)?;
-        } else {
+        } else if !any_need_marking(rn, &multiples) {
             hor(&mut f, ('├', '┼', '┤'), &column_widths)?;
         }
         for line in 0..row_heights[rn] {
@@ -197,7 +197,13 @@ fn br_box(mut f: impl fmt::Write, arr: ArrayViewD<JArray>) -> fmt::Result {
             hor(&mut f, ('└', '┴', '┘'), &column_widths)?;
             break;
         }
+
+        if !any_need_marking(rn + 1, &multiples) {
+            continue;
+        }
+        hor(&mut f, ('└', '┴', '┘'), &column_widths)?;
         print_dimension_markings(&mut f, rn, &multiples)?;
+        hor(&mut f, ('┌', '┬', '┐'), &column_widths)?;
     }
 
     Ok(())
@@ -249,6 +255,10 @@ fn compute_dimension_spacing<T>(arr: &ArrayViewD<T>) -> Vec<usize> {
             acc.push(x * t);
             acc
         })
+}
+
+fn any_need_marking(rn: usize, multiples: &[usize]) -> bool {
+    multiples.iter().any(|&m| rn % m == 0)
 }
 
 fn print_dimension_markings(mut f: impl fmt::Write, rn: usize, multiples: &[usize]) -> fmt::Result {
