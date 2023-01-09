@@ -40,9 +40,8 @@ _TODO:_
 
 * Implement the rest of the primitives (see: (STATUS.md) and `src/lib.rs`)
 * Tests, lots more tests needed
-* [J compatible display](https://www.jsoftware.com/ioj/iojDisp.htm) of nouns
 * [Foreigns](https://code.jsoftware.com/wiki/Vocabulary/Foreigns)
-* [Locales](https://code.jsoftware.com/wiki/Vocabulary/Locales)
+* [Locales](https://code.jsoftware.com/wiki/Vocabulary/Locales) - partial
 * Draw the rest of the owl
 
 
@@ -53,6 +52,7 @@ _Done:_
 * A few primitive verbs implemented for integer nouns
 * Finish `src/lib.rs:eval()`
 * Implement the verb rank concept
+* [J compatible display](https://www.jsoftware.com/ioj/iojDisp.htm) of nouns
 
 
 ## usage
