@@ -122,6 +122,22 @@ macro_rules! map_array {
 }
 
 #[macro_export]
+macro_rules! map_kind {
+    ($kind:ident, $func:expr) => {
+        match $arr {
+            JArrayKind::Bool(a) => JArray::BoolArray($func(a)?),
+            JArrayKind::Char(a) => JArray::CharArray($func(a)?),
+            JArrayKind::Int(a) => JArray::IntArray($func(a)?),
+            JArrayKind::ExtInt(a) => JArray::ExtIntArray($func(a)?),
+            JArrayKind::Rational(a) => JArray::RationalArray($func(a)?),
+            JArrayKind::Float(a) => JArray::FloatArray($func(a)?),
+            JArrayKind::Complex(a) => JArray::ComplexArray($func(a)?),
+            JArrayKind::Box(a) => JArray::BoxArray($func(a)?),
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! impl_homo {
     ($x:ident, $y:ident, $func:expr) => {
         match ($x, $y) {

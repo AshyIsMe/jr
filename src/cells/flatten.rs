@@ -3,8 +3,10 @@ use std::iter;
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
+use ndarray::IxDyn;
 use num_traits::Zero;
 
+use crate::arrays::size_of_shape_checked;
 use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
 use crate::verbs::VerbResult;
 use crate::{Elem, JArray, JError};
@@ -66,7 +68,7 @@ pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
     let kind = infer_kind_from_boxes(&results);
 
     // flatten
-    let mut big_daddy: Vec<Elem> = Vec::new();
+    let mut big_daddy = Vec::with_capacity(size_of_shape_checked(&IxDyn(&target_shape))?);
     for arr in results {
         if arr.shape() == target_inner_shape {
             // TODO: don't clone
@@ -99,7 +101,11 @@ fn rank_extend(target: usize, arr: JArray) -> JArray {
 }
 
 // recursive implementation; lops off the start of the dims, recurses on that, then later fills
-fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result<()> {
+fn push_with_shape<T: From<Elem> + Clone>(
+    out: &mut Vec<T>,
+    target: &[usize],
+    arr: JArray,
+) -> Result<()> {
     assert!(
         !target.is_empty(),
         "recursion has presumably gone wrong somewhere"
@@ -117,8 +123,24 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
         "{initial_size} <= {this_dim_size}: fill can't see longer shapes"
     );
 
+    macro_rules! conv {
+        ($t:ty) => {
+            |v| <$t>::try_from(Elem::from(v)).expect("type inference should have caught this")
+        };
+    }
+
     if remaining_dims.is_empty() {
-        out.extend(arr.to_owned().into_elems());
+        // couldn't get impl_array to work here, which would be less gross
+        match arr {
+            JArray::BoolArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::CharArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::IntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::ExtIntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::RationalArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::FloatArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::ComplexArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+            JArray::BoxArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        }
     } else {
         let children = arr.outer_iter();
         assert_eq!(initial_size, children.len());
@@ -127,7 +149,7 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
         }
     }
 
-    let fill = Elem::Num(Num::zero());
+    let fill = T::try_from(Elem::Num(Num::zero()))?;
     let fills_needed = this_dim_size - initial_size;
     let fills_per_dim = remaining_dims.iter().product::<usize>();
 
