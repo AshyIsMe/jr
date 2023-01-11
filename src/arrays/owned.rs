@@ -10,14 +10,15 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::nd_ext::len_of_0;
-use super::{CowArrayD, JArrayCow};
 use crate::arrays::display;
 use crate::arrays::elem::Elem;
 use crate::cells::fill_promote_list;
 use crate::number::Num;
-use crate::{arr0d, map_to_cow, IntoVec, JError};
+use crate::{arr0ad, IntoVec, JError};
 
-pub type BoxArray = ArrayD<JArray>;
+pub type ArcArrayD<T> = ArcArray<T, IxDyn>;
+pub type CowArrayD<'t, T> = CowArray<'t, T, IxDyn>;
+pub type BoxArray = ArcArrayD<JArray>;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum JArrayKind {
@@ -33,13 +34,13 @@ pub enum JArrayKind {
 
 #[derive(Clone)]
 pub enum JArray {
-    BoolArray(ArrayD<u8>),
-    CharArray(ArrayD<char>),
-    IntArray(ArrayD<i64>),
-    ExtIntArray(ArrayD<BigInt>),
-    RationalArray(ArrayD<BigRational>),
-    FloatArray(ArrayD<f64>),
-    ComplexArray(ArrayD<Complex64>),
+    BoolArray(ArcArrayD<u8>),
+    CharArray(ArcArrayD<char>),
+    IntArray(ArcArrayD<i64>),
+    ExtIntArray(ArcArrayD<BigInt>),
+    RationalArray(ArcArrayD<BigRational>),
+    FloatArray(ArcArrayD<f64>),
+    ComplexArray(ArcArrayD<Complex64>),
     BoxArray(BoxArray),
 }
 
@@ -145,7 +146,7 @@ macro_rules! impl_homo {
 
 impl JArray {
     pub fn atomic_zero() -> JArray {
-        JArray::BoolArray(arr0d(0))
+        JArray::BoolArray(arr0ad(0))
     }
 
     /// does the array contain zero elements, regardless of shape
@@ -176,15 +177,18 @@ impl JArray {
         impl_array!(self, ArrayBase::shape)
     }
 
-    pub fn transpose<'s>(&'s self) -> JArrayCow {
-        impl_array!(self, |a: &'s ArrayBase<_, _>| CowArrayD::from(a.t()).into())
+    pub fn transpose<'s>(&'s self) -> JArray {
+        impl_array!(self, |a: &'s ArrayBase<_, _>| a.t().to_shared().into())
     }
 
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
-        impl_array!(self, |a: &ArrayBase<_, _>| a.select(axis, ix).into())
+        impl_array!(self, |a: &ArrayBase<_, _>| a
+            .select(axis, ix)
+            .into_shared()
+            .into())
     }
 
-    pub fn slice_axis<'v>(&'v self, axis: Axis, slice: Slice) -> Result<JArrayCow<'v>> {
+    pub fn slice_axis(&self, axis: Axis, slice: Slice) -> Result<JArray> {
         let index = axis.index();
         ensure!(index < self.shape().len());
         let this_dim = self.shape()[index];
@@ -194,17 +198,23 @@ impl JArray {
                 "slice end, {end}, past end of axis {index}, of length {this_dim}"
             );
         }
-        Ok(impl_array!(self, |a: &'v ArrayBase<_, _>| JArrayCow::from(
-            a.slice_axis(axis, slice)
+        Ok(impl_array!(self, |a: &ArrayBase<_, _>| JArray::from(
+            a.slice_axis(axis, slice).to_shared()
         )))
     }
 
-    pub fn to_shape<'v>(&'v self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArrayCow<'v>> {
-        map_to_cow!(self, |a: &'v ArrayBase<_, _>| a.to_shape(shape))
+    pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
+        impl_array!(self, |a: &ArrayBase<_, _>| Ok(a
+            .to_shape(shape)?
+            .to_shared()
+            .into()))
     }
 
     pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
-        impl_array!(self, |a: ArrayBase<_, _>| Ok(a.into_shape(shape)?.into()))
+        impl_array!(self, |a: ArrayBase<_, _>| Ok(a
+            .into_shape(shape)?
+            .to_shared()
+            .into()))
     }
 
     pub fn create_cleared(&self) -> JArray {
@@ -217,19 +227,19 @@ impl JArray {
                 shape
             }
         };
-        map_array!(self, |a: &ArrayBase<_, _>| ArrayD::from_shape_vec(
+        map_array!(self, |a: &ArrayBase<_, _>| ArcArrayD::from_shape_vec(
             empty_first(a.shape()),
             Vec::new()
         )
         .expect("static shape"))
     }
 
-    pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArrayCow<'v>> + 'v> {
+    pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArray> + 'v> {
         if self.shape().is_empty() {
-            Box::new(iter::once(JArrayCow::from(self)))
+            Box::new(iter::once(self.clone()))
         } else {
             impl_array!(self, |x: &'v ArrayBase<_, _>| Box::new(
-                x.outer_iter().map(JArrayCow::from)
+                x.outer_iter().map(|v| v.to_shared().into())
             ))
         }
     }
@@ -287,7 +297,10 @@ impl JArray {
     }
 
     pub fn into_elems(self) -> Vec<Elem> {
-        impl_array!(self, |a: ArrayD<_>| a.into_iter().map(Elem::from).collect())
+        impl_array!(self, |a: ArcArrayD<_>| a
+            .into_iter()
+            .map(Elem::from)
+            .collect())
     }
 
     pub fn into_nums(self) -> Option<Vec<Num>> {
@@ -564,54 +577,54 @@ impl JArray {
         })
     }
 
-    pub fn when_u8(&self) -> Option<&ArrayD<u8>> {
+    pub fn when_u8(&self) -> Option<&ArcArrayD<u8>> {
         match self {
             JArray::BoolArray(arr) => Some(arr),
             _ => None,
         }
     }
 
-    pub fn when_char(&self) -> Option<&ArrayD<char>> {
+    pub fn when_char(&self) -> Option<&ArcArrayD<char>> {
         match self {
             JArray::CharArray(arr) => Some(arr),
             _ => None,
         }
     }
 
-    pub fn when_i64(&self) -> Option<&ArrayD<i64>> {
+    pub fn when_i64(&self) -> Option<&ArcArrayD<i64>> {
         match self {
             JArray::IntArray(arr) => Some(arr),
             _ => None,
         }
     }
 
-    pub fn when_f64(&self) -> Option<&ArrayD<f64>> {
+    pub fn when_f64(&self) -> Option<&ArcArrayD<f64>> {
         match self {
             JArray::FloatArray(arr) => Some(arr),
             _ => None,
         }
     }
 
-    pub fn when_bigint(&self) -> Option<&ArrayD<BigInt>> {
+    pub fn when_bigint(&self) -> Option<&ArcArrayD<BigInt>> {
         match self {
             JArray::ExtIntArray(arr) => Some(arr),
             _ => None,
         }
     }
 
-    pub fn when_complex(&self) -> Option<&ArrayD<Complex64>> {
+    pub fn when_complex(&self) -> Option<&ArcArrayD<Complex64>> {
         match self {
             JArray::ComplexArray(arr) => Some(arr),
             _ => None,
         }
     }
-    pub fn when_rational(&self) -> Option<&ArrayD<BigRational>> {
+    pub fn when_rational(&self) -> Option<&ArcArrayD<BigRational>> {
         match self {
             JArray::RationalArray(arr) => Some(arr),
             _ => None,
         }
     }
-    pub fn when_box(&self) -> Option<&ArrayD<JArray>> {
+    pub fn when_box(&self) -> Option<&ArcArrayD<JArray>> {
         match self {
             JArray::BoxArray(arr) => Some(arr),
             _ => None,
@@ -629,6 +642,11 @@ macro_rules! impl_from_nd {
     ($t:ty, $j:path) => {
         impl From<ArrayD<$t>> for JArray {
             fn from(value: ArrayD<$t>) -> JArray {
+                $j(value.into_shared().into())
+            }
+        }
+        impl From<ArcArrayD<$t>> for JArray {
+            fn from(value: ArcArrayD<$t>) -> JArray {
                 $j(value.into())
             }
         }
@@ -647,12 +665,12 @@ impl_from_nd!(JArray, JArray::BoxArray);
 impl From<Num> for JArray {
     fn from(value: Num) -> Self {
         match value {
-            Num::Bool(a) => JArray::BoolArray(arr0d(a)),
-            Num::Int(a) => JArray::IntArray(arr0d(a)),
-            Num::ExtInt(a) => JArray::ExtIntArray(arr0d(a)),
-            Num::Rational(a) => JArray::RationalArray(arr0d(a)),
-            Num::Float(a) => JArray::FloatArray(arr0d(a)),
-            Num::Complex(a) => JArray::ComplexArray(arr0d(a)),
+            Num::Bool(a) => JArray::BoolArray(arr0ad(a)),
+            Num::Int(a) => JArray::IntArray(arr0ad(a)),
+            Num::ExtInt(a) => JArray::ExtIntArray(arr0ad(a)),
+            Num::Rational(a) => JArray::RationalArray(arr0ad(a)),
+            Num::Float(a) => JArray::FloatArray(arr0ad(a)),
+            Num::Complex(a) => JArray::ComplexArray(arr0ad(a)),
         }
     }
 }
@@ -660,8 +678,8 @@ impl From<Num> for JArray {
 impl From<Elem> for JArray {
     fn from(value: Elem) -> Self {
         match value {
-            Elem::Char(a) => JArray::CharArray(arr0d(a)),
-            Elem::Boxed(a) => JArray::BoxArray(arr0d(a)),
+            Elem::Char(a) => JArray::CharArray(arr0ad(a)),
+            Elem::Boxed(a) => JArray::BoxArray(arr0ad(a)),
             Elem::Num(a) => JArray::from(a),
         }
     }

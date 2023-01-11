@@ -4,8 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use ndarray::IxDyn;
 
-use crate::arrays::JArrayCow;
-use crate::cells::fill_promote_list_cow;
+use crate::cells::fill_promote_list;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
 use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
@@ -137,7 +136,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &fill_promote_list_cow(chunk)?)
+                    u.exec(ctx, None, &fill_promote_list(chunk.iter().cloned())?)
                         .context("backslash (u)")?,
                 );
             }
@@ -146,8 +145,8 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
         Some(x) => {
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
-            let mut f = |chunk: &[JArrayCow]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &fill_promote_list_cow(chunk)?)?);
+            let mut f = |chunk: &[JArray]| -> Result<()> {
+                piece.push(u.exec(ctx, None, &fill_promote_list(chunk.iter().cloned())?)?);
                 Ok(())
             };
 
@@ -181,7 +180,7 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &fill_promote_list_cow(&y[i..])?)?);
+                piece.push(u.exec(ctx, None, &fill_promote_list(y[i..].iter().cloned())?)?);
             }
             JArray::from_fill_promote(piece)
         }

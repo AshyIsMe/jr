@@ -5,7 +5,6 @@ use anyhow::{Context, Result};
 use itertools::Itertools;
 use num_traits::Zero;
 
-use crate::arrays::JArrayCow;
 use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
 use crate::verbs::VerbResult;
 use crate::{Elem, JArray, JError};
@@ -14,11 +13,6 @@ use crate::{Elem, JArray, JError};
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
     let vec = items.into_iter().collect_vec();
     fill_promote_reshape(&(vec![vec.len()], vec))
-}
-
-/// [`fill_promote_list`] helper which takes the `Cow` version of our array.
-pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
-    fill_promote_list(chunk.iter().map(|arr| arr.to_owned()))
 }
 
 // concat_promo_fill(&[JArrayCow]) -> JArray
@@ -100,10 +94,10 @@ fn rank_extend(target: usize, arr: &JArray) -> JArray {
         .copied()
         .collect_vec();
 
+    // TODO: this comment pre-dates Arc
     // *not* into_shape, as into_shape returns errors for e.g. reversed arrays
     arr.to_shape(rank_extended_shape)
         .expect("rank extension is always valid")
-        .into_owned()
 }
 
 // recursive implementation; lops off the start of the dims, recurses on that, then later fills

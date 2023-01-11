@@ -10,7 +10,10 @@ use std::collections::VecDeque;
 use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, impl_array, scan_with_locations, Ctx, Elem, HasEmpty, JArray, JError, Word};
+use crate::{
+    arr0ad, arr0d, impl_array, scan_with_locations, ArcArrayD, Ctx, Elem, HasEmpty, JArray, JError,
+    Word,
+};
 
 use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
@@ -24,12 +27,12 @@ use JArray::*;
 use maff::*;
 pub use ranks::{DyadRank, Rank};
 
-use crate::arrays::{IntoVec, JArrayCow};
-use crate::cells::fill_promote_list_cow;
+use crate::arrays::IntoVec;
 pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
 
+use crate::cells::fill_promote_list;
 pub use partial::*;
 pub use primitive::*;
 
@@ -82,15 +85,15 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("only available for lists");
     }
     let y = y.outer_iter().collect_vec();
-    fill_promote_list_cow(&x.outer_iter().filter(|x| !y.contains(x)).collect_vec())
+    fill_promote_list(x.outer_iter().filter(|x| !y.contains(x)))
 }
 
 /// -: (dyad)
 pub fn v_match(x: &JArray, y: &JArray) -> Result<JArray> {
-    Ok(JArray::BoolArray(arr0d(if x == y { 1 } else { 0 })))
+    Ok(JArray::BoolArray(arr0ad(if x == y { 1 } else { 0 })))
 }
 
-fn nub(candidates: &[JArrayCow]) -> Vec<usize> {
+fn nub(candidates: &[JArray]) -> Vec<usize> {
     let mut included = Vec::new();
     'outer: for (i, test) in candidates.iter().enumerate() {
         // if we've already seen this value, don't add it to the `included` list,
@@ -125,7 +128,7 @@ pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
 pub fn v_reverse(y: &JArray) -> Result<JArray> {
     let mut y = y.outer_iter().collect_vec();
     y.reverse();
-    JArray::from_fill_promote(y.into_iter().map(|cow| cow.into_owned()))
+    JArray::from_fill_promote(y.into_iter())
 }
 /// |. (dyad)
 pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -145,20 +148,21 @@ pub fn v_rotate_shift(x: &JArray, y: &JArray) -> Result<JArray> {
         y.rotate_left(distance)
     };
 
-    JArray::from_fill_promote(y.into_iter().map(|cow| cow.into_owned()))
+    JArray::from_fill_promote(y.into_iter())
 }
 
 /// , (monad)
 pub fn v_ravel(y: &JArray) -> Result<JArray> {
-    impl_array!(y, |arr: &ArrayD<_>| {
-        Ok(JArray::from_list(arr.clone().into_raw_vec()))
+    impl_array!(y, |arr: &ArcArrayD<_>| {
+        // TODO: weird copy?
+        Ok(JArray::from_list(arr.to_owned().into_raw_vec()))
     })
 }
 
 /// ,. (monad)
 pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
     Ok(match y.shape().len() {
-        0 | 1 => y.to_shape(IxDyn(&[y.len_of_0(), 1]))?.into_owned(),
+        0 | 1 => y.to_shape(IxDyn(&[y.len_of_0(), 1]))?,
         2 => y.clone(),
         _ => {
             return Err(JError::NonceError)
@@ -203,9 +207,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             Ok(if !arr.shape().is_empty() {
                 arr
             } else {
-                arr.to_shape(IxDyn(&[1usize]))
-                    .context("promoted reshape")?
-                    .into_owned()
+                arr.to_shape(IxDyn(&[1usize])).context("promoted reshape")?
             })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
@@ -345,7 +347,7 @@ pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
     if x.is_empty() {
         // I don't really understand why this works, but it does.
-        return Ok(JArray::BoxArray(arr0d(JArray::empty())));
+        return Ok(JArray::BoxArray(arr0ad(JArray::empty())));
     }
 
     let x = x.approx_i64_one().context("from's x")?;
@@ -373,7 +375,7 @@ pub fn v_do(y: &JArray) -> Result<JArray> {
         JArray::CharArray(jcode) if jcode.shape().len() <= 1 => {
             let mut ctx = Ctx::root();
             let word = crate::eval(
-                crate::scan(&jcode.clone().into_raw_vec().iter().collect::<String>())?,
+                crate::scan(&jcode.to_owned().into_raw_vec().iter().collect::<String>())?,
                 &mut ctx,
             )
             .with_context(|| anyhow!("evaluating {:?}", jcode))?;
@@ -502,7 +504,7 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
             arr.invert_axis(Axis(axis));
         }
     }
-    Ok(JArray::IntArray(arr))
+    Ok(JArray::IntArray(arr.into_shared()))
 }
 /// i. (dyad)
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
@@ -519,7 +521,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
         .map(|o| i64::try_from(o).expect("arrays that fit in memory"))
         .collect_vec();
-    Ok(JArray::from_list(y).to_shape(output_shape)?.into_owned())
+    Ok(JArray::from_list(y).to_shape(output_shape)?)
 }
 
 /// E. (dyad) (_, _)
