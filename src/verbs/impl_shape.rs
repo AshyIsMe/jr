@@ -254,7 +254,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
             if x == 1 {
                 match y.shape() {
-                    [] => y.to_shape(vec![x])?,
+                    [] => y.reshape(vec![x])?,
                     _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                 }
             } else {
@@ -273,7 +273,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
             if x == 1 {
                 match (y.is_empty(), y.shape()) {
                     (true, _) => JArray::atomic_zero(),
-                    (false, []) => y.to_shape(vec![x])?,
+                    (false, []) => y.reshape(vec![x])?,
                     _ => y.slice_axis(Axis(0), Slice::from(..1usize))?,
                 }
             } else {

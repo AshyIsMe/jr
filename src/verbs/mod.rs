@@ -162,7 +162,7 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 /// ,. (monad)
 pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
     Ok(match y.shape().len() {
-        0 | 1 => y.to_shape(IxDyn(&[y.len_of_0(), 1]))?,
+        0 | 1 => y.reshape(IxDyn(&[y.len_of_0(), 1]))?,
         2 => y.clone(),
         _ => {
             return Err(JError::NonceError)
@@ -186,7 +186,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
         JArray::BoxArray(arr) if !arr.is_empty() && arr.shape().is_empty() => {
             let maybe_atom = arr.iter().next().expect("checked");
             if maybe_atom.shape().is_empty() {
-                Ok(maybe_atom.to_shape(IxDyn(&[1usize])).context("atom")?)
+                Ok(maybe_atom.reshape(IxDyn(&[1usize])).context("atom")?)
             } else {
                 Ok(maybe_atom.clone())
             }
