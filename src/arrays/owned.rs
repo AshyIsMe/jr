@@ -410,16 +410,16 @@ impl JArray {
     /// ### Examples
     /// ```
     /// # use itertools::Itertools;
-    /// # use ndarray::{array, ArrayD, IxDyn};
+    /// # use ndarray::{ArcArray, array, ArrayD, IxDyn};
     /// # use jr::{arr0d, JArray};
     /// assert_eq!(
     ///     JArray::from_list([5i64, 6, 7]),
-    ///     JArray::IntArray(array![5, 6, 7].into_dyn()),
+    ///     JArray::IntArray(array![5, 6, 7].into_dyn().into_shared()),
     /// );
     ///
     /// assert_eq!(
     ///     JArray::from_list(Vec::<i64>::new()),
-    ///     JArray::IntArray(ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")),
+    ///     JArray::IntArray(ArcArray::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape")),
     /// );
     ///
     /// // construct a box array
@@ -432,7 +432,7 @@ impl JArray {
     ///    JArray::BoxArray(array![
     ///       JArray::from(arr0d(6.3)),
     ///       JArray::from_list([5i64, 6, 7]),
-    ///     ].into_dyn()),
+    ///     ].into_dyn().into_shared()),
     ///   );
     /// ```
     pub fn from_list<T>(v: impl IntoVec<T>) -> JArray
@@ -484,7 +484,7 @@ impl JArray {
     ///         [5, 0, 0],
     ///         // the list, which has forced the shape of the 'inner' array
     ///         [2, 3, 4],
-    ///     ].into_dyn())
+    ///     ].into_dyn().into_shared())
     /// );
     ///
     ///
@@ -500,7 +500,7 @@ impl JArray {
     ///         6.3,
     ///         // the 5i64 has been promoted to a 5.0f64
     ///         5.0,
-    ///     ].into_dyn())
+    ///     ].into_dyn().into_shared())
     /// );
     /// ```
     pub fn from_fill_promote(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
@@ -516,7 +516,7 @@ impl JArray {
     /// # use jr::JArray;
     /// assert_eq!(
     ///     JArray::from_string("hello"),
-    ///     JArray::CharArray(array!['h', 'e', 'l', 'l', 'o'].into_dyn()),
+    ///     JArray::CharArray(array!['h', 'e', 'l', 'l', 'o'].into_dyn().into_shared()),
     /// );
     pub fn from_string(s: impl AsRef<str>) -> JArray {
         JArray::from_list(s.as_ref().chars().collect_vec())

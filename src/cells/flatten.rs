@@ -140,10 +140,11 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
 
 #[cfg(test)]
 mod tests {
-    use crate::{arr0d, Elem, JArray};
-    use ndarray::{array, ArrayD};
+    use crate::arrays::ArcArrayD;
+    use crate::{arr0ad, Elem, JArray};
+    use ndarray::array;
 
-    fn push(target: &[usize], arr: ArrayD<i64>) -> Vec<i64> {
+    fn push(target: &[usize], arr: ArcArrayD<i64>) -> Vec<i64> {
         let mut out = Vec::new();
         let arr = super::rank_extend(target.len(), &JArray::IntArray(arr));
         super::push_with_shape(&mut out, target, arr).expect("push success");
@@ -159,16 +160,19 @@ mod tests {
     fn test_push_1d() {
         // not sure an atomic output is really legal, currently broken
         // assert_eq!(vec![5], push(&[], arr0d(5)));
-        assert_eq!(vec![5], push(&[1], arr0d(5)));
-        assert_eq!(vec![5, 0], push(&[2], arr0d(5)));
-        assert_eq!(vec![5, 2, 0, 0, 0, 0], push(&[6], array![5, 2].into_dyn()));
+        assert_eq!(vec![5], push(&[1], arr0ad(5)));
+        assert_eq!(vec![5, 0], push(&[2], arr0ad(5)));
+        assert_eq!(
+            vec![5, 2, 0, 0, 0, 0],
+            push(&[6], array![5, 2].into_dyn().into_shared())
+        );
     }
 
     #[test]
     fn test_push_2d() {
         assert_eq!(
             vec![1, 2, 3, 4, 0, 0],
-            push(&[3, 2], array![[1, 2], [3, 4]].into_dyn())
+            push(&[3, 2], array![[1, 2], [3, 4]].into_dyn().into_shared())
         );
     }
 
@@ -176,7 +180,7 @@ mod tests {
     fn test_push_multi_expand_2d() {
         assert_eq!(
             vec![1, 2, 0, 3, 4, 0, 0, 0, 0],
-            push(&[3, 3], array![[1, 2], [3, 4]].into_dyn())
+            push(&[3, 3], array![[1, 2], [3, 4]].into_dyn().into_shared())
         );
     }
 }
