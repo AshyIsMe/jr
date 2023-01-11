@@ -12,7 +12,7 @@ use crate::{Elem, JArray, JError};
 /// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
     let vec = items.into_iter().collect_vec();
-    fill_promote_reshape(&(vec![vec.len()], vec))
+    fill_promote_reshape((vec![vec.len()], vec))
 }
 
 // concat_promo_fill(&[JArrayCow]) -> JArray
@@ -26,7 +26,7 @@ pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArr
 // }
 /// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
 /// with the input, which is what the agreement internals want, but probably isn't what you want.
-pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
+pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
     let max_rank = data
         .iter()
         .map(|x| x.shape().len())
@@ -83,20 +83,18 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
     }
     elems_to_jarray(kind, big_daddy)
         .context("flattening promotion")?
-        .into_shape(target_shape)
+        .reshape(target_shape)
         .context("flattening output shape")
 }
 
-fn rank_extend(target: usize, arr: &JArray) -> JArray {
+fn rank_extend(target: usize, arr: JArray) -> JArray {
     let rank_extended_shape = (0..target - arr.shape().len())
         .map(|_| &1)
         .chain(arr.shape())
         .copied()
         .collect_vec();
 
-    // TODO: this comment pre-dates Arc
-    // *not* into_shape, as into_shape returns errors for e.g. reversed arrays
-    arr.to_shape(rank_extended_shape)
+    arr.reshape(rank_extended_shape)
         .expect("rank extension is always valid")
 }
 
@@ -146,7 +144,7 @@ mod tests {
 
     fn push(target: &[usize], arr: ArcArrayD<i64>) -> Vec<i64> {
         let mut out = Vec::new();
-        let arr = super::rank_extend(target.len(), &JArray::IntArray(arr));
+        let arr = super::rank_extend(target.len(), JArray::IntArray(arr));
         super::push_with_shape(&mut out, target, arr).expect("push success");
         out.into_iter()
             .map(|c| match c {

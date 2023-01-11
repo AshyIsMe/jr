@@ -100,7 +100,7 @@ fn a_table(ctx: &mut Ctx, u: &VerbImpl, x: &JArray, y: &JArray) -> Result<JArray
         }
     }
 
-    JArray::from_fill_promote(items)?.into_shape(IxDyn(&[x.len_of_0(), y.len_of_0()]))
+    JArray::from_fill_promote(items)?.reshape(IxDyn(&[x.len_of_0(), y.len_of_0()]))
 }
 
 pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {

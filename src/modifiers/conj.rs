@@ -203,7 +203,7 @@ fn do_hatco(
     n: &ArrayD<i64>,
     y: &JArray,
 ) -> Result<JArray> {
-    fill_promote_reshape(&(
+    fill_promote_reshape((
         n.shape().to_vec(),
         n.iter()
             .map(|i| -> Result<_> {
@@ -475,7 +475,7 @@ pub fn do_atop(
             .collect::<Result<Vec<_>>>()
             .context("left half of c_at")?;
 
-    fill_promote_reshape(&r).context("expanding result of c_atop")
+    fill_promote_reshape(r).context("expanding result of c_atop")
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
@@ -778,7 +778,7 @@ fn do_under_monad(
         parts.push(vi);
     }
     JArray::from_fill_promote(parts)?
-        .to_shape(frame)
+        .reshape(frame)
         .map(|cow| cow.to_owned())
 }
 
@@ -805,7 +805,5 @@ fn do_under_dyad(
         },
         vr,
     )?;
-    JArray::from_fill_promote(parts)?
-        .to_shape(frame)
-        .map(|cow| cow.to_owned())
+    JArray::from_fill_promote(parts)?.reshape(frame)
 }

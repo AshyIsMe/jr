@@ -98,7 +98,7 @@ pub fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
 
 pub fn unatom(y: JArray) -> JArray {
     if y.shape().is_empty() {
-        y.into_shape(IxDyn(&[1])).expect("infalliable")
+        y.reshape(IxDyn(&[1])).expect("infalliable")
     } else {
         y
     }
@@ -216,8 +216,8 @@ pub fn v_head(y: &JArray) -> Result<JArray> {
     let a = v_take(&JArray::from(Num::from(1i64)), y)?;
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
     if !a.shape().is_empty() {
-        let s = &a.shape()[1..];
-        Ok(a.clone().to_shape(s).unwrap().to_owned())
+        let s = a.shape()[1..].to_vec();
+        Ok(a.reshape(s)?)
     } else {
         Ok(a)
     }
@@ -254,7 +254,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
             if x == 1 {
                 match y.shape() {
-                    [] => y.to_shape(vec![x])?.to_owned(),
+                    [] => y.to_shape(vec![x])?,
                     _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                 }
             } else {
@@ -299,8 +299,8 @@ pub fn v_tail(y: &JArray) -> Result<JArray> {
     //    ({: 1 2 3) NB. similar to v_head() where it drops the leading shape rank
     // 3  NB. atom not a single element list
     if !a.shape().is_empty() {
-        let s = &a.shape()[1..];
-        Ok(a.clone().to_shape(s)?)
+        let s = a.shape()[1..].to_vec();
+        Ok(a.reshape(s)?)
     } else {
         Ok(a)
     }

@@ -10,8 +10,8 @@ use num::{BigInt, BigRational};
 use num_traits::ToPrimitive;
 
 use super::nd_ext::len_of_0;
-use crate::arrays::display;
 use crate::arrays::elem::Elem;
+use crate::arrays::{display, size_of_shape_checked};
 use crate::cells::fill_promote_list;
 use crate::number::Num;
 use crate::{arr0ad, IntoVec, JError};
@@ -203,6 +203,7 @@ impl JArray {
         )))
     }
 
+    /// inefficient version of reshape()
     pub fn to_shape(&self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
         impl_array!(self, |a: &ArrayBase<_, _>| Ok(a
             .to_shape(shape)?
@@ -210,11 +211,20 @@ impl JArray {
             .into()))
     }
 
+    #[deprecated = "reshape() should always be sufficient?"]
     pub fn into_shape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
         impl_array!(self, |a: ArrayBase<_, _>| Ok(a
             .into_shape(shape)?
             .to_shared()
             .into()))
+    }
+
+    pub fn reshape(self, shape: impl IntoDimension<Dim = IxDyn>) -> Result<JArray> {
+        let dim = shape.into_dimension();
+        if size_of_shape_checked(&dim)? != self.tally() {
+            return Err(JError::DomainError).context("impossible reshape required");
+        }
+        impl_array!(self, |a: ArrayBase<_, _>| Ok(a.reshape(dim).into()))
     }
 
     pub fn create_cleared(&self) -> JArray {

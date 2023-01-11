@@ -186,10 +186,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
         JArray::BoxArray(arr) if !arr.is_empty() && arr.shape().is_empty() => {
             let maybe_atom = arr.iter().next().expect("checked");
             if maybe_atom.shape().is_empty() {
-                Ok(maybe_atom
-                    .to_shape(IxDyn(&[1usize]))
-                    .context("atom")?
-                    .to_owned())
+                Ok(maybe_atom.to_shape(IxDyn(&[1usize])).context("atom")?)
             } else {
                 Ok(maybe_atom.clone())
             }
@@ -207,7 +204,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             Ok(if !arr.shape().is_empty() {
                 arr
             } else {
-                arr.to_shape(IxDyn(&[1usize])).context("promoted reshape")?
+                arr.reshape(IxDyn(&[1usize])).context("promoted reshape")?
             })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
@@ -521,7 +518,7 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
         .map(|o| i64::try_from(o).expect("arrays that fit in memory"))
         .collect_vec();
-    Ok(JArray::from_list(y).to_shape(output_shape)?)
+    JArray::from_list(y).reshape(output_shape)
 }
 
 /// E. (dyad) (_, _)
