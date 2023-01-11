@@ -71,9 +71,7 @@ pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
     let mut big_daddy = Vec::with_capacity(size_of_shape_checked(&IxDyn(&target_shape))?);
     for arr in results {
         if arr.shape() == target_inner_shape {
-            // TODO: don't clone
-
-            big_daddy.extend(arr.clone().into_elems());
+            push_all(&mut big_daddy, arr);
             continue;
         }
 
@@ -123,24 +121,8 @@ fn push_with_shape<T: From<Elem> + Clone>(
         "{initial_size} <= {this_dim_size}: fill can't see longer shapes"
     );
 
-    macro_rules! conv {
-        ($t:ty) => {
-            |v| <$t>::try_from(Elem::from(v)).expect("type inference should have caught this")
-        };
-    }
-
     if remaining_dims.is_empty() {
-        // couldn't get impl_array to work here, which would be less gross
-        match arr {
-            JArray::BoolArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::CharArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::IntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::ExtIntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::RationalArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::FloatArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::ComplexArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-            JArray::BoxArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
-        }
+        push_all(out, arr);
     } else {
         let children = arr.outer_iter();
         assert_eq!(initial_size, children.len());
@@ -156,6 +138,26 @@ fn push_with_shape<T: From<Elem> + Clone>(
     out.extend(iter::repeat(fill).take(fills_per_dim * fills_needed));
 
     Ok(())
+}
+
+fn push_all<T: From<Elem>>(out: &mut Vec<T>, arr: JArray) {
+    macro_rules! conv {
+        ($t:ty) => {
+            |v| <$t>::try_from(Elem::from(v)).expect("type inference should have caught this")
+        };
+    }
+
+    // couldn't get impl_array to work here, which would be less gross
+    match arr {
+        JArray::BoolArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::CharArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::IntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::ExtIntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::RationalArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::FloatArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::ComplexArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::BoxArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+    }
 }
 
 #[cfg(test)]
