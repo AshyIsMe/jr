@@ -3,13 +3,13 @@ use std::iter;
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
-use ndarray::IxDyn;
+use ndarray::{ArcArray, IxDyn};
 use num_traits::Zero;
 
-use crate::arrays::size_of_shape_checked;
-use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
+use crate::arrays::{size_of_shape_checked, ArcArrayD, JArrayKind};
+use crate::number::{infer_kind_from_boxes, Num, Promote};
 use crate::verbs::VerbResult;
-use crate::{Elem, JArray, JError};
+use crate::{map_kind, Elem, JArray, JError};
 
 /// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
@@ -67,24 +67,25 @@ pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
 
     let kind = infer_kind_from_boxes(&results);
 
-    // flatten
-    let mut big_daddy = Vec::with_capacity(size_of_shape_checked(&IxDyn(&target_shape))?);
-    for arr in results {
-        if arr.shape() == target_inner_shape {
-            push_all(&mut big_daddy, arr);
-            continue;
-        }
-
-        push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
-    }
-
     if target_shape.iter().any(|dim| 0 == *dim) {
-        big_daddy.clear();
+        return Ok(map_kind!(kind, || ArcArray::from_shape_vec(
+            IxDyn(&target_shape),
+            Vec::new()
+        )));
     }
-    elems_to_jarray(kind, big_daddy)
-        .context("flattening promotion")?
-        .reshape(target_shape)
-        .context("flattening output shape")
+
+    return Ok(map_kind!(kind, || {
+        let mut big_daddy = Vec::with_capacity(size_of_shape_checked(&IxDyn(&target_shape))?);
+        for arr in results {
+            if arr.shape() == target_inner_shape {
+                push_all(&mut big_daddy, arr);
+                continue;
+            }
+
+            push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
+        }
+        Ok::<_, anyhow::Error>(ArcArrayD::from_shape_vec(target_shape, big_daddy)?.into())
+    }));
 }
 
 fn rank_extend(target: usize, arr: JArray) -> JArray {
@@ -99,11 +100,7 @@ fn rank_extend(target: usize, arr: JArray) -> JArray {
 }
 
 // recursive implementation; lops off the start of the dims, recurses on that, then later fills
-fn push_with_shape<T: From<Elem> + Clone>(
-    out: &mut Vec<T>,
-    target: &[usize],
-    arr: JArray,
-) -> Result<()> {
+fn push_with_shape<T: Promote>(out: &mut Vec<T>, target: &[usize], arr: JArray) -> Result<()> {
     assert!(
         !target.is_empty(),
         "recursion has presumably gone wrong somewhere"
@@ -131,7 +128,7 @@ fn push_with_shape<T: From<Elem> + Clone>(
         }
     }
 
-    let fill = T::try_from(Elem::Num(Num::zero()))?;
+    let fill = T::promote(Elem::Num(Num::zero()));
     let fills_needed = this_dim_size - initial_size;
     let fills_per_dim = remaining_dims.iter().product::<usize>();
 
@@ -140,10 +137,10 @@ fn push_with_shape<T: From<Elem> + Clone>(
     Ok(())
 }
 
-fn push_all<T: From<Elem>>(out: &mut Vec<T>, arr: JArray) {
+fn push_all<T: Promote>(out: &mut Vec<T>, arr: JArray) {
     macro_rules! conv {
         ($t:ty) => {
-            |v| <$t>::try_from(Elem::from(v)).expect("type inference should have caught this")
+            |v| <$t>::promote(Elem::from(v))
         };
     }
 
@@ -163,19 +160,14 @@ fn push_all<T: From<Elem>>(out: &mut Vec<T>, arr: JArray) {
 #[cfg(test)]
 mod tests {
     use crate::arrays::ArcArrayD;
-    use crate::{arr0ad, Elem, JArray};
+    use crate::{arr0ad, JArray};
     use ndarray::array;
 
     fn push(target: &[usize], arr: ArcArrayD<i64>) -> Vec<i64> {
-        let mut out = Vec::new();
+        let mut out: Vec<i64> = Vec::new();
         let arr = super::rank_extend(target.len(), JArray::IntArray(arr));
         super::push_with_shape(&mut out, target, arr).expect("push success");
-        out.into_iter()
-            .map(|c| match c {
-                Elem::Num(n) => n.value_i64().unwrap(),
-                _ => unreachable!("i64 arrays only"),
-            })
-            .collect()
+        out.into_iter().collect()
     }
 
     #[test]

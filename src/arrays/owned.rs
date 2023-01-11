@@ -124,15 +124,15 @@ macro_rules! map_array {
 #[macro_export]
 macro_rules! map_kind {
     ($kind:ident, $func:expr) => {
-        match $arr {
-            JArrayKind::Bool(a) => JArray::BoolArray($func(a)?),
-            JArrayKind::Char(a) => JArray::CharArray($func(a)?),
-            JArrayKind::Int(a) => JArray::IntArray($func(a)?),
-            JArrayKind::ExtInt(a) => JArray::ExtIntArray($func(a)?),
-            JArrayKind::Rational(a) => JArray::RationalArray($func(a)?),
-            JArrayKind::Float(a) => JArray::FloatArray($func(a)?),
-            JArrayKind::Complex(a) => JArray::ComplexArray($func(a)?),
-            JArrayKind::Box(a) => JArray::BoxArray($func(a)?),
+        match $kind {
+            JArrayKind::Bool => JArray::BoolArray($func()?),
+            JArrayKind::Char => JArray::CharArray($func()?),
+            JArrayKind::Int => JArray::IntArray($func()?),
+            JArrayKind::ExtInt => JArray::ExtIntArray($func()?),
+            JArrayKind::Rational => JArray::RationalArray($func()?),
+            JArrayKind::Float => JArray::FloatArray($func()?),
+            JArrayKind::Complex => JArray::ComplexArray($func()?),
+            JArrayKind::Box => JArray::BoxArray($func()?),
         }
     };
 }
