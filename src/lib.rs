@@ -147,8 +147,6 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "r." => primitive("r.", v_angle, v_polar, (0, 0, 0)),
         "x:" => primitive("x:", v_extend_precision, v_num_denom, (inf, inf, inf)),
 
-        "_:" => not_impl("_:"),
-        "^!." => not_impl("^!."),
         "$." => not_impl("$."),
         "$:" => not_impl("$:"),
         ".:" => not_impl(".:"),
