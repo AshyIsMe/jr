@@ -276,6 +276,11 @@ pub fn str_to_primitive(sentence: &str) -> Result<Option<Word>> {
             "return." => Word::Return,
             "NB." => Word::Comment,
             "0:" => Verb(VerbImpl::Number(0.)),
+            "1:" => Verb(VerbImpl::Number(1.)),
+            "2:" => Verb(VerbImpl::Number(2.)),
+            "3:" => Verb(VerbImpl::Number(3.)),
+            "4:" => Verb(VerbImpl::Number(4.)),
+            "5:" => Verb(VerbImpl::Number(5.)),
             _ => return Ok(None),
         }
     }))

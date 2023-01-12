@@ -218,13 +218,16 @@ fn do_hatco(
 }
 
 pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
-    let biv = match (u, v) {
-        (Word::Verb(u), Word::Noun(n)) => {
-            let n = n
-                .approx()
-                .ok_or(JError::DomainError)
-                .context("rank expects integer arguments")?;
+    let Word::Noun(n) = v else {
+        return Err(JError::DomainError).context("rank conjugation's arg must be a noun");
+    };
+    let n = n
+        .approx()
+        .ok_or(JError::DomainError)
+        .context("rank expects numeric arguments")?;
 
+    let biv = match u.when_verb() {
+        Some(u) => {
             let ranks = match (n.shape().len(), n.len()) {
                 (0, 1) => {
                     let only = n.iter().next().copied().expect("checked the length");
@@ -246,44 +249,45 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                 Rank::from_approx(ranks[2])?,
             );
 
-            let u = u.clone();
-            BivalentOwned::from_bivalent(move |ctx, x, y| match x {
-                None => exec_monad(
-                    |y| {
-                        u.exec(ctx, None, y)
-                            .context("running monadic u inside re-rank")
-                    },
-                    ranks.0,
-                    y,
-                )
-                .context("monadic rank drifting"),
-                Some(x) => exec_dyad(
-                    |x, y| {
-                        u.exec(ctx, Some(x), y)
-                            .context("running dyadic u inside re-rank")
-                    },
-                    (ranks.1, ranks.2),
-                    x,
-                    y,
-                )
-                .context("dyadic rank drifting"),
+            BivalentOwned::from_bivalent(move |ctx, x, y| {
+                let u = u.to_verb(ctx.eval())?;
+                match x {
+                    None => exec_monad(
+                        |y| {
+                            u.exec(ctx, None, y)
+                                .context("running monadic u inside re-rank")
+                        },
+                        ranks.0,
+                        y,
+                    )
+                    .context("monadic rank drifting"),
+                    Some(x) => exec_dyad(
+                        |x, y| {
+                            u.exec(ctx, Some(x), y)
+                                .context("running dyadic u inside re-rank")
+                        },
+                        (ranks.1, ranks.2),
+                        x,
+                        y,
+                    )
+                    .context("dyadic rank drifting"),
+                }
             })
         }
-        (Word::Noun(u), Word::Noun(n)) => {
-            let n = n
-                .approx()
-                .ok_or(JError::DomainError)
-                .context("rank expects integer arguments")?;
-            if n != arr0d(f32::INFINITY) {
-                return Err(JError::NonceError).context("only infinite ranks");
+        None => match u {
+            Word::Noun(u) => {
+                if n != arr0d(f32::INFINITY) {
+                    return Err(JError::NonceError).context("only infinite ranks");
+                }
+                let u = u.clone();
+                BivalentOwned::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
             }
-            let u = u.clone();
-            BivalentOwned::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
-        }
-        _ => {
-            return Err(JError::NonceError)
-                .with_context(|| "rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}")
-        }
+            _ => {
+                return Err(JError::NonceError).with_context(|| {
+                    "rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"
+                })
+            }
+        },
     };
 
     Ok(BivalentOwned {
