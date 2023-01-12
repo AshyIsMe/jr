@@ -204,18 +204,14 @@ fn test_idot() {
     assert_eq!(scan_eval("i. 2 3").unwrap(), Noun(idot(&[2, 3])));
 }
 
-// TODO fix dyadic i. - this hook is equivalent to:
 // (f g) y  ==> y f g y
 // 3 1 4 1 5 9 i. # 3 1 4 1 5 9
 #[test]
-#[ignore]
 fn test_hook() {
     assert_eq!(scan_eval("(i. #) 3 1 4 1 5 9").unwrap(), Word::from(6));
 }
 
-// TODO fix dyadic i.
 #[test]
-#[ignore]
 fn test_idot_negative_args() {
     assert_eq!(
         scan_eval("i. _4").unwrap(),
@@ -627,9 +623,7 @@ fn test_take_agreement() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_take_framingfill() -> Result<()> {
-    // TODO Fix Framing Fill here
     let v = [1i64, 0, 0];
     assert_eq!(scan_eval("3 {. 1")?, Word::Noun(JArray::from_list(v)));
 
