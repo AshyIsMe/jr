@@ -5,7 +5,7 @@ use itertools::Itertools;
 
 use crate::ctx::Names;
 use crate::foreign::files::{arg_to_string, arg_to_string_list};
-use crate::{arr0d, Ctx, JArray, JError, Word};
+use crate::{arr0ad, Ctx, JArray, JError, Word};
 
 // 4!:0
 pub fn f_name_status(ctx: &Ctx, y: &JArray) -> Result<JArray> {
@@ -19,7 +19,7 @@ pub fn f_name_status(ctx: &Ctx, y: &JArray) -> Result<JArray> {
         Err(_) => -2,
     };
 
-    Ok(JArray::IntArray(arr0d(result)))
+    Ok(JArray::IntArray(arr0ad(result)))
 }
 
 // 4!:1
@@ -84,7 +84,7 @@ pub fn f_name_erase(ctx: &mut Ctx, y: &JArray) -> Result<JArray> {
         ret.push(ctx.eval_mut().locales.erase(&name).is_ok() as u8);
     }
     Ok(if ret.len() == 1 {
-        JArray::BoolArray(arr0d(ret[0]))
+        JArray::BoolArray(arr0ad(ret[0]))
     } else {
         JArray::from_list(ret)
     })

@@ -7,7 +7,7 @@ use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::{arr0d, Ctx, JArray};
+use crate::{arr0ad, Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
@@ -399,7 +399,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
                     ctx.eval_mut()
                         .locales
-                        .assign_local(name, Noun(v_open(&val.into_owned())?))?;
+                        .assign_local(name, Noun(v_open(&val)?))?;
                 }
                 Ok(vec![any])
             }
@@ -419,7 +419,7 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 for (name, val) in names.into_iter().zip(arr.outer_iter()) {
                     ctx.eval_mut()
                         .locales
-                        .assign_global(name, Noun(v_open(&val.into_owned())?))?;
+                        .assign_global(name, Noun(v_open(&val)?))?;
                 }
                 Ok(vec![any])
             }
@@ -480,7 +480,7 @@ fn string_assignment(names: JArray, w: Word) -> Result<(JArray, Vec<String>)> {
         .map(|s| s.to_string())
         .collect_vec();
     if names.len() == 1 {
-        return Ok((JArray::BoxArray(arr0d(arr)), names));
+        return Ok((JArray::BoxArray(arr0ad(arr)), names));
     }
 
     if arr.len_of_0() != names.len() {

@@ -1,4 +1,5 @@
-use crate::{arr0d, Word};
+use crate::arrays::ArcArrayD;
+use crate::{arr0ad, Word};
 use crate::{char_array, primitive_nouns, JArray};
 use anyhow::Result;
 use itertools::Itertools;
@@ -45,7 +46,7 @@ fn test_scan_num() -> Result<()> {
     let words = scan("1 2 _3")?;
     assert_eq!(
         words,
-        [Word::Noun(JArray::IntArray(ArrayD::from_shape_vec(
+        [Word::Noun(JArray::IntArray(ArcArrayD::from_shape_vec(
             IxDyn(&[3]),
             vec![1, 2, -3]
         )?))]
@@ -58,7 +59,7 @@ fn test_scan_atoms() -> Result<()> {
     let words = scan("1")?;
     assert_eq!(
         words,
-        [Word::Noun(JArray::BoolArray(ArrayD::from_elem(
+        [Word::Noun(JArray::BoolArray(ArcArrayD::from_elem(
             IxDyn(&[]),
             1
         )))]
@@ -66,7 +67,7 @@ fn test_scan_atoms() -> Result<()> {
     let words = scan("42")?;
     assert_eq!(
         words,
-        [Word::Noun(JArray::IntArray(ArrayD::from_elem(
+        [Word::Noun(JArray::IntArray(ArcArrayD::from_elem(
             IxDyn(&[]),
             42
         )))]
@@ -74,7 +75,7 @@ fn test_scan_atoms() -> Result<()> {
     let words = scan("3.14")?;
     assert_eq!(
         words,
-        [Word::Noun(JArray::FloatArray(ArrayD::from_elem(
+        [Word::Noun(JArray::FloatArray(ArcArrayD::from_elem(
             IxDyn(&[]),
             3.14
         )))]
@@ -82,7 +83,7 @@ fn test_scan_atoms() -> Result<()> {
     let words = scan("'a'")?;
     assert_eq!(
         words,
-        [Word::Noun(JArray::CharArray(ArrayD::from_elem(
+        [Word::Noun(JArray::CharArray(ArcArrayD::from_elem(
             IxDyn(&[]),
             'a'
         )))]
@@ -157,7 +158,7 @@ fn test_scan_primitives() -> Result<()> {
         [
             primitive_nouns("a.").unwrap(),
             Word::static_verb("I."),
-            Word::Noun(JArray::CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
+            Word::Noun(JArray::CharArray(ArcArrayD::from_elem(IxDyn(&[]), 'A')))
         ]
     );
     Ok(())
@@ -171,7 +172,7 @@ fn test_scan_primitives_not_spaced() -> Result<()> {
         [
             primitive_nouns("a.").unwrap(),
             Word::static_verb("I."),
-            Word::Noun(JArray::CharArray(ArrayD::from_elem(IxDyn(&[]), 'A')))
+            Word::Noun(JArray::CharArray(ArcArrayD::from_elem(IxDyn(&[]), 'A')))
         ]
     );
     Ok(())
@@ -190,7 +191,7 @@ fn test_scan_newlines() -> Result<()> {
             NewLine,
             Name("b".to_string()),
             IsGlobal,
-            Word::Noun(JArray::IntArray(arr0d(5i64))),
+            Word::Noun(JArray::IntArray(arr0ad(5i64))),
             NewLine,
             Name("a".to_string()),
             NewLine,

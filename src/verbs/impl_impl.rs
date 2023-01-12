@@ -54,7 +54,7 @@ pub fn exec_monad(
     }
 
     let r = exec_monad_inner(f, rank, y)?;
-    fill_promote_reshape(&r)
+    fill_promote_reshape(r)
 }
 
 pub fn exec_dyad_inner(
@@ -81,12 +81,12 @@ pub fn exec_dyad(
     }
 
     let r = exec_dyad_inner(f, rank, x, y)?;
-    fill_promote_reshape(&r)
+    fill_promote_reshape(r)
 }
 
 impl VerbImpl {
     pub fn exec(&self, ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
-        fill_promote_reshape(&self.partial_exec(ctx, x, y)?)
+        fill_promote_reshape(self.partial_exec(ctx, x, y)?)
     }
 
     pub fn partial_exec(

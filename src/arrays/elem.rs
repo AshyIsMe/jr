@@ -1,6 +1,7 @@
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 use std::cmp::Ordering;
+use std::fmt::Debug;
 
 use crate::number::Num;
 use crate::JArray;

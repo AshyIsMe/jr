@@ -158,11 +158,12 @@ fn sign_lift<T: ops::Neg<Output = T>>(term: &str, f: impl FnOnce(&str) -> Result
 
 #[cfg(test)]
 mod tests {
-    use ndarray::{array, ArrayD};
+    use ndarray::array;
     use num::complex::Complex64;
     use num::rational::BigRational;
     use num::BigInt;
 
+    use crate::arrays::ArcArrayD;
     use crate::{arr0d, JArray, Word};
 
     fn litnum_to_array(sentence: &str) -> JArray {
@@ -341,7 +342,7 @@ mod tests {
 
     #[test]
     fn scan_litnum_const_funcs() {
-        let litnum = |s: &'static str| -> (usize, ArrayD<i64>) {
+        let litnum = |s: &'static str| -> (usize, ArcArrayD<i64>) {
             let (l, w) = super::scan_litnumarray(s).expect("success");
             let arr = match w {
                 Word::Noun(arr) => arr,
@@ -356,17 +357,17 @@ mod tests {
         );
 
         assert_eq!(
-            (" 3:".len(), array![7i64, 1, 2].into_dyn()),
+            (" 3:".len(), array![7i64, 1, 2].into_dyn().into_shared()),
             litnum("7 1 2 3:")
         );
 
         assert_eq!(
-            (" _3:".len(), array![1i64, -2].into_dyn()),
+            (" _3:".len(), array![1i64, -2].into_dyn().into_shared()),
             litnum("1 _2 _3:")
         );
 
         assert_eq!(
-            (" _:".len(), array![1i64, -2].into_dyn()),
+            (" _:".len(), array![1i64, -2].into_dyn().into_shared()),
             litnum("1 _2 _:")
         );
     }

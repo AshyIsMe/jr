@@ -3,22 +3,18 @@ use std::iter;
 
 use anyhow::{Context, Result};
 use itertools::Itertools;
+use ndarray::{ArcArray, IxDyn};
 use num_traits::Zero;
 
-use crate::arrays::JArrayCow;
-use crate::number::{elems_to_jarray, infer_kind_from_boxes, Num};
+use crate::arrays::{size_of_shape_checked, ArcArrayD, JArrayKind};
+use crate::number::{infer_kind_from_boxes, Num, Promote};
 use crate::verbs::VerbResult;
-use crate::{Elem, JArray, JError};
+use crate::{map_kind, Elem, JArray, JError};
 
 /// See [`JArray::from_fill_promote`].
 pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
     let vec = items.into_iter().collect_vec();
-    fill_promote_reshape(&(vec![vec.len()], vec))
-}
-
-/// [`fill_promote_list`] helper which takes the `Cow` version of our array.
-pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
-    fill_promote_list(chunk.iter().map(|arr| arr.to_owned()))
+    fill_promote_reshape((vec![vec.len()], vec))
 }
 
 // concat_promo_fill(&[JArrayCow]) -> JArray
@@ -32,7 +28,7 @@ pub fn fill_promote_list_cow(chunk: &[JArrayCow]) -> Result<JArray> {
 // }
 /// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
 /// with the input, which is what the agreement internals want, but probably isn't what you want.
-pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
+pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
     let max_rank = data
         .iter()
         .map(|x| x.shape().len())
@@ -71,43 +67,40 @@ pub fn fill_promote_reshape((frame, data): &VerbResult) -> Result<JArray> {
 
     let kind = infer_kind_from_boxes(&results);
 
-    // flatten
-    let mut big_daddy: Vec<Elem> = Vec::new();
-    for arr in results {
-        if arr.shape() == target_inner_shape {
-            // TODO: don't clone
-
-            big_daddy.extend(arr.clone().into_elems());
-            continue;
-        }
-
-        push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
-    }
-
     if target_shape.iter().any(|dim| 0 == *dim) {
-        big_daddy.clear();
+        return Ok(map_kind!(kind, || ArcArray::from_shape_vec(
+            IxDyn(&target_shape),
+            Vec::new()
+        )));
     }
-    elems_to_jarray(kind, big_daddy)
-        .context("flattening promotion")?
-        .into_shape(target_shape)
-        .context("flattening output shape")
+
+    return Ok(map_kind!(kind, || {
+        let mut big_daddy = Vec::with_capacity(size_of_shape_checked(&IxDyn(&target_shape))?);
+        for arr in results {
+            if arr.shape() == target_inner_shape {
+                push_all(&mut big_daddy, arr);
+                continue;
+            }
+
+            push_with_shape(&mut big_daddy, &target_inner_shape, arr)?;
+        }
+        Ok::<_, anyhow::Error>(ArcArrayD::from_shape_vec(target_shape, big_daddy)?.into())
+    }));
 }
 
-fn rank_extend(target: usize, arr: &JArray) -> JArray {
+fn rank_extend(target: usize, arr: JArray) -> JArray {
     let rank_extended_shape = (0..target - arr.shape().len())
         .map(|_| &1)
         .chain(arr.shape())
         .copied()
         .collect_vec();
 
-    // *not* into_shape, as into_shape returns errors for e.g. reversed arrays
-    arr.to_shape(rank_extended_shape)
+    arr.reshape(rank_extended_shape)
         .expect("rank extension is always valid")
-        .into_owned()
 }
 
 // recursive implementation; lops off the start of the dims, recurses on that, then later fills
-fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result<()> {
+fn push_with_shape<T: Promote>(out: &mut Vec<T>, target: &[usize], arr: JArray) -> Result<()> {
     assert!(
         !target.is_empty(),
         "recursion has presumably gone wrong somewhere"
@@ -126,7 +119,7 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
     );
 
     if remaining_dims.is_empty() {
-        out.extend(arr.to_owned().into_elems());
+        push_all(out, arr);
     } else {
         let children = arr.outer_iter();
         assert_eq!(initial_size, children.len());
@@ -135,7 +128,7 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
         }
     }
 
-    let fill = Elem::Num(Num::zero());
+    let fill = T::promote(Elem::Num(Num::zero()));
     let fills_needed = this_dim_size - initial_size;
     let fills_per_dim = remaining_dims.iter().product::<usize>();
 
@@ -144,37 +137,56 @@ fn push_with_shape(out: &mut Vec<Elem>, target: &[usize], arr: JArray) -> Result
     Ok(())
 }
 
+fn push_all<T: Promote>(out: &mut Vec<T>, arr: JArray) {
+    macro_rules! conv {
+        ($t:ty) => {
+            |v| <$t>::promote(Elem::from(v))
+        };
+    }
+
+    // couldn't get impl_array to work here, which would be less gross
+    match arr {
+        JArray::BoolArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::CharArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::IntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::ExtIntArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::RationalArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::FloatArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::ComplexArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+        JArray::BoxArray(arr) => out.extend(arr.into_iter().map(conv!(T))),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{arr0d, Elem, JArray};
-    use ndarray::{array, ArrayD};
+    use crate::arrays::ArcArrayD;
+    use crate::{arr0ad, JArray};
+    use ndarray::array;
 
-    fn push(target: &[usize], arr: ArrayD<i64>) -> Vec<i64> {
-        let mut out = Vec::new();
-        let arr = super::rank_extend(target.len(), &JArray::IntArray(arr));
+    fn push(target: &[usize], arr: ArcArrayD<i64>) -> Vec<i64> {
+        let mut out: Vec<i64> = Vec::new();
+        let arr = super::rank_extend(target.len(), JArray::IntArray(arr));
         super::push_with_shape(&mut out, target, arr).expect("push success");
-        out.into_iter()
-            .map(|c| match c {
-                Elem::Num(n) => n.value_i64().unwrap(),
-                _ => unreachable!("i64 arrays only"),
-            })
-            .collect()
+        out.into_iter().collect()
     }
 
     #[test]
     fn test_push_1d() {
         // not sure an atomic output is really legal, currently broken
         // assert_eq!(vec![5], push(&[], arr0d(5)));
-        assert_eq!(vec![5], push(&[1], arr0d(5)));
-        assert_eq!(vec![5, 0], push(&[2], arr0d(5)));
-        assert_eq!(vec![5, 2, 0, 0, 0, 0], push(&[6], array![5, 2].into_dyn()));
+        assert_eq!(vec![5], push(&[1], arr0ad(5)));
+        assert_eq!(vec![5, 0], push(&[2], arr0ad(5)));
+        assert_eq!(
+            vec![5, 2, 0, 0, 0, 0],
+            push(&[6], array![5, 2].into_dyn().into_shared())
+        );
     }
 
     #[test]
     fn test_push_2d() {
         assert_eq!(
             vec![1, 2, 3, 4, 0, 0],
-            push(&[3, 2], array![[1, 2], [3, 4]].into_dyn())
+            push(&[3, 2], array![[1, 2], [3, 4]].into_dyn().into_shared())
         );
     }
 
@@ -182,7 +194,7 @@ mod tests {
     fn test_push_multi_expand_2d() {
         assert_eq!(
             vec![1, 2, 0, 3, 4, 0, 0, 0, 0],
-            push(&[3, 3], array![[1, 2], [3, 4]].into_dyn())
+            push(&[3, 3], array![[1, 2], [3, 4]].into_dyn().into_shared())
         );
     }
 }
