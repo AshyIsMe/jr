@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::mem::transmute;
 
+use crate::arrays::ArcArrayD;
 use crate::JArray;
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
-use ndarray::{ArrayD, IxDyn};
+use ndarray::IxDyn;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
@@ -119,7 +120,7 @@ pub fn decode(lines: &[u64]) -> Result<JArray> {
 fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -> Result<JArray> {
     if !(block.kind.stored_by_ref()?) {
         return Ok(match block.kind {
-            JKind::Bool => JArray::BoolArray(ArrayD::from_shape_vec(
+            JKind::Bool => JArray::BoolArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
@@ -128,7 +129,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     .take(block.elements)
                     .collect(),
             )?),
-            JKind::Lit => JArray::CharArray(ArrayD::from_shape_vec(
+            JKind::Lit => JArray::CharArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
@@ -138,7 +139,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     .take(block.elements)
                     .collect(),
             )?),
-            JKind::Int => JArray::IntArray(ArrayD::from_shape_vec(
+            JKind::Int => JArray::IntArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
@@ -146,7 +147,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     .map(|&v| unsafe { transmute(v) })
                     .collect(),
             )?),
-            JKind::Float => JArray::FloatArray(ArrayD::from_shape_vec(
+            JKind::Float => JArray::FloatArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
@@ -154,7 +155,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     .map(|&v| unsafe { transmute(v) })
                     .collect(),
             )?),
-            JKind::Complex => JArray::ComplexArray(ArrayD::from_shape_vec(
+            JKind::Complex => JArray::ComplexArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 block
                     .data
@@ -175,7 +176,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
         parts.push(reconstitute(sub, off, blocks).context("pulling sub block")?);
     }
     Ok(match block.kind {
-        JKind::Boxed => JArray::BoxArray(ArrayD::from_shape_vec(IxDyn(&block.shape), parts)?),
+        JKind::Boxed => JArray::BoxArray(ArcArrayD::from_shape_vec(IxDyn(&block.shape), parts)?),
         JKind::ExtInt => {
             let parts = parts
                 .into_iter()
@@ -184,7 +185,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     other => bail!("unexpected non-linear part in extint: {other:?}"),
                 })
                 .collect::<Result<Vec<_>>>()?;
-            JArray::ExtIntArray(ArrayD::from_shape_vec(
+            JArray::ExtIntArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 parts.into_iter().map(big).collect::<Result<Vec<_>>>()?,
             )?)
@@ -197,7 +198,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
                     other => bail!("unexpected non-linear part in extint: {other:?}"),
                 })
                 .collect::<Result<Vec<_>>>()?;
-            JArray::RationalArray(ArrayD::from_shape_vec(
+            JArray::RationalArray(ArcArrayD::from_shape_vec(
                 IxDyn(&block.shape),
                 parts
                     .into_iter()
@@ -210,7 +211,7 @@ fn reconstitute(block: &Block, our_off: usize, blocks: &HashMap<usize, Block>) -
     })
 }
 
-fn big(words: ArrayD<i64>) -> Result<BigInt> {
+fn big(words: ArcArrayD<i64>) -> Result<BigInt> {
     ensure!(words.shape().len() == 1);
     if words.len() == 1 {
         Ok(words[0].into())

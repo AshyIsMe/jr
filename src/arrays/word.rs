@@ -128,7 +128,7 @@ macro_rules! impl_from_atom {
     ($t:ty, $j:path) => {
         impl From<$t> for Word {
             fn from(value: $t) -> Word {
-                Word::Noun($j(Array::from_elem(IxDyn(&[]), value.into())))
+                Word::Noun($j(ArcArray::from_elem(IxDyn(&[]), value.into())))
             }
         }
     };

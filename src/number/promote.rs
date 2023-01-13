@@ -1,14 +1,17 @@
 use anyhow::{anyhow, Context, Result};
+use std::fmt;
 
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::rational::BigRational;
+use num::BigInt;
 use num_traits::Zero;
 
 use super::Num;
 use crate::arrays::{Elem, JArray, JArrayKind};
 use crate::error::JError;
 
+#[deprecated = "use infer_kind_from_boxes via. fill_promote_list"]
 pub fn infer_kind_from_elems(parts: &[Elem]) -> JArrayKind {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     if parts.iter().any(|n| matches!(n, Elem::Boxed(_))) {
@@ -57,12 +60,14 @@ pub fn infer_kind_from_boxes(parts: &[JArray]) -> JArrayKind {
     }
 }
 
+#[deprecated = "believed to be less efficient than fill_promote_list"]
 pub fn promote_to_array(parts: Vec<Elem>) -> Result<JArray> {
     let kind = infer_kind_from_elems(&parts);
     elems_to_jarray(kind, parts)
 }
 
 /// panics if the kind isn't directly from [`infer_kind_from_elems`].
+#[deprecated = "believed to be less efficient than fill_promote_list"]
 pub fn elems_to_jarray(kind: JArrayKind, parts: Vec<Elem>) -> Result<JArray> {
     // priority table: https://code.jsoftware.com/wiki/Vocabulary/NumericPrecisions#Numeric_Precisions_in_J
     match kind {
@@ -154,4 +159,94 @@ where
         ArrayD::from_shape_vec(IxDyn(&[vec.len()]), vec).expect("simple shape")
     }
     .into())
+}
+
+pub trait Promote: Clone + fmt::Debug {
+    fn promote(value: Elem) -> Self;
+}
+
+impl Promote for JArray {
+    fn promote(value: Elem) -> Self {
+        match value {
+            Elem::Boxed(b) => b,
+            Elem::Num(n) => n.into(),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for char {
+    fn promote(value: Elem) -> char {
+        use Num::*;
+        match value {
+            Elem::Char(c) => c,
+            Elem::Num(Bool(0)) => ' ',
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for Complex64 {
+    fn promote(value: Elem) -> Complex64 {
+        use Num::*;
+        match value {
+            Elem::Num(Complex(v)) => v,
+            Elem::Num(n) => Complex64::new(n.approx_f64().expect("covered above"), 0.),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for f64 {
+    fn promote(value: Elem) -> f64 {
+        match value {
+            Elem::Num(n) => n.approx_f64().expect("covered above"),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+impl Promote for BigRational {
+    fn promote(value: Elem) -> BigRational {
+        use Num::*;
+        match value {
+            Elem::Num(Rational(i)) => i,
+            Elem::Num(ExtInt(i)) => BigRational::new(i, 1.into()),
+            Elem::Num(Int(i)) => BigRational::new(i.into(), 1.into()),
+            Elem::Num(Bool(i)) => BigRational::new(i.into(), 1.into()),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for BigInt {
+    fn promote(value: Elem) -> Self {
+        use Num::*;
+        match value {
+            Elem::Num(ExtInt(i)) => i,
+            Elem::Num(Int(i)) => i.into(),
+            Elem::Num(Bool(i)) => i.into(),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for i64 {
+    fn promote(value: Elem) -> Self {
+        use Num::*;
+        match value {
+            Elem::Num(Int(i)) => i,
+            Elem::Num(Bool(i)) => i.into(),
+            _ => unreachable!("promotion inference error"),
+        }
+    }
+}
+
+impl Promote for u8 {
+    fn promote(value: Elem) -> u8 {
+        use Num::*;
+        match value {
+            Elem::Num(Bool(v)) => v,
+            _ => unreachable!("promotion inference error"),
+        }
+    }
 }

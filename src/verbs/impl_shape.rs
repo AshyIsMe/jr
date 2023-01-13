@@ -10,11 +10,11 @@ use log::debug;
 use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
-use crate::arrays::{len_of_0, IntoVec};
+use crate::arrays::{len_of_0, ArcArrayD, IntoVec};
 use crate::number::{promote_to_array, Num};
-use crate::{arr0d, impl_array, impl_homo, JArray, JError};
+use crate::{arr0ad, impl_array, impl_homo, JArray, JError};
 
-pub fn reshape<T>(x: &[i64], y: &ArrayD<T>) -> Result<ArrayD<T>>
+pub fn reshape<T>(x: &[i64], y: &ArcArrayD<T>) -> Result<ArcArrayD<T>>
 where
     T: Debug + Clone,
 {
@@ -34,13 +34,13 @@ where
         let flat_len = ns.iter().product();
         let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
         debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
-        Ok(Array::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
+        Ok(ArcArray::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
     }
 }
 
 /// < (monad)
 pub fn v_box(y: &JArray) -> Result<JArray> {
-    Ok(JArray::BoxArray(arr0d(y.clone())))
+    Ok(JArray::BoxArray(arr0ad(y.clone())))
 }
 
 /// > (monad)
@@ -48,7 +48,7 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
     match y {
         JArray::BoxArray(y) => match y.len() {
             0 => Ok(JArray::BoolArray(
-                ArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape"),
+                ArcArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape"),
             )),
             1 => Ok(y.iter().next().expect("just checked").clone()),
             _ => bail!("todo: unbox BoxArray: {y:?}"),
@@ -59,7 +59,7 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
 
 /// |: (monad) (_)
 pub fn v_transpose(y: &JArray) -> Result<JArray> {
-    Ok(y.transpose().into_owned())
+    Ok(y.transpose())
 }
 
 /// |: (dyad) (1, _)
@@ -89,16 +89,16 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 pub fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
-    impl_homo!(
-        x,
-        y,
-        |x: &ArrayBase<_, _>, y: &ArrayBase<_, _>| concatenate(Axis(0), &[x.view(), y.view()])
-    )
+    impl_homo!(x, y, |x: &ArrayBase<_, _>,
+                      y: &ArrayBase<_, _>|
+     -> Result<_> {
+        Ok(concatenate(Axis(0), &[x.view(), y.view()])?.into_shared())
+    })
 }
 
 pub fn unatom(y: JArray) -> JArray {
     if y.shape().is_empty() {
-        y.into_shape(IxDyn(&[1])).expect("infalliable")
+        y.reshape(IxDyn(&[1])).expect("infalliable")
     } else {
         y
     }
@@ -216,8 +216,8 @@ pub fn v_head(y: &JArray) -> Result<JArray> {
     let a = v_take(&JArray::from(Num::from(1i64)), y)?;
     // ({. 1 2 3) is a different shape to (1 {. 1 2 3)
     if !a.shape().is_empty() {
-        let s = &a.shape()[1..];
-        Ok(a.clone().to_shape(s).unwrap().into_owned())
+        let s = a.shape()[1..].to_vec();
+        Ok(a.reshape(s)?)
     } else {
         Ok(a)
     }
@@ -254,7 +254,7 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
 
             if x == 1 {
                 match y.shape() {
-                    [] => y.to_shape(vec![x])?.into_owned(),
+                    [] => y.reshape(vec![x])?,
                     _ => y.select(Axis(0), &((y_len_zero - x)..y_len_zero).collect_vec()),
                 }
             } else {
@@ -273,8 +273,8 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
             if x == 1 {
                 match (y.is_empty(), y.shape()) {
                     (true, _) => JArray::atomic_zero(),
-                    (false, []) => y.to_shape(vec![x])?.into_owned(),
-                    _ => y.slice_axis(Axis(0), Slice::from(..1usize))?.into_owned(),
+                    (false, []) => y.reshape(vec![x])?,
+                    _ => y.slice_axis(Axis(0), Slice::from(..1usize))?,
                 }
             } else {
                 let y_len_zero = y.len_of_0();
@@ -283,7 +283,6 @@ pub fn v_take(x: &JArray, y: &JArray) -> Result<JArray> {
                 } else {
                     JArray::from_fill_promote(
                         y.outer_iter()
-                            .map(|cow| cow.into_owned())
                             // we can't use empty() here as its rank is higher than arr0, which matters
                             .chain(iter::repeat(JArray::atomic_zero()))
                             .take(x),
@@ -300,8 +299,8 @@ pub fn v_tail(y: &JArray) -> Result<JArray> {
     //    ({: 1 2 3) NB. similar to v_head() where it drops the leading shape rank
     // 3  NB. atom not a single element list
     if !a.shape().is_empty() {
-        let s = &a.shape()[1..];
-        Ok(a.clone().to_shape(s).unwrap().into_owned())
+        let s = a.shape()[1..].to_vec();
+        Ok(a.reshape(s)?)
     } else {
         Ok(a)
     }
@@ -353,9 +352,9 @@ pub fn v_behead(y: &JArray) -> Result<JArray> {
         return Ok(y.clone());
     }
 
-    impl_array!(y, |arr: &ArrayD<_>| Ok(arr
+    impl_array!(y, |arr: &ArcArrayD<_>| Ok(arr
         .slice_axis(Axis(0), Slice::from(1isize..))
-        .into_owned()
+        .to_shared()
         .into()))
 }
 /// }. (dyad)
@@ -373,9 +372,9 @@ pub fn v_drop(x: &JArray, y: &JArray) -> Result<JArray> {
         ComplexArray(_) => Err(JError::DomainError.into()),
         BoxArray(_) => Err(JError::DomainError.into()),
 
-        _ => impl_array!(x, |xarr: &ArrayD<_>| {
+        _ => impl_array!(x, |xarr: &ArcArrayD<_>| {
             match xarr.shape().len() {
-                0 => impl_array!(y, |arr: &ArrayD<_>| {
+                0 => impl_array!(y, |arr: &ArcArrayD<_>| {
                     let x = x.to_i64().unwrap().into_owned().into_raw_vec()[0];
                     Ok(match x.cmp(&0) {
                         Ordering::Equal => arr.clone().into_owned().into(),
@@ -408,8 +407,8 @@ mod tests {
 
     #[test]
     fn test_reshape_helper() {
-        let y = Array::from_elem(IxDyn(&[1]), 1);
+        let y = ArcArray::from_elem(IxDyn(&[1]), 1);
         let r = reshape(&vec![4], &y).unwrap();
-        assert_eq!(r, Array::from_elem(IxDyn(&[4]), 1));
+        assert_eq!(r, ArcArray::from_elem(IxDyn(&[4]), 1));
     }
 }

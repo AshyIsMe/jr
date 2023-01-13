@@ -43,6 +43,7 @@ pub use crate::number::Num;
 // TODO: maybe as helper methods on JArray?
 pub use crate::arrays::display;
 
+use crate::arrays::ArcArrayD;
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
@@ -268,4 +269,8 @@ fn primitive_conjunctions(sentence: &str) -> Option<ModifierImpl> {
 
 pub fn arr0d<T>(x: T) -> ndarray::ArrayD<T> {
     ndarray::arr0(x).into_dyn()
+}
+
+pub fn arr0ad<T>(x: T) -> ArcArrayD<T> {
+    ndarray::arr0(x).into_dyn().into_shared()
 }

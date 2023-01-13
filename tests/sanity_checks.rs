@@ -18,7 +18,7 @@ use scan_eval_unwrap as s;
 pub fn idot(s: &[usize]) -> JArray {
     let p = s.iter().map(|i| *i as i64).product();
     //Noun(IntArray(ArrayD::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap(),))
-    IntArray(ArrayD::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap())
+    IntArray(ArcArray::from_shape_vec(IxDyn(&s), (0..p).collect()).unwrap())
 }
 
 #[test]
@@ -70,26 +70,26 @@ fn test_reshape() {
     assert_eq!(
         scan_eval("2 2 $ 1 2 3 4").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec![1, 2, 3, 4]).unwrap()
+            ArcArray::from_shape_vec(IxDyn(&[2, 2]), vec![1, 2, 3, 4]).unwrap()
         ))
     );
 
     assert_eq!(
         scan_eval("4 $ 1").unwrap(),
-        Noun(BoolArray(Array::from_elem(IxDyn(&[4]), 1)))
+        Noun(BoolArray(ArcArray::from_elem(IxDyn(&[4]), 1)))
     );
 
     assert_eq!(
         scan_eval("1 2 3 $ 1 2").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[1, 2, 3]), vec![1, 2, 1, 2, 1, 2]).unwrap()
+            ArcArray::from_shape_vec(IxDyn(&[1, 2, 3]), vec![1, 2, 1, 2, 1, 2]).unwrap()
         ))
     );
 
     assert_eq!(
         scan_eval("3 $ 2 2 $ 0 1 2 3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[3, 2]), vec![0, 1, 2, 3, 0, 1]).unwrap()
+            ArcArray::from_shape_vec(IxDyn(&[3, 2]), vec![0, 1, 2, 3, 0, 1]).unwrap()
         ))
     );
 }
@@ -99,7 +99,7 @@ fn test_reshape_outer_iter() {
     assert_eq!(
         scan_eval("2 1 $ 1 2").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 1]), vec![1, 2]).unwrap()
+            ArcArray::from_shape_vec(IxDyn(&[2, 1]), vec![1, 2]).unwrap()
         ))
     );
 }
@@ -109,7 +109,7 @@ fn test_reshape_2d_match_1d() -> Result<()> {
     let r1 = scan_eval("(2 2 $ 3) $ 1").unwrap();
     let r2 = scan_eval("2 3 3 $ 1").unwrap();
 
-    let correct_result = Noun(BoolArray(Array::from_elem(IxDyn(&[2, 3, 3]), 1)));
+    let correct_result = Noun(BoolArray(ArcArray::from_elem(IxDyn(&[2, 3, 3]), 1)));
 
     assert_eq!(r1, correct_result);
     assert_eq!(r2, correct_result);
@@ -132,7 +132,7 @@ fn test_reshape_no_change() -> Result<()> {
 fn test_agreement_reshape_3() -> Result<()> {
     let r1 = scan_eval("6 $ i.2 3").unwrap();
     // 6 3 $ 0 1 2 3 4 5 0 1 2 3 4 5 0 1 2 3 4 5
-    let a = Array::from_shape_vec(
+    let a = ArcArray::from_shape_vec(
         IxDyn(&[6, 3]),
         vec![0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5],
     )?;
@@ -166,7 +166,7 @@ fn test_power_conjunction_noun_arg() {
     assert_eq!(
         scan_eval("(*:^:2 3) 2 3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec![16, 81, 256, 6561]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 2]), vec![16, 81, 256, 6561]).unwrap(),
         )),
     );
 }
@@ -178,7 +178,7 @@ fn test_power_conjunction_verb_arg() {
     assert_eq!(
         scan_eval("+:^:(6&<)\"0 (0 3 6 12)").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[4]), vec![0i64, 3, 6, 24]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[4]), vec![0i64, 3, 6, 24]).unwrap(),
         )),
     );
 }
@@ -204,29 +204,25 @@ fn test_idot() {
     assert_eq!(scan_eval("i. 2 3").unwrap(), Noun(idot(&[2, 3])));
 }
 
-// TODO fix dyadic i. - this hook is equivalent to:
 // (f g) y  ==> y f g y
 // 3 1 4 1 5 9 i. # 3 1 4 1 5 9
 #[test]
-#[ignore]
 fn test_hook() {
     assert_eq!(scan_eval("(i. #) 3 1 4 1 5 9").unwrap(), Word::from(6));
 }
 
-// TODO fix dyadic i.
 #[test]
-#[ignore]
 fn test_idot_negative_args() {
     assert_eq!(
         scan_eval("i. _4").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[4]), vec![3, 2, 1, 0]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[4]), vec![3, 2, 1, 0]).unwrap(),
         ))
     );
     assert_eq!(
         scan_eval("i. _2 _3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![5, 4, 3, 2, 1, 0]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 3]), vec![5, 4, 3, 2, 1, 0]).unwrap(),
         ))
     );
 }
@@ -290,7 +286,7 @@ fn test_resolve_names() {
 fn test_real_imaginary() -> Result<()> {
     assert_eq!(
         scan_eval("+. 5j1 6 7")?,
-        Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
+        Word::Noun(JArray::FloatArray(ArcArray::from_shape_vec(
             IxDyn(&[3, 2]),
             vec![5., 1., 6., 0., 7., 0.]
         )?)),
@@ -298,7 +294,7 @@ fn test_real_imaginary() -> Result<()> {
 
     assert_eq!(
         scan_eval("+. 2 3 $ 5j1 6 7j2 8j4 9 10j6")?,
-        Word::Noun(JArray::FloatArray(ArrayD::from_shape_vec(
+        Word::Noun(JArray::FloatArray(ArcArray::from_shape_vec(
             IxDyn(&[2, 3, 2]),
             vec![5., 1., 6., 0., 7., 2., 8., 4., 9., 0., 10., 6.]
         )?)),
@@ -316,7 +312,7 @@ fn test_parens() {
 fn test_num_dom() -> Result<()> {
     assert_eq!(
         scan_eval("2 x: 6r2 4r3 1")?,
-        Word::Noun(JArray::ExtIntArray(ArrayD::from_shape_vec(
+        Word::Noun(JArray::ExtIntArray(ArcArray::from_shape_vec(
             IxDyn(&[3, 2]),
             vec![3.into(), 1.into(), 4.into(), 3.into(), 1.into(), 1.into()]
         )?)),
@@ -331,7 +327,7 @@ fn test_behead() -> Result<()> {
 
     assert_eq!(
         scan_eval("}. 3 2 $ i. 10")?,
-        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+        Word::Noun(JArray::IntArray(ArcArray::from_shape_vec(
             IxDyn(&[2, 2]),
             [2, 3, 4, 5].to_vec()
         )?))
@@ -339,7 +335,7 @@ fn test_behead() -> Result<()> {
 
     assert_eq!(
         scan_eval("}. 3 3 3 $ i. 30")?,
-        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+        Word::Noun(JArray::IntArray(ArcArray::from_shape_vec(
             IxDyn(&[2, 3, 3]),
             (9..27).collect()
         )?))
@@ -356,7 +352,7 @@ fn test_drop() -> Result<()> {
 
     assert_eq!(
         scan_eval("2 }. i.3 3")?,
-        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+        Word::Noun(JArray::IntArray(ArcArray::from_shape_vec(
             IxDyn(&[1, 3]),
             [6, 7, 8].to_vec()
         )?))
@@ -376,7 +372,7 @@ fn test_drop_empty() -> Result<()> {
     // integer
     assert_eq!(
         scan_eval("10 }. 1 2 3")?,
-        Word::Noun(JArray::IntArray(Array::from_shape_vec(
+        Word::Noun(JArray::IntArray(ArcArray::from_shape_vec(
             IxDyn(&[0]),
             [].to_vec()
         )?))
@@ -384,7 +380,7 @@ fn test_drop_empty() -> Result<()> {
 
     assert_eq!(
         scan_eval("10 }. ''")?,
-        Word::Noun(JArray::CharArray(Array::from_shape_vec(
+        Word::Noun(JArray::CharArray(ArcArray::from_shape_vec(
             IxDyn(&[0]),
             [].to_vec()
         )?))
@@ -428,18 +424,18 @@ fn test_increment() {
 #[test]
 fn test_link() {
     let v = [
-        BoolArray(Array::from_elem(IxDyn(&[]), 1)),
-        IntArray(Array::from_elem(IxDyn(&[]), 2)),
-        IntArray(Array::from_elem(IxDyn(&[]), 3)),
+        BoolArray(ArcArray::from_elem(IxDyn(&[]), 1)),
+        IntArray(ArcArray::from_elem(IxDyn(&[]), 2)),
+        IntArray(ArcArray::from_elem(IxDyn(&[]), 3)),
     ];
     assert_eq!(
         scan_eval("1 ; 2 ; 3").unwrap(),
         Word::Noun(JArray::from_list(v))
     );
     let v = [
-        BoolArray(Array::from_elem(IxDyn(&[]), 1)),
-        IntArray(Array::from_elem(IxDyn(&[]), 2)),
-        IntArray(Array::from_elem(IxDyn(&[]), 3)),
+        BoolArray(ArcArray::from_elem(IxDyn(&[]), 1)),
+        IntArray(ArcArray::from_elem(IxDyn(&[]), 2)),
+        IntArray(ArcArray::from_elem(IxDyn(&[]), 3)),
     ];
     assert_eq!(
         scan_eval("1 ; 2 ; <3").unwrap(),
@@ -474,12 +470,12 @@ fn test_jarray_rank_iter() {
     assert_eq!(
         v,
         vec![
-            IntArray(Array::from_elem(IxDyn(&[]), 0)),
-            IntArray(Array::from_elem(IxDyn(&[]), 1)),
-            IntArray(Array::from_elem(IxDyn(&[]), 2)),
-            IntArray(Array::from_elem(IxDyn(&[]), 3)),
-            IntArray(Array::from_elem(IxDyn(&[]), 4)),
-            IntArray(Array::from_elem(IxDyn(&[]), 5)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 0)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 1)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 2)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 3)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 4)),
+            IntArray(ArcArray::from_elem(IxDyn(&[]), 5)),
         ]
     );
 
@@ -490,10 +486,10 @@ fn test_jarray_rank_iter() {
     assert_eq!(
         v,
         vec![
-            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![0, 1, 2]).unwrap()),
-            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()),
-            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![6, 7, 8]).unwrap()),
-            IntArray(Array::from_shape_vec(IxDyn(&[3]), vec![9, 10, 11]).unwrap())
+            IntArray(ArcArray::from_shape_vec(IxDyn(&[3]), vec![0, 1, 2]).unwrap()),
+            IntArray(ArcArray::from_shape_vec(IxDyn(&[3]), vec![3, 4, 5]).unwrap()),
+            IntArray(ArcArray::from_shape_vec(IxDyn(&[3]), vec![6, 7, 8]).unwrap()),
+            IntArray(ArcArray::from_shape_vec(IxDyn(&[3]), vec![9, 10, 11]).unwrap())
         ]
     );
 
@@ -505,7 +501,7 @@ fn test_jarray_rank_iter() {
         v,
         vec![
             idot(&[2, 3]),
-            IntArray(6i64 + Array::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
+            IntArray(6i64 + ArcArray::from_shape_vec(IxDyn(&[2, 3]), (0..6).collect()).unwrap()),
         ]
     );
 
@@ -545,7 +541,7 @@ fn test_rank_conjunction_0_1() {
     assert_eq!(
         scan_eval("1 2 (+\"0 1) 1 2 3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
         ))
     );
 }
@@ -556,7 +552,7 @@ fn test_agreement_plus_rank_0_1() {
     assert_eq!(
         scan_eval("1 2 (+\"0 1) 1 2 3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 3]), vec![2i64, 3, 4, 3, 4, 5]).unwrap(),
         ))
     );
 }
@@ -571,7 +567,7 @@ fn test_rank_conjunction_1_0() {
     assert_eq!(
         scan_eval("1 2 (+\"1 0) 1 2 3").unwrap(),
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[3, 2]), vec![2, 3, 3, 4, 4, 5]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[3, 2]), vec![2, 3, 3, 4, 4, 5]).unwrap(),
         ))
     );
 }
@@ -604,7 +600,7 @@ fn test_take() -> Result<()> {
     assert_eq!(
         scan_eval("2 {. i.3 3")?,
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
     );
 
@@ -619,7 +615,7 @@ fn test_take_agreement() -> Result<()> {
     assert_eq!(
         scan_eval("(2 1 $ 2) {. 'abcdef'")?,
         Noun(CharArray(
-            Array::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'a', 'b']).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 2]), vec!['a', 'b', 'a', 'b']).unwrap(),
         ))
     );
 
@@ -627,9 +623,7 @@ fn test_take_agreement() -> Result<()> {
 }
 
 #[test]
-#[ignore]
 fn test_take_framingfill() -> Result<()> {
-    // TODO Fix Framing Fill here
     let v = [1i64, 0, 0];
     assert_eq!(scan_eval("3 {. 1")?, Word::Noun(JArray::from_list(v)));
 
@@ -668,14 +662,14 @@ fn test_curtail() -> Result<()> {
     assert_eq!(
         scan_eval("}: i.2 3")?,
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[1, 3]), vec![0, 1, 2]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[1, 3]), vec![0, 1, 2]).unwrap(),
         ))
     );
 
     assert_eq!(
         scan_eval("}: i.3 3")?,
         Noun(IntArray(
-            Array::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
+            ArcArray::from_shape_vec(IxDyn(&[2, 3]), vec![0, 1, 2, 3, 4, 5]).unwrap(),
         ))
     );
     Ok(())

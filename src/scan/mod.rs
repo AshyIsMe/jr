@@ -163,7 +163,7 @@ fn scan_litstring(sentence: &str) -> Result<(usize, Word)> {
     if s.len() == 1 {
         Ok((
             l,
-            Noun(CharArray(ArrayD::from_elem(
+            Noun(CharArray(ArcArrayD::from_elem(
                 IxDyn(&[]),
                 s.chars().next().unwrap(),
             ))),
