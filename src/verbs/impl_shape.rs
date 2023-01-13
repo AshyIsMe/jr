@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::iter;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Context, ensure, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
@@ -106,18 +106,20 @@ pub fn unatom(y: JArray) -> JArray {
 
 /// , (dyad) (_, _)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() >= 1 && y.shape().len() >= 1 {
-        if let Ok(arr) = append_nd(x, y) {
-            return Ok(arr);
-        }
-    }
-
     if x.is_empty() {
         return Ok(unatom(y.clone()));
     }
+
     if y.is_empty() {
         return Ok(unatom(x.clone()));
     }
+
+    if x.shape().len() >= 1 && y.shape().len() >= 1 {
+        return append_nd(x, y);
+    }
+
+    // ensure!(x.shape().is_empty());
+    // ensure!(y.shape().is_empty());
 
     if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
         return Err(JError::NonceError)

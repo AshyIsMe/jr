@@ -359,6 +359,10 @@ NB. append
 5,(0 $ 0)
 (0 $ 0),6
 5,(0 $ 0),6
+'abc','de'
+'abc',"0/'de'
+5 6 7,i.2 3
+7,i.2 3
 
 NB. ravel items
 ,. 'a'
