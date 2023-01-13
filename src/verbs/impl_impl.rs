@@ -193,7 +193,10 @@ impl VerbImpl {
     }
 
     pub fn token(&self) -> Option<&str> {
-        None
+        Some(match self {
+            VerbImpl::Primitive(imp) => imp.name,
+            _ => return None,
+        })
     }
 
     pub fn boxed_ar(&self) -> Result<JArray> {
