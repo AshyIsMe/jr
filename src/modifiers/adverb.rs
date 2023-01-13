@@ -5,12 +5,13 @@ use itertools::Itertools;
 use ndarray::IxDyn;
 
 use crate::cells::fill_promote_list;
+use crate::eval::VerbNoun;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
 use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
-use crate::{primitive_verbs, Ctx, JArray, JError, Rank, Word};
+use crate::{primitive_verbs, Ctx, JArray, JError, Rank};
 
-pub type AdverbFn = fn(&mut Ctx, &Word) -> Result<BivalentOwned>;
+pub type AdverbFn = fn(&mut Ctx, &VerbNoun) -> Result<BivalentOwned>;
 
 #[derive(Clone)]
 pub struct SimpleAdverb {
@@ -30,7 +31,7 @@ impl fmt::Debug for SimpleAdverb {
     }
 }
 
-pub fn a_not_implemented(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
+pub fn a_not_implemented(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
     let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
         Err(JError::NonceError)
@@ -43,12 +44,14 @@ pub fn a_not_implemented(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     })
 }
 
-pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let u = u
-        .when_verb()
-        .ok_or(JError::DomainError)
-        .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u))?;
+pub fn a_tilde(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let Verb(u) = u else {
+        return Err(JError::DomainError)
+            .with_context(|| anyhow!("expected to ~ a verb, not {:?}", u))?;
+    };
 
+    let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
         let u = u.to_verb(ctx.eval())?;
         match x {
@@ -64,10 +67,12 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
     })
 }
 
-pub fn a_slash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
+pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let Verb(u) = u else { return Err(JError::DomainError).context("verb for /'s u"); };
     let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
+        let u = u.to_verb(ctx.eval())?;
         if let Some(x) = x {
             return a_table(ctx, &u, x, y);
         }
@@ -103,11 +108,13 @@ fn a_table(ctx: &mut Ctx, u: &VerbImpl, x: &JArray, y: &JArray) -> Result<JArray
     JArray::from_fill_promote(items)?.reshape(IxDyn(&[x.len_of_0(), y.len_of_0()]))
 }
 
-pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Verb(u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
+pub fn a_slash_dot(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let Verb(u  ) = u.clone() else { return Err(JError::DomainError).context("/.'s u must be a verb"); };
 
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
         Some(x) if x.shape().len() <= 1 && y.shape().len() <= 1 => {
+            let u = u.to_verb(ctx.eval())?;
             let classification = v_self_classify(x).context("classify")?;
             do_atop(
                 ctx,
@@ -126,8 +133,9 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
 }
 
 /// (0 _)
-pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Verb(u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
+pub fn a_backslash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let Verb(u) = u else { return Err(JError::DomainError).context("backslash's u must be a verb"); };
     let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
         None => {
@@ -171,8 +179,9 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
 }
 
 /// (_ 0 _)
-pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
-    let Word::Verb(u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
+pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let Verb(u) = u else { return Err(JError::DomainError).context("suffix outfix's u must be a verb"); };
 
     let u = u.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| match x {
@@ -194,10 +203,11 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
 }
 
 /// (_ _ _)
-pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
+pub fn a_curlyrt(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
     match u {
-        Word::Noun(noun) => build_curlrt(noun),
-        Word::Verb(u) => {
+        Noun(noun) => build_curlrt(noun),
+        Verb(u) => {
             let u = u.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
                 let u = u.exec(ctx, None, y)?;
@@ -208,7 +218,6 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
                 ranks: Rank::inf_inf_inf(),
             })
         }
-        _ => Err(JError::DomainError).context("}'s u must be a noun or verb"),
     }
 }
 
@@ -239,9 +248,10 @@ fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
     })
 }
 
-pub fn a_bdot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
+pub fn a_bdot(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
     match u {
-        Word::Noun(m) => {
+        Noun(m) => {
             let m = m.approx_i64_one().context("b.'s mode")?;
             if m < -16 || m > 34 {
                 return Err(JError::DomainError).context("impossible b. mode");
@@ -253,7 +263,6 @@ pub fn a_bdot(_ctx: &mut Ctx, u: &Word) -> Result<BivalentOwned> {
                 ranks: (Rank::zero(), Rank::zero_zero()),
             })
         }
-        Word::Verb(_) => Err(JError::NonceError).with_context(|| anyhow!("b. verb info for {u:?}")),
-        _ => Err(JError::DomainError).context("b. only takes nouns or verbs"),
+        Verb(_) => Err(JError::NonceError).with_context(|| anyhow!("b. verb info for {u:?}")),
     }
 }

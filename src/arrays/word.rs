@@ -114,9 +114,12 @@ impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Word::Noun(a) => write!(f, "{}", a),
-            Word::Verb(_) => write!(f, "unknown verb"),
-            Word::Adverb(_) => write!(f, "unknown adverb"),
-            Word::Conjunction(_) => write!(f, "unknown conjunction"),
+            Word::Verb(v) => match v.token() {
+                Some(t) => write!(f, "{}", t),
+                None => write!(f, "(unrepresentable but valid verb)"),
+            },
+            Word::Adverb(_) => write!(f, "(unrepresentable but valid adverb)"),
+            Word::Conjunction(_) => write!(f, "(unrepresentable but valid conjunction)"),
             Word::Nothing => Ok(()),
             //_ => write!(f, "{:+}", self),
             _ => write!(f, "XXX TODO: unable to Display Word::{:?}", self),

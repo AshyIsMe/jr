@@ -2,7 +2,13 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::ctx::Eval;
 use crate::verbs::VerbImpl;
-use crate::{JError, Word};
+use crate::{Ctx, JArray, JError, Word};
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum VerbNoun {
+    Verb(MaybeVerb),
+    Noun(JArray),
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum MaybeVerb {
@@ -11,11 +17,29 @@ pub enum MaybeVerb {
 }
 
 impl Word {
+    pub fn when_verb_noun(&self) -> Option<VerbNoun> {
+        match self {
+            Word::Noun(m) => Some(VerbNoun::Noun(m.clone())),
+            Word::Verb(v) => Some(VerbNoun::Verb(MaybeVerb::Verb(v.clone()))),
+            Word::Name(s) => Some(VerbNoun::Verb(MaybeVerb::Name(s.clone()))),
+            _ => None,
+        }
+    }
+
     pub fn when_verb(&self) -> Option<MaybeVerb> {
         match self {
             Word::Verb(v) => Some(MaybeVerb::Verb(v.clone())),
             Word::Name(s) => Some(MaybeVerb::Name(s.clone())),
             _ => None,
+        }
+    }
+}
+
+impl Into<Word> for VerbNoun {
+    fn into(self) -> Word {
+        match self {
+            VerbNoun::Verb(v) => v.into(),
+            VerbNoun::Noun(s) => Word::Noun(s),
         }
     }
 }
@@ -51,5 +75,11 @@ impl MaybeVerb {
                 }
             },
         })
+    }
+
+    // TODO: probably shouldn't use this, and should inline it everywhere; to_verb isn't free
+    pub fn exec(&self, ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
+        let v = self.to_verb(ctx.eval())?;
+        v.exec(ctx, x, y)
     }
 }
