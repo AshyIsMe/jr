@@ -81,7 +81,13 @@ impl ModifierImpl {
             false,
             match self {
                 ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial(PartialImpl {
-                    imp: (c.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?,
+                    imp: (c.f)(
+                        ctx,
+                        &u.when_verb_noun()
+                            .context("adverbs only take verb-likes or nouns")
+                            .with_context(|| anyhow!("u: {u:?}"))?,
+                    )
+                    .with_context(|| anyhow!("u: {u:?}"))?,
                     def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
                 })),
                 ModifierImpl::OwnedAdverb(a) => {
