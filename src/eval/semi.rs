@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
+use ndarray::IxDyn;
 
 use crate::ctx::Eval;
 use crate::verbs::VerbImpl;
@@ -78,6 +80,23 @@ fn quote_string(s: impl AsRef<str>) -> String {
     let s = s.as_ref();
     let s = s.replace('\'', "''");
     format!("'{s}'")
+}
+
+fn quote_arr(arr: &JArray) -> String {
+    let shape = if arr.shape().is_empty() {
+        String::new()
+    } else {
+        format!(
+            "{} $ ",
+            arr.shape().iter().map(|v| format!("{v}")).join(" ")
+        )
+    };
+
+    let arr = arr
+        .reshape(IxDyn(&[arr.tally()]))
+        .expect("reshape to same size is infallible");
+
+    format!("{shape}{}", format!("{arr}").trim())
 }
 
 impl MaybeVerb {

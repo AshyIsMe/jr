@@ -120,7 +120,12 @@ impl ModifierImpl {
         match self {
             Adverb(a) => a.name.to_string(),
             Conjunction(c) => c.name.to_string(),
+            WordyConjunction(w) => w.name.to_string(),
+            OwnedConjunction(_c) => format!("unrepresentable conjunction"),
             Cor => ":".to_string(),
+            OwnedAdverb(_a) => format!("unrepresentable adverb"),
+            DerivedAdverb { .. } => format!("unrepresentable adverb"),
+            MmHook { .. } => format!("unrepresentable mmhook"),
         }
     }
 

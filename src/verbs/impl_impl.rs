@@ -121,7 +121,7 @@ impl VerbImpl {
                     Some(x) => exec_dyad_inner(|x, y| biv(ctx, Some(x), y), p.imp.ranks.1, x, y)
                         .with_context(|| anyhow!("x: {x:?}"))
                         .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("dyadic partial {:?}", p.name())),
+                        .with_context(|| anyhow!("dyadic partial: {}", p.name())),
                 }
             }
             VerbImpl::Fork { f, g, h } => match (f.deref(), g.deref(), h.deref()) {
@@ -204,8 +204,8 @@ impl VerbImpl {
         match self {
             Primitive(p) => p.name.to_string(),
             Partial(p) => p.name(),
-            Fork { .. } => {}
-            Hook { .. } => {}
+            Fork { .. } => format!("(todo fork)"),
+            Hook { .. } => format!("(todo hook)"),
             Cap => "[:".to_string(),
             Number(i) => format!("({i}:)"),
         }
