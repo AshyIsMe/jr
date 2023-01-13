@@ -54,6 +54,15 @@ impl Into<Word> for MaybeVerb {
 }
 
 impl VerbNoun {
+    pub fn name(&self) -> String {
+        use VerbNoun::*;
+        match self {
+            Verb(MaybeVerb::Verb(v)) => v.name(),
+            Verb(MaybeVerb::Name(v)) => quote_string(v),
+            Noun(arr) => quote_arr(arr),
+        }
+    }
+
     pub fn boxed_ar(&self) -> Result<JArray> {
         match self {
             VerbNoun::Verb(MaybeVerb::Verb(v)) => v.boxed_ar(),
@@ -63,6 +72,12 @@ impl VerbNoun {
             VerbNoun::Noun(n) => Word::Noun(n.clone()).boxed_ar(),
         }
     }
+}
+
+fn quote_string(s: impl AsRef<str>) -> String {
+    let s = s.as_ref();
+    let s = s.replace('\'', "''");
+    format!("'{s}'")
 }
 
 impl MaybeVerb {

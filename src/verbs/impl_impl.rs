@@ -199,6 +199,18 @@ impl VerbImpl {
         })
     }
 
+    pub fn name(&self) -> String {
+        use VerbImpl::*;
+        match self {
+            Primitive(p) => p.name.to_string(),
+            Partial(p) => p.name(),
+            Fork { .. } => {}
+            Hook { .. } => {}
+            Cap => "[:".to_string(),
+            Number(i) => format!("({i}:)"),
+        }
+    }
+
     pub fn boxed_ar(&self) -> Result<JArray> {
         // https://code.jsoftware.com/wiki/Vocabulary/Foreigns#m5
         use VerbImpl::*;

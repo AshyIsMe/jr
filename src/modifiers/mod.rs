@@ -115,6 +115,15 @@ impl ModifierImpl {
         ))
     }
 
+    pub fn name(&self) -> String {
+        use ModifierImpl::*;
+        match self {
+            Adverb(a) => a.name.to_string(),
+            Conjunction(c) => c.name.to_string(),
+            Cor => ":".to_string(),
+        }
+    }
+
     pub fn boxed_ar(&self) -> Result<JArray> {
         use ModifierImpl::*;
         Ok(match self {

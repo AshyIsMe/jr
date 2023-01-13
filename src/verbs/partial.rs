@@ -33,8 +33,11 @@ pub struct BivalentOwned {
 
 impl PartialImpl {
     pub fn name(&self) -> String {
-        match self.def.as_ref() {
-            _ => format!("[TODO: no name for partial {:?}]", self.def),
+        match &*self.def {
+            PartialDef::Adverb(a, u) => format!("({} {})", a.name(), u.name()),
+            PartialDef::Conjunction(u, a, v) => format!("({} {} {})", u.name(), a.name(), v.name()),
+            PartialDef::Cor(i, _def) => format!("({i} : ???)"),
+            PartialDef::Unimplemented(hint) => format!("(no display for partial {hint}"),
         }
     }
 }
