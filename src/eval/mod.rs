@@ -18,7 +18,7 @@ pub use crate::eval::controls::create_def;
 // TODO: oh come on, this is clearly an eval concept
 pub use crate::eval::controls::resolve_controls;
 
-pub use semi::MaybeVerb;
+pub use semi::{MaybeVerb, VerbNoun};
 
 use crate::eval::ctl_if::control_if;
 use crate::eval::ctl_try::control_try;

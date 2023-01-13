@@ -8,7 +8,7 @@ use ndarray::prelude::*;
 
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
-use crate::eval::{create_def, resolve_controls};
+use crate::eval::{create_def, resolve_controls, VerbNoun};
 use crate::foreign::foreign;
 use crate::scan::str_to_primitive;
 use crate::verbs::{append_nd, exec_dyad, exec_monad, BivalentOwned, PartialImpl, Rank, VerbImpl};
@@ -18,7 +18,7 @@ use crate::{HasEmpty, JArray, JError, Word};
 #[derive(Clone)]
 pub struct SimpleConjunction {
     pub name: &'static str,
-    pub f: fn(&mut Ctx, &Word, &Word) -> Result<BivalentOwned>,
+    pub f: fn(&mut Ctx, &VerbNoun, &VerbNoun) -> Result<BivalentOwned>,
 }
 
 impl PartialEq for SimpleConjunction {
@@ -85,7 +85,7 @@ impl fmt::Debug for OwnedConjunction {
     }
 }
 
-pub fn c_not_implemented(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+pub fn c_not_implemented(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
     let u = u.clone();
     let v = v.clone();
     let biv = BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
@@ -100,7 +100,9 @@ pub fn c_not_implemented(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentO
     })
 }
 
-pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+pub fn c_hatco(ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+
     // TODO: inverse, converge and Dynamic Power (verb argument)
     // https://code.jsoftware.com/wiki/Vocabulary/hatco
     let u = u.clone();
@@ -115,7 +117,7 @@ pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
     };
 
     let biv = match (u, v) {
-        (Word::Verb(u), Word::Noun(ja)) => {
+        (Verb(u), Noun(ja)) => {
             match ja {
                 JArray::BoxArray(b)
                     if b.shape().is_empty() && b.iter().next().expect("atom").is_empty() =>
@@ -160,6 +162,7 @@ pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                     let v2 = v2.clone();
 
                     BivalentOwned::from_bivalent(move |ctx, x, y| {
+                        let u = u.to_verb(ctx.eval())?;
                         let x = match (x, &v0) {
                             (Some(x), Some(v0)) => Some(v0.exec(ctx, Some(x), y)?),
                             _ => None,
@@ -172,11 +175,13 @@ pub fn c_hatco(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                 }
                 _ => {
                     let n = make_n(&ja)?;
+                    let u = u.to_verb(ctx.eval())?;
                     BivalentOwned::from_bivalent(move |ctx, x, y| do_hatco(ctx, x, &u, &n, y))
                 }
             }
         }
-        (Word::Verb(u), Word::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| {
+        (VerbNoun::Verb(u), VerbNoun::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| {
+            let u = u.to_verb(ctx.eval())?;
             let n = v.exec(ctx, x, y)?;
             // TODO: this should support _infinite
             let n = n
@@ -217,8 +222,8 @@ fn do_hatco(
     ))
 }
 
-pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
-    let Word::Noun(n) = v else {
+pub fn c_quote(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
+    let VerbNoun::Noun(n) = v else {
         return Err(JError::DomainError).context("rank conjugation's arg must be a noun");
     };
     let n = n
@@ -226,8 +231,8 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
         .ok_or(JError::DomainError)
         .context("rank expects numeric arguments")?;
 
-    let biv = match u.when_verb() {
-        Some(u) => {
+    let biv = match u {
+        VerbNoun::Verb(u) => {
             let ranks = match (n.shape().len(), n.len()) {
                 (0, 1) => {
                     let only = n.iter().next().copied().expect("checked the length");
@@ -249,6 +254,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                 Rank::from_approx(ranks[2])?,
             );
 
+            let u = u.clone();
             BivalentOwned::from_bivalent(move |ctx, x, y| {
                 let u = u.to_verb(ctx.eval())?;
                 match x {
@@ -274,20 +280,13 @@ pub fn c_quote(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
                 }
             })
         }
-        None => match u {
-            Word::Noun(u) => {
-                if n != arr0d(f32::INFINITY) {
-                    return Err(JError::NonceError).context("only infinite ranks");
-                }
-                let u = u.clone();
-                BivalentOwned::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
+        VerbNoun::Noun(u) => {
+            if n != arr0d(f32::INFINITY) {
+                return Err(JError::NonceError).context("only infinite ranks");
             }
-            _ => {
-                return Err(JError::NonceError).with_context(|| {
-                    "rank conjunction - other options? {x:?}, {u:?}, {v:?}, {y:?}"
-                })
-            }
-        },
+            let u = u.clone();
+            BivalentOwned::from_bivalent(move |_ctx, _x, _y| Ok(u.clone()))
+        }
     };
 
     Ok(BivalentOwned {
@@ -446,9 +445,12 @@ fn untie(ctx: &mut Ctx, verb: &JArray) -> Result<Word> {
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_atop(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
-    match (u.when_verb(), v.when_verb()) {
-        (Some(u), Some(v)) => {
+pub fn c_atop(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    match (u, v) {
+        (Verb(u), Verb(v)) => {
+            let u = u.clone();
+            let v = v.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
                 let u = u.to_verb(ctx.eval())?;
                 let v = v.to_verb(ctx.eval())?;
@@ -483,9 +485,10 @@ pub fn do_atop(
 }
 
 // https://code.jsoftware.com/wiki/Vocabulary/at#/media/File:Funcomp.png
-pub fn c_at(_ctx: &mut Ctx, u: &Word, v: &Word) -> Result<BivalentOwned> {
+pub fn c_at(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
     match (u, v) {
-        (Word::Verb(u), Word::Verb(v)) => {
+        (Verb(u), Verb(v)) => {
             let u = u.clone();
             let v = v.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
@@ -556,9 +559,9 @@ pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
     })))
 }
 
-pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
+pub fn c_assign_adverse(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<BivalentOwned> {
     match (n, m) {
-        (Word::Verb(n), Word::Verb(m)) => {
+        (VerbNoun::Verb(n), VerbNoun::Verb(m)) => {
             let n = n.clone();
             let m = m.clone();
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
@@ -573,8 +576,8 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOw
     }
 }
 
-pub fn c_cut(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
-    use Word::*;
+pub fn c_cut(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
     let Noun(m) = m else { return Err(JError::DomainError).context("cut's mode arg"); };
     let Verb(v) = n.clone() else { return Err(JError::DomainError).context("cut's verb arg"); };
     let m = m.approx_i64_one().context("cut's m")?;
@@ -707,9 +710,9 @@ mod test_cut {
     }
 }
 
-pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<BivalentOwned> {
+pub fn c_foreign(_ctx: &mut Ctx, l: &VerbNoun, r: &VerbNoun) -> Result<BivalentOwned> {
     match (l, r) {
-        (Word::Noun(l), Word::Noun(r)) => {
+        (VerbNoun::Noun(l), VerbNoun::Noun(r)) => {
             let l = l.approx_i64_one().context("foreign's left")?;
             let r = r.approx_i64_one().context("foreign's right")?;
             Ok(foreign(l, r)?)
@@ -718,21 +721,28 @@ pub fn c_foreign(_ctx: &mut Ctx, l: &Word, r: &Word) -> Result<BivalentOwned> {
     }
 }
 
-pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
+pub fn c_bondo(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+
     // TODO: some of these are presumably obviously monads or dyads
     let biv = match (n.clone(), m.clone()) {
-        (Word::Verb(n), Word::Noun(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
+        (Verb(n), Noun(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
             n.exec(ctx, Some(&m), &y.clone()).context("monad bondo VN")
         }),
-        (Word::Noun(n), Word::Verb(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
+        (Noun(n), Verb(m)) => BivalentOwned::from_bivalent(move |ctx, _x, y| {
             m.exec(ctx, Some(&n), y).context("monad bondo NV")
         }),
-        (Word::Verb(u), Word::Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| match x {
-            None => do_atop(ctx, None, &u, &v, &y),
-            Some(x) => {
-                let l = v.exec(ctx, None, &x).context("left bondo NVV")?;
-                let r = v.exec(ctx, None, &y).context("right bondo NVV")?;
-                u.exec(ctx, Some(&l), &r).context("central bondo NVV")
+        (Verb(u), Verb(v)) => BivalentOwned::from_bivalent(move |ctx, x, y| {
+            let u = u.to_verb(ctx.eval())?;
+            let v = v.to_verb(ctx.eval())?;
+
+            match x {
+                None => do_atop(ctx, None, &u, &v, &y),
+                Some(x) => {
+                    let l = v.exec(ctx, None, &x).context("left bondo NVV")?;
+                    let r = v.exec(ctx, None, &y).context("right bondo NVV")?;
+                    u.exec(ctx, Some(&l), &r).context("central bondo NVV")
+                }
             }
         }),
         _ => return Err(JError::NonceError).with_context(|| anyhow!("bondo n:{n:?} m:{m:?}")),
@@ -743,11 +753,14 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
     })
 }
 
-pub fn c_under(_ctx: &mut Ctx, n: &Word, m: &Word) -> Result<BivalentOwned> {
-    let (u, v) = match (n.when_verb(), m.when_verb()) {
-        (Some(n), Some(m)) => (n, m),
-        _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual n:{n:?} m:{m:?}")),
+pub fn c_under(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned> {
+    use VerbNoun::*;
+    let (u, v) = match (u, v) {
+        (Verb(u), Verb(v)) => (u, v),
+        _ => return Err(JError::NonceError).with_context(|| anyhow!("under dual u:{u:?} v:{v:?}")),
     };
+    let u = u.clone();
+    let v = v.clone();
     let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
         let u = u.to_verb(ctx.eval())?;
         let v = v.to_verb(ctx.eval())?;

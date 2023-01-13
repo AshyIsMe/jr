@@ -49,7 +49,18 @@ impl ModifierImpl {
             ),
             ModifierImpl::OwnedConjunction(c) => (false, (c.f)(ctx, Some(u), v)?),
             ModifierImpl::Conjunction(c) => {
-                let partial = (c.f)(ctx, u, v)
+                let u = u
+                    .when_verb_noun()
+                    .ok_or(JError::DomainError)
+                    .context("conjunction's input must be a verb-like or a noun")
+                    .with_context(|| anyhow!("u: {u:?}"))?;
+                let v = v
+                    .when_verb_noun()
+                    .ok_or(JError::DomainError)
+                    .context("conjunction's input must be a verb-like or a noun")
+                    .with_context(|| anyhow!("u: {u:?}"))?;
+
+                let partial = (c.f)(ctx, &u, &v)
                     .context(c.name)
                     .with_context(|| anyhow!("u: {u:?}"))
                     .with_context(|| anyhow!("v: {v:?}"))?;
@@ -57,7 +68,7 @@ impl ModifierImpl {
                     false,
                     Word::Verb(VerbImpl::Partial(PartialImpl {
                         imp: partial,
-                        def: Some(vec![u.clone(), Word::Conjunction(self.clone()), v.clone()]),
+                        def: Some(vec![u.into(), Word::Conjunction(self.clone()), v.into()]),
                     })),
                 )
             }
