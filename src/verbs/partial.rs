@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use anyhow::{Context, Result};
 
+use crate::eval::VerbNoun;
+use crate::modifiers::ModifierImpl;
 use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
@@ -12,8 +14,15 @@ pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Resu
 #[derive(Clone)]
 pub struct PartialImpl {
     pub imp: BivalentOwned,
-    // This is probably an enum { adverb(a,w), conj(c,w,w) , udf(n,vec<w>) }?
-    pub def: Option<Vec<Word>>,
+    pub def: Box<PartialDef>,
+}
+
+#[derive(Clone, Debug)]
+pub enum PartialDef {
+    Adverb(ModifierImpl, VerbNoun),
+    Conjunction(VerbNoun, ModifierImpl, VerbNoun),
+    Cor(i64, Vec<Word>),
+    Unimplemented(&'static str),
 }
 
 #[derive(Clone)]
@@ -25,8 +34,6 @@ pub struct BivalentOwned {
 impl PartialImpl {
     pub fn name(&self) -> String {
         match self.def.as_ref() {
-            Some(words) if words.len() == 2 => format!("PartialImpl({:?})", words[0]),
-            Some(words) if words.len() == 3 => format!("PartialImpl({:?})", words[1]),
             _ => format!("[TODO: no name for partial {:?}]", self.def),
         }
     }

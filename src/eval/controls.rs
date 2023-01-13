@@ -6,8 +6,8 @@ use itertools::Itertools;
 
 use crate::eval::eval_lines;
 use crate::modifiers::{ModifierImpl, OwnedAdverb, OwnedConjunction};
-use crate::verbs::{BivalentOwned, PartialImpl, VerbImpl};
-use crate::{arr0d, primitive_conjunctions, HasEmpty, JArray, JError, Rank, Word};
+use crate::verbs::{BivalentOwned, PartialDef, PartialImpl, VerbImpl};
+use crate::{HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -214,7 +214,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
             };
             Word::Verb(VerbImpl::Partial(PartialImpl {
                 imp,
-                def: Some(prepend_cor(3, def)),
+                def: build_cor(3, def),
             }))
         }
         'd' => {
@@ -241,7 +241,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
             };
             Word::Verb(VerbImpl::Partial(PartialImpl {
                 imp,
-                def: Some(prepend_cor(4, def)),
+                def: build_cor(4, def),
             }))
         }
         other => {
@@ -251,13 +251,8 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
     })
 }
 
-fn prepend_cor(i: i64, mut def: Vec<Word>) -> Vec<Word> {
-    def.insert(
-        0,
-        Word::Conjunction(primitive_conjunctions(":").expect("static name")),
-    );
-    def.insert(0, Word::Noun(JArray::from(arr0d(i))));
-    def
+fn build_cor(i: i64, def: Vec<Word>) -> Box<PartialDef> {
+    Box::new(PartialDef::Cor(i, def))
 }
 
 // TODO: this is typically called from partial_exec which has a panic

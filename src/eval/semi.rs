@@ -53,6 +53,18 @@ impl Into<Word> for MaybeVerb {
     }
 }
 
+impl VerbNoun {
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        match self {
+            VerbNoun::Verb(MaybeVerb::Verb(v)) => v.boxed_ar(),
+            // TODO: don't LOOPBACK to Word
+            VerbNoun::Verb(MaybeVerb::Name(s)) => Word::Name(s.clone()).boxed_ar(),
+            // TODO: don't LOOPBACK to Word
+            VerbNoun::Noun(n) => Word::Noun(n.clone()).boxed_ar(),
+        }
+    }
+}
+
 impl MaybeVerb {
     // clones() in all cases, but without it, you can't really eval the result
     // (due to ctx being borrowed immutable, and eval needing it mutable), so clone here for easier users?

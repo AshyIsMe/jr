@@ -8,7 +8,7 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::{Ctx, JArray, JError, Word};
 
-use crate::verbs::{PartialImpl, VerbImpl};
+use crate::verbs::{PartialDef, PartialImpl, VerbImpl};
 pub use adverb::*;
 pub use conj::*;
 
@@ -68,7 +68,7 @@ impl ModifierImpl {
                     false,
                     Word::Verb(VerbImpl::Partial(PartialImpl {
                         imp: partial,
-                        def: Some(vec![u.into(), Word::Conjunction(self.clone()), v.into()]),
+                        def: Box::new(PartialDef::Conjunction(u, self.clone(), v)),
                     })),
                 )
             }
@@ -80,16 +80,16 @@ impl ModifierImpl {
         Ok((
             false,
             match self {
-                ModifierImpl::Adverb(c) => Word::Verb(VerbImpl::Partial(PartialImpl {
-                    imp: (c.f)(
-                        ctx,
-                        &u.when_verb_noun()
-                            .context("adverbs only take verb-likes or nouns")
-                            .with_context(|| anyhow!("u: {u:?}"))?,
-                    )
-                    .with_context(|| anyhow!("u: {u:?}"))?,
-                    def: Some(vec![Word::Adverb(self.clone()), u.clone()]),
-                })),
+                ModifierImpl::Adverb(c) => {
+                    let u = u
+                        .when_verb_noun()
+                        .context("adverbs only take verb-likes or nouns")
+                        .with_context(|| anyhow!("u: {u:?}"))?;
+                    Word::Verb(VerbImpl::Partial(PartialImpl {
+                        imp: (c.f)(ctx, &u).with_context(|| anyhow!("u: {u:?}"))?,
+                        def: Box::new(PartialDef::Adverb(self.clone(), u.clone())),
+                    }))
+                }
                 ModifierImpl::OwnedAdverb(a) => {
                     (a.f)(ctx, u).with_context(|| anyhow!("u: {u:?}"))?
                 }
