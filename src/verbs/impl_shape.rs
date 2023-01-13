@@ -115,7 +115,7 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
     }
 
     if x.shape().len() >= 1 && y.shape().len() >= 1 {
-        return append_nd(x, y);
+        return append_nd(x, y).context("nd append case");
     }
 
     // ensure!(x.shape().is_empty());
@@ -134,6 +134,7 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
             .chain(y.clone().into_elems().into_iter())
             .collect(),
     )
+    .context("legacy append case")
 }
 
 /// ,. (dyad)
