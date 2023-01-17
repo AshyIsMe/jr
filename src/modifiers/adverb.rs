@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use ndarray::IxDyn;
 
-use crate::cells::fill_promote_list;
+use crate::cells::{fill_promote_list, fill_promote_reshape};
 use crate::eval::VerbNoun;
 use crate::modifiers::do_atop;
 use crate::number::promote_to_array;
@@ -105,7 +105,7 @@ fn a_table(ctx: &mut Ctx, u: &VerbImpl, x: &JArray, y: &JArray) -> Result<JArray
         }
     }
 
-    JArray::from_fill_promote(items)?.reshape(IxDyn(&[x.len_of_0(), y.len_of_0()]))
+    fill_promote_reshape((vec![x.len_of_0(), y.len_of_0()], items))
 }
 
 pub fn a_slash_dot(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {

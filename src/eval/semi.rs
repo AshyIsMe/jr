@@ -1,4 +1,6 @@
 use anyhow::{anyhow, Context, Result};
+use itertools::Itertools;
+use ndarray::IxDyn;
 
 use crate::ctx::Eval;
 use crate::verbs::VerbImpl;
@@ -51,6 +53,50 @@ impl Into<Word> for MaybeVerb {
             MaybeVerb::Name(s) => Word::Name(s),
         }
     }
+}
+
+impl VerbNoun {
+    pub fn name(&self) -> String {
+        use VerbNoun::*;
+        match self {
+            Verb(MaybeVerb::Verb(v)) => v.name(),
+            Verb(MaybeVerb::Name(v)) => quote_string(v),
+            Noun(arr) => quote_arr(arr),
+        }
+    }
+
+    pub fn boxed_ar(&self) -> Result<JArray> {
+        match self {
+            VerbNoun::Verb(MaybeVerb::Verb(v)) => v.boxed_ar(),
+            // TODO: don't LOOPBACK to Word
+            VerbNoun::Verb(MaybeVerb::Name(s)) => Word::Name(s.clone()).boxed_ar(),
+            // TODO: don't LOOPBACK to Word
+            VerbNoun::Noun(n) => Word::Noun(n.clone()).boxed_ar(),
+        }
+    }
+}
+
+fn quote_string(s: impl AsRef<str>) -> String {
+    let s = s.as_ref();
+    let s = s.replace('\'', "''");
+    format!("'{s}'")
+}
+
+fn quote_arr(arr: &JArray) -> String {
+    let shape = if arr.shape().is_empty() {
+        String::new()
+    } else {
+        format!(
+            "{} $ ",
+            arr.shape().iter().map(|v| format!("{v}")).join(" ")
+        )
+    };
+
+    let arr = arr
+        .reshape(IxDyn(&[arr.tally()]))
+        .expect("reshape to same size is infallible");
+
+    format!("{shape}{}", format!("{arr}").trim())
 }
 
 impl MaybeVerb {
