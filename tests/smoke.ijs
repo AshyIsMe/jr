@@ -599,3 +599,6 @@ NB. power conjunction
 'Mr.' ,^:((<@[)`(1 = #@])`]) 'Harry';'Jones'
 a:
 (0 >. <:)^:a: 5
+
+NB. inverse
+*:^:1 2 3 _1 _2 [ 4

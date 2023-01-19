@@ -215,8 +215,15 @@ fn do_hatco(
         n.iter()
             .map(|i| -> Result<_> {
                 let mut t = y.clone();
-                for _ in 0..*i {
-                    t = u.exec(ctx, x, &t)?;
+                if *i >= 0 {
+                    for _ in 0..*i {
+                        t = u.exec(ctx, x, &t)?;
+                    }
+                } else {
+                    let u_i = u.obverse().unwrap();
+                    for _ in 0..(*i).abs() {
+                        t = u_i.exec(ctx, x, &t)?;
+                    }
                 }
                 Ok(t)
             })
