@@ -73,3 +73,13 @@ cargo test
 # quick run
 cargo run
 ```
+
+
+## basic benchmarks
+
+* TODO: A better setup for bencmarking vs jsoftware's j.
+
+```sh
+# maybe?
+CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph --example bench examples/benches/bench.ijs
+```
