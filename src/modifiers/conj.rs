@@ -222,7 +222,11 @@ fn do_hatco(
                 } else {
                     let u_i = u.obverse().unwrap();
                     for _ in 0..(*i).abs() {
-                        t = u_i.exec(ctx, x, &t)?;
+                        if let Some(ja) = x {
+                            t = u_i.exec(ctx, Some(&t), ja)?;
+                        } else {
+                            t = u_i.exec(ctx, x, &t)?;
+                        }
                     }
                 }
                 Ok(t)

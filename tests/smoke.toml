@@ -1631,6 +1631,20 @@ output = '''
 encoded = 'e3,01,03,01,03,'
 
 [[runs]]
+expr = '1 2 4 (+^:_1) 4 5 6'
+output = '''
+3 3 2
+'''
+encoded = 'e3,04,03,01,03,03,03,02'
+
+[[runs]]
+expr = '1 2 4 (-^:_1) 4 5 6'
+output = '''
+_3 _3 _2
+'''
+encoded = 'e3,04,03,01,03,fdffffffffffffff,fdffffffffffffff,feffffffffffffff'
+
+[[runs]]
 expr = '1 4j2 3j3 2.00'
 output = '''
 1 4j2 3j3 2
