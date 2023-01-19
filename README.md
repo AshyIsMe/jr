@@ -82,4 +82,6 @@ cargo run
 ```sh
 # maybe?
 CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph --example bench examples/benches/bench.ijs
+
+cargo build --release --example bench; time target/release/examples/bench examples/benches/bench.ijs
 ```
