@@ -29,6 +29,10 @@ pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArr
 /// Kinda-internal version of [`fill_promote_list`] which reshapes the result to be compatible
 /// with the input, which is what the agreement internals want, but probably isn't what you want.
 pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
+    if frame.is_empty() && data.len() == 1 {
+        return Ok(data.into_iter().next().expect("just checked"));
+    }
+
     let max_rank = data
         .iter()
         .map(|x| x.shape().len())
