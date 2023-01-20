@@ -21,9 +21,9 @@ impl Rank {
         if val.is_infinite() && val.is_sign_positive() {
             return Ok(Rank::infinite());
         }
-        if !val.is_finite() || val < 0. || val > 65. {
+        if !val.is_finite() || val < -65. || val > 65. {
             return Err(JError::LimitError)
-                .with_context(|| anyhow!("ranks must be infinite or 0-64, not {val:?}"));
+                .with_context(|| anyhow!("ranks must be infinite or -64 to 64, not {val:?}"));
         }
 
         let rounded = val.round();
