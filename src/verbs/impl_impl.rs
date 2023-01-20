@@ -242,10 +242,6 @@ impl VerbImpl {
                         ]),
                     ])
                 }
-                PartialDef::Unimplemented(msg) => {
-                    return Err(JError::NonceError)
-                        .with_context(|| anyhow!("unimplemented boxed_ar of Partial: {msg}"))
-                }
             },
             Hook { l, r } => JArray::from_list([
                 JArray::from_string("2"),

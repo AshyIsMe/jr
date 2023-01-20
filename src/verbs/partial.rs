@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 
 use crate::eval::VerbNoun;
 use crate::modifiers::ModifierImpl;
+use crate::verbs::VerbImpl;
 use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
@@ -22,7 +23,6 @@ pub enum PartialDef {
     Adverb(ModifierImpl, VerbNoun),
     Conjunction(VerbNoun, ModifierImpl, VerbNoun),
     Cor(i64, Vec<Word>),
-    Unimplemented(&'static str),
 }
 
 #[derive(Clone)]
@@ -37,7 +37,6 @@ impl PartialImpl {
             PartialDef::Adverb(a, u) => format!("({} {})", u.name(), a.name()),
             PartialDef::Conjunction(u, a, v) => format!("({} {} {})", u.name(), a.name(), v.name()),
             PartialDef::Cor(i, _def) => format!("({i} : ???)"),
-            PartialDef::Unimplemented(hint) => format!("(no display for partial {hint}"),
         }
     }
 }

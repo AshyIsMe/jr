@@ -457,6 +457,7 @@ NB. tie
 NB. not serialising bodies: {{ x + y }}`0:
 ((<@[)`(1 = #@])`])
 foo`0:
+(+ : -)`0:
 
 NB. agenda
 5 (+`-@.1) 2

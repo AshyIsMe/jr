@@ -8,13 +8,13 @@ use ndarray::prelude::*;
 
 use crate::arrays::BoxArray;
 use crate::cells::{apply_cells, fill_promote_reshape, monad_cells};
-use crate::eval::{create_def, resolve_controls, VerbNoun};
+use crate::eval::{create_def, resolve_controls, MaybeVerb, VerbNoun};
 use crate::foreign::foreign;
 use crate::scan::str_to_primitive;
 use crate::verbs::{
     append_nd, exec_dyad, exec_monad, BivalentOwned, PartialDef, PartialImpl, Rank, VerbImpl,
 };
-use crate::{arr0d, generate_cells, Ctx};
+use crate::{arr0d, generate_cells, primitive_adverbs, primitive_conjunctions, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
@@ -325,6 +325,13 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
         Verb(v) => {
             let u = u.clone();
             let v = v.clone();
+
+            let def = Box::new(PartialDef::Conjunction(
+                VerbNoun::Noun(JArray::from(u.clone())),
+                primitive_conjunctions("@.").expect("static conjunction"),
+                VerbNoun::Verb(MaybeVerb::Verb(v.clone())),
+            ));
+
             let biv = BivalentOwned::from_bivalent(move |ctx, x, y| {
                 let v = v.exec(ctx, x, y)?;
                 match do_agenda(ctx, &u, v.approx_usize_one()?)? {
@@ -338,7 +345,7 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                     // supposedly depends on the rank of v
                     ranks: Rank::inf_inf_inf(),
                 },
-                def: Box::new(PartialDef::Unimplemented("u @.")),
+                def,
             })))
         }
         _ => Err(JError::DomainError).context("agenda's index type"),
@@ -545,6 +552,12 @@ pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
         return Err(JError::DomainError).context("u:v's v must be a verb");
     };
 
+    let def = Box::new(PartialDef::Conjunction(
+        VerbNoun::Verb(MaybeVerb::Verb(u.clone())),
+        primitive_conjunctions(":").expect("static conjunction"),
+        VerbNoun::Verb(MaybeVerb::Verb(v.clone())),
+    ));
+
     let u = u.clone();
     let v = v.clone();
 
@@ -557,7 +570,7 @@ pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
             // TODO: ranks should be from u and v, allegedly
             ranks: Rank::inf_inf_inf(),
         },
-        def: Box::new(PartialDef::Unimplemented("u :")),
+        def,
     })))
 }
 
