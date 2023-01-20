@@ -224,21 +224,29 @@ fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
     if u.shape().len() > 1 {
         return Err(JError::NonceError).context("u must be a list");
     }
+
+    if u.is_empty() {
+        return Err(JError::LengthError).context("u can't be empty");
+    }
+
     let u = u.approx_usize_list()?;
     let biv = BivalentOwned::from_bivalent(move |_ctx, x, y| match x {
-        Some(x) if x.shape().len() <= 1 && y.shape().len() == 1 => {
-            let x = x.clone().into_elems();
-            let mut y = y.clone().into_elems();
+        Some(x) => {
+            if x.is_empty() {
+                return Err(JError::LengthError).context("x cannot be empty");
+            }
+            let x = x.outer_iter().collect_vec();
+            let mut y = y.outer_iter().collect_vec();
 
-            for u in &u {
+            for (i, u) in u.iter().enumerate() {
                 *y.get_mut(*u)
                     .ok_or(JError::IndexError)
-                    .context("index out of bounds")? = x[u % x.len()].clone();
+                    .context("index out of bounds")? = x[i % x.len()].clone();
             }
 
-            promote_to_array(y)
+            fill_promote_list(y)
         }
-        _ => Err(JError::NonceError).with_context(|| anyhow!("{x:?} {u:?} }} {y:?}")),
+        None => Err(JError::NonceError).context("monadic }"),
     });
 
     Ok(BivalentOwned {

@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context, Result};
-use log::warn;
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
@@ -230,16 +229,14 @@ impl VerbImpl {
                     c.boxed_ar()?,
                     JArray::from_list(vec![u.boxed_ar()?, v.boxed_ar()?]),
                 ]),
-                PartialDef::Cor(n, def) => {
+                PartialDef::Cor(n, def) => JArray::from_list([
+                    JArray::from_string(":"),
                     JArray::from_list([
-                        JArray::from_string(":"),
-                        JArray::from_list([
-                            Word::Noun(JArray::IntArray(arr0ad(*n))).boxed_ar()?,
-                            Word::Noun(JArray::from_string(stringify(def)?).rank_extend(2))
-                                .boxed_ar()?,
-                        ]),
-                    ])
-                }
+                        Word::Noun(JArray::IntArray(arr0ad(*n))).boxed_ar()?,
+                        Word::Noun(JArray::from_string(stringify(def)?).rank_extend(2))
+                            .boxed_ar()?,
+                    ]),
+                ]),
             },
             Hook { l, r } => JArray::from_list([
                 JArray::from_string("2"),

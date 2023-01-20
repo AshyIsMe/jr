@@ -152,6 +152,30 @@ output = '''
 encoded = 'e3,08,03,01,03,000000000000004,000000000000084,000000000000104'
 
 [[runs]]
+expr = "'*' 0 2 4 6} 'abcdefghijklmnop'"
+output = '''
+*b*d*f*hijklmnop
+'''
+encoded = 'e3,02,1,01,1,2a622a642a662a68,696a6b6c6d6e6f7,'
+
+[[runs]]
+expr = ''''*' 2} (_4 ]\ 'abcdefghijklmnop')'''
+output = '''
+abcd
+efgh
+****
+mnop
+'''
+encoded = 'e3,02,1,02,04,04,6162636465666768,2a2a2a2a6d6e6f7,'
+
+[[runs]]
+expr = "'ABCD' 0 2 4 6} 'abcdefghijklmnop'"
+output = '''
+AbBdCfDhijklmnop
+'''
+encoded = 'e3,02,1,01,1,4162426443664468,696a6b6c6d6e6f7,'
+
+[[runs]]
 expr = ''''ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')'''
 output = '''
 0 4 1 3

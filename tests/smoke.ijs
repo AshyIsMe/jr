@@ -331,6 +331,9 @@ NB. rank
 NB. amend
 'x' 0 3} 'cross'
 'gw' 0 3} 'cross'
+'ABCD' 0 2 4 6} 'abcdefghijklmnop'
+'*' 0 2 4 6} 'abcdefghijklmnop'
+NB. weird ass fill rules: '*' 2} (_4 ]\ 'abcdefghijklmnop')
 
 NB. amend (legacy definition: curlyrtu)
 2 (>./)} 0 1 2
