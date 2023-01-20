@@ -235,6 +235,23 @@ impl JArray {
         impl_array!(self, |a: &ArrayBase<_, _>| Ok(a.reshape(dim).into()))
     }
 
+    /// Create an array containing the same data and the same trailing shape, but with
+    /// 1-shaped dimensions appended to bring the rank (the length of the shape) up to
+    /// the `target`.
+    ///
+    /// Panics if `target > self.shape().len()`.
+    pub fn rank_extend(&self, target: usize) -> JArray {
+        let rank_extended_shape = (0..target - self.shape().len())
+            .map(|_| &1)
+            .chain(self.shape())
+            .copied()
+            .collect_vec();
+
+        self.reshape(rank_extended_shape)
+            .expect("rank extension is always valid")
+    }
+
+
     pub fn create_cleared(&self) -> JArray {
         let empty_first = |shape: &[usize]| -> Vec<usize> {
             if shape.is_empty() {

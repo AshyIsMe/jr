@@ -13,6 +13,7 @@ use ndarray::{concatenate, Axis, Slice};
 use crate::arrays::{len_of_0, ArcArrayD, IntoVec};
 use crate::number::{promote_to_array, Num};
 use crate::{arr0ad, impl_array, impl_homo, JArray, JError};
+use crate::cells::{fill_promote_list, fill_promote_reshape};
 
 pub fn reshape<T>(x: &[i64], y: &ArcArrayD<T>) -> Result<ArcArrayD<T>>
 where
@@ -114,27 +115,7 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
         return Ok(unatom(x.clone()));
     }
 
-    if x.shape().len() >= 1 && y.shape().len() >= 1 {
-        return append_nd(x, y).context("nd append case");
-    }
-
-    // ensure!(x.shape().is_empty());
-    // ensure!(y.shape().is_empty());
-
-    if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
-        return Err(JError::NonceError)
-            .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));
-    }
-
-    // TODO: jsoft rejects (DomainError) a bunch of cases promote_to_array accepts
-    promote_to_array(
-        x.clone()
-            .into_elems()
-            .into_iter()
-            .chain(y.clone().into_elems().into_iter())
-            .collect(),
-    )
-    .context("legacy append case")
+    fill_promote_reshape((Vec::new(), vec![x.clone(), y.clone()]))
 }
 
 /// ,. (dyad)

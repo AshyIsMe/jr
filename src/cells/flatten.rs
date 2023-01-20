@@ -39,7 +39,7 @@ pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
     // rank extend every child
     let results = data
         .into_iter()
-        .map(|arr| rank_extend(max_rank, arr))
+        .map(|arr| arr.rank_extend(max_rank))
         .collect_vec();
 
     // max each dimension
@@ -86,17 +86,6 @@ pub fn fill_promote_reshape((frame, data): VerbResult) -> Result<JArray> {
         }
         Ok::<_, anyhow::Error>(ArcArrayD::from_shape_vec(target_shape, big_daddy)?.into())
     }));
-}
-
-fn rank_extend(target: usize, arr: JArray) -> JArray {
-    let rank_extended_shape = (0..target - arr.shape().len())
-        .map(|_| &1)
-        .chain(arr.shape())
-        .copied()
-        .collect_vec();
-
-    arr.reshape(rank_extended_shape)
-        .expect("rank extension is always valid")
 }
 
 // recursive implementation; lops off the start of the dims, recurses on that, then later fills
@@ -165,7 +154,7 @@ mod tests {
 
     fn push(target: &[usize], arr: ArcArrayD<i64>) -> Vec<i64> {
         let mut out: Vec<i64> = Vec::new();
-        let arr = super::rank_extend(target.len(), JArray::IntArray(arr));
+        let arr = JArray::IntArray(arr).rank_extend(target.len());
         super::push_with_shape(&mut out, target, arr).expect("push success");
         out.into_iter().collect()
     }
