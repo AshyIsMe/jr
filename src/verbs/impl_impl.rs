@@ -231,20 +231,14 @@ impl VerbImpl {
                     JArray::from_list(vec![u.boxed_ar()?, v.boxed_ar()?]),
                 ]),
                 PartialDef::Cor(n, def) => {
-                    warn!("lying about serialising a udf: {def:?}");
-                    // TODO: NOT IMPLEMENTED!!!
-                    // TODO: NOT IMPLEMENTED!!!
                     JArray::from_list([
                         JArray::from_string(":"),
                         JArray::from_list([
                             Word::Noun(JArray::IntArray(arr0ad(*n))).boxed_ar()?,
-                            Word::Noun(JArray::from_string("assert. 0")).boxed_ar()?,
+                            Word::Noun(JArray::from_string(stringify(def)?).rank_extend(2))
+                                .boxed_ar()?,
                         ]),
                     ])
-                }
-                PartialDef::Unimplemented(msg) => {
-                    return Err(JError::NonceError)
-                        .with_context(|| anyhow!("unimplemented boxed_ar of Partial: {msg}"))
                 }
             },
             Hook { l, r } => JArray::from_list([
@@ -261,4 +255,13 @@ impl VerbImpl {
             }
         })
     }
+}
+
+fn stringify(def: &[Word]) -> Result<String> {
+    let mut ret = String::with_capacity(4 * def.len());
+    for word in def {
+        ret.push_str(&word.name()?);
+        ret.push_str(" ");
+    }
+    Ok(ret)
 }
