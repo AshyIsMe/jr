@@ -367,6 +367,9 @@ NB. ravel items
 
 NB. laminate
 'bravo' ,: 'charlie'
+NB. itemize
+$ ,: 42
+$ ,: i.2 3
 
 NB. link
 5;3
