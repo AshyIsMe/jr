@@ -231,14 +231,12 @@ impl VerbImpl {
                     JArray::from_list(vec![u.boxed_ar()?, v.boxed_ar()?]),
                 ]),
                 PartialDef::Cor(n, def) => {
-                    warn!("lying about serialising a udf: {def:?}");
-                    // TODO: NOT IMPLEMENTED!!!
-                    // TODO: NOT IMPLEMENTED!!!
                     JArray::from_list([
                         JArray::from_string(":"),
                         JArray::from_list([
                             Word::Noun(JArray::IntArray(arr0ad(*n))).boxed_ar()?,
-                            Word::Noun(JArray::from_string(stringify(def)?)).boxed_ar()?,
+                            Word::Noun(JArray::from_string(stringify(def)?).rank_extend(2))
+                                .boxed_ar()?,
                         ]),
                     ])
                 }
