@@ -12,7 +12,7 @@ use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::{len_of_0, ArcArrayD, IntoVec};
 use crate::number::{promote_to_array, Num};
-use crate::{arr0ad, impl_array, impl_homo, JArray, JError};
+use crate::{arr0ad, eval, impl_array, impl_homo, scan, Ctx, JArray, JError, Word};
 
 pub fn reshape<T>(x: &[i64], y: &ArcArrayD<T>) -> Result<ArcArrayD<T>>
 where
@@ -135,8 +135,18 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// ,. (dyad)
-pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_stitch(x: &JArray, y: &JArray) -> Result<JArray> {
+    use Word::*;
+    // Why write rust when you can write j?
+    // AA TODO: rewrite this in rust obviously...
+    let stitch = scan(",\"_1")?;
+    let sentence = vec![vec![Noun(x.clone())], stitch, vec![Noun(y.clone())]].concat();
+    let mut ctx = Ctx::root();
+    let word = eval(sentence, &mut ctx)?;
+    match word {
+        Noun(ja) => return Ok(ja),
+        _ => return Err(JError::DomainError.into()),
+    }
 }
 
 /// ; (dyad) (_, _)
