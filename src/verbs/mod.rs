@@ -192,14 +192,14 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             }
         }
         JArray::BoxArray(arr) if arr.shape().len() == 1 => {
-            let mut parts = Vec::new();
+            let mut parts = Vec::with_capacity(arr.len() * 2);
             for arr in arr {
                 if arr.shape().len() > 1 {
                     return Err(JError::NonceError).context("non-list inside a box");
                 }
-                parts.extend(arr.clone().into_elems());
+                parts.extend(arr.outer_iter());
             }
-            let arr = promote_to_array(parts)?;
+            let arr = JArray::from_fill_promote(parts)?;
             // hee hee hee, unatoming
             Ok(if !arr.shape().is_empty() {
                 arr
