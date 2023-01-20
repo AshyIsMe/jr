@@ -5,8 +5,9 @@ use itertools::Itertools;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
+use crate::cells::{fill_promote_list, fill_promote_reshape};
 use crate::number::{promote_to_array, Num};
-use crate::{Elem, JError, Word};
+use crate::{Elem, JArray, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     assert!(!sentence.contains('\n'));

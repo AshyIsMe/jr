@@ -6,7 +6,6 @@ use itertools::Itertools;
 use crate::cells::{fill_promote_list, fill_promote_reshape};
 use crate::eval::VerbNoun;
 use crate::modifiers::do_atop;
-use crate::number::promote_to_array;
 use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
 use crate::{primitive_verbs, Ctx, JArray, JError, Rank};
 

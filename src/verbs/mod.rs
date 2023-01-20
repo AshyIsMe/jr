@@ -530,12 +530,12 @@ pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
     let x = x.clone().into_elems();
     let y = y.clone().into_elems();
     ensure!(!x.is_empty());
-    promote_to_array(
+    Ok(JArray::from_list(
         y.windows(x.len())
-            .map(|win| Elem::Num(Num::bool(x == win)))
-            .chain(repeat(Elem::Num(Num::bool(false))).take(x.len() - 1))
-            .collect(),
-    )
+            .map(|win| (x == win) as u8)
+            .chain(repeat(0u8).take(x.len() - 1))
+            .collect_vec(),
+    ))
 }
 
 /// L. (monad) (_)
