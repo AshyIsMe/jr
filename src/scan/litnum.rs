@@ -5,8 +5,7 @@ use itertools::Itertools;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::cells::{fill_promote_list, fill_promote_reshape};
-use crate::number::{promote_to_array, Num};
+use crate::number::Num;
 use crate::{Elem, JArray, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
@@ -38,7 +37,7 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
         })?;
     let l = term.as_ptr() as usize - sentence.as_ptr() as usize + term.len() - 1;
 
-    // promote_to_array wants the input to be Elem-wrapped
+    // from_fill_promote wants the input to be JArray-wrapped
     let parts = parts
         .into_iter()
         .map(|(_term, num)| Elem::Num(num))

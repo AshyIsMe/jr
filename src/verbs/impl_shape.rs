@@ -11,7 +11,7 @@ use ndarray::prelude::*;
 use ndarray::{concatenate, Axis, Slice};
 
 use crate::arrays::{len_of_0, ArcArrayD, IntoVec};
-use crate::number::{promote_to_array, Num};
+use crate::number::Num;
 use crate::{arr0ad, impl_array, impl_homo, JArray, JError};
 
 pub fn reshape<T>(x: &[i64], y: &ArcArrayD<T>) -> Result<ArcArrayD<T>>

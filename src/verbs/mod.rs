@@ -9,7 +9,7 @@ mod ranks;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::number::{promote_to_array, Num};
+use crate::number::Num;
 use crate::{
     arr0ad, arr0d, impl_array, scan_with_locations, ArcArrayD, Ctx, Elem, HasEmpty, JArray, JError,
     Word,

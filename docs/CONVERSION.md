@@ -58,8 +58,3 @@ JArray::from_promo_fill([
     JArray::from_list([3.5, 4.2, 5.5]),
 ])
 ```
-
-You could build `Elem`s manually, and `promote_to_array`, which probably isn't a
-great idea unless you're already operating on `Elem`s.
-
-`promote_to_array(vec![Elem::Num(Num::from(5i64))])`
