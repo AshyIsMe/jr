@@ -32,7 +32,6 @@ pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
 
-use crate::cells::fill_promote_list;
 pub use partial::*;
 pub use primitive::*;
 
@@ -85,7 +84,7 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("only available for lists");
     }
     let y = y.outer_iter().collect_vec();
-    fill_promote_list(x.outer_iter().filter(|x| !y.contains(x)))
+    JArray::from_fill_promote(x.outer_iter().filter(|x| !y.contains(x)))
 }
 
 /// -: (dyad)

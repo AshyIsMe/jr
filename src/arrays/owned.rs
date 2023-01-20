@@ -12,7 +12,7 @@ use num_traits::ToPrimitive;
 use super::nd_ext::len_of_0;
 use crate::arrays::elem::Elem;
 use crate::arrays::{display, size_of_shape_checked};
-use crate::cells::fill_promote_list;
+use crate::cells::fill_promote_reshape;
 use crate::number::Num;
 use crate::{arr0ad, IntoVec, JError};
 
@@ -560,7 +560,8 @@ impl JArray {
     /// );
     /// ```
     pub fn from_fill_promote(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
-        fill_promote_list(items)
+        let vec = items.into_iter().collect_vec();
+        fill_promote_reshape((vec![vec.len()], vec))
     }
 
     /// Produce a 1D char array from a Rust String-like

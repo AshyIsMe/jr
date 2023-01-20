@@ -3,7 +3,7 @@ use std::fmt;
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 
-use crate::cells::{fill_promote_list, fill_promote_reshape};
+use crate::cells::fill_promote_reshape;
 use crate::eval::VerbNoun;
 use crate::modifiers::do_atop;
 use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
@@ -142,8 +142,12 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             for i in 1..=y.len() {
                 let chunk = &y[..i];
                 piece.push(
-                    u.exec(ctx, None, &fill_promote_list(chunk.iter().cloned())?)
-                        .context("backslash (u)")?,
+                    u.exec(
+                        ctx,
+                        None,
+                        &JArray::from_fill_promote(chunk.iter().cloned())?,
+                    )
+                    .context("backslash (u)")?,
                 );
             }
             JArray::from_fill_promote(piece)
@@ -152,7 +156,11 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             let x = x.approx_i64_one().context("backslash's x")?;
             let mut piece = Vec::new();
             let mut f = |chunk: &[JArray]| -> Result<()> {
-                piece.push(u.exec(ctx, None, &fill_promote_list(chunk.iter().cloned())?)?);
+                piece.push(u.exec(
+                    ctx,
+                    None,
+                    &JArray::from_fill_promote(chunk.iter().cloned())?,
+                )?);
                 Ok(())
             };
 
@@ -187,7 +195,11 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             let y = y.outer_iter().collect_vec();
             let mut piece = Vec::new();
             for i in 0..y.len() {
-                piece.push(u.exec(ctx, None, &fill_promote_list(y[i..].iter().cloned())?)?);
+                piece.push(u.exec(
+                    ctx,
+                    None,
+                    &JArray::from_fill_promote(y[i..].iter().cloned())?,
+                )?);
             }
             JArray::from_fill_promote(piece)
         }
@@ -243,7 +255,7 @@ fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
                     .context("index out of bounds")? = x[i % x.len()].clone();
             }
 
-            fill_promote_list(y)
+            JArray::from_fill_promote(y)
         }
         None => Err(JError::NonceError).context("monadic }"),
     });
