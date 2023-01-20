@@ -42,9 +42,12 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     let parts = parts
         .into_iter()
         .map(|(_term, num)| Elem::Num(num))
-        .collect();
+        .map(JArray::from);
 
-    Ok((l, Word::Noun(promote_to_array(parts)?)))
+    Ok((
+        l,
+        Word::Noun(JArray::from_fill_promote(parts)?.singleton_to_atom()),
+    ))
 }
 
 pub fn scan_num_token(term: &str) -> Result<Num> {

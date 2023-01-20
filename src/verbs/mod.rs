@@ -199,13 +199,7 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
                 }
                 parts.extend(arr.outer_iter());
             }
-            let arr = JArray::from_fill_promote(parts)?;
-            // hee hee hee, unatoming
-            Ok(if !arr.shape().is_empty() {
-                arr
-            } else {
-                arr.reshape(IxDyn(&[1usize])).context("promoted reshape")?
-            })
+            JArray::from_fill_promote(parts)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
     }
@@ -429,13 +423,18 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
     let mut nums = Vec::new();
     for row in rows {
         let gap = width - row.len();
-        nums.extend(row.into_iter().map(Num::demote).map(Elem::Num));
+        nums.extend(
+            row.into_iter()
+                .map(Num::demote)
+                .map(Elem::Num)
+                .map(JArray::from),
+        );
         for _ in 0..gap {
-            nums.push(Elem::Num(x.clone()));
+            nums.push(JArray::from(Elem::Num(x.clone())));
         }
     }
 
-    promote_to_array(nums)
+    JArray::from_fill_promote(nums)
 }
 
 /// ": (monad)
