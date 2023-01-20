@@ -5,7 +5,8 @@ use std::fmt;
 use ndarray::{ArrayBase, ArrayViewD};
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
-use num_traits::{One, Zero};
+use num_traits::{FromPrimitive, One, Zero};
+use rust_decimal::Decimal;
 use unicode_width::UnicodeWidthStr;
 
 use crate::{impl_array, JArray};
@@ -310,7 +311,10 @@ impl JFormat for f64 {
             if v.is_infinite() {
                 format!("_")
             } else {
-                format!("{v}")
+                match Decimal::from_f64(v) {
+                    Some(d) if v < 1e7 => d.round_dp(6).to_string(),
+                    _ => format!("{v:.6}"),
+                }
             }
         })
     }

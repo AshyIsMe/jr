@@ -944,6 +944,21 @@ _1 0 1
 encoded = 'e3,04,03,01,03,ffffffffffffffff,,01'
 
 [[runs]]
+expr = '*. 3j4'
+output = '''
+5 0.927295
+'''
+encoded = 'e3,08,02,01,02,000000000000144,50bb610567aced3f'
+
+[[runs]]
+expr = '*. 3j4 5r2'
+output = '''
+  5 0.927295
+2.5        0
+'''
+encoded = 'e3,08,04,02,02,02,000000000000144,50bb610567aced3f,000000000000044,'
+
+[[runs]]
 expr = '*: 2 3 4'
 output = '''
 4 9 16
@@ -1489,6 +1504,55 @@ output = '''
 encoded = 'e3,01,04,01,04,01000001'
 
 [[runs]]
+expr = '0.000000123456789'
+output = '''
+1.23457e_7
+'''
+encoded = 'e3,08,01,,afe77766f191803e'
+
+[[runs]]
+expr = '0.00000123456789'
+output = '''
+1.23457e_6
+'''
+encoded = 'e3,08,01,,9be115c06db6b43e'
+
+[[runs]]
+expr = '0.0000123456789'
+output = '''
+1.23457e_5
+'''
+encoded = 'e3,08,01,,025a1b3009e4e93e'
+
+[[runs]]
+expr = '0.000123456789'
+output = '''
+0.000123457
+'''
+encoded = 'e3,08,01,,411811be852e203f'
+
+[[runs]]
+expr = '0.00123456789'
+output = '''
+0.00123457
+'''
+encoded = 'e3,08,01,,515e952d273a543f'
+
+[[runs]]
+expr = '0.0123456789'
+output = '''
+0.0123457
+'''
+encoded = 'e3,08,01,,e6b5faf8b048893f'
+
+[[runs]]
+expr = '0.123456789'
+output = '''
+0.123457
+'''
+encoded = 'e3,08,01,,5f633937dd9abf3f'
+
+[[runs]]
 expr = '0.5'
 output = '''
 0.5
@@ -1736,6 +1800,69 @@ output = '''
 1
 '''
 encoded = 'e3,04,01,,01'
+
+[[runs]]
+expr = '1.23456789'
+output = '''
+1.23457
+'''
+encoded = 'e3,08,01,,1bde8342cac0f33f'
+
+[[runs]]
+expr = '10000000.9'
+output = '''
+1e7
+'''
+encoded = 'e3,08,01,,cdcccc1cd0126341'
+
+[[runs]]
+expr = '12.3456789'
+output = '''
+12.3457
+'''
+encoded = 'e3,08,01,,a2d524d3fcb0284'
+
+[[runs]]
+expr = '123.456789'
+output = '''
+123.457
+'''
+encoded = 'e3,08,01,,0b0bee073cdd5e4'
+
+[[runs]]
+expr = '1234.56789'
+output = '''
+1234.57
+'''
+encoded = 'e3,08,01,,e7c6f484454a934'
+
+[[runs]]
+expr = '12345.6789'
+output = '''
+12345.7
+'''
+encoded = 'e3,08,01,,a1f831e6d61cc84'
+
+[[runs]]
+expr = '123456.789'
+output = '''
+123457
+'''
+encoded = 'e3,08,01,,c976be9f0c24fe4'
+
+[[runs]]
+expr = '1234567.89'
+output = '''
+1.23457e6
+'''
+encoded = 'e3,08,01,,3d0ad7e387d63241'
+
+[[runs]]
+expr = '12345678.9'
+output = '''
+1.23457e7
+'''
+encoded = 'e3,08,01,,cdccccdc298c6741'
 
 [[runs]]
 expr = '16 %~ 3.2'
@@ -2505,6 +2632,13 @@ pter
 encoded = 'e3,02,04,01,04,70746572'
 
 [[runs]]
+expr = '6.5'
+output = '''
+6.5
+'''
+encoded = 'e3,08,01,,0000000000001a4'
+
+[[runs]]
 expr = '64 *. 2'
 output = '''
 64
@@ -2558,6 +2692,13 @@ output = '''
 1
 '''
 encoded = 'e3,04,01,,01'
+
+[[runs]]
+expr = '7.5'
+output = '''
+7.5
+'''
+encoded = 'e3,08,01,,0000000000001e4'
 
 [[runs]]
 expr = '9: 5'

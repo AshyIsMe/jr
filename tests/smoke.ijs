@@ -62,6 +62,24 @@ _ _: _
 16b123
 16bffffffff
 3b012
+10000000.9
+12345678.9
+1234567.89
+123456.789
+12345.6789
+1234.56789
+123.456789
+12.3456789
+1.23456789
+0.123456789
+0.0123456789
+0.00123456789
+0.000123456789
+0.0000123456789
+0.00000123456789
+0.000000123456789
+6.5
+7.5
 
 NB. literal promotions
 1 0.5 2j3
@@ -165,8 +183,8 @@ NB. copy
 2 4 # 7j7
 
 NB. length angle
-NB. test framework fails for float comparison: *. 3j4
-NB. test framework fails for float comparison: *. 3j4 5r2
+*. 3j4
+*. 3j4 5r2
 
 NB. lcm / and
 3 *. 1
