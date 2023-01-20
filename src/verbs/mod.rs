@@ -286,12 +286,11 @@ pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::IndexError).context("need more xs than ys");
     }
     // TODO: unnecessary clones, as usual
-    Ok(promote_to_array(
+    JArray::from_fill_promote(
         y.into_iter()
             .map(|(i, _)| i)
-            .map(|i| x[i].clone())
-            .collect(),
-    )?)
+            .map(|i| JArray::from(x[i].clone())),
+    )
 }
 
 /// \: (monad)
@@ -313,13 +312,12 @@ pub fn v_sort_down(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::IndexError).context("need more xs than ys");
     }
     // TODO: unnecessary clones, as usual
-    Ok(promote_to_array(
+    JArray::from_fill_promote(
         y.into_iter()
             .rev()
             .map(|(i, _)| i)
-            .map(|i| x[i].clone())
-            .collect(),
-    )?)
+            .map(|i| JArray::from(x[i].clone())),
+    )
 }
 
 /// \[ (monad) and ] (monad) apparently
