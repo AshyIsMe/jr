@@ -12,7 +12,7 @@ use num_traits::ToPrimitive;
 use super::nd_ext::len_of_0;
 use crate::arrays::elem::Elem;
 use crate::arrays::{display, size_of_shape_checked};
-use crate::cells::fill_promote_list;
+use crate::cells::fill_promote_reshape;
 use crate::number::Num;
 use crate::{arr0ad, IntoVec, JError};
 
@@ -195,6 +195,28 @@ impl JArray {
 
     pub fn transpose<'s>(&'s self) -> JArray {
         impl_array!(self, |a: &'s ArrayBase<_, _>| a.t().to_shared().into())
+    }
+
+    /// converts a singleton list into an atom (you almost certainly do not want this),
+    /// returns the array unmodified if it is not a singleton
+    pub fn singleton_to_atom(self) -> JArray {
+        if self.shape() == [1] {
+            self.reshape(IxDyn(&[]))
+                .expect("stripping leading dimensions is okay")
+        } else {
+            self
+        }
+    }
+
+    /// converts an atom into a singleton list
+    /// returns the array unmodified if it is not an atom
+    /// see also: [`rank_extend`]
+    pub fn atom_to_singleton(self) -> JArray {
+        if self.shape().is_empty() {
+            self.rank_extend(1)
+        } else {
+            self
+        }
     }
 
     pub fn select(&self, axis: Axis, ix: &[usize]) -> JArray {
@@ -538,7 +560,8 @@ impl JArray {
     /// );
     /// ```
     pub fn from_fill_promote(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
-        fill_promote_list(items)
+        let vec = items.into_iter().collect_vec();
+        fill_promote_reshape((vec![vec.len()], vec))
     }
 
     /// Produce a 1D char array from a Rust String-like

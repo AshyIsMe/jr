@@ -9,7 +9,7 @@ mod ranks;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
-use crate::number::{promote_to_array, Num};
+use crate::number::Num;
 use crate::{
     arr0ad, arr0d, eval, impl_array, scan, scan_with_locations, ArcArrayD, Ctx, Elem, HasEmpty,
     JArray, JError, Word,
@@ -32,7 +32,6 @@ pub use impl_impl::*;
 pub use impl_maths::*;
 pub use impl_shape::*;
 
-use crate::cells::fill_promote_list;
 pub use partial::*;
 pub use primitive::*;
 
@@ -85,7 +84,7 @@ pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::NonceError).context("only available for lists");
     }
     let y = y.outer_iter().collect_vec();
-    fill_promote_list(x.outer_iter().filter(|x| !y.contains(x)))
+    JArray::from_fill_promote(x.outer_iter().filter(|x| !y.contains(x)))
 }
 
 /// -: (dyad)
@@ -202,20 +201,14 @@ pub fn v_raze(y: &JArray) -> Result<JArray> {
             }
         }
         JArray::BoxArray(arr) if arr.shape().len() == 1 => {
-            let mut parts = Vec::new();
+            let mut parts = Vec::with_capacity(arr.len() * 2);
             for arr in arr {
                 if arr.shape().len() > 1 {
                     return Err(JError::NonceError).context("non-list inside a box");
                 }
-                parts.extend(arr.clone().into_elems());
+                parts.extend(arr.outer_iter());
             }
-            let arr = promote_to_array(parts)?;
-            // hee hee hee, unatoming
-            Ok(if !arr.shape().is_empty() {
-                arr
-            } else {
-                arr.reshape(IxDyn(&[1usize])).context("promoted reshape")?
-            })
+            JArray::from_fill_promote(parts)
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("{y:?}")),
     }
@@ -296,12 +289,11 @@ pub fn v_sort_up(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::IndexError).context("need more xs than ys");
     }
     // TODO: unnecessary clones, as usual
-    Ok(promote_to_array(
+    JArray::from_fill_promote(
         y.into_iter()
             .map(|(i, _)| i)
-            .map(|i| x[i].clone())
-            .collect(),
-    )?)
+            .map(|i| JArray::from(x[i].clone())),
+    )
 }
 
 /// \: (monad)
@@ -323,13 +315,12 @@ pub fn v_sort_down(x: &JArray, y: &JArray) -> Result<JArray> {
         return Err(JError::IndexError).context("need more xs than ys");
     }
     // TODO: unnecessary clones, as usual
-    Ok(promote_to_array(
+    JArray::from_fill_promote(
         y.into_iter()
             .rev()
             .map(|(i, _)| i)
-            .map(|i| x[i].clone())
-            .collect(),
-    )?)
+            .map(|i| JArray::from(x[i].clone())),
+    )
 }
 
 /// \[ (monad) and ] (monad) apparently
@@ -441,13 +432,18 @@ pub fn v_numbers(x: &JArray, y: &JArray) -> Result<JArray> {
     let mut nums = Vec::new();
     for row in rows {
         let gap = width - row.len();
-        nums.extend(row.into_iter().map(Num::demote).map(Elem::Num));
+        nums.extend(
+            row.into_iter()
+                .map(Num::demote)
+                .map(Elem::Num)
+                .map(JArray::from),
+        );
         for _ in 0..gap {
-            nums.push(Elem::Num(x.clone()));
+            nums.push(JArray::from(Elem::Num(x.clone())));
         }
     }
 
-    promote_to_array(nums)
+    JArray::from_fill_promote(nums)
 }
 
 /// ": (monad)
@@ -540,12 +536,12 @@ pub fn v_member_interval(x: &JArray, y: &JArray) -> Result<JArray> {
     let x = x.clone().into_elems();
     let y = y.clone().into_elems();
     ensure!(!x.is_empty());
-    promote_to_array(
+    Ok(JArray::from_list(
         y.windows(x.len())
-            .map(|win| Elem::Num(Num::bool(x == win)))
-            .chain(repeat(Elem::Num(Num::bool(false))).take(x.len() - 1))
-            .collect(),
-    )
+            .map(|win| (x == win) as u8)
+            .chain(repeat(0u8).take(x.len() - 1))
+            .collect_vec(),
+    ))
 }
 
 /// L. (monad) (_)

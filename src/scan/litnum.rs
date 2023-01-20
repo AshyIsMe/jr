@@ -5,8 +5,8 @@ use itertools::Itertools;
 use num::complex::Complex64;
 use num::{BigInt, BigRational};
 
-use crate::number::{promote_to_array, Num};
-use crate::{Elem, JError, Word};
+use crate::number::Num;
+use crate::{Elem, JArray, JError, Word};
 
 pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
     assert!(!sentence.contains('\n'));
@@ -37,13 +37,16 @@ pub fn scan_litnumarray(sentence: &str) -> Result<(usize, Word)> {
         })?;
     let l = term.as_ptr() as usize - sentence.as_ptr() as usize + term.len() - 1;
 
-    // promote_to_array wants the input to be Elem-wrapped
+    // from_fill_promote wants the input to be JArray-wrapped
     let parts = parts
         .into_iter()
         .map(|(_term, num)| Elem::Num(num))
-        .collect();
+        .map(JArray::from);
 
-    Ok((l, Word::Noun(promote_to_array(parts)?)))
+    Ok((
+        l,
+        Word::Noun(JArray::from_fill_promote(parts)?.singleton_to_atom()),
+    ))
 }
 
 pub fn scan_num_token(term: &str) -> Result<Num> {

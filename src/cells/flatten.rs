@@ -11,12 +11,6 @@ use crate::number::{infer_kind_from_boxes, Num, Promote};
 use crate::verbs::VerbResult;
 use crate::{map_kind, Elem, JArray, JError};
 
-/// See [`JArray::from_fill_promote`].
-pub fn fill_promote_list(items: impl IntoIterator<Item = JArray>) -> Result<JArray> {
-    let vec = items.into_iter().collect_vec();
-    fill_promote_reshape((vec![vec.len()], vec))
-}
-
 // concat_promo_fill(&[JArrayCow]) -> JArray
 // concat_promo_fill(x).shape()[0] == x.len()
 // fn flatten_reshaping(prefix: Shape, l: &[JArrayCow]) {

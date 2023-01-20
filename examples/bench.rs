@@ -10,7 +10,7 @@ fn main() -> Result<()> {
         .ok_or_else(|| anyhow!("path must be valid utf-8"))?;
     let arg = arg.replace('\'', "''");
     let j = run_j(format!("(0!:0) <'{arg}'\n10 (6!:2) '10 comb 20'"))?;
-    let j: f64 = j.parse().with_context(|| anyhow!("j said: {j}"))?;
+    let _j: f64 = j.parse().with_context(|| anyhow!("j said: {j}"))?;
 
     Ok(())
 }
