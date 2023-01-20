@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use crate::eval::VerbNoun;
 use crate::modifiers::ModifierImpl;
 use crate::{Ctx, JArray, JError, Word};
+use crate::verbs::stringify;
 
 use super::ranks::{DyadRank, Rank};
 
@@ -35,7 +36,7 @@ impl PartialImpl {
         match &*self.def {
             PartialDef::Adverb(a, u) => format!("({} {})", u.name(), a.name()),
             PartialDef::Conjunction(u, a, v) => format!("({} {} {})", u.name(), a.name(), v.name()),
-            PartialDef::Cor(i, _def) => format!("({i} : ???)"),
+            PartialDef::Cor(i, def) => format!("({i} : '{}')", stringify(def)),
         }
     }
 }

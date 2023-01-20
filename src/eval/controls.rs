@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::eval::eval_lines;
 use crate::modifiers::{ModifierImpl, OwnedAdverb, OwnedConjunction};
 use crate::verbs::{BivalentOwned, PartialDef, PartialImpl, VerbImpl};
-use crate::{HasEmpty, JArray, JError, Rank, Word};
+use crate::{arr0ad, HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
@@ -142,7 +142,9 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
         Word::Try => Word::TryBlock(def),
         other => unreachable!("matches! above excludes {other:?}"),
     };
+    words.insert(last_start, Word::NewLine);
     words.insert(last_start, def);
+    words.insert(last_start, Word::NewLine);
     Ok(Resolution::StepTaken)
 }
 

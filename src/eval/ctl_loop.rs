@@ -18,7 +18,6 @@ pub fn control_for(ctx: &mut Ctx, style: Option<&str>, def: &[Word]) -> Result<B
     for _item in arr.outer_iter() {
         match eval_lines(block, ctx)? {
             BlockEvalResult::Regular(n) => {
-                println!("{n:?}");
                 last = n;
             }
             BlockEvalResult::Return(v) => return Ok(BlockEvalResult::Return(v)),
