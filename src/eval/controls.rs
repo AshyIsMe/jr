@@ -268,7 +268,7 @@ fn must_be_noun(v: Word) -> Result<JArray> {
     match v {
         Word::Noun(arr) => Ok(arr),
         _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+            .with_context(|| anyhow!("unexpected non-noun in noun context:\n{}", v.name_or_err())),
     }
 }
 

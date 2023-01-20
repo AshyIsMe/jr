@@ -6,8 +6,9 @@ use std::fmt;
 use anyhow::{anyhow, Context, Result};
 use ndarray::prelude::*;
 
+use crate::eval::quote_arr;
 use crate::modifiers::ModifierImpl;
-use crate::verbs::VerbImpl;
+use crate::verbs::{stringify, VerbImpl};
 use crate::{primitive_verbs, JArray, JError};
 
 // A Word is a part of speech.
@@ -132,10 +133,34 @@ impl_from_atom!(Complex64, JArray::ComplexArray);
 impl Word {
     pub fn name(&self) -> Result<String> {
         use Word::*;
-        match self {
-            Name(s) => Ok(s.to_string()),
-            Verb(v) => Ok(v.name()),
-            _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::name {self:?}")),
+        Ok(match self {
+            Name(s) => s.to_string(),
+            Verb(v) => v.name(),
+            Noun(arr) => quote_arr(arr),
+            Adverb(v) => v.name(),
+            Conjunction(v) => v.name(),
+            ForBlock(c, block) => format!(
+                "for{}. {} end.",
+                c.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                stringify(block)?
+            ),
+            Do => "do.".to_string(),
+            NewLine => "\n".to_string(),
+            IsLocal => "=.".to_string(),
+            IsGlobal => "=:".to_string(),
+            LP => "(".to_string(),
+            RP => ")".to_string(),
+            _ => {
+                return Err(JError::NonceError)
+                    .with_context(|| anyhow!("can't Word::name {self:?}"))
+            }
+        })
+    }
+
+    pub fn name_or_err(&self) -> String {
+        match self.name() {
+            Ok(s) => s,
+            Err(e) => format!("ERROR: {e:?}"),
         }
     }
 

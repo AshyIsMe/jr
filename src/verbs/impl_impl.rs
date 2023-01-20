@@ -203,9 +203,11 @@ impl VerbImpl {
         match self {
             Primitive(p) => p.name.to_string(),
             Partial(p) => p.name(),
+            // TODO: completely missing here
             Fork { .. } => format!("(todo fork)"),
             Hook { .. } => format!("(todo hook)"),
             Cap => "[:".to_string(),
+            // TODO: negatives here
             Number(i) => format!("({i}:)"),
         }
     }
@@ -254,7 +256,7 @@ impl VerbImpl {
     }
 }
 
-fn stringify(def: &[Word]) -> Result<String> {
+pub fn stringify(def: &[Word]) -> Result<String> {
     let mut ret = String::with_capacity(4 * def.len());
     for word in def {
         ret.push_str(&word.name()?);
