@@ -8,8 +8,7 @@ use ndarray::prelude::*;
 
 use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
-use crate::Word::Verb;
-use crate::{impl_array, primitive_verbs, JArray, JError};
+use crate::{primitive_verbs, JArray, JError};
 
 // A Word is a part of speech.
 #[derive(Clone, PartialEq, Debug)]

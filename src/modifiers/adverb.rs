@@ -2,7 +2,6 @@ use std::fmt;
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-use ndarray::IxDyn;
 
 use crate::cells::{fill_promote_list, fill_promote_reshape};
 use crate::eval::VerbNoun;

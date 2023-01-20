@@ -14,7 +14,7 @@ use crate::scan::str_to_primitive;
 use crate::verbs::{
     append_nd, exec_dyad, exec_monad, BivalentOwned, PartialDef, PartialImpl, Rank, VerbImpl,
 };
-use crate::{arr0d, generate_cells, primitive_adverbs, primitive_conjunctions, Ctx};
+use crate::{arr0d, generate_cells, primitive_conjunctions, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
