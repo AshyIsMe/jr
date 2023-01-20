@@ -204,7 +204,7 @@ impl VerbImpl {
             Primitive(p) => p.name.to_string(),
             Partial(p) => p.name(),
             // TODO: completely missing here
-            Fork { .. } => format!("(todo fork)"),
+            Fork { f, g, h } => format!("({} {} {})", f.name(), g.name(), h.name()),
             Hook { .. } => format!("(todo hook)"),
             Cap => "[:".to_string(),
             // TODO: negatives here
@@ -235,7 +235,7 @@ impl VerbImpl {
                     JArray::from_string(":"),
                     JArray::from_list([
                         Word::Noun(JArray::IntArray(arr0ad(*n))).boxed_ar()?,
-                        Word::Noun(JArray::from_string(stringify(def)?).rank_extend(2))
+                        Word::Noun(JArray::from_string(stringify(def)).rank_extend(2))
                             .boxed_ar()?,
                     ]),
                 ]),
@@ -256,11 +256,11 @@ impl VerbImpl {
     }
 }
 
-pub fn stringify(def: &[Word]) -> Result<String> {
+pub fn stringify(def: &[Word]) -> String {
     let mut ret = String::with_capacity(4 * def.len());
     for word in def {
-        ret.push_str(&word.name()?);
+        ret.push_str(&word.name());
         ret.push_str(" ");
     }
-    Ok(ret)
+    ret
 }

@@ -264,11 +264,11 @@ fn nothing_to_empty(w: Word) -> Word {
     }
 }
 
-fn must_be_noun(v: Word) -> Result<JArray> {
+pub fn must_be_noun(v: Word) -> Result<JArray> {
     match v {
         Word::Noun(arr) => Ok(arr),
         _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("unexpected non-noun in noun context:\n{}", v.name_or_err())),
+            .with_context(|| anyhow!("unexpected non-noun in noun context:\n{}", v.name())),
     }
 }
 

@@ -567,6 +567,10 @@ NB. agreement / empty
 {{ 3 4 5 }}"1 (0 5 $ 0)
 {."1 (0 1 $ 0)
 
+NB. for.
+{{ b=. 0 for. i.y do. b =. b,+:$b end. b }} 5
+{{ b=. 0 for. i.5 do. b =. b,5 end. b }} 5
+
 NB. lazy verbs
 (7 two three)`0:
 (one two three)`0:

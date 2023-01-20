@@ -131,9 +131,9 @@ impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
 
 impl Word {
-    pub fn name(&self) -> Result<String> {
+    pub fn name(&self) -> String {
         use Word::*;
-        Ok(match self {
+        match self {
             Name(s) => s.to_string(),
             Verb(v) => v.name(),
             Noun(arr) => quote_arr(arr),
@@ -142,7 +142,7 @@ impl Word {
             ForBlock(c, block) => format!(
                 "for{}. {} end.",
                 c.as_ref().map(|s| s.as_str()).unwrap_or(""),
-                stringify(block)?
+                stringify(block)
             ),
             Do => "do.".to_string(),
             NewLine => "\n".to_string(),
@@ -150,17 +150,7 @@ impl Word {
             IsGlobal => "=:".to_string(),
             LP => "(".to_string(),
             RP => ")".to_string(),
-            _ => {
-                return Err(JError::NonceError)
-                    .with_context(|| anyhow!("can't Word::name {self:?}"))
-            }
-        })
-    }
-
-    pub fn name_or_err(&self) -> String {
-        match self.name() {
-            Ok(s) => s,
-            Err(e) => format!("ERROR: {e:?}"),
+            _ => format!("TODO: can't Word::name {self:?}"),
         }
     }
 

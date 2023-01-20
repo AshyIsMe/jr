@@ -1,5 +1,6 @@
 mod controls;
 mod ctl_if;
+mod ctl_loop;
 mod ctl_try;
 mod semi;
 
@@ -21,6 +22,7 @@ pub use crate::eval::controls::resolve_controls;
 pub use semi::{quote_arr, MaybeVerb, VerbNoun};
 
 use crate::eval::ctl_if::control_if;
+use crate::eval::ctl_loop::control_for;
 use crate::eval::ctl_try::control_try;
 use crate::modifiers::ModifierImpl;
 use crate::verbs::{v_open, VerbImpl};
@@ -204,7 +206,15 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                 // TODO: actually assert
                 Ok(vec![b, c, d])
             }
-            (ForBlock(_, _), _, _, _) => Err(JError::NonceError).context("while block"),
+            (ForBlock(style, def), b, c, d) => {
+                match control_for(ctx, style.as_ref().map(String::as_str), &def)? {
+                    BlockEvalResult::Regular(_) => Ok(vec![b, c, d]),
+                    BlockEvalResult::Return(v) => {
+                        // TODO: not clear that it's valid to early exit the evaluation here
+                        return Ok(EvalOutput::Return(v));
+                    }
+                }
+            }
             (WhileBlock(_, _), _, _, _) => Err(JError::NonceError).context("while block"),
             (Throw, _, _, _) => Err(JError::NonceError).context("throw"),
             (Return, a, b, c) => {
