@@ -11,8 +11,8 @@ use std::iter::repeat;
 
 use crate::number::{promote_to_array, Num};
 use crate::{
-    arr0ad, arr0d, impl_array, scan_with_locations, ArcArrayD, Ctx, Elem, HasEmpty, JArray, JError,
-    Word,
+    arr0ad, arr0d, eval, impl_array, scan, scan_with_locations, ArcArrayD, Ctx, Elem, HasEmpty,
+    JArray, JError, Word,
 };
 
 use anyhow::{anyhow, ensure, Context, Result};
@@ -172,8 +172,18 @@ pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
 }
 
 /// ,: (monad)
-pub fn v_itemize(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_itemize(y: &JArray) -> Result<JArray> {
+    use Word::*;
+    // Why write rust when you can write j?
+    // AA TODO: rewrite this in rust obviously...
+    let itemize = scan("(1&,@$@] $ ,@])")?;
+    let sentence = vec![itemize, vec![Noun(y.clone())]].concat();
+    let mut ctx = Ctx::root();
+    let word = eval(sentence, &mut ctx)?;
+    match word {
+        Noun(ja) => return Ok(ja),
+        _ => return Err(JError::DomainError.into()),
+    }
 }
 /// ,: (dyad)
 pub fn v_laminate(x: &JArray, y: &JArray) -> Result<JArray> {
