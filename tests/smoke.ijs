@@ -367,6 +367,10 @@ NB. append
 NB. ravel items
 ,. 'a'
 ,. i.3
+,. i.3 2
+,. i.3 3 3
+,. ('foo';'bars')
+,. ('foo';'bars';'baz')
 
 NB. laminate
 'bravo' ,: 'charlie'

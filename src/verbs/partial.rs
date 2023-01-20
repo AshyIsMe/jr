@@ -5,8 +5,8 @@ use anyhow::{Context, Result};
 
 use crate::eval::VerbNoun;
 use crate::modifiers::ModifierImpl;
-use crate::{Ctx, JArray, JError, Word};
 use crate::verbs::stringify;
+use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
 
