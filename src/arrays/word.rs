@@ -8,6 +8,7 @@ use ndarray::prelude::*;
 
 use crate::modifiers::ModifierImpl;
 use crate::verbs::VerbImpl;
+use crate::Word::Verb;
 use crate::{impl_array, primitive_verbs, JArray, JError};
 
 // A Word is a part of speech.
@@ -94,22 +95,6 @@ impl Word {
     }
 }
 
-impl Word {
-    pub fn to_cells(&self) -> Result<Vec<Word>> {
-        let ja = match self {
-            Word::Noun(ja) => ja,
-            _ => return Err(JError::DomainError.into()),
-        };
-        if ja.shape().is_empty() {
-            return Ok(vec![Word::Noun(ja.clone())]);
-        }
-        Ok(impl_array!(ja, |a: &ArrayBase<_, _>| a
-            .outer_iter()
-            .map(|a| Word::Noun(a.into_owned().into()))
-            .collect()))
-    }
-}
-
 impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -146,6 +131,15 @@ impl_from_atom!(f64, JArray::FloatArray);
 impl_from_atom!(Complex64, JArray::ComplexArray);
 
 impl Word {
+    pub fn name(&self) -> Result<String> {
+        use Word::*;
+        match self {
+            Name(s) => Ok(s.to_string()),
+            Verb(v) => Ok(v.name()),
+            _ => Err(JError::NonceError).with_context(|| anyhow!("can't Word::name {self:?}")),
+        }
+    }
+
     pub fn boxed_ar(&self) -> Result<JArray> {
         use Word::*;
         // TODO: not quite a copy-paste of tie_top
