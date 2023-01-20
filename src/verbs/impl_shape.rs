@@ -124,14 +124,8 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
             .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));
     }
 
-    // TODO: jsoft rejects (DomainError) a bunch of cases promote_to_array accepts
-    promote_to_array(
-        x.clone()
-            .into_elems()
-            .into_iter()
-            .chain(y.clone().into_elems().into_iter())
-            .collect(),
-    )
+    // TODO: jsoft rejects (DomainError) a bunch of cases from_fill_promote accepts
+    JArray::from_fill_promote(x.outer_iter().chain(y.outer_iter()))
 }
 
 /// ,. (dyad)
