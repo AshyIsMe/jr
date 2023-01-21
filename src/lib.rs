@@ -106,7 +106,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "*" => p("*", v_signum, v_times, rank!(0 0 0), None),
         "*." => p("*.", v_length_angle, v_lcm_and, rank!(0 0 0), None),
         "*:" => p("*:", v_square, v_not_and, rank!(0 0 0), "%:"),
-        "-" => p("-", v_negate, v_minus, rank!(0 0 0), None),
+        "-" => q("-", v_negate, v_minus, Some(d_minus), rank!(0 0 0), None),
         "-." => p("-.", v_not, v_less, rank!(0 _ _), None),
         "-:" => p("-:", v_halve, v_match, rank!(0 _ _), None),
         "%" => p("%", v_reciprocal, v_divide, rank!(0 0 0), None),
