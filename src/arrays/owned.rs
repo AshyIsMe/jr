@@ -161,8 +161,8 @@ macro_rules! impl_homo {
 }
 
 // no, I don't know either
-pub trait OuterIter: ExactSizeIterator<Item=JArray> + DoubleEndedIterator {}
-impl<T: ExactSizeIterator<Item=JArray> + DoubleEndedIterator> OuterIter for T {}
+pub trait OuterIter: ExactSizeIterator<Item = JArray> + DoubleEndedIterator {}
+impl<T: ExactSizeIterator<Item = JArray> + DoubleEndedIterator> OuterIter for T {}
 
 impl JArray {
     pub fn atomic_zero() -> JArray {
