@@ -42,29 +42,26 @@ pub use crate::number::Num;
 pub use crate::arrays::display;
 
 use crate::arrays::ArcArrayD;
-use anyhow::Result;
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
-    fn p(
+    fn p<M, D>(
         name: &'static str,
-        monad: fn(&JArray) -> Result<JArray>,
-        dyad: fn(&JArray, &JArray) -> Result<JArray>,
-        ranks: (Rank, DyadRank),
+        monad: M,
+        dyad: D,
+        (monad_rank, dyad_rank): (Rank, DyadRank),
         inverse: impl Into<Option<&'static str>>,
-    ) -> VerbImpl {
+    ) -> VerbImpl
+    where
+        (M, Rank): Into<Monad>,
+        (D, DyadRank): Into<Dyad>,
+    {
         VerbImpl::Primitive(PrimitiveImpl {
             name,
-            monad: Monad {
-                f: monad,
-                rank: ranks.0,
-            },
-            dyad: Dyad {
-                f: dyad,
-                rank: ranks.1,
-            },
+            monad: (monad, monad_rank).into(),
+            dyad: (dyad, dyad_rank).into(),
             inverse: inverse.into(),
         })
     }

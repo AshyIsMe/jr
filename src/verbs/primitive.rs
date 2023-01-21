@@ -37,3 +37,16 @@ impl PartialEq for PrimitiveImpl {
         self.name == other.name
     }
 }
+
+impl Into<Monad> for (fn(&JArray) -> Result<JArray>, Rank) {
+    fn into(self) -> Monad {
+        let (f, rank) = self;
+        Monad { f, rank }
+    }
+}
+impl Into<Dyad> for (fn(&JArray, &JArray) -> Result<JArray>, DyadRank) {
+    fn into(self) -> Dyad {
+        let (f, rank) = self;
+        Dyad { f, rank }
+    }
+}
