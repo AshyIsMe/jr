@@ -75,8 +75,6 @@ pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             return a_table(ctx, &u, x, y);
         }
         y.outer_iter()
-            .collect_vec()
-            .into_iter()
             .rev()
             .map(Ok)
             // Reverse to force right to left execution.

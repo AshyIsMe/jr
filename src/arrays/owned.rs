@@ -160,6 +160,10 @@ macro_rules! impl_homo {
     };
 }
 
+// no, I don't know either
+pub trait OuterIter: ExactSizeIterator<Item=JArray> + DoubleEndedIterator {}
+impl<T: ExactSizeIterator<Item=JArray> + DoubleEndedIterator> OuterIter for T {}
+
 impl JArray {
     pub fn atomic_zero() -> JArray {
         JArray::BoolArray(arr0ad(0))
@@ -290,7 +294,7 @@ impl JArray {
         .expect("static shape"))
     }
 
-    pub fn outer_iter<'v>(&'v self) -> Box<dyn ExactSizeIterator<Item = JArray> + 'v> {
+    pub fn outer_iter<'v>(&'v self) -> Box<dyn OuterIter + 'v> {
         if self.shape().is_empty() {
             Box::new(iter::once(self.clone()))
         } else {
