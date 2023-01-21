@@ -375,6 +375,10 @@ NB. ravel items
 NB. stitch
 ,./(i. 2 3 2)
 (b,.c) [ b=:3 4$'abcdefghijkl' [ c=:3 4$'ABCDEFGHIJKL'
+,.~ i.2 2
+,.~ i.2 3 4
+(i.3 3) ,. i.3 2
+NB. TODO: (i.3 3) ,. i.3 2 1
 
 NB. laminate
 'bravo' ,: 'charlie'

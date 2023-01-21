@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::eval::eval_lines;
 use crate::modifiers::{ModifierImpl, OwnedAdverb, OwnedConjunction};
 use crate::verbs::{BivalentOwned, PartialDef, PartialImpl, VerbImpl};
-use crate::{arr0ad, HasEmpty, JArray, JError, Rank, Word};
+use crate::{HasEmpty, JArray, JError, Rank, Word};
 
 enum Resolution {
     Complete,
