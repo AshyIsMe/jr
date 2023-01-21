@@ -14,28 +14,29 @@ use crate::arrays::{len_of_0, ArcArrayD, IntoVec};
 use crate::number::Num;
 use crate::{arr0ad, impl_array, impl_homo, JArray, JError};
 
-pub fn reshape<T>(x: &[i64], y: &ArcArrayD<T>) -> Result<ArcArrayD<T>>
+pub fn reshape(shape: &[usize], arr: &JArray) -> Result<JArray> {
+    impl_array!(arr, |arr| reshape_nd(&shape, arr).map(|x| x.into()))
+}
+
+pub fn reshape_nd<T>(shape: &[usize], arr: &ArcArrayD<T>) -> Result<ArcArrayD<T>>
 where
     T: Debug + Clone,
 {
-    if x.iter().product::<i64>() < 0 {
-        Err(JError::DomainError.into())
-    } else {
-        // get shape of y cells
-        // get new shape: concat x with sy
-        // flatten y -> into_shape(ns)
-        // TODO: This whole section should be x.outer_iter() and then
-        // collected.
-        let ns: Vec<usize> = x
-            .iter()
-            .map(|&i| i as usize)
-            .chain(y.shape().iter().skip(1).copied())
-            .collect();
-        let flat_len = ns.iter().product();
-        let flat_y = Array::from_iter(y.iter().cloned().cycle().take(flat_len));
-        debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
-        Ok(ArcArray::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
-    }
+    // get shape of y cells
+    // get new shape: concat x with sy
+    // flatten y -> into_shape(ns)
+    // TODO: This whole section should be x.outer_iter() and then
+    // collected.
+    let ns: Vec<usize> = shape
+        .iter()
+        .copied()
+        .chain(arr.shape().iter().skip(1).copied())
+        .collect();
+    let flat_len = ns.iter().product();
+    let flat_y = Array::from_iter(arr.iter().cloned().cycle().take(flat_len));
+    debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
+    println!("ns: {ns:?}, flat_y: {flat_y:?}, arr: {arr:?}, shape: {shape:?}");
+    Ok(ArcArray::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
 }
 
 /// < (monad)
@@ -84,7 +85,12 @@ pub fn v_shape(x: &JArray, y: &JArray) -> Result<JArray> {
         Err(JError::DomainError).context("cannot reshape to negative shapes")
     } else {
         debug!("v_shape: x: {x:?}, y: {y}");
-        impl_array!(y, |y| reshape(&x, y).map(|x| x.into()))
+        reshape(
+            &x.iter()
+                .map(|x| Ok(usize::try_from(*x)?))
+                .collect::<Result<Vec<_>>>()?,
+            y,
+        )
     }
 }
 
@@ -96,35 +102,29 @@ pub fn append_nd(x: &JArray, y: &JArray) -> Result<JArray> {
     })
 }
 
-pub fn unatom(y: JArray) -> JArray {
-    if y.shape().is_empty() {
-        y.reshape(IxDyn(&[1])).expect("infalliable")
-    } else {
-        y
-    }
-}
-
 /// , (dyad) (_, _)
 pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() >= 1 && y.shape().len() >= 1 {
-        if let Ok(arr) = append_nd(x, y) {
-            return Ok(arr);
-        }
-    }
-
     if x.is_empty() {
-        return Ok(unatom(y.clone()));
+        return Ok(y.clone().atom_to_singleton());
     }
     if y.is_empty() {
-        return Ok(unatom(x.clone()));
+        return Ok(x.clone().atom_to_singleton());
     }
 
-    if x.shape().len() > 1 || y.shape().len() > 1 || x.is_empty() || y.is_empty() {
-        return Err(JError::NonceError)
-            .with_context(|| anyhow!("can only append atoms or lists, not {x:?} {y:?}"));
-    }
+    let x_rank = x.shape().len();
+    let y_rank = y.shape().len();
 
-    // TODO: jsoft rejects (DomainError) a bunch of cases from_fill_promote accepts
+    let (x, y) = match (x_rank, y_rank) {
+        (0, 0) => return JArray::from_fill_promote([x.clone(), y.clone()]),
+        (0, _) => (reshape(&y.shape()[1..], &x)?, y.clone()),
+        (_, 0) => (x.clone(), reshape(&x.shape()[1..], &y)?),
+        (_, _) => (x.clone(), y.clone()),
+    };
+
+    let target_rank = 1.max(x_rank).max(y_rank);
+    let x = x.rank_extend(target_rank);
+    let y = y.rank_extend(target_rank);
+
     JArray::from_fill_promote(x.outer_iter().chain(y.outer_iter()))
 }
 
@@ -407,7 +407,7 @@ mod tests {
     #[test]
     fn test_reshape_helper() {
         let y = ArcArray::from_elem(IxDyn(&[1]), 1);
-        let r = reshape(&vec![4], &y).unwrap();
+        let r = reshape_nd(&vec![4], &y).unwrap();
         assert_eq!(r, ArcArray::from_elem(IxDyn(&[4]), 1));
     }
 }
