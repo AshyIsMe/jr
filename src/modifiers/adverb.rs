@@ -74,6 +74,18 @@ pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
         if let Some(x) = x {
             return a_table(ctx, &u, x, y);
         }
+        if !y.is_empty() && y.shape().len() <= 1 {
+            if let Some(f) = u.d00nrn() {
+                if let Some(nums) = y.clone().into_nums() {
+                    return Ok(JArray::from(
+                        nums.into_iter()
+                            .rev()
+                            .try_reduce(|acc, e| f(acc, e))?
+                            .expect("non-empty checked above"),
+                    ));
+                }
+            }
+        }
         y.outer_iter()
             .rev()
             .map(Ok)

@@ -1,3 +1,5 @@
+#![feature(iterator_try_reduce)]
+
 mod arrays;
 mod cells;
 mod ctx;
