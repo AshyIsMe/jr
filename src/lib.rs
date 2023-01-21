@@ -49,7 +49,7 @@ use verbs::VerbImpl;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
-    let primitive = |op, monad, dyad, ranks: (Rank, Rank, Rank), inverse| {
+    let primitive = |op, monad, dyad, ranks, inverse| {
         VerbImpl::Primitive(PrimitiveImpl::new(op, monad, dyad, ranks, inverse))
     };
     let not_impl = |op| {
@@ -57,13 +57,12 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
             op,
             v_not_implemented_monad,
             v_not_implemented_dyad,
-            (Rank::infinite(), Rank::infinite(), Rank::infinite()),
+            rank!(_ _ _),
             None,
         )
     };
 
     Some(match sentence {
-        // (echo '<table>'; <~/Downloads/Vocabulary.html fgrep '&#149;' | sed 's/<td nowrap>/<tr><td>/g') > a.html; links -dump a.html | perl -ne 's/\s*$/\n/; my ($a,$b,$c) = $_ =~ /\s+([^\s]+) (.*?) \xc2\x95 (.+?)$/; $b =~ tr/A-Z/a-z/; $c =~ tr/A-Z/a-z/; $b =~ s/[^a-z ]//g; $c =~ s/[^a-z -]//g; $b =~ s/ +|-/_/g; $c =~ s/ +|-/_/g; print "simple(\"$a\", v_$b, v_$c);\n"'
         "=" => primitive("=", v_self_classify, v_equal, rank!(_ 0 0), None),
         "<" => primitive("<", v_box, v_less_than, rank!(_ 0 0), Some(">")),
         "<." => primitive("<.", v_floor, v_lesser_of_min, rank!(0 0 0), None),
@@ -269,3 +268,28 @@ pub fn arr0d<T>(x: T) -> ndarray::ArrayD<T> {
 pub fn arr0ad<T>(x: T) -> ArcArrayD<T> {
     ndarray::arr0(x).into_dyn().into_shared()
 }
+
+// #[macro_export] is incompatible with #[rustfmt::skip], believe it or not
+// https://github.com/rust-lang/rust/issues/74087
+#[rustfmt::skip]
+macro_rules! rank {
+    (_         ) => (crate::Rank::infinite());
+    ($m:literal) => (crate::Rank::new($m));
+
+    (_           _          ) => ((crate::Rank::infinite(), crate::Rank::infinite()));
+    (_           $dr:literal) => ((crate::Rank::infinite(), crate::Rank::new($dr)  ));
+    ($dl:literal _          ) => ((crate::Rank::new($dl),   crate::Rank::infinite()));
+    ($dl:literal $dr:literal) => ((crate::Rank::new($dl),   crate::Rank::new($dr)  ));
+
+
+    (_          _           _          ) => ((crate::Rank::infinite(), (crate::Rank::infinite(), crate::Rank::infinite())));
+    ($m:literal _           _          ) => ((crate::Rank::new($m),    (crate::Rank::infinite(), crate::Rank::infinite())));
+    (_          $dl:literal _          ) => ((crate::Rank::infinite(), (crate::Rank::new($dl),   crate::Rank::infinite())));
+    ($m:literal $dl:literal _          ) => ((crate::Rank::new($m),    (crate::Rank::new($dl),   crate::Rank::infinite())));
+    (_          _           $dr:literal) => ((crate::Rank::infinite(), (crate::Rank::infinite(), crate::Rank::new($dr))  ));
+    ($m:literal _           $dr:literal) => ((crate::Rank::new($m),    (crate::Rank::infinite(), crate::Rank::new($dr))  ));
+    (_          $dl:literal $dr:literal) => ((crate::Rank::infinite(), (crate::Rank::new($dl),   crate::Rank::new($dr))  ));
+    ($m:literal $dl:literal $dr:literal) => ((crate::Rank::new($m),    (crate::Rank::new($dl),   crate::Rank::new($dr))  ));
+}
+
+pub(crate) use rank;

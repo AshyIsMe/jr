@@ -7,7 +7,7 @@ use crate::cells::fill_promote_reshape;
 use crate::eval::VerbNoun;
 use crate::modifiers::do_atop;
 use crate::verbs::{v_self_classify, BivalentOwned, VerbImpl};
-use crate::{primitive_verbs, Ctx, JArray, JError, Rank};
+use crate::{primitive_verbs, rank, Ctx, JArray, JError};
 
 pub type AdverbFn = fn(&mut Ctx, &VerbNoun) -> Result<BivalentOwned>;
 
@@ -38,7 +38,7 @@ pub fn a_not_implemented(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> 
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -61,7 +61,7 @@ pub fn a_tilde(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
     Ok(BivalentOwned {
         biv,
         // this "depends on the rank of u", but it seems to execute as if its infinite, what have I missed?
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -89,7 +89,7 @@ pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -124,7 +124,7 @@ pub fn a_slash_dot(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -178,7 +178,7 @@ pub fn a_backslash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -206,7 +206,7 @@ pub fn a_suffix_outfix(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
 
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -223,7 +223,7 @@ pub fn a_curlyrt(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             });
             Ok(BivalentOwned {
                 biv,
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             })
         }
     }
@@ -260,7 +260,7 @@ fn build_curlrt(u: &JArray) -> Result<BivalentOwned> {
 
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -276,7 +276,7 @@ pub fn a_bdot(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
                 biv: BivalentOwned::from_bivalent(move |_ctx, _x, _y| {
                     Err(JError::NonceError).with_context(|| anyhow!("b.'s mode {m}"))
                 }),
-                ranks: (Rank::zero(), Rank::zero_zero()),
+                ranks: rank!(0 0 0),
             })
         }
         Verb(_) => Err(JError::NonceError).with_context(|| anyhow!("b. verb info for {u:?}")),

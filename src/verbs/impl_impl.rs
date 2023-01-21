@@ -79,7 +79,7 @@ pub fn exec_dyad(
     x: &JArray,
     y: &JArray,
 ) -> Result<JArray> {
-    if Rank::infinite_infinite() == rank {
+    if rank.0.is_infinite() && rank.1.is_infinite() {
         return (f)(x, y).context("infinite dyad shortcut");
     }
 

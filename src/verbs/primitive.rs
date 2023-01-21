@@ -43,7 +43,7 @@ impl PrimitiveImpl {
         name: &'static str,
         monad: fn(&JArray) -> Result<JArray>,
         dyad: fn(&JArray, &JArray) -> Result<JArray>,
-        ranks: (Rank, Rank, Rank),
+        ranks: (Rank, DyadRank),
         inverse: Option<&'static str>,
     ) -> Self {
         Self {
@@ -54,7 +54,7 @@ impl PrimitiveImpl {
             },
             dyad: Some(Dyad {
                 f: dyad,
-                rank: (ranks.1, ranks.2),
+                rank: ranks.1,
             }),
             inverse,
         }

@@ -114,7 +114,7 @@ mod tests {
     use ndarray::array;
 
     use super::*;
-    use crate::arr0d;
+    use crate::{arr0d, rank};
 
     #[test]
     fn test_common_dims() {
@@ -139,7 +139,7 @@ mod tests {
     fn test_gen_macrocells_plus_one() -> Result<()> {
         let x = arr0d(5i64).into();
         let y = array![1i64, 2, 3].into_dyn().into();
-        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, rank!(0 0))?;
         assert_eq!(
             cells,
             vec![(arr0d(5i64).into(), array![1i64, 2, 3].into_dyn().into())]

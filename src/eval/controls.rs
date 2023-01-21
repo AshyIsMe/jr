@@ -7,7 +7,7 @@ use itertools::Itertools;
 use crate::eval::eval_lines;
 use crate::modifiers::{ModifierImpl, OwnedAdverb, OwnedConjunction};
 use crate::verbs::{BivalentOwned, PartialDef, PartialImpl, VerbImpl};
-use crate::{HasEmpty, JArray, JError, Rank, Word};
+use crate::{rank, HasEmpty, JArray, JError, Word};
 
 enum Resolution {
     Complete,
@@ -212,7 +212,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             };
             Word::Verb(VerbImpl::Partial(PartialImpl {
                 imp,
@@ -239,7 +239,7 @@ pub fn create_def(mode: char, def: Vec<Word>) -> Result<Word> {
                         .map(nothing_to_empty)
                         .and_then(must_be_noun)
                 }),
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             };
             Word::Verb(VerbImpl::Partial(PartialImpl {
                 imp,

@@ -6,19 +6,6 @@ use crate::JError;
 pub struct Rank(u8);
 pub type DyadRank = (Rank, Rank);
 
-#[macro_export]
-#[rustfmt::skip]
-macro_rules! rank {
-    (_          _           _          ) => ((Rank::infinite(), Rank::infinite(), Rank::infinite()));
-    ($m:literal _           _          ) => ((Rank::new($m),    Rank::infinite(), Rank::infinite()));
-    (_          $dl:literal _          ) => ((Rank::infinite(), Rank::new($dl),   Rank::infinite()));
-    ($m:literal $dl:literal _          ) => ((Rank::new($m),    Rank::new($dl),   Rank::infinite()));
-    (_          _           $dr:literal) => ((Rank::infinite(), Rank::infinite(), Rank::new($dr)  ));
-    ($m:literal _           $dr:literal) => ((Rank::new($m),    Rank::infinite(), Rank::new($dr)  ));
-    (_          $dl:literal $dr:literal) => ((Rank::infinite(), Rank::new($dl),   Rank::new($dr)  ));
-    ($m:literal $dl:literal $dr:literal) => ((Rank::new($m),    Rank::new($dl),   Rank::new($dr)  ));
-}
-
 impl Rank {
     pub fn new(val: u8) -> Self {
         Self::new_checked(val).expect("unchecked rank creation")
@@ -51,27 +38,8 @@ impl Rank {
         Self::new_checked(rounded as u8)
     }
 
-    pub const fn zero() -> Self {
-        Rank(0)
-    }
-
-    pub const fn one() -> Self {
-        Rank(1)
-    }
-
-    pub const fn zero_zero() -> (Self, Self) {
-        (Self::zero(), Self::zero())
-    }
-
     pub const fn infinite() -> Self {
         Rank(u8::MAX)
-    }
-
-    pub const fn infinite_infinite() -> (Self, Self) {
-        (Self::infinite(), Self::infinite())
-    }
-    pub const fn inf_inf_inf() -> (Self, (Self, Self)) {
-        (Self::infinite(), Self::infinite_infinite())
     }
 
     pub const fn is_infinite(&self) -> bool {
