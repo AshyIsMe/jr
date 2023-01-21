@@ -61,10 +61,10 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
                 f: monad,
                 rank: ranks.0,
             },
-            dyad: Some(Dyad {
+            dyad: Dyad {
                 f: dyad,
                 rank: ranks.1,
-            }),
+            },
             inverse: inverse.into(),
         })
     }
@@ -104,7 +104,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "^" => p("^", v_exponential, v_power, rank!(0 0 0), None),
         "^." => p("^.", v_natural_log, v_logarithm, rank!(0 0 0), "^"),
         "$" => p("$", v_shape_of, v_shape, rank!(_ 1 _), None),
-        "~." => VerbImpl::Primitive(PrimitiveImpl::monad("~.", v_nub)), // i, Nonenf
+        "~." => p("~.", v_nub, v_not_exist_dyad, rank!(_ _ _), None),
         "~:" => p("~:", v_nub_sieve, v_not_equal, rank!(_ 0 0), None),
         "|" => p("|", v_magnitude, v_residue, rank!(0 0 0), None),
         "|." => p("|.", v_reverse, v_rotate_shift, rank!(_ _ _), None),
@@ -166,7 +166,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
             rank!(_ _ _),
             None,
         ),
-        "L." => VerbImpl::Primitive(PrimitiveImpl::monad("L.", v_levels)), // _
+        "L." => p("L.", v_levels, v_not_exist_dyad, rank!(_ _ _), None),
         "p:" => not_impl("p:"),
         "s:" => not_impl("s:"),
         "T." => not_impl("T."),
@@ -176,7 +176,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         "v." => not_impl("v."),
 
         // this is spelt "plot", with no ".", in jsoft's documentation
-        "plot." => VerbImpl::Primitive(PrimitiveImpl::monad("plot.", v_plot)),
+        "plot." => p("plot.", v_plot, v_not_exist_dyad, rank!(_ _ _), None),
         _ => return None,
     })
 }

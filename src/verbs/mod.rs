@@ -40,7 +40,11 @@ pub fn v_not_implemented_monad(_y: &JArray) -> Result<JArray> {
 }
 
 pub fn v_not_exist_monad(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError).context("this verb lacks a monad")
+    Err(JError::DomainError).context("this verb lacks a monad")
+}
+
+pub fn v_not_exist_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
+    Err(JError::DomainError).context("this verb lacks a dyad")
 }
 
 pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {

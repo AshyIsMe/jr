@@ -22,22 +22,8 @@ pub struct Dyad {
 pub struct PrimitiveImpl {
     pub name: &'static str,
     pub monad: Monad,
-    pub dyad: Option<Dyad>,
+    pub dyad: Dyad,
     pub inverse: Option<&'static str>,
-}
-
-impl PrimitiveImpl {
-    pub fn monad(name: &'static str, f: fn(&JArray) -> Result<JArray>) -> Self {
-        Self {
-            name,
-            monad: Monad {
-                f,
-                rank: Rank::infinite(),
-            },
-            dyad: None,
-            inverse: None,
-        }
-    }
 }
 
 impl fmt::Debug for PrimitiveImpl {
