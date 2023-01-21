@@ -2,7 +2,7 @@ use std::fmt;
 
 use anyhow::Result;
 
-use crate::JArray;
+use crate::{JArray, Num};
 
 use super::ranks::{DyadRank, Rank};
 
@@ -16,6 +16,7 @@ pub struct Monad {
 pub struct Dyad {
     pub f: fn(&JArray, &JArray) -> Result<JArray>,
     pub rank: DyadRank,
+    pub d00nrn: Option<fn(Num, Num) -> Result<Num>>,
 }
 
 #[derive(Copy, Clone)]
@@ -47,6 +48,10 @@ impl Into<Monad> for (fn(&JArray) -> Result<JArray>, Rank) {
 impl Into<Dyad> for (fn(&JArray, &JArray) -> Result<JArray>, DyadRank) {
     fn into(self) -> Dyad {
         let (f, rank) = self;
-        Dyad { f, rank }
+        Dyad {
+            f,
+            rank,
+            d00nrn: None,
+        }
     }
 }
