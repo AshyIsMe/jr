@@ -74,6 +74,11 @@ pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
         if let Some(x) = x {
             return a_table(ctx, &u, x, y);
         }
+
+        if let Some(arr) = u.fast_between(ctx, y)? {
+            return Ok(arr);
+        }
+
         y.outer_iter()
             .rev()
             .map(Ok)
