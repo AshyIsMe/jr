@@ -142,7 +142,9 @@ fn resolve_one_stat(words: &mut Vec<Word>) -> Result<Resolution> {
         Word::Try => Word::TryBlock(def),
         other => unreachable!("matches! above excludes {other:?}"),
     };
+    words.insert(last_start, Word::NewLine);
     words.insert(last_start, def);
+    words.insert(last_start, Word::NewLine);
     Ok(Resolution::StepTaken)
 }
 
@@ -264,11 +266,11 @@ fn nothing_to_empty(w: Word) -> Word {
     }
 }
 
-fn must_be_noun(v: Word) -> Result<JArray> {
+pub fn must_be_noun(v: Word) -> Result<JArray> {
     match v {
         Word::Noun(arr) => Ok(arr),
         _ => Err(JError::DomainError)
-            .with_context(|| anyhow!("unexpected non-noun in noun context: {v:?}")),
+            .with_context(|| anyhow!("unexpected non-noun in noun context:\n{}", v.name())),
     }
 }
 

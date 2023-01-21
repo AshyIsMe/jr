@@ -160,12 +160,15 @@ pub fn v_ravel(y: &JArray) -> Result<JArray> {
 
 /// ,. (monad)
 pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
+    // amusingly I think these are identical, I wonder if the compiler can see
     Ok(match y.shape().len() {
         0 | 1 => y.reshape(IxDyn(&[y.len_of_0(), 1]))?,
         2 => y.clone(),
         _ => {
-            return Err(JError::NonceError)
-                .with_context(|| anyhow!("ravel items on shape: {:?}", y.shape()))
+            let mut shape = y.shape().to_vec();
+            let rest = shape.drain(1..).product();
+            shape.push(rest);
+            y.reshape(IxDyn(&shape))?
         }
     })
 }

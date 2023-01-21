@@ -367,6 +367,18 @@ NB. append
 NB. ravel items
 ,. 'a'
 ,. i.3
+,. i.3 2
+,. i.3 3 3
+,. ('foo';'bars')
+,. ('foo';'bars';'baz')
+
+NB. stitch
+,./(i. 2 3 2)
+(b,.c) [ b=:3 4$'abcdefghijkl' [ c=:3 4$'ABCDEFGHIJKL'
+,.~ i.2 2
+,.~ i.2 3 4
+(i.3 3) ,. i.3 2
+NB. TODO: (i.3 3) ,. i.3 2 1
 
 NB. laminate
 'bravo' ,: 'charlie'
@@ -566,6 +578,10 @@ $ 9!:12 ''
 NB. agreement / empty
 {{ 3 4 5 }}"1 (0 5 $ 0)
 {."1 (0 1 $ 0)
+
+NB. for.
+{{ b=. 0 0 for. i.y do. b =. b,+:$b end. b }} 5
+{{ b=. 0 for. i.5 do. b =. b,5 end. b }} 5
 
 NB. lazy verbs
 (7 two three)`0:

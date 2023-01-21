@@ -59,6 +59,7 @@ impl VerbNoun {
     pub fn name(&self) -> String {
         use VerbNoun::*;
         match self {
+            // TODO: copy-paste of Word::name()
             Verb(MaybeVerb::Verb(v)) => v.name(),
             Verb(MaybeVerb::Name(v)) => quote_string(v),
             Noun(arr) => quote_arr(arr),
@@ -82,7 +83,7 @@ fn quote_string(s: impl AsRef<str>) -> String {
     format!("'{s}'")
 }
 
-fn quote_arr(arr: &JArray) -> String {
+pub fn quote_arr(arr: &JArray) -> String {
     let shape = if arr.shape().is_empty() {
         String::new()
     } else {

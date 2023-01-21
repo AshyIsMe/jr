@@ -129,8 +129,13 @@ pub fn v_append(x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// ,. (dyad)
-pub fn v_stitch(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_stitch(x: &JArray, y: &JArray) -> Result<JArray> {
+    let items = x
+        .outer_iter()
+        .zip(y.outer_iter())
+        .map(|(x, y)| v_append(&x, &y))
+        .collect::<Result<Vec<_>>>()?;
+    JArray::from_fill_promote(items)
 }
 
 /// ; (dyad) (_, _)
