@@ -152,7 +152,7 @@ mod tests {
         // I think I'd rather the arrays came out whole in this case?
         let x = array![10i64, 20, 30].into_dyn().into();
         let y = array![1i64, 2, 3].into_dyn().into();
-        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, rank!(0 0))?;
         assert_eq!(
             cells,
             vec![
@@ -168,7 +168,7 @@ mod tests {
     fn test_gen_macrocells_plus_two_three() -> Result<()> {
         let x = array![1i64, 2].into_dyn().into();
         let y = array![[10i64, 20, 30], [70, 80, 90]].into_dyn().into();
-        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, rank!(0 0))?;
         assert_eq!(
             cells,
             vec![
@@ -183,7 +183,7 @@ mod tests {
     fn test_gen_macrocells_plus_i() -> Result<()> {
         let x = array![100i64, 200].into_dyn().into();
         let y = array![[0i64, 1, 2], [3, 4, 5]].into_dyn().into();
-        let (_, cells) = generate_cells(x, y, Rank::zero_zero())?;
+        let (_, cells) = generate_cells(x, y, rank!(0 0))?;
         assert_eq!(
             cells,
             vec![
@@ -198,7 +198,7 @@ mod tests {
     fn test_gen_macrocells_hash() -> Result<()> {
         let x = array![24i64, 60, 61].into_dyn().into();
         let y = array![1800i64, 7200].into_dyn().into();
-        let (_, cells) = generate_cells(x, y, (Rank::one(), Rank::zero()))?;
+        let (_, cells) = generate_cells(x, y, rank!(1 0))?;
         assert_eq!(
             cells,
             vec![(
@@ -212,7 +212,7 @@ mod tests {
     #[test]
     fn monadic_apply() -> Result<()> {
         let y = array![2i64, 3].into_dyn().into();
-        let (cells, _) = monad_cells(&y, Rank::one())?;
+        let (cells, _) = monad_cells(&y, rank!(1))?;
         assert_eq!(cells, vec![y.clone()],);
 
         assert_eq!(

@@ -1,5 +1,3 @@
-extern crate core;
-
 mod arrays;
 mod cells;
 mod ctx;
@@ -44,16 +42,35 @@ pub use crate::number::Num;
 pub use crate::arrays::display;
 
 use crate::arrays::ArcArrayD;
+use anyhow::Result;
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
 fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     use verbs::*;
-    let primitive = |op, monad, dyad, ranks, inverse| {
-        VerbImpl::Primitive(PrimitiveImpl::new(op, monad, dyad, ranks, inverse))
-    };
+    fn p(
+        name: &'static str,
+        monad: fn(&JArray) -> Result<JArray>,
+        dyad: fn(&JArray, &JArray) -> Result<JArray>,
+        ranks: (Rank, DyadRank),
+        inverse: impl Into<Option<&'static str>>,
+    ) -> VerbImpl {
+        VerbImpl::Primitive(PrimitiveImpl {
+            name,
+            monad: Monad {
+                f: monad,
+                rank: ranks.0,
+            },
+            dyad: Some(Dyad {
+                f: dyad,
+                rank: ranks.1,
+            }),
+            inverse: inverse.into(),
+        })
+    }
+
     let not_impl = |op| {
-        primitive(
+        p(
             op,
             v_not_implemented_monad,
             v_not_implemented_dyad,
@@ -63,78 +80,78 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
     };
 
     Some(match sentence {
-        "=" => primitive("=", v_self_classify, v_equal, rank!(_ 0 0), None),
-        "<" => primitive("<", v_box, v_less_than, rank!(_ 0 0), Some(">")),
-        "<." => primitive("<.", v_floor, v_lesser_of_min, rank!(0 0 0), None),
-        "<:" => primitive("<:", v_decrement, v_less_or_equal, rank!(0 0 0), None),
-        ">" => primitive(">", v_open, v_larger_than, rank!(0 0 0), Some("<")),
-        ">." => primitive(">.", v_ceiling, v_larger_of_max, rank!(0 0 0), None),
-        ">:" => primitive(">:", v_increment, v_larger_or_equal, rank!(0 0 0), None),
+        "=" => p("=", v_self_classify, v_equal, rank!(_ 0 0), None),
+        "<" => p("<", v_box, v_less_than, rank!(_ 0 0), ">"),
+        "<." => p("<.", v_floor, v_lesser_of_min, rank!(0 0 0), None),
+        "<:" => p("<:", v_decrement, v_less_or_equal, rank!(0 0 0), None),
+        ">" => p(">", v_open, v_larger_than, rank!(0 0 0), "<"),
+        ">." => p(">.", v_ceiling, v_larger_of_max, rank!(0 0 0), None),
+        ">:" => p(">:", v_increment, v_larger_or_equal, rank!(0 0 0), None),
 
-        "+" => primitive("+", v_conjugate, v_plus, rank!(0 0 0), Some("-")),
-        "+." => primitive("+.", v_real_imaginary, v_gcd_or, rank!(0 0 0), None),
-        "+:" => primitive("+:", v_double, v_not_or, rank!(0 0 0), None),
-        "*" => primitive("*", v_signum, v_times, rank!(0 0 0), None),
-        "*." => primitive("*.", v_length_angle, v_lcm_and, rank!(0 0 0), None),
-        "*:" => primitive("*:", v_square, v_not_and, rank!(0 0 0), Some("%:")),
-        "-" => primitive("-", v_negate, v_minus, rank!(0 0 0), None),
-        "-." => primitive("-.", v_not, v_less, rank!(0 _ _), None),
-        "-:" => primitive("-:", v_halve, v_match, rank!(0 _ _), None),
-        "%" => primitive("%", v_reciprocal, v_divide, rank!(0 0 0), None),
-        "%." => primitive("%.", v_matrix_inverse, v_matrix_divide, rank!(2 _ 2), None),
-        "%:" => primitive("%:", v_square_root, v_root, rank!(0 0 0), Some("*:")),
+        "+" => p("+", v_conjugate, v_plus, rank!(0 0 0), "-"),
+        "+." => p("+.", v_real_imaginary, v_gcd_or, rank!(0 0 0), None),
+        "+:" => p("+:", v_double, v_not_or, rank!(0 0 0), None),
+        "*" => p("*", v_signum, v_times, rank!(0 0 0), None),
+        "*." => p("*.", v_length_angle, v_lcm_and, rank!(0 0 0), None),
+        "*:" => p("*:", v_square, v_not_and, rank!(0 0 0), "%:"),
+        "-" => p("-", v_negate, v_minus, rank!(0 0 0), None),
+        "-." => p("-.", v_not, v_less, rank!(0 _ _), None),
+        "-:" => p("-:", v_halve, v_match, rank!(0 _ _), None),
+        "%" => p("%", v_reciprocal, v_divide, rank!(0 0 0), None),
+        "%." => p("%.", v_matrix_inverse, v_matrix_divide, rank!(2 _ 2), None),
+        "%:" => p("%:", v_square_root, v_root, rank!(0 0 0), "*:"),
 
-        "^" => primitive("^", v_exponential, v_power, rank!(0 0 0), None),
-        "^." => primitive("^.", v_natural_log, v_logarithm, rank!(0 0 0), Some("^")),
-        "$" => primitive("$", v_shape_of, v_shape, rank!(_ 1 _), None),
+        "^" => p("^", v_exponential, v_power, rank!(0 0 0), None),
+        "^." => p("^.", v_natural_log, v_logarithm, rank!(0 0 0), "^"),
+        "$" => p("$", v_shape_of, v_shape, rank!(_ 1 _), None),
         "~." => VerbImpl::Primitive(PrimitiveImpl::monad("~.", v_nub)), // i, Nonenf
-        "~:" => primitive("~:", v_nub_sieve, v_not_equal, rank!(_ 0 0), None),
-        "|" => primitive("|", v_magnitude, v_residue, rank!(0 0 0), None),
-        "|." => primitive("|.", v_reverse, v_rotate_shift, rank!(_ _ _), None),
-        "|:" => primitive("|:", v_transpose, v_transpose_dyad, rank!(_ _ _), None),
+        "~:" => p("~:", v_nub_sieve, v_not_equal, rank!(_ 0 0), None),
+        "|" => p("|", v_magnitude, v_residue, rank!(0 0 0), None),
+        "|." => p("|.", v_reverse, v_rotate_shift, rank!(_ _ _), None),
+        "|:" => p("|:", v_transpose, v_transpose_dyad, rank!(_ _ _), None),
 
-        "," => primitive(",", v_ravel, v_append, rank!(_ _ _), None),
-        ",." => primitive(",.", v_ravel_items, v_stitch, rank!(_ _ _), None),
-        ",:" => primitive(",:", v_itemize, v_laminate, rank!(_ _ _), None),
-        ";" => primitive(";", v_raze, v_link, rank!(_ _ _), None),
-        ";:" => primitive(";:", v_words, v_sequential_machine, rank!(1 _ _), None),
+        "," => p(",", v_ravel, v_append, rank!(_ _ _), None),
+        ",." => p(",.", v_ravel_items, v_stitch, rank!(_ _ _), None),
+        ",:" => p(",:", v_itemize, v_laminate, rank!(_ _ _), None),
+        ";" => p(";", v_raze, v_link, rank!(_ _ _), None),
+        ";:" => p(";:", v_words, v_sequential_machine, rank!(1 _ _), None),
 
-        "#" => primitive("#", v_tally, v_copy, rank!(_ 1 _), None),
-        "#." => primitive("#.", v_base_, v_base, rank!(1 1 1), None),
-        "#:" => primitive("#:", v_antibase_, v_antibase, rank!(_ 1 0), None),
-        "!" => primitive("!", v_factorial, v_out_of, rank!(0 0 0), None),
-        "/:" => primitive("/:", v_grade_up, v_sort_up, rank!(_ _ _), None),
-        "\\:" => primitive("\\:", v_grade_down, v_sort_down, rank!(_ _ _), None),
+        "#" => p("#", v_tally, v_copy, rank!(_ 1 _), None),
+        "#." => p("#.", v_base_, v_base, rank!(1 1 1), None),
+        "#:" => p("#:", v_antibase_, v_antibase, rank!(_ 1 0), None),
+        "!" => p("!", v_factorial, v_out_of, rank!(0 0 0), None),
+        "/:" => p("/:", v_grade_up, v_sort_up, rank!(_ _ _), None),
+        "\\:" => p("\\:", v_grade_down, v_sort_down, rank!(_ _ _), None),
 
-        "[" => primitive("[", v_same, v_left, rank!(_ _ _), None),
-        "]" => primitive("]", v_same, v_right, rank!(_ _ _), None),
-        "{" => primitive("{", v_catalogue, v_from, rank!(1 0 _), None),
-        "{." => primitive("{.", v_head, v_take, rank!(_ 1 _), None),
-        "{:" => primitive("{:", v_tail, v_not_implemented_dyad, rank!(_ _ _), None),
-        "}:" => primitive("}:", v_curtail, v_not_implemented_dyad, rank!(_ _ _), None),
-        "{::" => primitive("{::", v_map, v_fetch, rank!(_ 1 _), None),
-        "}." => primitive("}.", v_behead, v_drop, rank!(_ 1 _), None),
+        "[" => p("[", v_same, v_left, rank!(_ _ _), None),
+        "]" => p("]", v_same, v_right, rank!(_ _ _), None),
+        "{" => p("{", v_catalogue, v_from, rank!(1 0 _), None),
+        "{." => p("{.", v_head, v_take, rank!(_ 1 _), None),
+        "{:" => p("{:", v_tail, v_not_implemented_dyad, rank!(_ _ _), None),
+        "}:" => p("}:", v_curtail, v_not_implemented_dyad, rank!(_ _ _), None),
+        "{::" => p("{::", v_map, v_fetch, rank!(_ 1 _), None),
+        "}." => p("}.", v_behead, v_drop, rank!(_ 1 _), None),
 
-        "\"." => primitive("\".", v_do, v_numbers, rank!(1 _ _), None),
-        "\":" => primitive("\":", v_default_format, v_format, rank!(_ 1 _), None),
-        "?" => primitive("?", v_roll, v_deal, rank!(0 0 0), None),
-        "?." => primitive("?.", v_roll, v_deal_fixed_seed, rank!(_ 0 0), None),
+        "\"." => p("\".", v_do, v_numbers, rank!(1 _ _), None),
+        "\":" => p("\":", v_default_format, v_format, rank!(_ 1 _), None),
+        "?" => p("?", v_roll, v_deal, rank!(0 0 0), None),
+        "?." => p("?.", v_roll, v_deal_fixed_seed, rank!(_ 0 0), None),
 
-        "A." => primitive("A.", v_anagram_index, v_anagram, rank!(1 0 _), None),
-        "C." => primitive("C.", v_cycledirect, v_permute, rank!(1 1 _), None),
-        "e." => primitive("e.", v_raze_in, v_member_in, rank!(_ _ _), None),
+        "A." => p("A.", v_anagram_index, v_anagram, rank!(1 0 _), None),
+        "C." => p("C.", v_cycledirect, v_permute, rank!(1 1 _), None),
+        "e." => p("e.", v_raze_in, v_member_in, rank!(_ _ _), None),
 
-        "i." => primitive("i.", v_integers, v_index_of, rank!(1 _ _), None),
-        "i:" => primitive("i:", v_steps, v_index_of_last, rank!(0 _ _), None),
-        "I." => primitive("I.", v_indices, v_interval_index, rank!(1 _ _), None),
-        "j." => primitive("j.", v_imaginary, v_complex, rank!(0 0 0), None),
-        "o." => primitive("o.", v_pi_times, v_circle_function, rank!(0 0 0), None),
-        "p." => primitive("p.", v_roots, v_polynomial, rank!(1 1 0), None),
-        "p.." => primitive("p..", v_poly_deriv, v_poly_integral, rank!(1 0 1), None),
+        "i." => p("i.", v_integers, v_index_of, rank!(1 _ _), None),
+        "i:" => p("i:", v_steps, v_index_of_last, rank!(0 _ _), None),
+        "I." => p("I.", v_indices, v_interval_index, rank!(1 _ _), None),
+        "j." => p("j.", v_imaginary, v_complex, rank!(0 0 0), None),
+        "o." => p("o.", v_pi_times, v_circle_function, rank!(0 0 0), None),
+        "p." => p("p.", v_roots, v_polynomial, rank!(1 1 0), None),
+        "p.." => p("p..", v_poly_deriv, v_poly_integral, rank!(1 0 1), None),
 
-        "q:" => primitive("q:", v_prime_factors, v_prime_exponents, rank!(0 0 0), None),
-        "r." => primitive("r.", v_angle, v_polar, rank!(0 0 0), None),
-        "x:" => primitive("x:", v_extend_precision, v_num_denom, rank!(_ _ _), None),
+        "q:" => p("q:", v_prime_factors, v_prime_exponents, rank!(0 0 0), None),
+        "r." => p("r.", v_angle, v_polar, rank!(0 0 0), None),
+        "x:" => p("x:", v_extend_precision, v_num_denom, rank!(_ _ _), None),
 
         "$." => not_impl("$."),
         "$:" => not_impl("$:"),
@@ -142,7 +159,7 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ".." => not_impl(".."),
         "[:" => VerbImpl::Cap,
         "C.!.2" => not_impl("C.!.2"),
-        "E." => primitive(
+        "E." => p(
             "E.",
             v_not_exist_monad,
             v_member_interval,

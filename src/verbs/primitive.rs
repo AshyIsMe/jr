@@ -38,27 +38,6 @@ impl PrimitiveImpl {
             inverse: None,
         }
     }
-
-    pub const fn new(
-        name: &'static str,
-        monad: fn(&JArray) -> Result<JArray>,
-        dyad: fn(&JArray, &JArray) -> Result<JArray>,
-        ranks: (Rank, DyadRank),
-        inverse: Option<&'static str>,
-    ) -> Self {
-        Self {
-            name,
-            monad: Monad {
-                f: monad,
-                rank: ranks.0,
-            },
-            dyad: Some(Dyad {
-                f: dyad,
-                rank: ranks.1,
-            }),
-            inverse,
-        }
-    }
 }
 
 impl fmt::Debug for PrimitiveImpl {
