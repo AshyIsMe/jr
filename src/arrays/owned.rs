@@ -390,9 +390,17 @@ impl JArray {
         if self.tally() != 1 {
             return None;
         }
-        self.clone()
-            .into_nums()
-            .map(|v| v.into_iter().next().expect("checked"))
+        use JArray::*;
+        match self {
+            BoolArray(a) => a.first().map(|&v| v.into()),
+            IntArray(a) => a.first().map(|&v| v.into()),
+            ExtIntArray(a) => a.first().map(|v| v.clone().into()),
+            RationalArray(a) => a.first().map(|v| v.clone().into()),
+            FloatArray(a) => a.first().map(|&v| v.into()),
+            ComplexArray(a) => a.first().map(|v| v.clone().into()),
+            CharArray(_) => return None,
+            BoxArray(_) => return None,
+        }
     }
 
     pub fn approx_i64_list(&self) -> Result<Vec<i64>> {
