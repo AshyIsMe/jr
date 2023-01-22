@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 pub fn f_time_sentence(ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
     let counts = match x {
         Some(JArray::IntArray(x)) => Ok(x.iter().collect()),
+        //Some(JArray::BoolArray(x)) => Ok(x.iter().map(|b| b as &i64).collect()),
         None => Ok(vec![&1i64]),
         _ => Err(JError::DomainError).context("x IntArray, y CharArray please"),
     }?;
