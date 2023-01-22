@@ -57,11 +57,15 @@ pub fn exec_monad(
 }
 
 pub fn exec_dyad_inner(
-    f: impl FnMut(&JArray, &JArray) -> Result<JArray>,
+    mut f: impl FnMut(&JArray, &JArray) -> Result<JArray>,
     rank: DyadRank,
     x: &JArray,
     y: &JArray,
 ) -> Result<VerbResult> {
+    if x.shape().is_empty() && y.shape().is_empty() {
+        return Ok((Vec::new(), vec![f(x, y)?]));
+    }
+
     let (frames, cells) = generate_cells(x.clone(), y.clone(), rank).context("generating cells")?;
 
     let application_result = apply_cells(&cells, f, rank).context("applying function to cells")?;

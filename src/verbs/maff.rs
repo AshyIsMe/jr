@@ -33,6 +33,21 @@ pub fn m0nj(y: &JArray, f: impl FnOnce(Num) -> JArray) -> Result<JArray> {
     Ok(f(y))
 }
 
+/// rank: (0, 0), input: any Num, output: Num
+pub fn d00nn(x: &JArray, y: &JArray, f: impl FnOnce(Num, Num) -> Num) -> Result<JArray> {
+    let x = x
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .with_context(|| anyhow!("expecting a single number for 'x', not {x:?}"))?;
+
+    let y = y
+        .single_math_num()
+        .ok_or(JError::DomainError)
+        .with_context(|| anyhow!("expecting a single number for 'y', not {y:?}"))?;
+
+    Ok(f(x, y).into())
+}
+
 /// rank: (0, 0), input: any Num, output: Result<Num>
 pub fn d00nrn(x: &JArray, y: &JArray, f: impl FnOnce(Num, Num) -> Result<Num>) -> Result<JArray> {
     let x = x

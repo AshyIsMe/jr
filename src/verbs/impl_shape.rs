@@ -35,7 +35,6 @@ where
     let flat_len = ns.iter().product();
     let flat_y = Array::from_iter(arr.iter().cloned().cycle().take(flat_len));
     debug!("ns: {:?}, flat_y: {:?}", ns, flat_y);
-    println!("ns: {ns:?}, flat_y: {flat_y:?}, arr: {arr:?}, shape: {shape:?}");
     Ok(ArcArray::from_shape_vec(IxDyn(&ns), flat_y.into_raw_vec())?)
 }
 

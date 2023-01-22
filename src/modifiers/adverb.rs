@@ -75,10 +75,8 @@ pub fn a_slash(_ctx: &mut Ctx, u: &VerbNoun) -> Result<BivalentOwned> {
             return a_table(ctx, &u, x, y);
         }
         y.outer_iter()
-            .collect_vec()
-            .into_iter()
-            .map(|x| Ok(x.to_owned()))
             .rev()
+            .map(Ok)
             // Reverse to force right to left execution.
             // Required for (;/i.5) to work correctly.
             // Yes we flipped y and x args in the lambda below:

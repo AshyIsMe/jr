@@ -133,7 +133,7 @@ pub fn v_conjugate(y: &JArray) -> Result<JArray> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<JArray> {
-    d00nrn(x, y, |x, y| Ok(x + y))
+    d00nn(x, y, |x, y| x + y)
 }
 
 /// +. (monad)
