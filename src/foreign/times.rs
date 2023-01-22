@@ -1,4 +1,4 @@
-use crate::{arr0ad, Ctx, JArray, JError};
+use crate::{arr0ad, feed, Ctx, JArray, JError};
 use anyhow::{anyhow, Context, Result};
 use ndarray::array;
 use std::time::{Duration, Instant};
@@ -14,7 +14,8 @@ pub fn f_time_sentence(ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<
         (None, JArray::CharArray(y)) => {
             let now = Instant::now();
 
-            todo!("6!:2 y");
+            // AA TODO: handle y better than this
+            let _res = feed(&y.iter().collect::<String>(), ctx);
 
             let t = now.elapsed().as_secs();
             // AA TODO: as_secs() is an int, wtf?!
