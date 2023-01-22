@@ -14,7 +14,7 @@ pub fn f_time_sentence(ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<
     match y {
         JArray::CharArray(y) => {
             Ok(JArray::FloatArray(ArcArray::from_shape_vec(
-                IxDyn(&[counts.len()]),
+                x.unwrap().shape(),
                 counts
                     .iter()
                     .map(|count| {
