@@ -5,6 +5,7 @@ mod host;
 mod locales;
 mod names;
 mod scripts;
+mod times;
 
 use anyhow::{anyhow, Context, Result};
 
@@ -18,6 +19,7 @@ use host::*;
 use locales::*;
 use names::*;
 use scripts::*;
+use times::*;
 
 /// https://www.jsoftware.com/help/dictionary/xmain.htm
 pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
@@ -27,6 +29,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
 
     let iii = Rank::inf_inf_inf();
     let zii = (Rank::zero(), Rank::infinite_infinite());
+    let ozo = (Rank::one(), (Rank::zero(), Rank::one()));
 
     let unimplemented = |name: &'static str| {
         (
@@ -126,7 +129,10 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (5, _) => return unsupported("representation"),
         (6, 0) => unimplemented("time current"),
         (6, 1) => unimplemented("time session"),
-        (6, 2) => unimplemented("time sentence"),
+        (6, 2) => (
+            ozo,
+            BivalentOwned::from_bivalent(|ctx, x, y| f_time_sentence(ctx, x, y)),
+        ),
         (6, 3) => unimplemented("time delay"),
         (6, 4) => unimplemented("time pm count calls"),
         (6, 8) => unimplemented("time pm clock frequency"),
