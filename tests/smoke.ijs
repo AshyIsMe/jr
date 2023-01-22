@@ -363,6 +363,10 @@ NB. append
 5,(0 $ 0)
 (0 $ 0),6
 5,(0 $ 0),6
+'abc','de'
+'abc',"0/'de'
+5 6 7,i.2 3
+7,i.2 3
 
 NB. ravel items
 ,. 'a'
@@ -378,7 +382,7 @@ NB. stitch
 ,.~ i.2 2
 ,.~ i.2 3 4
 (i.3 3) ,. i.3 2
-NB. TODO: (i.3 3) ,. i.3 2 1
+(i.3 3) ,. i.3 2 1
 
 NB. laminate
 'bravo' ,: 'charlie'
