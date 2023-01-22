@@ -6,22 +6,23 @@ use std::time::{Duration, Instant};
 // 6!:2
 //
 pub fn f_time_sentence(ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
-    let counts = match x {
-        Some(JArray::IntArray(x)) => Ok(x.iter().collect()),
-        None => Ok(vec![&1i64]),
+    let counts: Vec<i64> = match x {
+        Some(JArray::IntArray(x)) => Ok(x.iter().cloned().collect()),
+        Some(JArray::BoolArray(x)) => Ok(x.iter().map(|b| *b as i64).collect()),
+        None => Ok(vec![1i64]),
         _ => Err(JError::DomainError).context("x IntArray, y CharArray please"),
     }?;
     match y {
         JArray::CharArray(y) => {
             Ok(JArray::FloatArray(ArcArray::from_shape_vec(
-                x.unwrap().shape(),
+                if let Some(x) = x { x.shape() } else { &[1] },
                 counts
                     .iter()
                     .map(|count| {
-                        if **count <= 0 {
+                        if *count <= 0 {
                             0.0
                         } else {
-                            let times: Vec<f64> = (0..**count)
+                            let times: Vec<f64> = (0..*count)
                                 .map(|_i| {
                                     let now = Instant::now();
                                     // AA TODO: handle y better than this?
