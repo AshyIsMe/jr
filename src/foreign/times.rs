@@ -17,9 +17,8 @@ pub fn f_time_sentence(ctx: &mut Ctx, x: Option<&JArray>, y: &JArray) -> Result<
             // AA TODO: handle y better than this
             let _res = feed(&y.iter().collect::<String>(), ctx);
 
-            let t = now.elapsed().as_secs();
-            // AA TODO: as_secs() is an int, wtf?!
-            Ok(JArray::IntArray(arr0ad(t as i64)))
+            let t = now.elapsed().as_secs_f64();
+            Ok(JArray::FloatArray(arr0ad(t)))
         }
         (Some(_), _) => Err(JError::DomainError).context("x IntArray, y CharArray please"),
         (None, _) => Err(JError::DomainError).context("y CharArray please"),
