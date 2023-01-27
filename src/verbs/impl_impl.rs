@@ -182,6 +182,13 @@ impl VerbImpl {
         }
     }
 
+    pub fn d00nrn(&self) -> Option<fn(Num, Num) -> Result<Num>> {
+        match self {
+            VerbImpl::Primitive(p) => p.dyad.d00nrn,
+            _ => None,
+        }
+    }
+
     pub fn obverse(&self) -> Option<VerbImpl> {
         match self {
             VerbImpl::Primitive(imp) => imp.inverse.and_then(primitive_verbs),

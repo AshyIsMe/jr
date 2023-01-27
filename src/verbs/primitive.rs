@@ -2,7 +2,7 @@ use std::fmt;
 
 use anyhow::Result;
 
-use crate::JArray;
+use crate::{JArray, Num};
 
 use super::ranks::{DyadRank, Rank};
 
@@ -16,6 +16,7 @@ pub struct Monad {
 pub struct Dyad {
     pub f: fn(&JArray, &JArray) -> Result<JArray>,
     pub rank: DyadRank,
+    pub d00nrn: Option<fn(Num, Num) -> Result<Num>>,
 }
 
 #[derive(Copy, Clone)]
@@ -35,5 +36,22 @@ impl fmt::Debug for PrimitiveImpl {
 impl PartialEq for PrimitiveImpl {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+impl Into<Monad> for (fn(&JArray) -> Result<JArray>, Rank) {
+    fn into(self) -> Monad {
+        let (f, rank) = self;
+        Monad { f, rank }
+    }
+}
+impl Into<Dyad> for (fn(&JArray, &JArray) -> Result<JArray>, DyadRank) {
+    fn into(self) -> Dyad {
+        let (f, rank) = self;
+        Dyad {
+            f,
+            rank,
+            d00nrn: None,
+        }
     }
 }

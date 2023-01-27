@@ -1,3 +1,5 @@
+#![feature(iterator_try_reduce)]
+
 mod arrays;
 mod cells;
 mod ctx;
@@ -41,8 +43,9 @@ pub use crate::number::Num;
 // TODO: maybe as helper methods on JArray?
 pub use crate::arrays::display;
 
-use crate::arrays::ArcArrayD;
 use anyhow::Result;
+
+use crate::arrays::ArcArrayD;
 use modifiers::ModifierImpl;
 use verbs::VerbImpl;
 
@@ -55,15 +58,24 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ranks: (Rank, DyadRank),
         inverse: impl Into<Option<&'static str>>,
     ) -> VerbImpl {
+        q(name, monad, dyad, None, ranks, inverse)
+    }
+
+    fn q(
+        name: &'static str,
+        monad: fn(&JArray) -> Result<JArray>,
+        dyad: fn(&JArray, &JArray) -> Result<JArray>,
+        d00nrn: Option<fn(Num, Num) -> Result<Num>>,
+        (monad_rank, dyad_rank): (Rank, DyadRank),
+        inverse: impl Into<Option<&'static str>>,
+    ) -> VerbImpl {
         VerbImpl::Primitive(PrimitiveImpl {
             name,
-            monad: Monad {
-                f: monad,
-                rank: ranks.0,
-            },
+            monad: (monad, monad_rank).into(),
             dyad: Dyad {
                 f: dyad,
-                rank: ranks.1,
+                rank: dyad_rank,
+                d00nrn: d00nrn.into(),
             },
             inverse: inverse.into(),
         })
@@ -88,13 +100,13 @@ fn primitive_verbs(sentence: &str) -> Option<VerbImpl> {
         ">." => p(">.", v_ceiling, v_larger_of_max, rank!(0 0 0), None),
         ">:" => p(">:", v_increment, v_larger_or_equal, rank!(0 0 0), None),
 
-        "+" => p("+", v_conjugate, v_plus, rank!(0 0 0), "-"),
+        "+" => q("+", v_conjugate, v_plus, Some(d_plus), rank!(0 0 0), "-"),
         "+." => p("+.", v_real_imaginary, v_gcd_or, rank!(0 0 0), None),
         "+:" => p("+:", v_double, v_not_or, rank!(0 0 0), None),
         "*" => p("*", v_signum, v_times, rank!(0 0 0), None),
         "*." => p("*.", v_length_angle, v_lcm_and, rank!(0 0 0), None),
         "*:" => p("*:", v_square, v_not_and, rank!(0 0 0), "%:"),
-        "-" => p("-", v_negate, v_minus, rank!(0 0 0), None),
+        "-" => q("-", v_negate, v_minus, Some(d_minus), rank!(0 0 0), None),
         "-." => p("-.", v_not, v_less, rank!(0 _ _), None),
         "-:" => p("-:", v_halve, v_match, rank!(0 _ _), None),
         "%" => p("%", v_reciprocal, v_divide, rank!(0 0 0), None),

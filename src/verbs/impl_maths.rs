@@ -133,7 +133,11 @@ pub fn v_conjugate(y: &JArray) -> Result<JArray> {
 }
 /// + (dyad)
 pub fn v_plus(x: &JArray, y: &JArray) -> Result<JArray> {
-    d00nn(x, y, |x, y| x + y)
+    d00nrn(x, y, d_plus)
+}
+
+pub fn d_plus(x: Num, y: Num) -> Result<Num> {
+    Ok(x + y)
 }
 
 /// +. (monad)
@@ -237,7 +241,10 @@ pub fn v_negate(y: &JArray) -> Result<JArray> {
 }
 /// - (dyad)
 pub fn v_minus(x: &JArray, y: &JArray) -> Result<JArray> {
-    d00nrn(x, y, |x, y| Ok(x - y))
+    d00nrn(x, y, d_minus)
+}
+pub fn d_minus(x: Num, y: Num) -> Result<Num> {
+    Ok(x - y)
 }
 
 /// -. (monad)
