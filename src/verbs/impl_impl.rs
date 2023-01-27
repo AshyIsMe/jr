@@ -79,7 +79,7 @@ pub fn exec_dyad(
     x: &JArray,
     y: &JArray,
 ) -> Result<JArray> {
-    if Rank::infinite_infinite() == rank {
+    if rank.0.is_infinite() && rank.1.is_infinite() {
         return (f)(x, y).context("infinite dyad shortcut");
     }
 
@@ -104,16 +104,10 @@ impl VerbImpl {
                 None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
                     .with_context(|| anyhow!("y: {y:?}"))
                     .with_context(|| anyhow!("monadic {:?}", imp.name)),
-                Some(x) => {
-                    let dyad = imp
-                        .dyad
-                        .ok_or(JError::DomainError)
-                        .with_context(|| anyhow!("there is no dyadic {:?}", imp.name))?;
-                    exec_dyad_inner(dyad.f, dyad.rank, x, y)
-                        .with_context(|| anyhow!("x: {x:?}"))
-                        .with_context(|| anyhow!("y: {y:?}"))
-                        .with_context(|| anyhow!("dyadic {:?}", imp.name))
-                }
+                Some(x) => exec_dyad_inner(imp.dyad.f, imp.dyad.rank, x, y)
+                    .with_context(|| anyhow!("x: {x:?}"))
+                    .with_context(|| anyhow!("y: {y:?}"))
+                    .with_context(|| anyhow!("dyadic {:?}", imp.name)),
             },
             VerbImpl::Partial(p) => {
                 let biv = &p.imp.biv;
@@ -182,7 +176,7 @@ impl VerbImpl {
     // TODO: presumably this is implementable for derived verbs
     pub fn dyad_rank(&self) -> Option<DyadRank> {
         match self {
-            Self::Primitive(p) => p.dyad.map(|d| d.rank),
+            Self::Primitive(p) => Some(p.dyad.rank),
             Self::Partial(PartialImpl { imp, .. }) => Some(imp.ranks.1),
             _ => None,
         }

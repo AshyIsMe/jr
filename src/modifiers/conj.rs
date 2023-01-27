@@ -14,7 +14,7 @@ use crate::scan::str_to_primitive;
 use crate::verbs::{
     append_nd, exec_dyad, exec_monad, BivalentOwned, PartialDef, PartialImpl, Rank, VerbImpl,
 };
-use crate::{arr0d, generate_cells, primitive_conjunctions, Ctx};
+use crate::{arr0d, generate_cells, primitive_conjunctions, rank, Ctx};
 use crate::{HasEmpty, JArray, JError, Word};
 
 #[derive(Clone)]
@@ -98,7 +98,7 @@ pub fn c_not_implemented(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<B
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -199,7 +199,7 @@ pub fn c_hatco(ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwne
 
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -304,7 +304,7 @@ pub fn c_quote(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwn
 
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -354,7 +354,7 @@ pub fn c_agenda(ctx: &mut Ctx, u: &Word, v: &Word) -> Result<Word> {
                 imp: BivalentOwned {
                     biv,
                     // supposedly depends on the rank of v
-                    ranks: Rank::inf_inf_inf(),
+                    ranks: rank!(_ _ _),
                 },
                 def,
             })))
@@ -478,7 +478,7 @@ pub fn c_atop(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwne
             });
             Ok(BivalentOwned {
                 biv,
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             })
         }
         _ => Err(JError::DomainError)
@@ -517,7 +517,7 @@ pub fn c_at(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwned>
             });
             Ok(BivalentOwned {
                 biv,
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             })
         }
         _ => Err(JError::DomainError)
@@ -579,7 +579,7 @@ pub fn c_cor_u(u: &VerbImpl, v: &Word) -> Result<Word> {
                 Some(x) => v.exec(ctx, Some(x), y),
             }),
             // TODO: ranks should be from u and v, allegedly
-            ranks: Rank::inf_inf_inf(),
+            ranks: rank!(_ _ _),
         },
         def,
     })))
@@ -595,7 +595,7 @@ pub fn c_assign_adverse(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<Bi
             });
             Ok(BivalentOwned {
                 biv,
-                ranks: Rank::inf_inf_inf(),
+                ranks: rank!(_ _ _),
             })
         }
         _ => Err(JError::NonceError).with_context(|| anyhow!("\nn: {n:?}\nm: {m:?}")),
@@ -663,7 +663,7 @@ pub fn c_cut(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<BivalentOwned
 
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -775,7 +775,7 @@ pub fn c_bondo(_ctx: &mut Ctx, n: &VerbNoun, m: &VerbNoun) -> Result<BivalentOwn
     };
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -801,7 +801,7 @@ pub fn c_under(_ctx: &mut Ctx, u: &VerbNoun, v: &VerbNoun) -> Result<BivalentOwn
     });
     Ok(BivalentOwned {
         biv,
-        ranks: Rank::inf_inf_inf(),
+        ranks: rank!(_ _ _),
     })
 }
 
@@ -812,7 +812,7 @@ fn do_under_monad(
     vi: &VerbImpl,
     y: &JArray,
 ) -> Result<JArray, Error> {
-    let (cells, frame) = monad_cells(y, Rank::zero())?;
+    let (cells, frame) = monad_cells(y, rank!(0))?;
     let mut parts = Vec::new();
     for y in cells {
         let v = v.exec(ctx, None, &y).context("under dual v")?;

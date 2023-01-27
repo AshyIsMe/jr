@@ -7,13 +7,15 @@ pub struct Rank(u8);
 pub type DyadRank = (Rank, Rank);
 
 impl Rank {
-    pub fn new(val: u32) -> Result<Self> {
-        if val == u32::MAX {
-            Ok(Rank(u8::MAX))
-        } else if val >= 64 {
-            return Err(JError::LimitError).with_context(|| anyhow!("{val} is too many ranks"));
+    pub fn new(val: u8) -> Self {
+        Self::new_checked(val).expect("unchecked rank creation")
+    }
+
+    pub fn new_checked(val: u8) -> Result<Self> {
+        if val >= 64 {
+            Err(JError::LimitError).with_context(|| anyhow!("{val} is too many ranks"))
         } else {
-            Ok(Rank(val as u8))
+            Ok(Rank(val))
         }
     }
 
@@ -33,30 +35,11 @@ impl Rank {
         }
 
         // already checked this is >=0, << 100
-        Self::new(rounded as u8 as u32)
-    }
-
-    pub const fn zero() -> Self {
-        Rank(0)
-    }
-
-    pub const fn one() -> Self {
-        Rank(1)
-    }
-
-    pub const fn zero_zero() -> (Self, Self) {
-        (Self::zero(), Self::zero())
+        Self::new_checked(rounded as u8)
     }
 
     pub const fn infinite() -> Self {
         Rank(u8::MAX)
-    }
-
-    pub const fn infinite_infinite() -> (Self, Self) {
-        (Self::infinite(), Self::infinite())
-    }
-    pub const fn inf_inf_inf() -> (Self, (Self, Self)) {
-        (Self::infinite(), Self::infinite_infinite())
     }
 
     pub const fn is_infinite(&self) -> bool {

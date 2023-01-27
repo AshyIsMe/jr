@@ -9,7 +9,7 @@ mod times;
 
 use anyhow::{anyhow, Context, Result};
 
-use crate::{JError, Rank};
+use crate::{rank, JError};
 
 use crate::verbs::BivalentOwned;
 use conversion::*;
@@ -27,9 +27,9 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         Err(JError::NonceError).with_context(|| anyhow!("unsupported {name:?} foreign: {l}!:{r}"))
     };
 
-    let iii = Rank::inf_inf_inf();
-    let zii = (Rank::zero(), Rank::infinite_infinite());
-    let ozo = (Rank::one(), (Rank::zero(), Rank::one()));
+    let iii = rank!(_ _ _);
+    let zii = rank!(0 _ _);
+    let ozo = rank!(1 0 1);
 
     let unimplemented = |name: &'static str| {
         (
