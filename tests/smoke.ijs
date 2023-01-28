@@ -575,8 +575,9 @@ NB. type
 3!:0 [ '42'
 3!:0 [ <42
 
-NB. TODO BUG: 3!:0 [ 42r2
-NB. TODO BUG: 3!:0 [ 42.0
+NB. TODO BUGS:
+3!:0 [ 42r2
+3!:0 [ 42.0
 
 NB. name list
 {{ 4!:1 [ 0 1 2 3 [ a =. 4 5 6 [ b =. 7 8 9 }} ''
