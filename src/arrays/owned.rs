@@ -42,6 +42,16 @@ pub enum JArray {
     FloatArray(ArcArrayD<f64>),
     ComplexArray(ArcArrayD<Complex64>),
     BoxArray(BoxArray),
+    // TODO: Some or all of these?
+    // UnicodeCharArray(_)
+    // Unicode4CharArray(_)
+    // SymbolArray(_)
+    // SparseBoolArray(_)
+    // SparseCharArray(_)
+    // SparseIntArray(_)
+    // SparseFloatArray(_)
+    // SparseComplexArray(_)
+    // SparseBoxArray(_)
 }
 
 impl fmt::Debug for JArray {

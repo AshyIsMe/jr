@@ -2244,6 +2244,83 @@ output = '''
 encoded = 'e3,04,01,,08'
 
 [[runs]]
+expr = "3!:0 [ '42'"
+output = '''
+2
+'''
+encoded = 'e3,04,01,,02'
+
+[[runs]]
+expr = '3!:0 [ 0'
+output = '''
+1
+'''
+encoded = 'e3,04,01,,01'
+
+[[runs]]
+expr = '3!:0 [ 1r2'
+output = '''
+128
+'''
+encoded = 'e3,04,01,,8'
+
+[[runs]]
+expr = '3!:0 [ 3.14'
+output = '''
+8
+'''
+encoded = 'e3,04,01,,08'
+
+[[runs]]
+expr = '3!:0 [ 42'
+output = '''
+4
+'''
+encoded = 'e3,04,01,,04'
+
+[[runs]]
+expr = '3!:0 [ 42.0'
+output = '''
+8
+'''
+encoded = 'e3,04,01,,08'
+
+[[runs]]
+expr = '3!:0 [ 42j1'
+output = '''
+16
+'''
+encoded = 'e3,04,01,,1'
+
+[[runs]]
+expr = '3!:0 [ 42r1'
+output = '''
+128
+'''
+encoded = 'e3,04,01,,8'
+
+[[runs]]
+expr = '3!:0 [ 42r2'
+output = '''
+128
+'''
+encoded = 'e3,04,01,,8'
+
+[[runs]]
+expr = '3!:0 [ 42x'
+output = '''
+64
+'''
+encoded = 'e3,04,01,,4'
+
+[[runs]]
+expr = '3!:0 [ <42'
+output = '''
+32
+'''
+encoded = 'e3,04,01,,2'
+
+[[runs]]
 expr = '3!:3 ] 2'
 output = '''
 e300000000000000
