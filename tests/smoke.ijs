@@ -565,6 +565,19 @@ NB. foreign
 3!:3 ] 2 4 7 _2
 2 (3!:4) 97
 
+NB. type
+3!:0 [ 0
+3!:0 [ 42
+3!:0 [ 42x
+3!:0 [ 1r2
+3!:0 [ 3.14
+3!:0 [ 42j1
+3!:0 [ '42'
+3!:0 [ <42
+
+NB. TODO BUG: 3!:0 [ 42r2
+NB. TODO BUG: 3!:0 [ 42.0
+
 NB. name list
 {{ 4!:1 [ 0 1 2 3 [ a =. 4 5 6 [ b =. 7 8 9 }} ''
 NB. jsoft bug, apparently nothing starts with an empty string: {{ '' 4!:1 [ 0 [ abc =. 4 5 6 [ def =. 7 8 9 }} ''

@@ -84,7 +84,7 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
         (2, 8) => unimplemented("errno"),
         (2, 55) => unimplemented("terminate session"),
         (2, _) => return unsupported("host"),
-        (3, 0) => unimplemented("type"),
+        (3, 0) => (iii, BivalentOwned::from_monad(|_, y| f_type(y))),
         (3, 1) => unimplemented("byte representation"),
         (3, 2) => unimplemented("byte to hex representation"),
         (3, 3) => (
