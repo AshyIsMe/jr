@@ -141,6 +141,9 @@ impl Word {
                 c.as_ref().map(|s| s.as_str()).unwrap_or(""),
                 stringify(block)
             ),
+            IfBlock(block) => format!("if. {} end.", stringify(block)),
+            SelectBlock(block) => format!("select. {} end.", stringify(block)),
+            Case => "case.".to_string(),
             Do => "do.".to_string(),
             NewLine => "\n".to_string(),
             IsLocal => "=.".to_string(),
