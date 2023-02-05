@@ -37,13 +37,12 @@ pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<JArray> {
     }
 
     let path = noun_to_fs_path(y)?;
+    let script = fs::read_to_string(&path).with_context(|| anyhow!("reading {path:?}"))?;
+    ctx.scripts
+        .insert(path.display().to_string(), script.clone());
 
     let mut last = EvalOutput::Regular(Word::Nothing);
-    for (off, line) in fs::read_to_string(&path)
-        .with_context(|| anyhow!("reading {path:?}"))?
-        .split('\n')
-        .enumerate()
-    {
+    for (off, line) in script.split('\n').enumerate() {
         match feed(line, ctx) {
             Ok(word) => last = word,
             Err(e) if break_on_error => {
@@ -57,5 +56,14 @@ pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<JArray> {
     match last {
         EvalOutput::Regular(_) => Ok(JArray::empty()),
         other => Err(anyhow!("file unexpectedly finished inside a {other:?}")),
+    }
+}
+
+pub fn f_script_names(ctx: &mut Ctx, y: &JArray) -> Result<JArray> {
+    if !y.is_empty() {
+        Err(JError::RankError).context("from noun")
+    } else {
+        let script_names: Vec<JArray> = ctx.scripts.keys().map(JArray::from_string).collect();
+        Ok(JArray::from_list(script_names))
     }
 }
