@@ -136,8 +136,15 @@ impl Word {
             Noun(arr) => quote_arr(arr),
             Adverb(v) => v.name(),
             Conjunction(v) => v.name(),
+            WhileBlock(b, block) => {
+                if *b {
+                    format!("whilst. {} end.", stringify(block))
+                } else {
+                    format!("while. {} end.", stringify(block))
+                }
+            }
             ForBlock(c, block) => format!(
-                "for{}. {} end.",
+                "for_{}. {} end.",
                 c.as_ref().map(|s| s.as_str()).unwrap_or(""),
                 stringify(block)
             ),
@@ -145,6 +152,10 @@ impl Word {
             SelectBlock(block) => format!("select. {} end.", stringify(block)),
             Case => "case.".to_string(),
             Do => "do.".to_string(),
+            Else => "else.".to_string(),
+            ElseIf => "elseif.".to_string(),
+            End => "end.".to_string(),
+            Return => "return.".to_string(),
             NewLine => "\n".to_string(),
             IsLocal => "=.".to_string(),
             IsGlobal => "=:".to_string(),
