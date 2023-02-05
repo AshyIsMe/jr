@@ -84,7 +84,7 @@ fn quote_string(s: impl AsRef<str>) -> String {
 }
 
 pub fn quote_arr(arr: &JArray) -> String {
-    let shape = if arr.shape().is_empty() {
+    let _shape = if arr.shape().is_empty() {
         String::new()
     } else {
         format!(
@@ -97,7 +97,9 @@ pub fn quote_arr(arr: &JArray) -> String {
         .reshape(IxDyn(&[arr.tally()]))
         .expect("reshape to same size is infallible");
 
-    format!("{shape}{}", format!("{arr}").trim())
+    // format!("{shape}{}", format!("{arr}").trim())
+    // AA 20230305 Why did we want the shape included here?
+    format!("{arr}").trim().to_string()
 }
 
 impl MaybeVerb {
