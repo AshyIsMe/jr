@@ -201,12 +201,16 @@ impl VerbImpl {
         match self {
             Primitive(p) => p.name.to_string(),
             Partial(p) => p.name(),
-            // TODO: completely missing here
             Fork { f, g, h } => format!("({} {} {})", f.name(), g.name(), h.name()),
-            Hook { .. } => format!("(todo hook)"),
+            Hook { l, r } => format!("({} {})", l.name(), r.name()),
             Cap => "[:".to_string(),
-            // TODO: negatives here
-            Number(i) => format!("({i}:)"),
+            Number(i) => {
+                if i < &0.0 {
+                    format!("(_{}:)", i.abs())
+                } else {
+                    format!("({i}:)")
+                }
+            }
         }
     }
 

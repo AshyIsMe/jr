@@ -99,12 +99,9 @@ impl fmt::Display for Word {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Word::Noun(a) => write!(f, "{}", a),
-            Word::Verb(v) => match v.token() {
-                Some(t) => write!(f, "{}", t),
-                None => write!(f, "(unrepresentable but valid verb)"),
-            },
-            Word::Adverb(_) => write!(f, "(unrepresentable but valid adverb)"),
-            Word::Conjunction(_) => write!(f, "(unrepresentable but valid conjunction)"),
+            Word::Verb(v) => write!(f, "{}", v.name()),
+            Word::Adverb(a) => write!(f, "{}", a.name()),
+            Word::Conjunction(c) => write!(f, "{}", c.name()),
             Word::Nothing => Ok(()),
             //_ => write!(f, "{:+}", self),
             _ => write!(f, "XXX TODO: unable to Display Word::{:?}", self),
@@ -139,12 +136,26 @@ impl Word {
             Noun(arr) => quote_arr(arr),
             Adverb(v) => v.name(),
             Conjunction(v) => v.name(),
+            WhileBlock(b, block) => {
+                if *b {
+                    format!("whilst. {} end.", stringify(block))
+                } else {
+                    format!("while. {} end.", stringify(block))
+                }
+            }
             ForBlock(c, block) => format!(
-                "for{}. {} end.",
+                "for_{}. {} end.",
                 c.as_ref().map(|s| s.as_str()).unwrap_or(""),
                 stringify(block)
             ),
+            IfBlock(block) => format!("if. {} end.", stringify(block)),
+            SelectBlock(block) => format!("select. {} end.", stringify(block)),
+            Case => "case.".to_string(),
             Do => "do.".to_string(),
+            Else => "else.".to_string(),
+            ElseIf => "elseif.".to_string(),
+            End => "end.".to_string(),
+            Return => "return.".to_string(),
             NewLine => "\n".to_string(),
             IsLocal => "=.".to_string(),
             IsGlobal => "=:".to_string(),
