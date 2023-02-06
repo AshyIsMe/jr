@@ -5,7 +5,6 @@ use std::ops::{Deref, DerefMut};
 
 use crate::eval::Qs;
 use crate::JError;
-use std::collections::HashMap;
 
 // :)
 pub use locales::Eval;
@@ -16,7 +15,7 @@ pub use locales::Names;
 pub struct Ctx {
     eval: Eval,
     pub input_buffers: Option<InputBuffers>,
-    pub scripts: HashMap<String, String>,
+    pub scripts: Vec<(String, String)>,
 }
 
 #[derive(Debug)]
@@ -39,7 +38,7 @@ impl Ctx {
                 suspension: None,
                 other_input_buffer: String::new(),
             }),
-            scripts: HashMap::new(),
+            scripts: Vec::new(),
         }
     }
 

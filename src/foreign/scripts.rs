@@ -39,7 +39,7 @@ pub fn f_load_script(ctx: &mut Ctx, k: i64, y: &JArray) -> Result<JArray> {
     let path = noun_to_fs_path(y)?;
     let script = fs::read_to_string(&path).with_context(|| anyhow!("reading {path:?}"))?;
     ctx.scripts
-        .insert(path.display().to_string(), script.clone());
+        .push((path.display().to_string(), script.clone()));
 
     let mut last = EvalOutput::Regular(Word::Nothing);
     for (off, line) in script.split('\n').enumerate() {
@@ -63,7 +63,11 @@ pub fn f_script_names(ctx: &mut Ctx, y: &JArray) -> Result<JArray> {
     if !y.is_empty() {
         Err(JError::RankError).context("from noun")
     } else {
-        let script_names: Vec<JArray> = ctx.scripts.keys().map(JArray::from_string).collect();
+        let script_names: Vec<JArray> = ctx
+            .scripts
+            .iter()
+            .map(|(s, _)| JArray::from_string(s))
+            .collect();
         Ok(JArray::from_list(script_names))
     }
 }
