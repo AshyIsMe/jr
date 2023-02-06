@@ -109,7 +109,10 @@ pub fn foreign(l: i64, r: i64) -> Result<BivalentOwned> {
             iii,
             BivalentOwned::from_bivalent(|ctx, x, y| f_name_namelist(ctx, x, y)),
         ),
-        (4, 3) => unimplemented("list loaded scripts"),
+        (4, 3) => (
+            iii,
+            BivalentOwned::from_monad(|ctx, y| f_script_names(ctx, y)),
+        ),
         (4, 4) => unimplemented("find loaded script"),
         (4, 5) => unimplemented("name change tracing"),
         (4, 6) => unimplemented("set current script name"),

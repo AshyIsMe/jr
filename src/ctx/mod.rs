@@ -15,6 +15,7 @@ pub use locales::Names;
 pub struct Ctx {
     eval: Eval,
     pub input_buffers: Option<InputBuffers>,
+    pub scripts: Vec<(String, String)>,
 }
 
 #[derive(Debug)]
@@ -37,6 +38,7 @@ impl Ctx {
                 suspension: None,
                 other_input_buffer: String::new(),
             }),
+            scripts: Vec::new(),
         }
     }
 
