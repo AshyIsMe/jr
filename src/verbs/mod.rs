@@ -345,8 +345,12 @@ pub fn v_right(_x: &JArray, y: &JArray) -> Result<JArray> {
 }
 
 /// { (monad)
-pub fn v_catalogue(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_catalogue(y: &JArray) -> Result<JArray> {
+    if let JArray::BoxArray(y) = y {
+        todo!("v_catalogue()")
+    } else {
+        v_box(y)
+    }
 }
 /// { (dyad)
 pub fn v_from(x: &JArray, y: &JArray) -> Result<JArray> {
