@@ -346,8 +346,12 @@ pub fn v_right(_x: &JArray, y: &JArray) -> Result<JArray> {
 
 /// { (monad)
 pub fn v_catalogue(y: &JArray) -> Result<JArray> {
-    if let JArray::BoxArray(y) = y {
-        todo!("v_catalogue()")
+    if let JArray::BoxArray(ja) = y {
+        if ja.len() == 1 {
+            v_box(y)
+        } else {
+            todo!("v_catalogue()")
+        }
     } else {
         v_box(y)
     }

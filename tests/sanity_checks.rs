@@ -1,7 +1,9 @@
 use anyhow::Result;
+use itertools::Itertools;
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::BigRational;
+use std::vec::IntoIter;
 
 use jr::test_impls::scan_eval;
 use jr::JArray::*;
@@ -706,6 +708,41 @@ fn test_user_defined_monadic_verb() -> Result<()> {
         .downcast_ref::<JError>()
         .expect("caused by jerror");
     assert!(matches!(root, JError::DomainError));
+
+    Ok(())
+}
+
+#[test]
+fn test_cartesian_product() -> Result<()> {
+    let a = idot(&[2]); // [0, 1]
+    let b = idot(&[2]); // [0, 1]
+
+    let cp1: Vec<Vec<JArray>> = vec![
+        a.rank_iter(0).iter().cloned(),
+        b.rank_iter(0).iter().cloned(),
+    ]
+    .into_iter()
+    .map(|i| i.into_iter())
+    .multi_cartesian_product()
+    .collect();
+    // [[0,0], [0,1], [1,0], [1,1]]
+    println!("{:?}", cp1);
+
+    // Attempt the same as above but start from a BoxArray instead of a vec
+    let b = JArray::BoxArray(array![a, b].into_dyn().into_shared());
+    let va: Vec<JArray> = b.rank_iter(0);
+    let cp2: Vec<Vec<JArray>> = va
+        .into_iter()
+        .map(|a| a.rank_iter(0).into_iter())
+        .collect::<Vec<IntoIter<JArray>>>()
+        .into_iter()
+        .map(|i| i.into_iter())
+        .multi_cartesian_product()
+        .collect();
+    // Should be: [[0,0], [0,1], [1,0], [1,1]]
+    println!("{:?}", cp2);
+
+    assert_eq!(cp1, cp2);
 
     Ok(())
 }
