@@ -6,6 +6,7 @@ use num::BigRational;
 use std::vec::IntoIter;
 
 use jr::test_impls::scan_eval;
+use jr::verbs::v_open;
 use jr::JArray::*;
 use jr::Word::*;
 use jr::{arr0d, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
@@ -726,23 +727,73 @@ fn test_cartesian_product() -> Result<()> {
     .multi_cartesian_product()
     .collect();
     // [[0,0], [0,1], [1,0], [1,1]]
-    println!("{:?}", cp1);
+    println!("cp1: {:?}\n", cp1);
 
     // Attempt the same as above but start from a BoxArray instead of a vec
     let b = JArray::BoxArray(array![a, b].into_dyn().into_shared());
     let va: Vec<JArray> = b.rank_iter(0);
-    let cp2: Vec<Vec<JArray>> = va
+
+    let vja = va
+        .clone()
         .into_iter()
         .map(|a| a.rank_iter(0).into_iter())
-        .collect::<Vec<IntoIter<JArray>>>()
-        .into_iter()
-        .map(|i| i.into_iter())
-        .multi_cartesian_product()
-        .collect();
-    // Should be: [[0,0], [0,1], [1,0], [1,1]]
-    println!("{:?}", cp2);
+        .collect::<Vec<IntoIter<JArray>>>();
+    println!("vja: {:?}", vja);
 
-    assert_eq!(cp1, cp2);
+    // let cp2: Vec<Vec<JArray>> = va
+    //     .into_iter()
+    //     .map(|a| match a {
+    //         //BoxArray(a) => a.rank_iter(0).into_iter(),
+    //         BoxArray(a) => a.iter(),
+    //         //_ => Err(JError::DomainError),
+    //         //_ => bail!("argh"),
+    //     })
+    //     .collect::<Vec<IntoIter<JArray>>>()
+    //     .into_iter()
+    //     .map(|i| i.into_iter())
+    //     .multi_cartesian_product()
+    //     .collect();
+    // // Should be: [[0,0], [0,1], [1,0], [1,1]]
+    // println!("cp2: {:?}", cp2);
+
+    // assert_eq!(cp1, cp2);
+
+    // Just go iterative AF and fill in a mut Vec in a loop?
+    // We can pre-allocate a mutable final array cos we know the final shape.
+    //    $ {i.&.>2;3;4
+    // 2 3 4
+
+    //    $ >{i.&.>2;3;4
+    // 2 3 4 3
+
+    let b = JArray::BoxArray(
+        array![idot(&[2]), idot(&[3]), idot(&[4]),]
+            .into_dyn()
+            .into_shared(),
+    );
+    println!("b: {:?}", b);
+
+    let s = b.shape();
+    let s: Vec<usize> = b
+        .rank_iter(0)
+        .into_iter()
+        .map(|a| v_open(&a).unwrap().shape().into())
+        .collect::<Vec<Vec<usize>>>()
+        .concat();
+    println!("s: {:?}", s);
+
+    let n = b.tally();
+    // Now build a BoxArray with items of length n
+    let mut arr: ArrayD<i64> = ArrayD::zeros(IxDyn(&vec![s, vec![n]].concat()));
+    println!("arr: {:?}", arr);
+
+    // arr is the right shape and full of zeroes.
+    // Now iterate and fill in the zeroes with the atoms from b
+    for (i, a) in b.rank_iter(0).iter().enumerate() {
+        for (j, b) in v_open(&a).unwrap().rank_iter(0).iter().enumerate() {
+            println!("todo: i: {}, j: {}", i, j);
+        }
+    }
 
     Ok(())
 }

@@ -8,7 +8,7 @@ mod foreign;
 mod modifiers;
 mod number;
 mod scan;
-mod verbs;
+pub mod verbs;
 
 #[cfg(feature = "ui")]
 mod plot;
