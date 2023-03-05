@@ -715,56 +715,23 @@ fn test_user_defined_monadic_verb() -> Result<()> {
 
 #[test]
 fn test_cartesian_product() -> Result<()> {
-    let a = idot(&[2]); // [0, 1]
-    let b = idot(&[2]); // [0, 1]
+    //
+    //    { (i.2);(i.3);(i.4)
+    // ┌─────┬─────┬─────┬─────┐
+    // │0 0 0│0 0 1│0 0 2│0 0 3│
+    // ├─────┼─────┼─────┼─────┤
+    // │0 1 0│0 1 1│0 1 2│0 1 3│
+    // ├─────┼─────┼─────┼─────┤
+    // │0 2 0│0 2 1│0 2 2│0 2 3│
+    // └─────┴─────┴─────┴─────┘
 
-    let cp1: Vec<Vec<JArray>> = vec![
-        a.rank_iter(0).iter().cloned(),
-        b.rank_iter(0).iter().cloned(),
-    ]
-    .into_iter()
-    .map(|i| i.into_iter())
-    .multi_cartesian_product()
-    .collect();
-    // [[0,0], [0,1], [1,0], [1,1]]
-    println!("cp1: {:?}\n", cp1);
-
-    // Attempt the same as above but start from a BoxArray instead of a vec
-    let b = JArray::BoxArray(array![a, b].into_dyn().into_shared());
-    let va: Vec<JArray> = b.rank_iter(0);
-
-    let vja = va
-        .clone()
-        .into_iter()
-        .map(|a| a.rank_iter(0).into_iter())
-        .collect::<Vec<IntoIter<JArray>>>();
-    println!("vja: {:?}", vja);
-
-    // let cp2: Vec<Vec<JArray>> = va
-    //     .into_iter()
-    //     .map(|a| match a {
-    //         //BoxArray(a) => a.rank_iter(0).into_iter(),
-    //         BoxArray(a) => a.iter(),
-    //         //_ => Err(JError::DomainError),
-    //         //_ => bail!("argh"),
-    //     })
-    //     .collect::<Vec<IntoIter<JArray>>>()
-    //     .into_iter()
-    //     .map(|i| i.into_iter())
-    //     .multi_cartesian_product()
-    //     .collect();
-    // // Should be: [[0,0], [0,1], [1,0], [1,1]]
-    // println!("cp2: {:?}", cp2);
-
-    // assert_eq!(cp1, cp2);
-
-    // Just go iterative AF and fill in a mut Vec in a loop?
-    // We can pre-allocate a mutable final array cos we know the final shape.
-    //    $ {i.&.>2;3;4
-    // 2 3 4
-
-    //    $ >{i.&.>2;3;4
-    // 2 3 4 3
+    // ┌─────┬─────┬─────┬─────┐
+    // │1 0 0│1 0 1│1 0 2│1 0 3│
+    // ├─────┼─────┼─────┼─────┤
+    // │1 1 0│1 1 1│1 1 2│1 1 3│
+    // ├─────┼─────┼─────┼─────┤
+    // │1 2 0│1 2 1│1 2 2│1 2 3│
+    // └─────┴─────┴─────┴─────┘
 
     let b = JArray::BoxArray(
         array![idot(&[2]), idot(&[3]), idot(&[4]),]
@@ -773,32 +740,9 @@ fn test_cartesian_product() -> Result<()> {
     );
     println!("b: {:?}", b);
 
-    let s = b.shape();
-    let s: Vec<usize> = b
-        .rank_iter(0)
-        .into_iter()
-        .map(|a| v_open(&a).unwrap().shape().into())
-        .collect::<Vec<Vec<usize>>>()
-        .concat();
-    println!("s: {:?}", s);
-
-    let n = b.tally();
-    // Now build a BoxArray with items of length n
-    let mut arr: ArrayD<i64> = ArrayD::zeros(IxDyn(&vec![s, vec![n]].concat()));
-    println!("arr: {:?}", arr);
-
-    // arr is the right shape and full of zeroes.
-    // Now iterate and fill in the zeroes with the atoms from b
-    for (i, a) in b.rank_iter(0).iter().enumerate() {
-        for (j, b) in v_open(&a).unwrap().rank_iter(0).iter().enumerate() {
-            println!("i: {}, a: {:?}, j: {}, b: {:?}", i, a, j, b);
-        }
-    }
-
-    // TODO: Use ndarray append below to replicate the python approach:
+    // One potato, two potato, three potato...
     // https://docs.python.org/3/library/itertools.html#itertools.product
-    let mut arr: ArrayD<i64> = ArrayD::zeros(IxDyn(&[0, 0]));
-    println!("arr: {:?}", arr);
+    // TODO: fancy iter zip thing
 
     let pools: Vec<JArray> = b
         .rank_iter(0)
@@ -806,43 +750,30 @@ fn test_cartesian_product() -> Result<()> {
         .map(|a| v_open(&a).unwrap())
         .collect();
     println!("pools: {:?}", pools);
+    let p_shape: Vec<usize> = pools.iter().map(|a| a.len()).collect();
+    let mut result: Vec<Vec<i64>> = vec![vec![]];
+
     for p in pools {
-        // python: result = [x+[y] for x in result for y in pool]
+        let mut l: Vec<Vec<i64>> = vec![vec![]];
+        for x in result.iter() {
+            for y in p.approx_i64_list().unwrap().iter() {
+                l.append(&mut vec![vec![x.clone(), vec![*y]].concat()]);
+            }
+        }
+        result = l;
     }
+    let result: Vec<&Vec<i64>> = result.iter().filter(|a| a.len() == p_shape.len()).collect();
+    println!("result (len: {}): {:?}", result.len(), result);
+    let result = JArray::from_list(
+        result
+            .into_iter()
+            .map(|a| JArray::from_list(a.clone()))
+            .collect_vec(),
+    )
+    .into_shape(p_shape)?;
+    println!("result (tally: {}): {:?}", result.tally(), result);
+
+    assert_eq!(result.tally(), 24);
 
     Ok(())
-}
-
-#[test]
-fn test_ndarray_append() {
-    use ndarray::{array, Array, ArrayView, Axis};
-
-    // create an empty array and append two rows at a time
-    let mut a = Array::zeros((0, 4));
-    let ones = ArrayView::from(&[1.; 8]).into_shape((2, 4)).unwrap();
-    let zeros = ArrayView::from(&[0.; 8]).into_shape((2, 4)).unwrap();
-    a.append(Axis(0), ones).unwrap();
-    a.append(Axis(0), zeros).unwrap();
-    a.append(Axis(0), ones).unwrap();
-
-    let col = ArrayView::from(&[1., 2., 3., 4., 5., 6.])
-        .into_shape((6, 1))
-        .unwrap();
-    a.append(Axis(1), col).unwrap();
-
-    println!("a:\n{}", a);
-
-    assert_eq!(
-        a,
-        array![
-            [1., 1., 1., 1., 1.],
-            [1., 1., 1., 1., 2.],
-            [0., 0., 0., 0., 3.],
-            [0., 0., 0., 0., 4.],
-            [1., 1., 1., 1., 5.],
-            [1., 1., 1., 1., 6.]
-        ]
-    );
-
-    println!("a:\n{}", a);
 }
