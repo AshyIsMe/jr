@@ -791,9 +791,58 @@ fn test_cartesian_product() -> Result<()> {
     // Now iterate and fill in the zeroes with the atoms from b
     for (i, a) in b.rank_iter(0).iter().enumerate() {
         for (j, b) in v_open(&a).unwrap().rank_iter(0).iter().enumerate() {
-            println!("todo: i: {}, j: {}", i, j);
+            println!("i: {}, a: {:?}, j: {}, b: {:?}", i, a, j, b);
         }
     }
 
+    // TODO: Use ndarray append below to replicate the python approach:
+    // https://docs.python.org/3/library/itertools.html#itertools.product
+    let mut arr: ArrayD<i64> = ArrayD::zeros(IxDyn(&[0, 0]));
+    println!("arr: {:?}", arr);
+
+    let pools: Vec<JArray> = b
+        .rank_iter(0)
+        .into_iter()
+        .map(|a| v_open(&a).unwrap())
+        .collect();
+    println!("pools: {:?}", pools);
+    for p in pools {
+        // python: result = [x+[y] for x in result for y in pool]
+    }
+
     Ok(())
+}
+
+#[test]
+fn test_ndarray_append() {
+    use ndarray::{array, Array, ArrayView, Axis};
+
+    // create an empty array and append two rows at a time
+    let mut a = Array::zeros((0, 4));
+    let ones = ArrayView::from(&[1.; 8]).into_shape((2, 4)).unwrap();
+    let zeros = ArrayView::from(&[0.; 8]).into_shape((2, 4)).unwrap();
+    a.append(Axis(0), ones).unwrap();
+    a.append(Axis(0), zeros).unwrap();
+    a.append(Axis(0), ones).unwrap();
+
+    let col = ArrayView::from(&[1., 2., 3., 4., 5., 6.])
+        .into_shape((6, 1))
+        .unwrap();
+    a.append(Axis(1), col).unwrap();
+
+    println!("a:\n{}", a);
+
+    assert_eq!(
+        a,
+        array![
+            [1., 1., 1., 1., 1.],
+            [1., 1., 1., 1., 2.],
+            [0., 0., 0., 0., 3.],
+            [0., 0., 0., 0., 4.],
+            [1., 1., 1., 1., 5.],
+            [1., 1., 1., 1., 6.]
+        ]
+    );
+
+    println!("a:\n{}", a);
 }
