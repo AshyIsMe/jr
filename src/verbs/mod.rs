@@ -350,7 +350,38 @@ pub fn v_catalogue(y: &JArray) -> Result<JArray> {
         if ja.len() == 1 {
             v_box(y)
         } else {
-            todo!("v_catalogue()")
+            let _b = v_open(y)?; // open box to check it's homogenous
+
+            // One potato, two potato, three potato...
+            // https://docs.python.org/3/library/itertools.html#itertools.product
+            // TODO: fancy iter zip thing
+
+            let pools: Vec<JArray> = y
+                .rank_iter(0)
+                .into_iter()
+                .map(|a| v_open(&a).unwrap())
+                .collect();
+            let p_shape: Vec<usize> = pools.iter().map(|a| a.tally()).collect();
+            let mut result: Vec<Vec<Elem>> = vec![vec![]];
+            for p in pools {
+                let mut l: Vec<Vec<Elem>> = vec![vec![]];
+                for x in result.iter() {
+                    for y in p.clone().into_elems().iter() {
+                        l.append(&mut vec![vec![x.clone(), vec![y.clone()]].concat()]);
+                    }
+                }
+                result = l;
+            }
+
+            let result: Vec<JArray> = result
+                .iter()
+                .filter(|a| a.len() == p_shape.len())
+                .map(|a| {
+                    let ja: Vec<JArray> = a.iter().map(|a| JArray::from(a.clone())).collect();
+                    v_open(&JArray::from_list(ja)).unwrap()
+                })
+                .collect_vec();
+            JArray::from_list(result).reshape(p_shape)
         }
     } else {
         v_box(y)
