@@ -51,7 +51,7 @@ pub fn v_open(y: &JArray) -> Result<JArray> {
                 ArcArrayD::from_shape_vec(IxDyn(&[0]), Vec::new()).expect("static shape"),
             )),
             1 => Ok(y.iter().next().expect("just checked").clone()),
-            _ => bail!("todo: unbox BoxArray: {y:?}"),
+            _ => JArray::from_fill_promote(y.clone()),
         },
         y => Ok(y.clone()),
     }

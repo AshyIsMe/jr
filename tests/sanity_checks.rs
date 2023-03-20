@@ -1,9 +1,12 @@
 use anyhow::Result;
+use itertools::Itertools;
 use ndarray::prelude::*;
 use num::complex::Complex64;
 use num::BigRational;
+use std::vec::IntoIter;
 
 use jr::test_impls::scan_eval;
+use jr::verbs::v_open;
 use jr::JArray::*;
 use jr::Word::*;
 use jr::{arr0d, resolve_names, Ctx, JArray, JError, Num, Rank, Word};
