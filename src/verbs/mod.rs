@@ -361,7 +361,8 @@ pub fn v_catalogue(y: &JArray) -> Result<JArray> {
                 .into_iter()
                 .map(|a| v_open(&a).unwrap())
                 .collect();
-            let p_shape: Vec<usize> = pools.iter().map(|a| a.tally()).collect();
+            let p_tally: Vec<usize> = pools.iter().map(|a| a.tally().into()).collect();
+            let p_shape: Vec<usize> = pools.iter().map(|a| <&[usize] as Into<Vec<usize>>>::into(a.shape())).flatten().collect();
             let mut result: Vec<Vec<Elem>> = vec![vec![]];
             for p in pools {
                 let mut l: Vec<Vec<Elem>> = vec![vec![]];
@@ -375,7 +376,7 @@ pub fn v_catalogue(y: &JArray) -> Result<JArray> {
 
             let result: Vec<JArray> = result
                 .iter()
-                .filter(|a| a.len() == p_shape.len())
+                .filter(|a| a.len() == p_tally.len())
                 .map(|a| {
                     let ja: Vec<JArray> = a.iter().map(|a| JArray::from(a.clone())).collect();
                     v_open(&JArray::from_list(ja)).unwrap()
