@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::iter;
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
 use log::debug;
 use ndarray::prelude::*;
