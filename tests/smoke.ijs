@@ -658,4 +658,4 @@ NB. catalogue
 {(;/'abc'); (<;/'def')
 
 NB. catalogue bug:
-{1;(i.2 3);(i.2 3)
+{1;(i.1 3);(i.1 3)
