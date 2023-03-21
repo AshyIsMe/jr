@@ -656,3 +656,6 @@ NB. catalogue
 {'ab';'cd'
 {2 2 $ 'ab';'cd';'ef';'gh'
 {(;/'abc'); (<;/'def')
+
+NB. catalogue bug:
+{1;(i.2 3);(i.2 3)
