@@ -657,3 +657,8 @@ NB. catalogue
 {2 2 $ 'ab';'cd';'ef';'gh'
 {(;/'abc'); (<;/'def')
 {1;(i.1 3);(i.1 3)
+
+NB. nub sieve
+~: 1 2 2 3 4 4 5 6 6
+NB. TODO: higher rank i.
+NB. ~: >1 2 3 ; 4 5 6; 1 2 3

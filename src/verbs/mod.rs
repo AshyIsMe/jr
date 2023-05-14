@@ -51,6 +51,23 @@ pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
 }
 
+pub fn j_monad_eval(sentence: &str, y: &JArray) -> Result<JArray> {
+    // Why write rust when you can write j?
+    // https://code.jsoftware.com/wiki/PrimitivePrimitives
+    // Obviously this will add a fair amount of overhead to any primitives implemented like this.
+    // TODO: Rewrite all uses of this function in rust.
+
+    use Word::*;
+    let v = scan(sentence)?;
+    let sentence = vec![v, vec![Noun(y.clone())]].concat();
+    let mut ctx = Ctx::root();
+    let word = eval(sentence, &mut ctx)?;
+    match word {
+        Noun(ja) => return Ok(ja),
+        _ => return Err(JError::DomainError.into()),
+    }
+}
+
 #[allow(unused_variables)]
 pub fn v_plot(y: &JArray) -> Result<JArray> {
     cfg_if::cfg_if! {
@@ -123,8 +140,8 @@ pub fn v_nub(y: &JArray) -> Result<JArray> {
 }
 
 /// ~: (monad)
-pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_nub_sieve(y: &JArray) -> Result<JArray> {
+    j_monad_eval("(i.@# e. i.~)", y)
 }
 
 /// |. (monad)
@@ -179,17 +196,7 @@ pub fn v_ravel_items(y: &JArray) -> Result<JArray> {
 
 /// ,: (monad)
 pub fn v_itemize(y: &JArray) -> Result<JArray> {
-    use Word::*;
-    // Why write rust when you can write j?
-    // AA TODO: rewrite this in rust obviously...
-    let itemize = scan("(1&,@$@] $ ,@])")?;
-    let sentence = vec![itemize, vec![Noun(y.clone())]].concat();
-    let mut ctx = Ctx::root();
-    let word = eval(sentence, &mut ctx)?;
-    match word {
-        Noun(ja) => return Ok(ja),
-        _ => return Err(JError::DomainError.into()),
-    }
+    j_monad_eval("(1&,@$@] $ ,@])", y)
 }
 /// ,: (dyad)
 pub fn v_laminate(x: &JArray, y: &JArray) -> Result<JArray> {
