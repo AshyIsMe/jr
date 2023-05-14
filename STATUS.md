@@ -63,10 +63,6 @@ pub fn v_not_exist_monad(_y: &JArray) -> Result<JArray> {
 pub fn v_not_implemented_dyad(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_self_classify(y: &JArray) -> Result<JArray> {
 pub fn v_less(x: &JArray, y: &JArray) -> Result<JArray> {
-pub fn v_nub_sieve(_y: &JArray) -> Result<JArray> {
-pub fn v_itemize(_y: &JArray) -> Result<JArray> {
-pub fn v_laminate(x: &JArray, y: &JArray) -> Result<JArray> {
-pub fn v_words(y: &JArray) -> Result<JArray> {
 pub fn v_sequential_machine(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_base_(_y: &JArray) -> Result<JArray> {
 pub fn v_base(_x: &JArray, _y: &JArray) -> Result<JArray> {
