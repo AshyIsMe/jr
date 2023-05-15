@@ -3623,6 +3623,22 @@ e3,04,02,01,02,,01,
 e3,04,06,02,02,03,,01,02,03,04,05'''
 
 [[runs]]
+expr = 'i: 2 3 4'
+output = '''
+_2 _1  0  1 2 0 0 0 0
+_3 _2 _1  0 1 2 3 0 0
+_4 _3 _2 _1 0 1 2 3 4
+'''
+encoded = 'e3,04,1b,02,03,09,feffffffffffffff,ffffffffffffffff,,01,02,,,,,fdffffffffffffff,feffffffffffffff,ffffffffffffffff,,01,02,03,,,fcffffffffffffff,fdffffffffffffff,feffffffffffffff,ffffffffffffffff,,01,02,03,04'
+
+[[runs]]
+expr = 'i: 5'
+output = '''
+_5 _4 _3 _2 _1 0 1 2 3 4 5
+'''
+encoded = 'e3,04,0b,01,0b,fbffffffffffffff,fcffffffffffffff,fdffffffffffffff,feffffffffffffff,ffffffffffffffff,,01,02,03,04,05'
+
+[[runs]]
 expr = 'j. 0 1 2 3 4'
 output = '''
 0 0j1 0j2 0j3 0j4

@@ -662,3 +662,6 @@ NB. nub sieve
 ~: 1 2 2 3 4 4 5 6 6
 NB. TODO: higher rank i.
 NB. ~: >1 2 3 ; 4 5 6; 1 2 3
+
+i: 5
+i: 2 3 4
