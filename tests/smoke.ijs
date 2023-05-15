@@ -515,6 +515,7 @@ NB. bondo
 3 +&! 4
 NB. bizarro fill / box: 'Dennis';'Richard';'Ken' ,&> 'Ritchie';'Stallman';'Iverson'
 'Dennis';'Richard';'Ken' (>@[ , >@])"0 'Ritchie';'Stallman';'Iverson'
+(i.5 2) (,&<"_1) i.5 5
 
 NB. ampdot
 NB. floats: 3 +&.^. 4
