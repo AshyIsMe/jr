@@ -68,6 +68,18 @@ pub fn j_monad_eval(sentence: &str, y: &JArray) -> Result<JArray> {
     }
 }
 
+pub fn j_dyad_eval(sentence: &str, x: &JArray, y: &JArray) -> Result<JArray> {
+    use Word::*;
+    let v = scan(sentence)?;
+    let sentence = vec![vec![Noun(x.clone())], v, vec![Noun(y.clone())]].concat();
+    let mut ctx = Ctx::root();
+    let word = eval(sentence, &mut ctx)?;
+    match word {
+        Noun(ja) => return Ok(ja),
+        _ => return Err(JError::DomainError.into()),
+    }
+}
+
 #[allow(unused_variables)]
 pub fn v_plot(y: &JArray) -> Result<JArray> {
     cfg_if::cfg_if! {
@@ -260,6 +272,16 @@ pub fn v_base_(_y: &JArray) -> Result<JArray> {
 /// #. (dyad)
 pub fn v_base(_x: &JArray, _y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
+
+    // https://code.jsoftware.com/wiki/PrimitivePrimitives
+    // raa   =. ,&< ($&.>~ ((-.@:] {"_1 [ |:@:,:  ({~ 1: <. i.&1)) (#&>)) )  ,&:<&:$
+    // rshp  =: ((&:>) /) (@: raa f.)
+    // base =: (+/@:* */\\.@:}.@:,&1)~ rshp
+
+    // let s = "(+/@:* */\\.@:}.@:,&1)~ (rshp=:((&:>) /) (@: (raa=.,&< ($&.>~ ((-.@:] {\"_1 [ |:@:,:  ({~ 1: <. i.&1)) (#&>)) )  ,&:<&:$) f.))";
+    // let s = "4 : 'x ((+/@:* */\\.@:}.@:,&1)~ rshp) y [ (rshp =: ((&:>) /) (@: raa f.)) [ (raa =. ,&< ($&.>~ ((-.@:] {\"_1 [ |:@:,:  ({~ 1: <. i.&1)) (#&>)) )  ,&:<&:$)'";
+    // let s = "4 : 'x ((+/@:* */\\.@:}.@:,&1)~ rshp) y [ rshp =: (((&:>) /) (@: raa f.)) [ raa =. (,&< ($&.>~ ((-.@:] {\"_1 [ |:@:,:  ({~ 1: <. i.&1)) (#&>)) )  ,&:<&:$)'";
+    // j_dyad_eval(s, x, y)
 }
 
 /// #: (monad)
@@ -609,12 +631,12 @@ pub fn v_levels(y: &JArray) -> Result<JArray> {
 }
 
 /// i: (monad)
-pub fn v_steps(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_steps(y: &JArray) -> Result<JArray> {
+    j_monad_eval("(-~ i.@:>:@:+:)", y)
 }
 /// i: (dyad)
-pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_index_of_last(x: &JArray, y: &JArray) -> Result<JArray> {
+    j_dyad_eval("(#@:[  (>:@:[ | <:@:-) (i.~ |.)~ )", x, y)
 }
 
 /// I. (monad)
