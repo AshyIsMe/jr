@@ -635,9 +635,8 @@ pub fn v_steps(y: &JArray) -> Result<JArray> {
     j_monad_eval("(-~ i.@:>:@:+:)", y)
 }
 /// i: (dyad)
-pub fn v_index_of_last(_x: &JArray, _y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
-    // j_dyad_eval("((<:@:-) (i.~ |.)~ )", x, y)
+pub fn v_index_of_last(x: &JArray, y: &JArray) -> Result<JArray> {
+    j_dyad_eval("(#@:[  (>:@:[ | <:@:-) (i.~ |.)~ )", x, y)
 }
 
 /// I. (monad)
