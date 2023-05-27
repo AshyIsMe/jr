@@ -93,6 +93,5 @@ pub fn v_roots(_y: &JArray) -> Result<JArray> {
 pub fn v_polynomial(_x: &JArray, _y: &JArray) -> Result<JArray> {
 pub fn v_poly_deriv(_y: &JArray) -> Result<JArray> {
 pub fn v_poly_integral(_x: &JArray, _y: &JArray) -> Result<JArray> {
-pub fn v_extend_precision(_y: &JArray) -> Result<JArray> {
 pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
 ```
