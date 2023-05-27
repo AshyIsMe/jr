@@ -20,6 +20,7 @@ use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
 use num_traits::FloatConst;
+use num::BigRational;
 use try_partialord::TrySort;
 
 use JArray::*;
@@ -534,6 +535,8 @@ pub fn v_format(_x: &JArray, _y: &JArray) -> Result<JArray> {
 /// A. (monad)
 pub fn v_anagram_index(_y: &JArray) -> Result<JArray> {
     Err(JError::NonceError.into())
+    // TODO
+    // j_monad_eval("((- i.)@#@x: #. +/@({. > }.)\\.\"1)@(i.~ /:~)", y)
 }
 /// A. (dyad)
 pub fn v_anagram(_x: &JArray, _y: &JArray) -> Result<JArray> {
@@ -693,8 +696,17 @@ pub fn v_poly_integral(_x: &JArray, _y: &JArray) -> Result<JArray> {
 }
 
 /// x: (monad)
-pub fn v_extend_precision(_y: &JArray) -> Result<JArray> {
-    Err(JError::NonceError.into())
+pub fn v_extend_precision(y: &JArray) -> Result<JArray> {
+    match y {
+        BoolArray(_a) => j_monad_eval("1x&*", y),
+        IntArray(_a) => j_monad_eval("1x&*", y),
+        ExtIntArray(_a) => Ok(y.clone()),
+        RationalArray(_a) => Ok(y.clone()),
+        FloatArray(a) => Ok(JArray::from_list(a.iter().map(|i|{
+            BigRational::from_float(*i).unwrap()
+        }).collect::<Vec<BigRational>>()).reshape(y.shape())?),
+        _ => Err(JError::DomainError.into())
+    }
 }
 /// x: (dyad)
 pub fn v_num_denom(x: &JArray, y: &JArray) -> Result<JArray> {
