@@ -31,6 +31,9 @@ pub struct BivalentOwned {
     pub ranks: (Rank, DyadRank),
 }
 
+unsafe impl Sync for BivalentOwned {}
+unsafe impl Send for BivalentOwned {}
+
 impl PartialImpl {
     pub fn name(&self) -> String {
         match &*self.def {

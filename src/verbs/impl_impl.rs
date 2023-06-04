@@ -126,15 +126,42 @@ impl VerbImpl {
                     log::debug!("Fork {:?} {:?} {:?}", f, g, h);
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(ctx, x, y));
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
-                    let f = match f {
-                        VerbImpl::Cap => None,
-                        _ => Some(f.exec(ctx, x, y).context("fork impl (f)")?),
-                    };
-                    // TODO: it's very unclear to me that this should be a recursive call,
-                    // TODO: and not exec() with some mapping like elsewhere
-                    let ny = h.exec(ctx, x, y).context("fork impl (h)")?;
-                    g.partial_exec(ctx, f.as_ref(), &ny)
-                        .context("fork impl (g)")
+                    match (f, h) {
+                        (VerbImpl::Primitive(_f), VerbImpl::Primitive(_h)) => {
+                            // f and h are primitives so execute in parallel (no global assignments to worry about)
+                            crossbeam::scope(|s| {
+                                let thread_l = s.spawn(|_| match f {
+                                    VerbImpl::Cap => None,
+                                    _ => {
+                                        // empty ctx ok for known primitive
+                                        let mut _ctx = Ctx::root();
+                                        Some(f.exec(&mut _ctx, x, y).context("fork impl (f)").unwrap())
+                                    },
+                                });
+                                let thread_r = s
+                                    .spawn(|_| {
+                                        let mut _ctx = Ctx::root();
+                                        h.exec(&mut _ctx, x, y).context("fork impl (h)").unwrap()
+                            });
+
+                                let f = thread_l.join().unwrap();
+                                let ny = thread_r.join().unwrap();
+                                g.partial_exec(ctx, f.as_ref(), &ny)
+                                    .context("fork impl (g)")
+                            })
+                            .unwrap()
+                        }
+                        _ => {
+                            let f = match f {
+                                VerbImpl::Cap => None,
+                                _ => Some(f.exec(ctx, x, y).context("fork impl (f)").unwrap()),
+                            };
+                            let ny = h.exec(ctx, x, y).context("fork impl (h)").unwrap();
+
+                            g.partial_exec(ctx, f.as_ref(), &ny)
+                                .context("fork impl (g)")
+                        }
+                    }
                 }
                 (Noun(m), Verb(g), Verb(h)) => {
                     // TODO: it's very unclear to me that this should be a recursive call,

@@ -38,3 +38,4 @@ rustyline-derive = { version = "0.7", optional = true }
 femtovg = { version = "0.3", default-features = false, features = ["glutin"], optional = true }
 glutin = { version = "0.28", optional = true }
 winit = { version = "0.26", optional = true }
+crossbeam = "0.8.2"
