@@ -33,9 +33,6 @@ pub enum ModifierImpl {
     },
 }
 
-unsafe impl Sync for ModifierImpl {}
-unsafe impl Send for ModifierImpl {}
-
 impl ModifierImpl {
     pub fn form_conjunction(&self, ctx: &mut Ctx, u: &Word, v: &Word) -> Result<(bool, Word)> {
         Ok(match self {
