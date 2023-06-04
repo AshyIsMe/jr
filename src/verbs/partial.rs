@@ -10,7 +10,8 @@ use crate::{Ctx, JArray, JError, Word};
 
 use super::ranks::{DyadRank, Rank};
 
-pub type BivalentOwnedF = Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray>>;
+pub type BivalentOwnedF =
+    Arc<dyn Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + Sync + Send>;
 
 #[derive(Clone)]
 pub struct PartialImpl {
@@ -30,9 +31,6 @@ pub struct BivalentOwned {
     pub biv: BivalentOwnedF,
     pub ranks: (Rank, DyadRank),
 }
-
-unsafe impl Sync for BivalentOwned {}
-unsafe impl Send for BivalentOwned {}
 
 impl PartialImpl {
     pub fn name(&self) -> String {
@@ -58,13 +56,13 @@ impl PartialEq for PartialImpl {
 
 impl BivalentOwned {
     pub fn from_bivalent(
-        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone,
+        f: impl Fn(&mut Ctx, Option<&JArray>, &JArray) -> Result<JArray> + 'static + Clone + Sync + Send,
     ) -> BivalentOwnedF {
         Arc::new(move |ctx, x, y| f(ctx, x, y))
     }
 
     pub fn from_monad(
-        f: impl Fn(&mut Ctx, &JArray) -> Result<JArray> + 'static + Clone,
+        f: impl Fn(&mut Ctx, &JArray) -> Result<JArray> + 'static + Clone + Sync + Send,
     ) -> BivalentOwnedF {
         Arc::new(move |ctx, x, y| {
             ensure_monad(x)?;
