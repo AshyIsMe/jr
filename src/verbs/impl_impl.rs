@@ -135,14 +135,17 @@ impl VerbImpl {
                                     _ => {
                                         // empty ctx ok for known primitive
                                         let mut _ctx = Ctx::root();
-                                        Some(f.exec(&mut _ctx, x, y).context("fork impl (f)").unwrap())
-                                    },
+                                        Some(
+                                            f.exec(&mut _ctx, x, y)
+                                                .context("fork impl (f)")
+                                                .unwrap(),
+                                        )
+                                    }
                                 });
-                                let thread_r = s
-                                    .spawn(|_| {
-                                        let mut _ctx = Ctx::root();
-                                        h.exec(&mut _ctx, x, y).context("fork impl (h)").unwrap()
-                            });
+                                let thread_r = s.spawn(|_| {
+                                    let mut _ctx = Ctx::root();
+                                    h.exec(&mut _ctx, x, y).context("fork impl (h)").unwrap()
+                                });
 
                                 let f = thread_l.join().unwrap();
                                 let ny = thread_r.join().unwrap();
