@@ -39,3 +39,10 @@ femtovg = { version = "0.3", default-features = false, features = ["glutin"], op
 glutin = { version = "0.28", optional = true }
 winit = { version = "0.26", optional = true }
 crossbeam = "0.8.2"
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[[bench]]
+name = "benchmaths"
+harness = false
