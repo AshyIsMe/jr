@@ -19,8 +19,8 @@ use anyhow::{anyhow, ensure, Context, Result};
 use itertools::Itertools;
 use ndarray::prelude::*;
 use ndarray::Axis;
-use num_traits::FloatConst;
 use num::BigRational;
+use num_traits::FloatConst;
 use try_partialord::TrySort;
 
 use JArray::*;
@@ -392,7 +392,11 @@ pub fn v_catalogue(y: &JArray) -> Result<JArray> {
                 .map(|a| v_open(&a).unwrap())
                 .collect();
             let p_tally: Vec<usize> = pools.iter().map(|a| a.tally().into()).collect();
-            let p_shape: Vec<usize> = pools.iter().map(|a| <&[usize] as Into<Vec<usize>>>::into(a.shape())).flatten().collect();
+            let p_shape: Vec<usize> = pools
+                .iter()
+                .map(|a| <&[usize] as Into<Vec<usize>>>::into(a.shape()))
+                .flatten()
+                .collect();
             let mut result: Vec<Vec<Elem>> = vec![vec![]];
             for p in pools {
                 let mut l: Vec<Vec<Elem>> = vec![vec![]];
@@ -702,10 +706,13 @@ pub fn v_extend_precision(y: &JArray) -> Result<JArray> {
         IntArray(_a) => j_monad_eval("1x&*", y),
         ExtIntArray(_a) => Ok(y.clone()),
         RationalArray(_a) => Ok(y.clone()),
-        FloatArray(a) => Ok(JArray::from_list(a.iter().map(|i|{
-            BigRational::from_float(*i).unwrap()
-        }).collect::<Vec<BigRational>>()).reshape(y.shape())?),
-        _ => Err(JError::DomainError.into())
+        FloatArray(a) => Ok(JArray::from_list(
+            a.iter()
+                .map(|i| BigRational::from_float(*i).unwrap())
+                .collect::<Vec<BigRational>>(),
+        )
+        .reshape(y.shape())?),
+        _ => Err(JError::DomainError.into()),
     }
 }
 /// x: (dyad)

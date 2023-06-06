@@ -676,3 +676,10 @@ x: 1r5 * i.2 3
 3!:0 x: 1r5 * i.2 3
 x: 1 0 1
 3!:0 x: 1 0 1
+
+NB. fork sanity checking
+NB. primitive forks run in parallel vs others synchronous
+(+/%#) i. 10
+({{+/y}}%{{#y}}) i. 10
+2 (*-+) i.10
+2 ({{x*y}}-+) i.10

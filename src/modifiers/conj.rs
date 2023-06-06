@@ -55,7 +55,7 @@ impl fmt::Debug for WordyConjunction {
 
 #[derive(Clone)]
 pub struct OwnedAdverb {
-    pub f: Arc<dyn Fn(&mut Ctx, &Word) -> Result<Word>>,
+    pub f: Arc<dyn Fn(&mut Ctx, &Word) -> Result<Word> + Sync + Send>,
 }
 
 impl PartialEq for OwnedAdverb {
@@ -72,7 +72,7 @@ impl fmt::Debug for OwnedAdverb {
 
 #[derive(Clone)]
 pub struct OwnedConjunction {
-    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word>>,
+    pub f: Arc<dyn Fn(&mut Ctx, Option<&Word>, &Word) -> Result<Word> + Sync + Send>,
 }
 
 impl PartialEq for OwnedConjunction {
