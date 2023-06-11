@@ -132,6 +132,22 @@ macro_rules! map_array {
 }
 
 #[macro_export]
+macro_rules! map_array_num {
+    ($arr:ident, $func:expr) => {
+        match $arr {
+            JArray::BoolArray(a) => Some(JArray::BoolArray($func(a))),
+            JArray::IntArray(a) => Some(JArray::IntArray($func(a))),
+            JArray::ExtIntArray(a) => Some(JArray::ExtIntArray($func(a))),
+            JArray::RationalArray(a) => Some(JArray::RationalArray($func(a))),
+            JArray::FloatArray(a) => Some(JArray::FloatArray($func(a))),
+            JArray::ComplexArray(a) => Some(JArray::ComplexArray($func(a))),
+            JArray::CharArray(_) => None,
+            JArray::BoxArray(_) => None,
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! map_kind {
     ($kind:ident, $func:expr) => {
         match $kind {

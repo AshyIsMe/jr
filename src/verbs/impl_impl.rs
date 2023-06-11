@@ -1,13 +1,14 @@
 use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context, Result};
+use ndarray::ArrayBase;
 
 use super::ranks::Rank;
 use crate::cells::{apply_cells, fill_promote_reshape, generate_cells, monad_apply, monad_cells};
 use crate::number::float_is_int;
 use crate::verbs::primitive::PrimitiveImpl;
 use crate::verbs::{DyadRank, PartialDef, PartialImpl};
-use crate::{arr0ad, primitive_verbs, Ctx, JArray, JError, Num, Word};
+use crate::{arr0ad, map_array_num, primitive_verbs, Ctx, JArray, JError, Num, Word};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VerbImpl {
@@ -217,6 +218,15 @@ impl VerbImpl {
             VerbImpl::Primitive(imp) => imp.inverse.and_then(primitive_verbs),
             _ => None,
         }
+    }
+
+    pub fn fast_between(&self, _ctx: &mut Ctx, y: &JArray) -> Result<Option<JArray>> {
+        Ok(match self {
+            VerbImpl::Primitive(p) if p.name == "+" && y.shape().len() <= 1 => {
+                map_array_num!(y, |y: &ArrayBase<_, _>| arr0ad(y.sum()))
+            }
+            _ => None,
+        })
     }
 
     pub fn token(&self) -> Option<&str> {
