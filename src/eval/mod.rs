@@ -8,10 +8,13 @@ use std::borrow::Borrow;
 use std::collections::VecDeque;
 use std::iter::repeat;
 
+use crate::verbs::j_monad_eval;
 use crate::{arr0ad, Ctx, JArray};
 use anyhow::{anyhow, bail, Context, Result};
 use itertools::Itertools;
 use log::{debug, trace};
+
+use ndarray::{ArcArray, IxDyn};
 
 use crate::error::JError;
 // TODO: oh come on, this is clearly an eval concept
@@ -201,10 +204,24 @@ pub fn eval_suspendable(sentence: Vec<Word>, ctx: &mut Ctx) -> Result<EvalOutput
                     return Ok(EvalOutput::Return(v));
                 }
             },
-            (AssertLine(def), b, c, d) => {
-                let _word = eval_lines(&def, ctx).context("assert body")?;
-                // TODO: actually assert
-                Ok(vec![b, c, d])
+            (AssertLine(def), _b, _c, _d) => {
+                let word = eval_lines(&def, ctx).context("assert body")?;
+                // Signals assertion failure if followed by a noun which is neither Boolean (1) nor an array: (1 1 1 …) of all 1's.
+                match word.into_word() {
+                    Word::Noun(JArray::BoolArray(b)) => {
+                        if j_monad_eval("(*./@:(1&=)@:,)", &JArray::BoolArray(b)).unwrap()
+                            == JArray::from(arr0ad(1u8))
+                        {
+                            // Strangely jsource's assert. seems to return 0 0 $ 0
+                            Ok(vec![Word::Noun(JArray::BoolArray(
+                                ArcArray::from_shape_vec(IxDyn(&[0, 0]), [].to_vec())?,
+                            ))])
+                        } else {
+                            Err(JError::AssertionFailure.into())
+                        }
+                    }
+                    _ => Err(JError::AssertionFailure.into()),
+                }
             }
             (ForBlock(style, def), b, c, d) => {
                 match control_for(ctx, style.as_ref().map(String::as_str), &def)? {

@@ -683,3 +683,6 @@ NB. primitive forks run in parallel vs others synchronous
 ({{+/y}}%{{#y}}) i. 10
 2 (*-+) i.10
 2 ({{x*y}}-+) i.10
+
+NB. assert. 1
+3 : 'assert. 2 3 4 $ 1 [ y' 42

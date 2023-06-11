@@ -2228,6 +2228,11 @@ output = '''
 encoded = 'e3,08,01,,0000000000003e4'
 
 [[runs]]
+expr = '''3 : 'assert. 2 3 4 $ 1 [ y' 42'''
+output = ''
+encoded = 'e3,01,,02,,,'
+
+[[runs]]
 expr = '3 < 5'
 output = '''
 1
