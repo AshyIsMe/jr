@@ -100,15 +100,7 @@ impl VerbImpl {
     ) -> Result<VerbResult> {
         use Word::*;
         match self {
-            VerbImpl::Primitive(imp) => match x {
-                None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("monadic {:?}", imp.name)),
-                Some(x) => exec_dyad_inner(imp.dyad.f, imp.dyad.rank, x, y)
-                    .with_context(|| anyhow!("x: {x:?}"))
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("dyadic {:?}", imp.name)),
-            },
+            VerbImpl::Primitive(imp) => partial_exec_primitive(imp, x, y),
             VerbImpl::Partial(p) => {
                 let biv = &p.imp.biv;
                 match x {
@@ -135,20 +127,16 @@ impl VerbImpl {
                                     _ => {
                                         // empty ctx ok for known primitive
                                         let mut _ctx = Ctx::root();
-                                        Some(
-                                            f.exec(&mut _ctx, x, y)
-                                                .context("fork impl (f)")
-                                                .unwrap(),
-                                        )
+                                        Some(f.exec(&mut _ctx, x, y).context("fork impl (f)"))
                                     }
                                 });
                                 let thread_r = s.spawn(|_| {
                                     let mut _ctx = Ctx::root();
-                                    h.exec(&mut _ctx, x, y).context("fork impl (h)").unwrap()
+                                    h.exec(&mut _ctx, x, y).context("fork impl (h)")
                                 });
 
-                                let f = thread_l.join().unwrap();
-                                let ny = thread_r.join().unwrap();
+                                let f = thread_l.join().expect("thread_l panic").transpose()?;
+                                let ny = thread_r.join().expect("thread_r panic")?;
                                 g.partial_exec(ctx, f.as_ref(), &ny)
                                     .context("fork impl (g)")
                             })
@@ -295,4 +283,20 @@ pub fn stringify(def: &[Word]) -> String {
         ret.push_str(" ");
     }
     ret
+}
+
+pub fn partial_exec_primitive(
+    imp: &PrimitiveImpl,
+    x: Option<&JArray>,
+    y: &JArray,
+) -> Result<VerbResult> {
+    match x {
+        None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
+            .with_context(|| anyhow!("y: {y:?}"))
+            .with_context(|| anyhow!("monadic {:?}", imp.name)),
+        Some(x) => exec_dyad_inner(imp.dyad.f, imp.dyad.rank, x, y)
+            .with_context(|| anyhow!("x: {x:?}"))
+            .with_context(|| anyhow!("y: {y:?}"))
+            .with_context(|| anyhow!("dyadic {:?}", imp.name)),
+    }
 }
