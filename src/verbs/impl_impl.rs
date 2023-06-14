@@ -100,15 +100,7 @@ impl VerbImpl {
     ) -> Result<VerbResult> {
         use Word::*;
         match self {
-            VerbImpl::Primitive(imp) => match x {
-                None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("monadic {:?}", imp.name)),
-                Some(x) => exec_dyad_inner(imp.dyad.f, imp.dyad.rank, x, y)
-                    .with_context(|| anyhow!("x: {x:?}"))
-                    .with_context(|| anyhow!("y: {y:?}"))
-                    .with_context(|| anyhow!("dyadic {:?}", imp.name)),
-            },
+            VerbImpl::Primitive(imp) => partial_exec_primitive(imp, x, y),
             VerbImpl::Partial(p) => {
                 let biv = &p.imp.biv;
                 match x {
@@ -127,30 +119,17 @@ impl VerbImpl {
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, f, y, f.exec(ctx, x, y));
                     log::debug!("{:?} {:?} {:?}:\n{:?}", x, h, y, h.exec(ctx, x, y));
                     match (f, h) {
-                        (VerbImpl::Primitive(_f), VerbImpl::Primitive(_h)) => {
+                        (VerbImpl::Primitive(f), VerbImpl::Primitive(h)) => {
                             // f and h are primitives so execute in parallel (no global assignments to worry about)
                             crossbeam::scope(|s| {
-                                let thread_l = s.spawn(|_| match f {
-                                    VerbImpl::Cap => None,
-                                    _ => {
-                                        // empty ctx ok for known primitive
-                                        let mut _ctx = Ctx::root();
-                                        Some(
-                                            f.exec(&mut _ctx, x, y)
-                                                .context("fork impl (f)")
-                                                .unwrap(),
-                                        )
-                                    }
-                                });
-                                let thread_r = s.spawn(|_| {
-                                    let mut _ctx = Ctx::root();
-                                    h.exec(&mut _ctx, x, y).context("fork impl (h)").unwrap()
-                                });
+                                let thread_l =
+                                    s.spawn(|_| exec_primitive(f, x, y).context("fork impl (f)"));
+                                let thread_r =
+                                    s.spawn(|_| exec_primitive(h, x, y).context("fork impl (h)"));
 
-                                let f = thread_l.join().unwrap();
-                                let ny = thread_r.join().unwrap();
-                                g.partial_exec(ctx, f.as_ref(), &ny)
-                                    .context("fork impl (g)")
+                                let nx = thread_l.join().expect("thread_l panic")?;
+                                let ny = thread_r.join().expect("thread_r panic")?;
+                                g.partial_exec(ctx, Some(&nx), &ny).context("fork impl (g)")
                             })
                             .unwrap()
                         }
@@ -295,4 +274,24 @@ pub fn stringify(def: &[Word]) -> String {
         ret.push_str(" ");
     }
     ret
+}
+
+fn exec_primitive(imp: &PrimitiveImpl, x: Option<&JArray>, y: &JArray) -> Result<JArray> {
+    fill_promote_reshape(partial_exec_primitive(imp, x, y)?)
+}
+
+fn partial_exec_primitive(
+    imp: &PrimitiveImpl,
+    x: Option<&JArray>,
+    y: &JArray,
+) -> Result<VerbResult> {
+    match x {
+        None => exec_monad_inner(imp.monad.f, imp.monad.rank, y)
+            .with_context(|| anyhow!("y: {y:?}"))
+            .with_context(|| anyhow!("monadic {:?}", imp.name)),
+        Some(x) => exec_dyad_inner(imp.dyad.f, imp.dyad.rank, x, y)
+            .with_context(|| anyhow!("x: {x:?}"))
+            .with_context(|| anyhow!("y: {y:?}"))
+            .with_context(|| anyhow!("dyadic {:?}", imp.name)),
+    }
 }
