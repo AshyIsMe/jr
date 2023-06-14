@@ -32,6 +32,9 @@ pub enum JArrayKind {
     Box,
 }
 
+// AA TODO - impl ops::Add/Sub/Mul/Div for JArray similar to Num???
+// Would need to re-implement agreement but it'd mean SIMD would work possibly
+
 #[derive(Clone)]
 pub enum JArray {
     BoolArray(ArcArrayD<u8>),
