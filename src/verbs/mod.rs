@@ -592,22 +592,41 @@ pub fn v_integers(y: &JArray) -> Result<JArray> {
     }
     Ok(JArray::IntArray(arr.into_shared()))
 }
+
 /// i. (dyad)
+// https://code.jsoftware.com/wiki/Vocabulary/idot#dyadic
+// https://code.jsoftware.com/wiki/Vocabulary/IFamily#Internal_rank
 pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
-    if x.shape().len() > 1 {
+    // The search space is treated as a list of it's items
+    let item_shape = &x.shape()[1..];
+    // dbg!(x.shape());
+    // dbg!(item_shape);
+    if x.shape().len() == 1 {
+        // TODO: get rid of this special case and handle genericly
+        let x = x.clone().into_elems();
+        let output_shape = y.shape();
+        let y = y
+            .clone()
+            .into_elems()
+            .into_iter()
+            .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
+            .map(|o| i64::try_from(o).expect("arrays that fit in memory"))
+            .collect_vec();
+        JArray::from_list(y).reshape(output_shape)
+    } else if y.shape().len() < item_shape.len() {
+        return v_tally(x);
+    } else if y.shape().len() == item_shape.len() {
+        let searchspace = x.clone().rank_iter(item_shape.len().try_into().unwrap());
+        for i in searchspace.iter().filter(|i| i == &y).enumerate().take(1) {
+            // dbg!(i);
+            return Ok(JArray::from(Num::Int(i.0 as i64)));
+        }
+        return v_tally(x);
+    // } else if x.shape().len() == 1 && y.shape().len() == 1 {
+    } else {
         return Err(JError::NonceError)
-            .with_context(|| anyhow!("input x must be a list, not {x:?} for {y:?}"));
+            .with_context(|| anyhow!("TODO Handle y.rank() > item.rank(), not {x:?} for {y:?}"));
     }
-    let x = x.clone().into_elems();
-    let output_shape = y.shape();
-    let y = y
-        .clone()
-        .into_elems()
-        .into_iter()
-        .map(|y| x.iter().position(|x| x == &y).unwrap_or(x.len()))
-        .map(|o| i64::try_from(o).expect("arrays that fit in memory"))
-        .collect_vec();
-    JArray::from_list(y).reshape(output_shape)
 }
 
 /// E. (dyad) (_, _)

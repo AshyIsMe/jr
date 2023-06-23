@@ -539,6 +539,8 @@ i. _2 _3
 NB. index of
 'ABCXYZ' i. (3 4 $ 'AYBXCZQAYBCA')
 'ABCXYZ' i."_ 0 (3 2 $ 'AYBXCZ')
+(i.2 3 3) i. i. 2 3
+(i.2 3 3) i. i. 3 3
 
 NB. indexes (bool)
 I. 0 0 1 0 1 0
