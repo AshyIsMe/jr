@@ -617,9 +617,11 @@ pub fn v_index_of(x: &JArray, y: &JArray) -> Result<JArray> {
         return v_tally(x);
     } else if y.shape().len() == item_shape.len() {
         let searchspace = x.clone().rank_iter(item_shape.len().try_into().unwrap());
-        for i in searchspace.iter().filter(|i| i == &y).enumerate().take(1) {
+        for i in searchspace.iter().enumerate() {
             // dbg!(i);
-            return Ok(JArray::from(Num::Int(i.0 as i64)));
+            if i.1 == y {
+                return Ok(JArray::from(Num::Int(i.0 as i64)));
+            }
         }
         return v_tally(x);
     // } else if x.shape().len() == 1 && y.shape().len() == 1 {
