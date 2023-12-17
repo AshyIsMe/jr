@@ -72,4 +72,10 @@ cargo test
 
 # quick run
 cargo run
+
+# debug logs
+RUST_LOG=jr=debug cargo run
 ```
+
+
+
